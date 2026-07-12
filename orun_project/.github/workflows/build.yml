@@ -1,0 +1,56 @@
+name: Build installers
+
+# Builds real installers for all 3 platforms on push of a version tag
+# (e.g. `git tag v0.1.0 && git push --tags`) and publishes them as a
+# GitHub Release. This is also what makes the in-app "Check for updates"
+# button and auto-update actually work — electron-updater reads releases
+# from this same repo (see build.publish in package.json).
+#
+# Manual runs (workflow_dispatch) build installers as downloadable
+# artifacts without creating a release, useful for testing before tagging.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Build installer (release, tag push)
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: npx electron-builder --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build installer (artifact only, manual run)
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        run: npx electron-builder --publish never
+
+      - name: Upload artifact
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: orun-os-${{ matrix.os }}
+          path: |
+            release/*.exe
+            release/*.dmg
+            release/*.AppImage
+          if-no-files-found: ignore
