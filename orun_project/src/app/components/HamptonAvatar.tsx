@@ -1,6 +1,31 @@
+import { useEffect, useState } from "react";
 import type { HamptonState } from "../types";
 
 export function HamptonAvatar({ state }: { state: HamptonState }) {
+  const [blinkOpen, setBlinkOpen] = useState(true);
+  const [mouthOpen, setMouthOpen] = useState(false);
+
+  // Blink every 3-5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setBlinkOpen(false);
+      setTimeout(() => setBlinkOpen(true), 120);
+    }, 3000 + Math.random() * 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Mouth movement when speaking
+  useEffect(() => {
+    if (state !== "speaking") { setMouthOpen(false); return; }
+    const interval = setInterval(() => setMouthOpen((p) => !p), 180);
+    return () => { clearInterval(interval); setMouthOpen(false); };
+  }, [state]);
+
+  const eyeScaleY = blinkOpen ? 1 : 0.1;
+  const speaking = state === "speaking";
+  const thinking = state === "thinking";
+  const listening = state === "listening";
+
   return (
     <div
       className="relative flex items-center justify-center select-none"
@@ -13,16 +38,36 @@ export function HamptonAvatar({ state }: { state: HamptonState }) {
           width: 340, height: 280,
           background: "radial-gradient(ellipse, rgba(192,0,24,0.11) 0%, transparent 70%)",
           top: "50%", left: "50%", transform: "translate(-50%, -38%)",
-          animation: `orunAuraPulse ${state === "thinking" ? "1.2s" : "3.5s"} ease-in-out infinite`,
+          animation: `orunAuraPulse ${thinking ? "1.2s" : "3.5s"} ease-in-out infinite`,
         }}
       />
 
       {/* Listening ripple rings */}
-      {state === "listening" && (
+      {listening && (
         <>
           <div className="absolute rounded-full pointer-events-none" style={{ width: 180, height: 180, border: "1px solid rgba(192,0,24,0.35)", top: "50%", left: "50%", marginLeft: -90, marginTop: -70, animation: "orunRipple 2s ease-out infinite" }} />
           <div className="absolute rounded-full pointer-events-none" style={{ width: 180, height: 180, border: "1px solid rgba(192,0,24,0.25)", top: "50%", left: "50%", marginLeft: -90, marginTop: -70, animation: "orunRipple 2s ease-out 0.6s infinite" }} />
         </>
+      )}
+
+      {/* Idle breathing particles */}
+      {state === "idle" && (
+        <div className="absolute pointer-events-none" style={{ top: "30%", left: "50%", transform: "translateX(-50%)" }}>
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="absolute rounded-full"
+              style={{
+                width: 2, height: 2,
+                background: "#C00018",
+                opacity: 0.3,
+                left: `${(i - 1) * 20}px`,
+                animation: `orunFloat ${3 + i * 0.5}s ease-in-out infinite`,
+                animationDelay: `${i * 0.8}s`,
+              }}
+            />
+          ))}
+        </div>
       )}
 
       <svg width="300" height="355" viewBox="0 0 300 355" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -61,7 +106,6 @@ export function HamptonAvatar({ state }: { state: HamptonState }) {
         <polygon points="48,180 30,16 138,164" fill="#0b0b0b" stroke="#1e1e1e" strokeWidth="1" />
         <polygon points="58,173 50,46 126,166" fill="rgba(192,0,24,0.09)" />
         <line x1="50" y1="46" x2="126" y2="166" stroke="#C00018" strokeWidth="0.6" opacity="0.3" />
-        {/* Left ear tip glow */}
         <circle cx="30" cy="16" r="3" fill="#C00018" opacity="0.2" filter="url(#h-armorGlow)" />
 
         {/* ─ RIGHT EAR ─ */}
@@ -98,39 +142,42 @@ export function HamptonAvatar({ state }: { state: HamptonState }) {
         <ellipse cx="108" cy="222" rx="26" ry="16" fill="#C00018" opacity="0.18"
           filter="url(#h-eyeGlow)"
           style={{ animation: "orunEyePulse 2.8s ease-in-out infinite" }} />
-        <ellipse cx="108" cy="222" rx="20" ry="13" fill="url(#h-eye)" filter="url(#h-eyeGlow)" />
-        {/* Vertical slit pupil */}
-        <ellipse cx="108" cy="222" rx="5" ry="10" fill="#020008" />
-        {/* Eye shine */}
+        <ellipse cx="108" cy="222" rx="20" ry={13 * eyeScaleY} fill="url(#h-eye)" filter="url(#h-eyeGlow)"
+          style={{ transition: "ry 0.08s ease" }} />
+        <ellipse cx="108" cy="222" rx="5" ry={10 * eyeScaleY} fill="#020008"
+          style={{ transition: "ry 0.08s ease" }} />
         <ellipse cx="103" cy="217" rx="3" ry="2" fill="rgba(255,190,190,0.55)" />
 
         {/* ─ RIGHT EYE ─ */}
         <ellipse cx="192" cy="222" rx="26" ry="16" fill="#C00018" opacity="0.18"
           filter="url(#h-eyeGlow)"
           style={{ animation: "orunEyePulse 2.8s ease-in-out infinite" }} />
-        <ellipse cx="192" cy="222" rx="20" ry="13" fill="url(#h-eye)" filter="url(#h-eyeGlow)" />
-        <ellipse cx="192" cy="222" rx="5" ry="10" fill="#020008" />
+        <ellipse cx="192" cy="222" rx="20" ry={13 * eyeScaleY} fill="url(#h-eye)" filter="url(#h-eyeGlow)"
+          style={{ transition: "ry 0.08s ease" }} />
+        <ellipse cx="192" cy="222" rx="5" ry={10 * eyeScaleY} fill="#020008"
+          style={{ transition: "ry 0.08s ease" }} />
         <ellipse cx="187" cy="217" rx="3" ry="2" fill="rgba(255,190,190,0.55)" />
 
         {/* ─ SNOUT / MUZZLE ─ */}
         <ellipse cx="150" cy="260" rx="50" ry="38" fill="#0f0f0f" stroke="#1a1a1a" strokeWidth="0.5" />
-        {/* Muzzle split line */}
         <line x1="150" y1="246" x2="150" y2="270" stroke="#191919" strokeWidth="0.5" />
         {/* Nose */}
         <ellipse cx="150" cy="275" rx="14" ry="9" fill="#171717" stroke="#222222" strokeWidth="1" />
         <ellipse cx="144" cy="274" rx="3.5" ry="2.5" fill="#0a0a0a" />
         <ellipse cx="156" cy="274" rx="3.5" ry="2.5" fill="#0a0a0a" />
-        {/* Mouth */}
-        <path d="M 132,290 Q 150,299 168,290" stroke="#1e1e1e" strokeWidth="1" fill="none" />
+        {/* Mouth — opens when speaking */}
+        {mouthOpen ? (
+          <ellipse cx="150" cy="292" rx="14" ry="5" fill="#0a0a0a" stroke="#1e1e1e" strokeWidth="0.8" />
+        ) : (
+          <path d="M 132,290 Q 150,299 168,290" stroke="#1e1e1e" strokeWidth="1" fill="none" />
+        )}
 
         {/* ─ NECK / THROAT ─ */}
         <polygon points="118,318 134,336 150,342 166,336 182,318 168,304 150,312 132,304" fill="#0d0d0d" stroke="#1a1a1a" strokeWidth="0.5" />
 
         {/* ─ CHEST ARMOR ─ */}
         <polygon points="66,320 80,346 220,346 234,320 150,335" fill="#0d0d0d" stroke="#1d1d1d" strokeWidth="1" />
-        {/* Left shoulder plate */}
         <polygon points="28,346 66,320 80,346" fill="#0b0b0b" stroke="#C00018" strokeWidth="0.6" opacity="0.35" />
-        {/* Right shoulder plate */}
         <polygon points="272,346 234,320 220,346" fill="#0b0b0b" stroke="#C00018" strokeWidth="0.6" opacity="0.35" />
         {/* Armor glow lines */}
         <line x1="118" y1="338" x2="150" y2="328"
@@ -148,8 +195,28 @@ export function HamptonAvatar({ state }: { state: HamptonState }) {
       </svg>
 
       {/* Thinking — vertical beam above head */}
-      {state === "thinking" && (
+      {thinking && (
         <div className="absolute" style={{ width: 1.5, height: 36, background: "linear-gradient(to top, #C00018, transparent)", top: -40, left: "50%", borderRadius: 1, animation: "orunArmorPulse 0.9s ease-in-out infinite" }} />
+      )}
+
+      {/* Speaking — voice wave lines */}
+      {speaking && (
+        <div className="absolute pointer-events-none" style={{ bottom: 30, left: "50%", transform: "translateX(-50%)", display: "flex", gap: 3 }}>
+          {[0, 1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              style={{
+                width: 2,
+                height: 8 + Math.random() * 12,
+                background: "#C00018",
+                borderRadius: 1,
+                opacity: 0.5,
+                animation: `orunArmorPulse ${0.3 + i * 0.1}s ease-in-out infinite`,
+                animationDelay: `${i * 0.05}s`,
+              }}
+            />
+          ))}
+        </div>
       )}
     </div>
   );
