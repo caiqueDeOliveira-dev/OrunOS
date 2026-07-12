@@ -1,14 +1,5 @@
 name: Build installers
 
-# Builds real installers for all 3 platforms on push of a version tag
-# (e.g. `git tag v0.1.0 && git push --tags`) and publishes them as a
-# GitHub Release. This is also what makes the in-app "Check for updates"
-# button and auto-update actually work — electron-updater reads releases
-# from this same repo (see build.publish in package.json).
-#
-# Manual runs (workflow_dispatch) build installers as downloadable
-# artifacts without creating a release, useful for testing before tagging.
-
 on:
   push:
     tags:
@@ -21,6 +12,9 @@ jobs:
       matrix:
         os: [windows-latest, macos-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: orun_project
     steps:
       - uses: actions/checkout@v4
 
@@ -42,11 +36,11 @@ jobs:
         with:
           name: orun-os-${{ matrix.os }}
           path: |
-            release/*.exe
-            release/*.dmg
-            release/*.AppImage
-            release/*.yml
-            release/*.yaml
+            orun_project/release/*.exe
+            orun_project/release/*.dmg
+            orun_project/release/*.AppImage
+            orun_project/release/*.yml
+            orun_project/release/*.yaml
           if-no-files-found: ignore
 
   publish:
