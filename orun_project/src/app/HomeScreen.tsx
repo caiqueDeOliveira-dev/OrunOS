@@ -16,6 +16,9 @@ import { VoicesPicker } from "./components/VoicesPicker";
 import { ModelPicker } from "./components/ModelPicker";
 import { WhatsAppPanel } from "./components/WhatsAppPanel";
 import { AgentDataPanel } from "./components/AgentDataPanel";
+import { ProjectsPanel } from "./components/ProjectsPanel";
+import { FilesPanel } from "./components/FilesPanel";
+import { MemoryPanel } from "./components/MemoryPanel";
 import { getHamptonReplies, isElectron, getAgents } from "./constants";
 import type { HamptonState, Message } from "./types";
 
@@ -37,6 +40,9 @@ export function HomeScreen() {
   const [modelPickerOpen, setModelPickerOpen] = useState(false);
   const [whatsappOpen, setWhatsappOpen] = useState(false);
   const [agentDataOpen, setAgentDataOpen] = useState<string | null>(null);
+  const [projectsOpen, setProjectsOpen] = useState(false);
+  const [filesOpen, setFilesOpen] = useState(false);
+  const [memoryOpen, setMemoryOpen] = useState(false);
   const [speechEnabled, setSpeechEnabled] = useState(true);
   const [hasVoiceConfigured, setHasVoiceConfigured] = useState(false);
   const [hamptonState, setHamptonState] = useState<HamptonState>("idle");
@@ -110,6 +116,9 @@ export function HomeScreen() {
     setAgentsOpen(id === "agents");
     if (id === "agents") setHistoryOpen(false);
     if (id === "automation") setAutomationOpen(true);
+    if (id === "projects") setProjectsOpen(true);
+    if (id === "files") setFilesOpen(true);
+    if (id === "memory") setMemoryOpen(true);
   };
 
   const startNewChat = () => {
@@ -356,6 +365,9 @@ export function HomeScreen() {
         {modelPickerOpen && <ModelPicker onClose={() => setModelPickerOpen(false)} />}
         {whatsappOpen && <WhatsAppPanel onClose={() => setWhatsappOpen(false)} />}
         {agentDataOpen && <AgentDataPanel agent={agentDataOpen as any} onClose={() => setAgentDataOpen(null)} />}
+        {projectsOpen && <ProjectsPanel onClose={() => { setProjectsOpen(false); setActiveNav("home"); }} />}
+        {filesOpen && <FilesPanel onClose={() => { setFilesOpen(false); setActiveNav("home"); }} />}
+        {memoryOpen && <MemoryPanel onClose={() => { setMemoryOpen(false); setActiveNav("home"); }} />}
       </AnimatePresence>
 
       {anyPanelOpen && <div className="fixed inset-0 z-20" onClick={() => { setAgentsOpen(false); setHistoryOpen(false); setActiveNav("home"); }} />}
