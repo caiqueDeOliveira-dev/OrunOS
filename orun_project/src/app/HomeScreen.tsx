@@ -62,6 +62,7 @@ export function HomeScreen() {
   const audioQueueRef = useRef<Promise<void>>(Promise.resolve());
   const recognitionRef = useRef<any>(null);
   const wakeRecognitionRef = useRef<any>(null);
+  const sttSettingsRef = useRef<{ engine: string; baseUrl?: string } | null>(null);
 
   // ── TTS settings + queued sentence playback ─────────────────────────────
 
@@ -73,6 +74,12 @@ export function HomeScreen() {
   };
   useEffect(() => { refreshTTSSettings(); }, []);
   useEffect(() => { if (!voicesOpen) refreshTTSSettings(); }, [voicesOpen]);
+
+  // STT settings
+  useEffect(() => {
+    if (!isElectron) return;
+    window.orun.settings.get<{ engine: string; baseUrl?: string }>("stt").then((v) => { sttSettingsRef.current = v || null; }).catch(() => {});
+  }, []);
 
   /** Queues a sentence for playback so multiple chunks never overlap. */
   const speak = (text: string) => {
@@ -284,10 +291,55 @@ export function HomeScreen() {
   };
 
   // ── Real mic dictation (push-to-talk) ────────────────────────────────────
+  // Supports two engines: Chromium's built-in (browser) or local Whisper server.
 
-  const handleMicClick = () => {
-    if (!SpeechRecognitionCtor) { setHamptonState(p => p === "listening" ? "idle" : "listening"); return; }
+  const handleMicClick = async () => {
+    // Toggle off if already listening
     if (recognitionRef.current) { recognitionRef.current.stop(); recognitionRef.current = null; setHamptonState("idle"); return; }
+
+    const sttCfg = sttSettingsRef.current;
+    const useLocal = sttCfg?.engine === "whisper" && sttCfg?.baseUrl;
+
+    if (useLocal) {
+      // ── Local Whisper: record audio, then send to local server ────────
+      try {
+        setHamptonState("listening");
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+        const chunks: Blob[] = [];
+        mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+        mediaRecorder.onstop = async () => {
+          stream.getTracks().forEach((t) => t.stop());
+          const blob = new Blob(chunks, { type: "audio/webm" });
+          const reader = new FileReader();
+          reader.onloadend = async () => {
+            const base64 = (reader.result as string).split(",")[1];
+            try {
+              setHamptonState("thinking");
+              const { text } = await window.orun.stt.transcribe({
+                baseUrl: sttCfg!.baseUrl!,
+                audioBase64: base64,
+                mimeType: "audio/webm",
+                language: speechLang.slice(0, 2),
+              });
+              if (text.trim()) handleSend(text.trim());
+              else setHamptonState("idle");
+            } catch {
+              setHamptonState("idle");
+            }
+          };
+          reader.readAsDataURL(blob);
+        };
+        recognitionRef.current = { stop: () => mediaRecorder.stop() };
+        mediaRecorder.start();
+      } catch {
+        setHamptonState("idle");
+      }
+      return;
+    }
+
+    // ── Browser (Chromium SpeechRecognition → Google) ────────────────────
+    if (!SpeechRecognitionCtor) { setHamptonState(p => p === "listening" ? "idle" : "listening"); return; }
     const recognition = new SpeechRecognitionCtor();
     recognition.lang = speechLang;
     recognition.interimResults = false;

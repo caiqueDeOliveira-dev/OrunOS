@@ -19,6 +19,9 @@ const QRCode = require("qrcode");
 let sock = null;
 let currentStatus = "disconnected"; // disconnected | connecting | qr | connected
 let listeners = { onStatus: () => {}, onQR: () => {}, onMessage: () => {} };
+let reconnectTimer = null;
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 10;
 
 function getStatus() {
   return currentStatus;
@@ -31,7 +34,9 @@ function setListeners(l) {
 async function connect(userDataPath) {
   // Lazy-require: baileys pulls in a fair number of transitive deps, no
   // need to pay that cost for people who never touch the WhatsApp feature.
-  const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require("@whiskeysockets/baileys");
+  const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, makeCacheableSignalKeyStore } = require("@whiskeysockets/baileys");
+
+  if (currentStatus === "connecting" || currentStatus === "connected") return sock;
 
   currentStatus = "connecting";
   listeners.onStatus(currentStatus);
@@ -39,7 +44,15 @@ async function connect(userDataPath) {
   const authDir = path.join(userDataPath, "whatsapp-auth");
   const { state, saveCreds } = await useMultiFileAuthState(authDir);
 
-  sock = makeWASocket({ auth: state, printQRInTerminal: false });
+  sock = makeWASocket({
+    auth: {
+      creds: state.creds,
+      keys: makeCacheableSignalKeyStore(state.keys),
+    },
+    printQRInTerminal: false,
+    reconnectInterval: (attempt) => Math.min(1000 * Math.pow(2, attempt), 30000),
+    maxReconnectAttempts: MAX_RECONNECT_ATTEMPTS,
+  });
 
   sock.ev.on("creds.update", saveCreds);
 
@@ -55,6 +68,8 @@ async function connect(userDataPath) {
 
     if (connection === "open") {
       currentStatus = "connected";
+      reconnectAttempts = 0;
+      if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
       listeners.onStatus(currentStatus, { selfJid: sock.user?.id });
     }
 
@@ -63,9 +78,10 @@ async function connect(userDataPath) {
       const loggedOut = statusCode === DisconnectReason.loggedOut;
       currentStatus = "disconnected";
       listeners.onStatus(currentStatus, { loggedOut });
-      if (!loggedOut) {
-        // Transient disconnect (network blip, server restart) — try again.
-        setTimeout(() => connect(userDataPath).catch(() => {}), 3000);
+      if (!loggedOut && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+        reconnectAttempts++;
+        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+        reconnectTimer = setTimeout(() => connect(userDataPath).catch(() => {}), delay);
       }
     }
   });
@@ -98,15 +114,28 @@ async function connect(userDataPath) {
 
 async function sendMessage(jid, text) {
   if (!sock || currentStatus !== "connected") throw new Error("WhatsApp is not connected.");
-  await sock.sendMessage(jid, { text });
+  try {
+    await sock.sendMessage(jid, { text });
+  } catch (err) {
+    // If send fails, try reconnecting once
+    if (err.message?.includes("Connection Closed") || err.message?.includes("not connected")) {
+      currentStatus = "disconnected";
+      listeners.onStatus(currentStatus);
+      throw new Error("WhatsApp connection lost. Reconnecting...");
+    }
+    throw err;
+  }
 }
 
 async function disconnect() {
+  if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+  reconnectAttempts = MAX_RECONNECT_ATTEMPTS; // prevent auto-reconnect
   if (sock) {
     try { await sock.logout(); } catch { /* already disconnected */ }
     sock = null;
   }
   currentStatus = "disconnected";
+  listeners.onStatus(currentStatus);
 }
 
 module.exports = { connect, disconnect, sendMessage, getStatus, setListeners };

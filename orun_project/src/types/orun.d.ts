@@ -224,6 +224,11 @@ interface OrunAPI {
     get: () => Promise<Record<string, OrunSchedule>>;
     set: (agentName: string, cfg: OrunSchedule) => Promise<boolean>;
   };
+  stt: {
+    engines: () => Promise<string[]>;
+    testConnection: (baseUrl: string) => Promise<{ ok: boolean; error?: string }>;
+    transcribe: (args: { baseUrl: string; audioBase64: string; mimeType: string; language: string }) => Promise<{ text: string }>;
+  };
 }
 
 declare global {

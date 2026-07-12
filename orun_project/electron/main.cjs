@@ -10,6 +10,7 @@ const log = require("electron-log");
 
 const aiRouter = require("./ai-router.cjs");
 const ttsRouter = require("./tts-router.cjs");
+const sttRouter = require("./stt-router.cjs");
 const n8n = require("./n8n.cjs");
 const db = require("./db.cjs");
 const agentPrompts = require("./agent-prompts.cjs");
@@ -18,6 +19,7 @@ const scheduler = require("./scheduler.cjs");
 
 const isDev = !app.isPackaged;
 const KEYS_FILE = () => path.join(app.getPath("userData"), "keys.enc.json");
+const DB_KEY_FILE = () => path.join(app.getPath("userData"), "db.key.enc");
 const DEFAULT_AI_SETTINGS = {
   provider: "ollama",
   model: "llama3.1",
@@ -93,6 +95,21 @@ function createTray() {
     ])
   );
   tray.on("click", () => { mainWindow?.isVisible() ? mainWindow.hide() : mainWindow?.show(); });
+}
+
+// ── Database encryption key ─────────────────────────────────────────────
+
+function getOrCreateDBKey() {
+  const keyPath = DB_KEY_FILE();
+  try {
+    const encrypted = fs.readFileSync(keyPath);
+    return safeStorage.decryptString(Buffer.from(encrypted.toString(), "base64"));
+  } catch {
+    // First run — generate a random key and store it encrypted
+    const key = `orun-${randomUUID()}-${Date.now()}`;
+    fs.writeFileSync(keyPath, safeStorage.encryptString(key).toString("base64"));
+    return key;
+  }
 }
 
 // ── Encrypted secret storage (AI provider keys + n8n API key) ───────────
@@ -405,6 +422,14 @@ function registerIpcHandlers() {
   });
   ipcMain.handle("tts:get-engine-config", (_event, engine) => db.getSetting("ttsEngineConfig", {})[engine] || {});
 
+  // Speech-to-text
+  ipcMain.handle("stt:engines", () => sttRouter.ENGINES);
+  ipcMain.handle("stt:test-connection", async (_event, baseUrl) => sttRouter.testWhisperConnection(baseUrl));
+  ipcMain.handle("stt:transcribe", async (_event, { baseUrl, audioBase64, mimeType, language }) => {
+    const audioBuffer = Buffer.from(audioBase64, "base64");
+    return sttRouter.transcribeWhisper(baseUrl, audioBuffer, mimeType, language);
+  });
+
   // Manual "check for updates" button in Settings
   ipcMain.handle("app:check-for-updates", async (event) => {
     if (isDev) return { ok: false, error: "Updates are only checked in packaged builds." };
@@ -526,7 +551,7 @@ async function deliverAgentMessage(agentName, text) {
 
 app.whenReady().then(() => {
   log.info("Orun OS starting", { version: app.getVersion(), isDev });
-  db.init(app.getPath("userData"));
+  db.init(app.getPath("userData"), getOrCreateDBKey());
   registerIpcHandlers();
   createWindow();
   createTray();

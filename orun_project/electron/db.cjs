@@ -6,14 +6,31 @@
 
 const path = require("path");
 const fs = require("fs");
-const Database = require("better-sqlite3");
+let Database;
+try {
+  Database = require("better-sqlite3-multiple-ciphers");
+} catch {
+  Database = require("better-sqlite3");
+}
 
 let db;
 
-function init(userDataPath) {
+function init(userDataPath, encryptionKey) {
   const dbPath = path.join(userDataPath, "orun-os.sqlite3");
   fs.mkdirSync(userDataPath, { recursive: true });
   db = new Database(dbPath);
+  if (encryptionKey) {
+    try {
+      db.pragma(`key = '${encryptionKey.replace(/'/g, "''")}'`);
+      // Verify the key works by running a simple query
+      db.prepare("SELECT count(*) FROM sqlite_master").get();
+    } catch {
+      // If key doesn't work (first run with encryption), re-encrypt
+      try {
+        db.pragma(`rekey = '${encryptionKey.replace(/'/g, "''")}'`);
+      } catch { /* ignore — will work on next restart */ }
+    }
+  }
   db.pragma("journal_mode = WAL");
 
   db.exec(`

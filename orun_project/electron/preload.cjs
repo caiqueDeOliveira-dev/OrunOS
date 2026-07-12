@@ -86,6 +86,11 @@ contextBridge.exposeInMainWorld("orun", {
     getEngineConfig: (engine) => ipcRenderer.invoke("tts:get-engine-config", engine),
     usageToday: () => ipcRenderer.invoke("tts:usage-today"),
   },
+  stt: {
+    engines: () => ipcRenderer.invoke("stt:engines"),
+    testConnection: (baseUrl) => ipcRenderer.invoke("stt:test-connection", baseUrl),
+    transcribe: (args) => ipcRenderer.invoke("stt:transcribe", args),
+  },
   nutrition: {
     getDaily: (date) => ipcRenderer.invoke("nutrition:get-daily", date),
   },

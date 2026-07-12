@@ -51,6 +51,7 @@
     "@radix-ui/react-tooltip": "1.1.8",
     "@whiskeysockets/baileys": "7.0.0-rc13",
     "better-sqlite3": "11.10.0",
+    "better-sqlite3-multiple-ciphers": "^12.11.1",
     "canvas-confetti": "1.9.4",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
