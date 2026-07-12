@@ -106,6 +106,32 @@ contextBridge.exposeInMainWorld("orun", {
   teacher: {
     getProgress: (date) => ipcRenderer.invoke("teacher:get-progress", date),
   },
+  videoEditor: {
+    getProjects: (date) => ipcRenderer.invoke("videoeditor:get-projects", date),
+    listTemplates: () => ipcRenderer.invoke("videoeditor:list-templates"),
+    createComposition: (opts) => ipcRenderer.invoke("videoeditor:create-composition", opts),
+    renderVideo: (opts) => ipcRenderer.invoke("videoeditor:render-video", opts),
+  },
+  image3d: {
+    getGenerations: (date) => ipcRenderer.invoke("image3d:get-generations", date),
+    falModels: () => ipcRenderer.invoke("image3d:fal-models"),
+    tripoModels: () => ipcRenderer.invoke("image3d:tripo-models"),
+    generateImage: (opts) => ipcRenderer.invoke("image3d:generate-image", opts),
+    generate3D: (opts) => ipcRenderer.invoke("image3d:generate-3d", opts),
+    comfyuiTest: (baseUrl) => ipcRenderer.invoke("image3d:comfyui-test", baseUrl),
+    comfyuiSubmit: (opts) => ipcRenderer.invoke("image3d:comfyui-submit", opts),
+    comfyuiResults: (promptId, baseUrl) => ipcRenderer.invoke("image3d:comfyui-results", promptId, baseUrl),
+  },
+  musicProducer: {
+    getProjects: (date) => ipcRenderer.invoke("musicproducer:get-projects", date),
+    wonderaModels: () => ipcRenderer.invoke("musicproducer:wondera-models"),
+    autotonePresets: () => ipcRenderer.invoke("musicproducer:autotone-presets"),
+    generateMusic: (opts) => ipcRenderer.invoke("musicproducer:generate-music", opts),
+    master: (opts) => ipcRenderer.invoke("musicproducer:master", opts),
+    separateStems: (opts) => ipcRenderer.invoke("musicproducer:separate-stems", opts),
+    autotone: (opts) => ipcRenderer.invoke("musicproducer:autotone", opts),
+    mix: (opts) => ipcRenderer.invoke("musicproducer:mix", opts),
+  },
   whatsapp: {
     connect: () => ipcRenderer.invoke("whatsapp:connect"),
     disconnect: () => ipcRenderer.invoke("whatsapp:disconnect"),

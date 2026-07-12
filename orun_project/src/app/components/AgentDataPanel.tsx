@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { X, ArrowLeft, DollarSign, Heart, Code, BookOpen, TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Minus } from "lucide-react";
+import { X, ArrowLeft, DollarSign, Heart, Code, BookOpen, TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Minus, Video, Cpu, Music } from "lucide-react";
 import { isElectron } from "../constants";
 
-type AgentType = "Finance" | "Health" | "Developer" | "Teacher";
+type AgentType = "Finance" | "Health" | "Developer" | "Teacher" | "Video Editor" | "3D Designer" | "Music Producer";
 
 interface Props {
   agent: AgentType;
@@ -16,6 +16,9 @@ const AGENT_CONFIG: Record<AgentType, { icon: any; color: string; title: string 
   Health: { icon: Heart, color: "#e74c3c", title: "Health Metrics" },
   Developer: { icon: Code, color: "#3498db", title: "Code Reviews" },
   Teacher: { icon: BookOpen, color: "#f39c12", title: "Learning Progress" },
+  "Video Editor": { icon: Video, color: "#9b59b6", title: "Video Projects" },
+  "3D Designer": { icon: Cpu, color: "#1abc9c", title: "Image / 3D Generations" },
+  "Music Producer": { icon: Music, color: "#e67e22", title: "Music Projects" },
 };
 
 function todayKey() {
@@ -188,6 +191,114 @@ function TeacherView() {
   );
 }
 
+function VideoEditorView() {
+  const [data, setData] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!isElectron) return;
+    window.orun.videoEditor.getProjects().then(setData);
+  }, []);
+
+  if (data.length === 0) return <div className="text-center py-6 text-[11px]" style={{ color: "#444" }}>No video projects today. Chat with Video Editor to create one.</div>;
+
+  const statusConfig: Record<string, { color: string; label: string }> = {
+    draft: { color: "#95a5a6", label: "Draft" },
+    rendering: { color: "#3498db", label: "Rendering" },
+    completed: { color: "#2ecc71", label: "Completed" },
+    failed: { color: "#e74c3c", label: "Failed" },
+  };
+
+  return (
+    <div className="space-y-2">
+      {data.map((e) => {
+        const st = statusConfig[e.status] || statusConfig.draft;
+        return (
+          <div key={e.id} className="px-3 py-2.5 rounded-lg" style={{ background: "#111111", border: "1px solid #1e1e1e" }}>
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-1.5 h-1.5 rounded-full" style={{ background: st.color }} />
+              <span className="text-[10px] tracking-wider uppercase" style={{ color: st.color }}>{st.label}</span>
+              <span className="text-[9px]" style={{ color: "#555" }}>· {e.template || "custom"}</span>
+              {e.render_time_ms != null && <span className="text-[9px] ml-auto" style={{ color: "#888", fontFamily: "'JetBrains Mono', monospace" }}>{(e.render_time_ms / 1000).toFixed(1)}s render</span>}
+            </div>
+            <div className="text-[11px]" style={{ color: "#ccc" }}>{e.title}</div>
+            <div className="text-[9px]" style={{ color: "#555" }}>{e.resolution} · {e.fps}fps{e.duration_sec != null ? ` · ${e.duration_sec}s` : ""}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function Image3DView() {
+  const [data, setData] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!isElectron) return;
+    window.orun.image3d.getGenerations().then(setData);
+  }, []);
+
+  if (data.length === 0) return <div className="text-center py-6 text-[11px]" style={{ color: "#444" }}>No generations today. Chat with 3D Designer to create images or 3D models.</div>;
+
+  const engineColors: Record<string, string> = { fal: "#8b5cf6", tripo: "#06b6d4", comfyui: "#10b981" };
+
+  return (
+    <div className="space-y-2">
+      {data.map((e) => (
+        <div key={e.id} className="px-3 py-2.5 rounded-lg" style={{ background: "#111111", border: "1px solid #1e1e1e" }}>
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-1.5 h-1.5 rounded-full" style={{ background: engineColors[e.engine] || "#888" }} />
+            <span className="text-[10px] tracking-wider uppercase" style={{ color: engineColors[e.engine] || "#888" }}>{e.engine}</span>
+            {e.model_used && <span className="text-[9px]" style={{ color: "#555" }}>· {e.model_used}</span>}
+            {e.generation_time_ms != null && <span className="text-[9px] ml-auto" style={{ color: "#888", fontFamily: "'JetBrains Mono', monospace" }}>{(e.generation_time_ms / 1000).toFixed(1)}s</span>}
+          </div>
+          <div className="text-[11px]" style={{ color: "#ccc" }}>{e.prompt.slice(0, 120)}{e.prompt.length > 120 ? "..." : ""}</div>
+          {e.output_url && <div className="text-[9px] mt-1 truncate" style={{ color: "#555", fontFamily: "'JetBrains Mono', monospace" }}>{e.output_url}</div>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function MusicProducerView() {
+  const [data, setData] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!isElectron) return;
+    window.orun.musicProducer.getProjects().then(setData);
+  }, []);
+
+  if (data.length === 0) return <div className="text-center py-6 text-[11px]" style={{ color: "#444" }}>No music projects today. Chat with Music Producer to create music.</div>;
+
+  const statusConfig: Record<string, { color: string; label: string }> = {
+    draft: { color: "#95a5a6", label: "Draft" },
+    processing: { color: "#3498db", label: "Processing" },
+    completed: { color: "#2ecc71", label: "Completed" },
+    failed: { color: "#e74c3c", label: "Failed" },
+  };
+
+  const engineLabels: Record<string, string> = { wondera: "Wondera.AI", autotone: "Autotone", mixer: "Audio Mixer" };
+
+  return (
+    <div className="space-y-2">
+      {data.map((e) => {
+        const st = statusConfig[e.status] || statusConfig.draft;
+        return (
+          <div key={e.id} className="px-3 py-2.5 rounded-lg" style={{ background: "#111111", border: "1px solid #1e1e1e" }}>
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-1.5 h-1.5 rounded-full" style={{ background: st.color }} />
+              <span className="text-[10px] tracking-wider uppercase" style={{ color: st.color }}>{st.label}</span>
+              <span className="text-[9px]" style={{ color: "#555" }}>· {engineLabels[e.engine] || e.engine}</span>
+              {e.duration_sec != null && <span className="text-[9px] ml-auto" style={{ color: "#888", fontFamily: "'JetBrains Mono', monospace" }}>{e.duration_sec}s</span>}
+            </div>
+            <div className="text-[11px]" style={{ color: "#ccc" }}>{e.title}</div>
+            <div className="text-[9px]" style={{ color: "#555" }}>{e.genre || "untagged"}{e.bpm != null ? ` · ${e.bpm} BPM` : ""}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function AgentDataPanel({ agent, onClose, onBack }: Props) {
   const config = AGENT_CONFIG[agent];
   const Icon = config.icon;
@@ -226,6 +337,9 @@ export function AgentDataPanel({ agent, onClose, onBack }: Props) {
           {agent === "Health" && <HealthView />}
           {agent === "Developer" && <DeveloperView />}
           {agent === "Teacher" && <TeacherView />}
+          {agent === "Video Editor" && <VideoEditorView />}
+          {agent === "3D Designer" && <Image3DView />}
+          {agent === "Music Producer" && <MusicProducerView />}
         </div>
       </motion.div>
     </motion.div>

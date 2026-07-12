@@ -133,6 +133,50 @@ export interface OrunTeacherProgress {
   created_at: number;
 }
 
+export interface OrunVideoProject {
+  id: string;
+  date: string;
+  title: string;
+  template: string | null;
+  resolution: string;
+  fps: number;
+  duration_sec: number | null;
+  status: string;
+  output_path: string | null;
+  render_time_ms: number | null;
+  source: string;
+  created_at: number;
+}
+
+export interface OrunImage3DGeneration {
+  id: string;
+  date: string;
+  engine: string;
+  prompt: string;
+  model_used: string | null;
+  output_url: string | null;
+  width: number | null;
+  height: number | null;
+  generation_time_ms: number | null;
+  source: string;
+  created_at: number;
+}
+
+export interface OrunMusicProject {
+  id: string;
+  date: string;
+  title: string;
+  engine: string;
+  genre: string | null;
+  duration_sec: number | null;
+  bpm: number | null;
+  status: string;
+  output_url: string | null;
+  effects_applied: string | null;
+  source: string;
+  created_at: number;
+}
+
 export interface OrunWhatsAppStatus {
   status: "disconnected" | "connecting" | "qr" | "connected";
   selfJid?: string;
@@ -211,6 +255,32 @@ interface OrunAPI {
   };
   teacher: {
     getProgress: (date?: string) => Promise<OrunTeacherProgress[]>;
+  };
+  videoEditor: {
+    getProjects: (date?: string) => Promise<OrunVideoProject[]>;
+    listTemplates: () => Promise<Array<{ id: string; name: string; description: string; durationSec: number; fps: number }>>;
+    createComposition: (opts: { templateId?: string; title?: string }) => Promise<{ entryPoint: string; compositionId: string; template: string; durationSec: number; fps: number }>;
+    renderVideo: (opts: { entryPoint: string; compositionId: string; outputPath?: string; codec?: string; crf?: number }) => Promise<{ ok: boolean; outputPath?: string; durationMs?: number; error?: string }>;
+  };
+  image3d: {
+    getGenerations: (date?: string) => Promise<OrunImage3DGeneration[]>;
+    falModels: () => Promise<Array<{ id: string; name: string; type: string; speed: string; free: boolean }>>;
+    tripoModels: () => Promise<Array<{ id: string; name: string; type: string }>>;
+    generateImage: (opts: { prompt: string; model?: string; imageSize?: string; numImages?: number }) => Promise<{ ok: boolean; images?: Array<{ url: string; width: number; height: number }>; error?: string }>;
+    generate3D: (opts: { prompt: string; type?: string; texture?: boolean }) => Promise<{ ok: boolean; modelUrl?: string; taskId?: string; error?: string }>;
+    comfyuiTest: (baseUrl?: string) => Promise<{ ok: boolean; version?: string; error?: string }>;
+    comfyuiSubmit: (opts: { workflowJson: any; baseUrl?: string }) => Promise<{ ok: boolean; promptId?: string; error?: string }>;
+    comfyuiResults: (promptId: string, baseUrl?: string) => Promise<{ ok: boolean; images?: Array<{ filename: string; url: string }>; error?: string }>;
+  };
+  musicProducer: {
+    getProjects: (date?: string) => Promise<OrunMusicProject[]>;
+    wonderaModels: () => Promise<Array<{ id: string; name: string; description: string }>>;
+    autotonePresets: () => Promise<Array<{ id: string; name: string }>>;
+    generateMusic: (opts: { prompt: string; genre?: string; durationSec?: number }) => Promise<{ ok: boolean; audioUrl?: string; duration?: number; error?: string }>;
+    master: (opts: { audioBase64: string; mimeType?: string; targetLufs?: number; profile?: string }) => Promise<{ ok: boolean; audioBase64?: string; mime?: string; error?: string }>;
+    separateStems: (opts: { audioBase64: string }) => Promise<{ ok: boolean; vocals?: string; drums?: string; bass?: string; other?: string; error?: string }>;
+    autotone: (opts: { audioBase64: string; sampleRate?: number; scale?: string; strength?: number }) => Promise<{ ok: boolean; audioBase64?: string; error?: string }>;
+    mix: (opts: { tracks: Array<{ audioBase64: string; volume?: number }>; sampleRate?: number; bitDepth?: number; channels?: number }) => Promise<{ ok: boolean; audioBase64?: string; mime?: string; duration?: number; error?: string }>;
   };
   whatsapp: {
     connect: () => Promise<{ ok: boolean; error?: string }>;

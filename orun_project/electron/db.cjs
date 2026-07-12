@@ -130,6 +130,50 @@ function init(userDataPath, encryptionKey) {
       source TEXT NOT NULL DEFAULT 'app',
       created_at INTEGER NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS video_projects (
+      id TEXT PRIMARY KEY,
+      date TEXT NOT NULL,
+      title TEXT NOT NULL,
+      template TEXT,
+      resolution TEXT DEFAULT '1920x1080',
+      fps INTEGER DEFAULT 30,
+      duration_sec REAL,
+      status TEXT NOT NULL DEFAULT 'draft',
+      output_path TEXT,
+      render_time_ms INTEGER,
+      source TEXT NOT NULL DEFAULT 'app',
+      created_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS image3d_generations (
+      id TEXT PRIMARY KEY,
+      date TEXT NOT NULL,
+      engine TEXT NOT NULL,
+      prompt TEXT NOT NULL,
+      model_used TEXT,
+      output_url TEXT,
+      width INTEGER,
+      height INTEGER,
+      generation_time_ms INTEGER,
+      source TEXT NOT NULL DEFAULT 'app',
+      created_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS music_projects (
+      id TEXT PRIMARY KEY,
+      date TEXT NOT NULL,
+      title TEXT NOT NULL,
+      engine TEXT NOT NULL,
+      genre TEXT,
+      duration_sec REAL,
+      bpm INTEGER,
+      status TEXT NOT NULL DEFAULT 'draft',
+      output_url TEXT,
+      effects_applied TEXT,
+      source TEXT NOT NULL DEFAULT 'app',
+      created_at INTEGER NOT NULL
+    );
   `);
 
   // Migration for DBs created before the "agent" column existed.
@@ -318,6 +362,69 @@ function getDailyProgress(date = todayKey()) {
   return db.prepare(`SELECT * FROM teacher_progress WHERE date = ? ORDER BY created_at ASC`).all(date);
 }
 
+// ── Video projects ──────────────────────────────────────────────────
+
+function recordVideoProject(entry) {
+  db.prepare(
+    `INSERT INTO video_projects (id, date, title, template, resolution, fps, duration_sec, status, output_path, render_time_ms, source, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(entry.id, entry.date || todayKey(), entry.title, entry.template || null, entry.resolution || "1920x1080", entry.fps || 30, entry.duration_sec ?? null, entry.status || "draft", entry.output_path || null, entry.render_time_ms ?? null, entry.source || "app", Date.now());
+}
+
+function updateVideoProject(id, fields) {
+  const sets = [];
+  const vals = [];
+  for (const [k, v] of Object.entries(fields)) {
+    sets.push(`${k} = ?`);
+    vals.push(v);
+  }
+  if (sets.length === 0) return;
+  vals.push(id);
+  db.prepare(`UPDATE video_projects SET ${sets.join(", ")} WHERE id = ?`).run(...vals);
+}
+
+function getDailyVideoProjects(date = todayKey()) {
+  return db.prepare(`SELECT * FROM video_projects WHERE date = ? ORDER BY created_at ASC`).all(date);
+}
+
+// ── Image / 3D generations ─────────────────────────────────────────
+
+function recordImage3DGeneration(entry) {
+  db.prepare(
+    `INSERT INTO image3d_generations (id, date, engine, prompt, model_used, output_url, width, height, generation_time_ms, source, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(entry.id, entry.date || todayKey(), entry.engine, entry.prompt, entry.model_used || null, entry.output_url || null, entry.width ?? null, entry.height ?? null, entry.generation_time_ms ?? null, entry.source || "app", Date.now());
+}
+
+function getDailyImage3DGenerations(date = todayKey()) {
+  return db.prepare(`SELECT * FROM image3d_generations WHERE date = ? ORDER BY created_at ASC`).all(date);
+}
+
+// ── Music projects ──────────────────────────────────────────────────
+
+function recordMusicProject(entry) {
+  db.prepare(
+    `INSERT INTO music_projects (id, date, title, engine, genre, duration_sec, bpm, status, output_url, effects_applied, source, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(entry.id, entry.date || todayKey(), entry.title, entry.engine, entry.genre || null, entry.duration_sec ?? null, entry.bpm ?? null, entry.status || "draft", entry.output_url || null, entry.effects_applied || null, entry.source || "app", Date.now());
+}
+
+function updateMusicProject(id, fields) {
+  const sets = [];
+  const vals = [];
+  for (const [k, v] of Object.entries(fields)) {
+    sets.push(`${k} = ?`);
+    vals.push(v);
+  }
+  if (sets.length === 0) return;
+  vals.push(id);
+  db.prepare(`UPDATE music_projects SET ${sets.join(", ")} WHERE id = ?`).run(...vals);
+}
+
+function getDailyMusicProjects(date = todayKey()) {
+  return db.prepare(`SELECT * FROM music_projects WHERE date = ? ORDER BY created_at ASC`).all(date);
+}
+
 module.exports = {
   init,
   createConversation,
@@ -342,4 +449,12 @@ module.exports = {
   getDailyReviews,
   recordProgress,
   getDailyProgress,
+  recordVideoProject,
+  updateVideoProject,
+  getDailyVideoProjects,
+  recordImage3DGeneration,
+  getDailyImage3DGenerations,
+  recordMusicProject,
+  updateMusicProject,
+  getDailyMusicProjects,
 };

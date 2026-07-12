@@ -3,7 +3,7 @@ import { X, BarChart3 } from "lucide-react";
 import { useTranslation } from "../../i18n/I18nProvider";
 import { getAgents } from "../constants";
 
-const DATA_AGENTS = ["Finance", "Health", "Developer", "Teacher"];
+const DATA_AGENTS = ["Finance", "Health", "Developer", "Teacher", "Video Editor", "3D Designer", "Music Producer"];
 
 interface Props {
   onClose: () => void;

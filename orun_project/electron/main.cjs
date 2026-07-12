@@ -16,6 +16,9 @@ const db = require("./db.cjs");
 const agentPrompts = require("./agent-prompts.cjs");
 const whatsapp = require("./whatsapp.cjs");
 const scheduler = require("./scheduler.cjs");
+const videoEditor = require("./video-editor.cjs");
+const image3d = require("./image-3d.cjs");
+const musicProducer = require("./music-producer.cjs");
 
 const isDev = !app.isPackaged;
 const KEYS_FILE = () => path.join(app.getPath("userData"), "keys.enc.json");
@@ -210,6 +213,35 @@ function maybeLogTeacher(agentId, text) {
   return `${text}\n\n${statusEmoji} Progress: ${parsed.subject} → ${parsed.topic} (${parsed.status}${parsed.score != null ? ", score: " + parsed.score : ""}).`;
 }
 
+/** Video Editor replies with a JSON block — parse and log the project. */
+function maybeLogVideoEditor(agentId, text) {
+  if (agentId !== "Video Editor") return text;
+  const parsed = agentPrompts.extractVideoEditorJSON(text);
+  if (!parsed) return text;
+  db.recordVideoProject({ id: randomUUID(), ...parsed, source: "app" });
+  const statusEmoji = { draft: "📝", rendering: "🎬", completed: "✅", failed: "❌" }[parsed.status] || "📹";
+  return `${text}\n\n${statusEmoji} Project logged: "${parsed.title}" (${parsed.template}, ${parsed.duration_sec}s).`;
+}
+
+/** 3D Designer replies with a JSON block — parse and log the generation. */
+function maybeLogImage3D(agentId, text) {
+  if (agentId !== "3D Designer") return text;
+  const parsed = agentPrompts.extractImage3DJSON(text);
+  if (!parsed) return text;
+  db.recordImage3DGeneration({ id: randomUUID(), ...parsed, source: "app" });
+  return `${text}\n\n🎨 Generation logged via ${parsed.engine}: "${parsed.prompt.slice(0, 80)}".`;
+}
+
+/** Music Producer replies with a JSON block — parse and log the project. */
+function maybeLogMusicProducer(agentId, text) {
+  if (agentId !== "Music Producer") return text;
+  const parsed = agentPrompts.extractMusicProducerJSON(text);
+  if (!parsed) return text;
+  db.recordMusicProject({ id: randomUUID(), ...parsed, source: "app" });
+  const statusEmoji = { draft: "📝", processing: "🎵", completed: "✅", failed: "❌" }[parsed.status] || "🎶";
+  return `${text}\n\n${statusEmoji} Music project logged: "${parsed.title}" (${parsed.engine}, ${parsed.duration_sec}s).`;
+}
+
 /** Unified post-processing — runs all agent-specific extractors. */
 function processAgentReply(agentId, text) {
   let result = text;
@@ -218,6 +250,9 @@ function processAgentReply(agentId, text) {
   result = maybeLogHealth(agentId, result);
   result = maybeLogDeveloper(agentId, result);
   result = maybeLogTeacher(agentId, result);
+  result = maybeLogVideoEditor(agentId, result);
+  result = maybeLogImage3D(agentId, result);
+  result = maybeLogMusicProducer(agentId, result);
   return result;
 }
 
@@ -474,6 +509,117 @@ function registerIpcHandlers() {
 
   // Teacher progress
   ipcMain.handle("teacher:get-progress", (_event, date) => db.getDailyProgress(date));
+
+  // Video Editor
+  ipcMain.handle("videoeditor:get-projects", (_event, date) => db.getDailyVideoProjects(date));
+  ipcMain.handle("videoeditor:list-templates", () => videoEditor.listTemplates());
+  ipcMain.handle("videoeditor:create-composition", (_event, opts) => videoEditor.createComposition(opts));
+  ipcMain.handle("videoeditor:render-video", async (_event, opts) => {
+    try {
+      const result = await videoEditor.renderVideo(opts);
+      return { ok: true, ...result };
+    } catch (err) {
+      log.error("[videoeditor:render-video] failed:", err.message);
+      return { ok: false, error: err.message };
+    }
+  });
+
+  // 3D Designer (Image / 3D)
+  ipcMain.handle("image3d:get-generations", (_event, date) => db.getDailyImage3DGenerations(date));
+  ipcMain.handle("image3d:fal-models", () => image3d.FAL_MODELS);
+  ipcMain.handle("image3d:tripo-models", () => image3d.TRIPO_MODELS);
+  ipcMain.handle("image3d:generate-image", async (_event, opts) => {
+    const keys = readSecretStore();
+    try {
+      const result = await image3d.generateImage(opts, keys.fal);
+      return { ok: true, ...result };
+    } catch (err) {
+      log.error("[image3d:generate-image] failed:", err.message);
+      return { ok: false, error: err.message };
+    }
+  });
+  ipcMain.handle("image3d:generate-3d", async (_event, opts) => {
+    const keys = readSecretStore();
+    try {
+      const result = await image3d.generate3DModel(opts, keys.tripo);
+      return { ok: true, ...result };
+    } catch (err) {
+      log.error("[image3d:generate-3d] failed:", err.message);
+      return { ok: false, error: err.message };
+    }
+  });
+  ipcMain.handle("image3d:comfyui-test", async (_event, baseUrl) => image3d.testComfyUIConnection(baseUrl));
+  ipcMain.handle("image3d:comfyui-submit", async (_event, opts) => {
+    try {
+      const result = await image3d.submitComfyUIWorkflow(opts);
+      return { ok: true, ...result };
+    } catch (err) {
+      log.error("[image3d:comfyui-submit] failed:", err.message);
+      return { ok: false, error: err.message };
+    }
+  });
+  ipcMain.handle("image3d:comfyui-results", async (_event, promptId, baseUrl) => {
+    try {
+      const result = await image3d.getComfyUIResults(promptId, baseUrl);
+      return { ok: true, ...result };
+    } catch (err) {
+      log.error("[image3d:comfyui-results] failed:", err.message);
+      return { ok: false, error: err.message };
+    }
+  });
+
+  // Music Producer
+  ipcMain.handle("musicproducer:get-projects", (_event, date) => db.getDailyMusicProjects(date));
+  ipcMain.handle("musicproducer:wondera-models", () => musicProducer.listWonderaModels());
+  ipcMain.handle("musicproducer:autotone-presets", () => musicProducer.listAutotonePresets());
+  ipcMain.handle("musicproducer:generate-music", async (_event, opts) => {
+    const keys = readSecretStore();
+    try {
+      const result = await musicProducer.generateMusic(opts, keys.wondera);
+      return { ok: true, ...result };
+    } catch (err) {
+      log.error("[musicproducer:generate-music] failed:", err.message);
+      return { ok: false, error: err.message };
+    }
+  });
+  ipcMain.handle("musicproducer:master", async (_event, opts) => {
+    const keys = readSecretStore();
+    try {
+      const result = await musicProducer.masterTrack(opts, keys.wondera);
+      return { ok: true, ...result };
+    } catch (err) {
+      log.error("[musicproducer:master] failed:", err.message);
+      return { ok: false, error: err.message };
+    }
+  });
+  ipcMain.handle("musicproducer:separate-stems", async (_event, opts) => {
+    const keys = readSecretStore();
+    try {
+      const result = await musicProducer.separateStems(opts, keys.wondera);
+      return { ok: true, ...result };
+    } catch (err) {
+      log.error("[musicproducer:separate-stems] failed:", err.message);
+      return { ok: false, error: err.message };
+    }
+  });
+  ipcMain.handle("musicproducer:autotone", async (_event, opts) => {
+    try {
+      const result = await musicProducer.applyAutotone(opts);
+      return { ok: true, audioBase64: result.toString("base64") };
+    } catch (err) {
+      log.error("[musicproducer:autotone] failed:", err.message);
+      return { ok: false, error: err.message };
+    }
+  });
+  ipcMain.handle("musicproducer:mix", async (_event, opts) => {
+    try {
+      const result = await musicProducer.mixTracks(opts);
+      return { ok: true, ...result };
+    } catch (err) {
+      log.error("[musicproducer:mix] failed:", err.message);
+      return { ok: false, error: err.message };
+    }
+  });
 
   // WhatsApp connector
   ipcMain.handle("whatsapp:connect", async () => {

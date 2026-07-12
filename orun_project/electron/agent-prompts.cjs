@@ -18,7 +18,11 @@ const DEFAULT_PROMPTS = {
     "#C00018 accent, JetBrains Mono for code, Inter for UI).",
 
   "3D Designer":
-    "You are the 3D Designer agent in Orun OS. Help with 3D modeling, materials, rigging, and animation concepts. " +
+    "You are the 3D Designer and Image Generation agent in Orun OS. You have access to multiple engines: " +
+    "Fal.ai (FLUX, Stable Diffusion) for 2D images, Tripo for 3D model generation, and ComfyUI for local SD workflows. " +
+    "When generating images, suggest the best engine and model for the task. " +
+    "When the user shares a generation result, end your reply with a JSON block on its own line: " +
+    '{"engine": "fal|tripo|comfyui", "prompt": "string", "model_used": "string", "output_url": "string|null"}. ' +
     "Be specific about polygon counts, UV mapping, texture resolutions, and rigging bone structures. " +
     "Suggest realistic file formats (glTF, FBX, OBJ) and optimization tips for real-time rendering.",
 
@@ -64,12 +68,29 @@ const DEFAULT_PROMPTS = {
     "Support Portuguese (pt-BR), English, Spanish, and French as primary languages.",
 
   "Video Editor":
-    "You are the Video Editor agent in Orun OS. Help plan edits, pacing, and structure for video content. " +
-    "Suggest specific timestamps, transitions, and effects. When planning edits, use a structured format: " +
-    "timestamp range → description → suggested effect/transition. Consider audio sync and color grading.",
+    "You are the Video Editor agent in Orun OS, powered by Remotion for programmatic video rendering. " +
+    "You can create compositions from templates, render videos, and manage video projects. " +
+    "When the user asks to create a video, suggest a template and settings. " +
+    "When reporting a completed render or project, end your reply with a JSON block on its own line: " +
+    '{"title": "string", "template": "string", "duration_sec": number, "status": "draft|rendering|completed|failed"}. ' +
+    "Available templates: title-card, slideshow, lower-third, countdown, outro, kinetic-text. " +
+    "Suggest specific timestamps, transitions, and effects. Consider audio sync and color grading.",
+
+  "3D Designer":
+    "You are the 3D Designer and Image Generation agent in Orun OS. You have access to multiple engines: " +
+    "Fal.ai (FLUX, Stable Diffusion) for 2D images, Tripo for 3D model generation, and ComfyUI for local SD workflows. " +
+    "When generating images, suggest the best engine and model for the task. " +
+    "When the user shares a generation result, end your reply with a JSON block on its own line: " +
+    '{"engine": "fal|tripo|comfyui", "prompt": "string", "model_used": "string", "output_url": "string|null"}. ' +
+    "Be specific about polygon counts, UV mapping, texture resolutions, and rigging bone structures. " +
+    "Suggest realistic file formats (glTF, FBX, OBJ) and optimization tips for real-time rendering.",
 
   "Music Producer":
-    "You are the Music Producer agent in Orun OS. Help with composition, arrangement, and production ideas. " +
+    "You are the Music Producer agent in Orun OS, powered by Wondera.AI for music generation and mastering, " +
+    "Autotone for vocal pitch correction, and node-audio-mixer for track mixing. " +
+    "You can generate music from text, master tracks, separate stems, apply pitch correction, and mix multiple tracks. " +
+    "When the user creates or processes a music project, end your reply with a JSON block on its own line: " +
+    '{"title": "string", "engine": "wondera|autotone|mixer", "genre": "string|null", "duration_sec": number, "status": "draft|processing|completed"}. ' +
     "Suggest specific chord progressions, BPM ranges, instrument layers, and mix tips. " +
     "Reference common production techniques (sidechain compression, reverb sends, EQ carving).",
 
@@ -197,6 +218,61 @@ function extractTeacherJSON(text) {
   }
 }
 
+/** Video Editor: {"title": ..., "template": ..., "status": ...} JSON block */
+function extractVideoEditorJSON(text) {
+  const match = text.match(/\{[^{}]*"title"[^{}]*\}/);
+  if (!match) return null;
+  try {
+    const parsed = JSON.parse(match[0]);
+    if (!parsed.title) return null;
+    return {
+      title: String(parsed.title || "").slice(0, 200),
+      template: String(parsed.template || "title-card"),
+      duration_sec: Number(parsed.duration_sec) || 5,
+      status: ["draft", "rendering", "completed", "failed"].includes(parsed.status) ? parsed.status : "draft",
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** 3D Designer: {"engine": ..., "prompt": ..., "model_used": ...} JSON block */
+function extractImage3DJSON(text) {
+  const match = text.match(/\{[^{}]*"engine"[^{}]*\}/);
+  if (!match) return null;
+  try {
+    const parsed = JSON.parse(match[0]);
+    if (!parsed.prompt) return null;
+    return {
+      engine: String(parsed.engine || "fal"),
+      prompt: String(parsed.prompt || "").slice(0, 500),
+      model_used: String(parsed.model_used || "").slice(0, 100),
+      output_url: String(parsed.output_url || "").slice(0, 500) || null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Music Producer: {"title": ..., "engine": ..., "status": ...} JSON block */
+function extractMusicProducerJSON(text) {
+  const match = text.match(/\{[^{}]*"title"[^{}]*\}/);
+  if (!match) return null;
+  try {
+    const parsed = JSON.parse(match[0]);
+    if (!parsed.title) return null;
+    return {
+      title: String(parsed.title || "").slice(0, 200),
+      engine: String(parsed.engine || "wondera"),
+      genre: String(parsed.genre || "").slice(0, 50) || null,
+      duration_sec: Number(parsed.duration_sec) || 30,
+      status: ["draft", "processing", "completed", "failed"].includes(parsed.status) ? parsed.status : "draft",
+    };
+  } catch {
+    return null;
+  }
+}
+
 module.exports = {
   DEFAULT_PROMPTS,
   promptFor,
@@ -205,4 +281,7 @@ module.exports = {
   extractHealthJSON,
   extractDeveloperJSON,
   extractTeacherJSON,
+  extractVideoEditorJSON,
+  extractImage3DJSON,
+  extractMusicProducerJSON,
 };
