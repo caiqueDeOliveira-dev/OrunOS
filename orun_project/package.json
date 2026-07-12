@@ -96,6 +96,7 @@
   "build": {
     "appId": "com.grupoorun.orunos",
     "productName": "Orun OS",
+    "artifactName": "Orun-OS-Setup-${version}.${ext}",
     "files": [
       "dist/**/*",
       "electron/**/*"
