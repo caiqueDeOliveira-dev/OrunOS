@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, ArrowLeft, Cloud, Cpu, Check, Loader2, RefreshCw } from "lucide-react";
 import { isElectron } from "../constants";
+import { useTranslation } from "../../i18n/I18nProvider";
 import type { OrunProvider } from "../../types/orun";
 
 const PROVIDER_INFO: Record<OrunProvider, { label: string; kind: "local" | "cloud" }> = {
@@ -15,6 +16,7 @@ const PROVIDER_INFO: Record<OrunProvider, { label: string; kind: "local" | "clou
 };
 
 export function ModelPicker({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
   const [provider, setProvider] = useState<OrunProvider | null>(null);
   const [models, setModels] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -83,7 +85,7 @@ export function ModelPicker({ onClose }: { onClose: () => void }) {
         <AnimatePresence mode="wait">
           {!provider ? (
             <motion.div key="providers" className="p-4 overflow-y-auto scrollbar-hide" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <p className="text-[10px] px-2 mb-3" style={{ color: "#555" }}>Clique duas vezes em um provider para ver seus modelos.</p>
+              <p className="text-[10px] px-2 mb-3" style={{ color: "#555" }}>{t("modelPickerHint")}</p>
               <div className="grid grid-cols-2 gap-2">
                 {(Object.keys(PROVIDER_INFO) as OrunProvider[]).map((p) => {
                   const info = PROVIDER_INFO[p];
@@ -105,8 +107,8 @@ export function ModelPicker({ onClose }: { onClose: () => void }) {
             </motion.div>
           ) : (
             <motion.div key="models" className="flex-1 overflow-y-auto p-4 scrollbar-hide" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              {loading && <p className="text-[11px] text-center py-4" style={{ color: "#555" }}><Loader2 size={14} className="animate-spin inline mr-1.5" />Carregando modelos…</p>}
-              {!loading && models.length === 0 && <p className="text-[10px]" style={{ color: "#555" }}>Nenhum modelo encontrado. Digite um manualmente nas Configurações se necessário.</p>}
+              {loading && <p className="text-[11px] text-center py-4" style={{ color: "#555" }}><Loader2 size={14} className="animate-spin inline mr-1.5" />{t("modelPickerLoading")}</p>}
+              {!loading && models.length === 0 && <p className="text-[10px]" style={{ color: "#555" }}>{t("modelPickerNotFound")}</p>}
               <div className="space-y-1.5">
                 {models.map((model) => {
                   const isSelected = selected?.provider === provider && selected.model === model;

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "motion/react";
 import { Pencil, RefreshCw, Check, X as XIcon } from "lucide-react";
+import { useTranslation } from "../../i18n/I18nProvider";
 import type { Message } from "../types";
 
 export function MessageBubble({
@@ -11,6 +12,7 @@ export function MessageBubble({
   onEdit?: (newContent: string) => void;
   onRegenerate?: () => void;
 }) {
+  const { t } = useTranslation();
   const isHampton = msg.role === "hampton";
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(msg.content);
@@ -78,10 +80,10 @@ export function MessageBubble({
         {!editing && hovering && !streaming && (
           <div className="flex flex-col gap-1 pb-1">
             {!isHampton && onEdit && (
-              <button onClick={() => { setDraft(msg.content); setEditing(true); }} title="Editar e reenviar" style={{ color: "#555" }}><Pencil size={12} /></button>
+              <button onClick={() => { setDraft(msg.content); setEditing(true); }} title={t("messageEditResend")} style={{ color: "#555" }}><Pencil size={12} /></button>
             )}
             {isHampton && onRegenerate && (
-              <button onClick={onRegenerate} title="Regenerar" style={{ color: "#555" }}><RefreshCw size={12} /></button>
+              <button onClick={onRegenerate} title={t("messageRegenerate")} style={{ color: "#555" }}><RefreshCw size={12} /></button>
             )}
           </div>
         )}

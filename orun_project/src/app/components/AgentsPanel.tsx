@@ -1,8 +1,11 @@
 import { motion } from "motion/react";
 import { X } from "lucide-react";
-import { AGENTS } from "../constants";
+import { useTranslation } from "../../i18n/I18nProvider";
+import { getAgents } from "../constants";
 
 export function AgentsPanel({ onClose, onSelectAgent }: { onClose: () => void; onSelectAgent: (agentName: string) => void }) {
+  const { t } = useTranslation();
+  const AGENTS = getAgents(t);
   return (
     <motion.div
       className="fixed left-16 top-0 h-full z-30 flex flex-col border-r overflow-hidden"
@@ -14,7 +17,7 @@ export function AgentsPanel({ onClose, onSelectAgent }: { onClose: () => void; o
     >
       <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: "#1a1a1a" }}>
         <span className="text-[10px] tracking-[0.24em] uppercase text-[#B5B5B5]" style={{ fontFamily: "'Sora', sans-serif" }}>
-          Agentes
+          {t("agentModelsTitle")}
         </span>
         <button
           onClick={onClose}

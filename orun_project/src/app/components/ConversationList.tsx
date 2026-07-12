@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { X, MessageSquare, Trash2, Plus } from "lucide-react";
+import { useTranslation } from "../../i18n/I18nProvider";
 import { isElectron } from "../constants";
 
 interface ConversationSummary {
@@ -21,6 +22,7 @@ export function ConversationList({
   onSelect: (id: string) => void;
   onNew: () => void;
 }) {
+  const { t } = useTranslation();
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -70,20 +72,20 @@ export function ConversationList({
         className="flex items-center gap-2 mx-4 mt-3 px-3 py-2 rounded-lg text-xs transition-colors"
         style={{ background: "rgba(192,0,24,0.08)", border: "1px solid rgba(192,0,24,0.2)", color: "#FF1A2D", fontFamily: "'Sora', sans-serif" }}
       >
-        <Plus size={13} /> Nova conversa
+        <Plus size={13} /> {t("conversationNew")}
       </button>
 
       <div className="flex-1 overflow-y-auto py-2 mt-2 scrollbar-hide">
         {!isElectron && (
           <p className="px-5 text-[10px]" style={{ color: "#444" }}>
-            O histórico só está disponível no aplicativo Electron empacotado.
+            {t("conversationBrowserWarning")}
           </p>
         )}
         {isElectron && loading && (
-          <p className="px-5 text-[10px]" style={{ color: "#444" }}>Carregando…</p>
+          <p className="px-5 text-[10px]" style={{ color: "#444" }}>{t("conversationLoading")}</p>
         )}
         {isElectron && !loading && conversations.length === 0 && (
-          <p className="px-5 text-[10px]" style={{ color: "#444" }}>Nenhuma conversa ainda.</p>
+          <p className="px-5 text-[10px]" style={{ color: "#444" }}>{t("conversationEmpty")}</p>
         )}
         {conversations.map(c => (
           <button
@@ -97,7 +99,7 @@ export function ConversationList({
           >
             <MessageSquare size={13} style={{ flexShrink: 0, color: c.id === activeId ? "#C00018" : "inherit" }} />
             <span className="text-xs truncate flex-1" style={{ fontFamily: "'Sora', sans-serif", fontWeight: 300 }}>
-              {c.title || "Nova conversa"}
+              {c.title || t("conversationNew")}
             </span>
             <span
               onClick={e => remove(e, c.id)}

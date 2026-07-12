@@ -1,5 +1,6 @@
 import { Settings, User, History } from "lucide-react";
-import { NAV_TOP } from "../constants";
+import { useTranslation } from "../../i18n/I18nProvider";
+import { getNavTop } from "../constants";
 
 export function Sidebar({
   activeNav,
@@ -12,6 +13,8 @@ export function Sidebar({
   onSettingsClick: () => void;
   onHistoryClick: () => void;
 }) {
+  const { t } = useTranslation();
+  const NAV_TOP = getNavTop(t);
   return (
     <div className="fixed left-0 top-0 h-full z-40 flex flex-col items-center py-5 border-r" style={{ width: 64, background: "#090909", borderColor: "#161616" }}>
       {/* Mark */}
@@ -49,9 +52,9 @@ export function Sidebar({
       {/* Bottom */}
       <div className="flex flex-col gap-0.5">
         {[
-          { icon: History, id: "history", title: "Histórico de Conversas", onClick: onHistoryClick },
-          { icon: Settings, id: "settings", title: "Configurações", onClick: onSettingsClick },
-          { icon: User, id: "profile", title: "Perfil", onClick: () => {} },
+          { icon: History, id: "history", title: t("sidebarHistory"), onClick: onHistoryClick },
+          { icon: Settings, id: "settings", title: t("sidebarSettings"), onClick: onSettingsClick },
+          { icon: User, id: "profile", title: t("sidebarProfile"), onClick: () => {} },
         ].map(item => {
           const Icon = item.icon;
           return (

@@ -1,8 +1,10 @@
 import { useEffect } from "react";
 import { motion } from "motion/react";
+import { useTranslation } from "../../i18n/I18nProvider";
 
 export function SplashScreen({ onDone }: { onDone: () => void }) {
-  useEffect(() => { const t = setTimeout(onDone, 3600); return () => clearTimeout(t); }, [onDone]);
+  const { t } = useTranslation();
+  useEffect(() => { const i = setTimeout(onDone, 3600); return () => clearTimeout(i); }, [onDone]);
 
   return (
     <motion.div
@@ -30,13 +32,13 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
             className="text-4xl tracking-[0.28em] text-[#F5F5F5] uppercase"
             style={{ fontFamily: "'Cinzel', serif", fontWeight: 600 }}
           >
-            Grupo Orun
+            {t("splashBrand")}
           </h1>
           <p
             className="text-sm tracking-[0.18em] text-[#B5B5B5]"
             style={{ fontFamily: "'Sora', sans-serif", fontWeight: 300 }}
           >
-            Soluções Tecnológicas
+            {t("splashSolutions")}
           </p>
         </div>
 

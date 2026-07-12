@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { X, ArrowLeft, Pencil, Clock } from "lucide-react";
-import { AGENTS, isElectron } from "../constants";
+import { getAgents, isElectron } from "../constants";
+import { useTranslation } from "../../i18n/I18nProvider";
 import type { OrunProvider } from "../../types/orun";
 
 const PROVIDER_LABELS: Record<OrunProvider, string> = {
@@ -14,6 +15,8 @@ type Override = { provider: OrunProvider; model: string; systemPrompt?: string }
 type Schedule = { enabled: boolean; time: string };
 
 export function AgentModelsPanel({ onClose, onBack }: { onClose: () => void; onBack: () => void }) {
+  const { t } = useTranslation();
+  const AGENTS = getAgents(t);
   const [overrides, setOverrides] = useState<Record<string, Override>>({});
   const [schedules, setSchedules] = useState<Record<string, Schedule>>({});
   const [editingPrompt, setEditingPrompt] = useState<string | null>(null);
@@ -66,16 +69,16 @@ export function AgentModelsPanel({ onClose, onBack }: { onClose: () => void; onB
           <div className="flex items-center gap-2.5">
             <button onClick={onBack} style={{ color: "#666" }}><ArrowLeft size={15} /></button>
             <span className="text-sm tracking-widest uppercase" style={{ fontFamily: "'Sora', sans-serif", color: "#F5F5F5" }}>
-              Agentes
+              {t("agentModelsTitle")}
             </span>
           </div>
           <button onClick={onClose} style={{ color: "#666" }}><X size={16} /></button>
         </div>
 
         <p className="px-6 pt-4 text-[10px]" style={{ color: "#555" }}>
-          Modelo + persona por agente, além de uma agenda diária opcional (ex: Personal Trainer toda manhã).
-          Apenas Nutritionist e Personal Trainer têm comportamento especializado real agora — os demais usam sua
-          persona padrão até receberem lógica real também.
+          {t("agentModelsDescription")}{" "}
+          {t("agentModelsSpecialized")}{" "}
+          {t("agentModelsDefaultPersona")}
         </p>
 
         <div className="flex-1 overflow-y-auto px-6 py-3 space-y-2 scrollbar-hide">
@@ -95,19 +98,19 @@ export function AgentModelsPanel({ onClose, onBack }: { onClose: () => void; onB
                     className="px-2 py-1.5 rounded-md text-[10px] outline-none"
                     style={{ background: "#111111", border: "1px solid #1e1e1e", color: "#aaa", width: 108 }}
                   >
-                    <option value="default">Padrão</option>
+                    <option value="default">{t("agentModelsDefault")}</option>
                     {(Object.keys(PROVIDER_LABELS) as OrunProvider[]).map((p) => <option key={p} value={p}>{PROVIDER_LABELS[p]}</option>)}
                   </select>
                   <input
                     value={override?.model || ""} onChange={(e) => setAgentModel(agent.name, e.target.value)} disabled={!override}
-                    placeholder={override ? "nome do modelo" : "—"}
+                    placeholder={override ? t("agentModelsModelName") : "—"}
                     className="flex-1 min-w-0 px-2 py-1.5 rounded-md text-[10px] outline-none disabled:opacity-30"
                     style={{ background: "#111111", border: "1px solid #1e1e1e", color: "#aaa", fontFamily: "'JetBrains Mono', monospace" }}
                   />
-                  <button onClick={() => setEditingPrompt(editing ? null : agent.name)} title="Persona personalizada" style={{ color: editing ? "#FF1A2D" : "#555" }}><Pencil size={13} /></button>
+                  <button onClick={() => setEditingPrompt(editing ? null : agent.name)} title={t("agentModelsCustomPersona")} style={{ color: editing ? "#FF1A2D" : "#555" }}><Pencil size={13} /></button>
                   <button
                     onClick={() => setSchedules((prev) => ({ ...prev, [agent.name]: { ...schedule, enabled: !schedule.enabled } }))}
-                    title="Agenda diária"
+                    title={t("agentModelsDailySchedule")}
                     style={{ color: schedule.enabled ? "#FF1A2D" : "#555" }}
                   >
                     <Clock size={13} />
@@ -115,7 +118,7 @@ export function AgentModelsPanel({ onClose, onBack }: { onClose: () => void; onB
                 </div>
                 {schedule.enabled && (
                   <div className="flex items-center gap-2 mt-1.5 ml-6 pl-3.5">
-                    <span className="text-[9px]" style={{ color: "#555" }}>Enviar todo dia às</span>
+                    <span className="text-[9px]" style={{ color: "#555" }}>{t("agentModelsSendEveryDayAt")}</span>
                     <input
                       type="time" value={schedule.time}
                       onChange={(e) => setSchedules((prev) => ({ ...prev, [agent.name]: { ...schedule, time: e.target.value } }))}
@@ -128,7 +131,7 @@ export function AgentModelsPanel({ onClose, onBack }: { onClose: () => void; onB
                   <textarea
                     value={override?.systemPrompt || ""}
                     onChange={(e) => setAgentPrompt(agent.name, e.target.value)}
-                    placeholder={`Persona personalizada para ${agent.name} (deixe em branco para usar o padrão)`}
+                    placeholder={`${t("agentModelsPersonaPlaceholder")} ${agent.name}...`}
                     rows={2}
                     className="w-full mt-1.5 ml-6 px-2.5 py-1.5 rounded-md text-[10px] outline-none resize-none"
                     style={{ width: "calc(100% - 1.5rem)", background: "#0f0f0f", border: "1px dashed #232323", color: "#ccc" }}
@@ -141,7 +144,7 @@ export function AgentModelsPanel({ onClose, onBack }: { onClose: () => void; onB
 
         <div className="px-6 py-4 border-t" style={{ borderColor: "#1a1a1a" }}>
           <button onClick={save} className="w-full py-2 rounded-lg text-xs" style={{ background: saved ? "#1a3a1a" : "#C00018", color: "#fff" }}>
-            {saved ? "Salvo ✓" : "Salvar"}
+            {saved ? t("agentModelsSaved") : t("agentModelsSave")}
           </button>
         </div>
       </motion.div>

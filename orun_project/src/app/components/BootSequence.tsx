@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
-import { BOOT_MESSAGES } from "../constants";
+import { useTranslation } from "../../i18n/I18nProvider";
+import { getBootMessages } from "../constants";
 
 export function BootSequence({ onDone }: { onDone: () => void }) {
+  const { t } = useTranslation();
+  const BOOT_MESSAGES = getBootMessages(t);
   const [visible, setVisible] = useState<number[]>([]);
   const [progress, setProgress] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -63,7 +66,7 @@ export function BootSequence({ onDone }: { onDone: () => void }) {
             Orun OS
           </div>
           <div className="text-[9px] tracking-[0.22em] text-[#FF1A2D]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-            v0.1.0 — SEQUÊNCIA DE INICIALIZAÇÃO
+            v0.2.0 — {t("bootSequence")}
           </div>
         </div>
 
@@ -82,7 +85,7 @@ export function BootSequence({ onDone }: { onDone: () => void }) {
 
         <div className="space-y-2">
           <div className="flex justify-between">
-            <span className="text-[9px] tracking-widest text-[#888]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>CARREGANDO</span>
+            <span className="text-[9px] tracking-widest text-[#888]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{t("bootLoading")}</span>
             <span className="text-[9px] tabular-nums text-[#FF1A2D]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{progress}%</span>
           </div>
           <div className="w-full rounded-full" style={{ height: 1, background: "rgba(255,255,255,0.1)" }}>

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { X, Cpu, Cloud, CheckCircle2, XCircle, Loader2, RefreshCw, Users, Activity, MessageCircle } from "lucide-react";
+import { X, Cpu, Cloud, CheckCircle2, XCircle, Loader2, RefreshCw, Users, Activity, MessageCircle, Globe } from "lucide-react";
+import { useTranslation } from "../../i18n/I18nProvider";
+import { LANGUAGE_OPTIONS, type Language } from "../../i18n/translations";
 import { isElectron } from "../constants";
 import type { OrunProvider } from "../../types/orun";
 
@@ -11,10 +13,11 @@ const PROVIDER_INFO: Record<OrunProvider, { label: string; kind: "local" | "clou
   openrouter: { label: "OpenRouter", kind: "cloud", defaultModel: "meta-llama/llama-3.3-70b-instruct:free", note: "Free tier: models ending in :free" },
   groq: { label: "Groq", kind: "cloud", defaultModel: "llama-3.3-70b-versatile", note: "Free tier, very fast inference" },
   github: { label: "GitHub Models", kind: "cloud", defaultModel: "openai/gpt-4o", note: "Free with a GitHub personal access token (models: read scope)" },
-  opencodezen: { label: "OpenCode Zen", kind: "cloud", defaultModel: "openai/gpt-5.6-sol", note: "Accesso a GPT 5.x, Claude 4.x, Gemini 3.x e mais" },
+  opencodezen: { label: "OpenCode Zen", kind: "cloud", defaultModel: "openai/gpt-5.6-sol", noteKey: "settingsOpenCodeZenNote" as const },
 };
 
 export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenWhatsApp }: { onClose: () => void; onOpenAgentModels: () => void; onOpenUsage: () => void; onOpenWhatsApp: () => void }) {
+  const { t, language, setLanguage } = useTranslation();
   const [provider, setProvider] = useState<OrunProvider>("ollama");
   const [model, setModel] = useState(PROVIDER_INFO.ollama.defaultModel);
   const [baseUrl, setBaseUrl] = useState("http://localhost:11434");
@@ -99,7 +102,7 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
     await save();
     const result = await window.orun.ai.testConnection({ provider, model, baseUrl });
     if (result.ok) setTestState("ok");
-    else { setTestState("error"); setTestError(result.error || "Erro desconhecido"); }
+    else { setTestState("error"); setTestError(result.error || t("settingsError")); }
   };
 
   const info = PROVIDER_INFO[provider];
@@ -120,16 +123,43 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
       >
         <div className="flex items-center justify-between mb-5">
           <span className="text-sm tracking-widest uppercase" style={{ fontFamily: "'Sora', sans-serif", color: "#F5F5F5" }}>
-            Configurações do Motor de IA
+            {t("settingsTitle")}
           </span>
           <button onClick={onClose} style={{ color: "#666" }}><X size={16} /></button>
         </div>
 
         {!isElectron && (
           <div className="mb-4 px-3 py-2 rounded-lg text-[11px]" style={{ background: "rgba(192,0,24,0.08)", color: "#C00018", border: "1px solid rgba(192,0,24,0.2)" }}>
-            Executando no navegador — as configurações só funcionam no aplicativo Electron empacotado.
+            {t("settingsBrowserWarning")}
           </div>
         )}
+
+        {/* Language selector */}
+        <label className="block text-[10px] tracking-wider uppercase mb-1.5" style={{ color: "#555" }}>{t("settingsLanguage")}</label>
+        <div className="flex gap-2 mb-5">
+          {LANGUAGE_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setLanguage(opt.value)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs transition-colors flex-1"
+              style={{
+                background: language === opt.value ? "rgba(192,0,24,0.12)" : "#111111",
+                border: `1px solid ${language === opt.value ? "#C00018" : "#1e1e1e"}`,
+                color: language === opt.value ? "#FF1A2D" : "#888",
+                fontFamily: "'Sora', sans-serif",
+              }}
+            >
+              <span>{opt.flag}</span>
+              <span>{opt.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Version display */}
+        <div className="flex items-center justify-between mb-5 px-3 py-2.5 rounded-lg" style={{ background: "#111111", border: "1px solid #1e1e1e" }}>
+          <span className="text-xs" style={{ fontFamily: "'Sora', sans-serif", color: "#888" }}>Orun OS</span>
+          <span className="text-[10px] tabular-nums" style={{ fontFamily: "'JetBrains Mono', monospace", color: "#555" }}>v0.2.0</span>
+        </div>
 
         {/* Provider selector — 6 providers, 3 per row */}
         <div className="grid grid-cols-3 gap-2 mb-2">
@@ -149,11 +179,12 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
             );
           })}
         </div>
+        {info.noteKey && <p className="text-[10px] mb-4" style={{ color: "#555" }}>{t(info.noteKey)}</p>}
         {info.note && <p className="text-[10px] mb-4" style={{ color: "#555" }}>{info.note}</p>}
-        {!info.note && <div className="mb-4" />}
+        {!info.note && !info.noteKey && <div className="mb-4" />}
 
         {/* Model */}
-        <label className="block text-[10px] tracking-wider uppercase mb-1.5" style={{ color: "#555" }}>Modelo</label>
+        <label className="block text-[10px] tracking-wider uppercase mb-1.5" style={{ color: "#555" }}>{t("settingsModel")}</label>
         {provider === "ollama" ? (
           <div className="flex items-center gap-2 mb-3">
             <select
@@ -163,9 +194,9 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
             >
               {!ollamaModels.includes(model) && <option value={model}>{model}</option>}
               {ollamaModels.map((m) => <option key={m} value={m}>{m}</option>)}
-              {ollamaModels.length === 0 && <option value={model}>{model} (não foi possível listar — o Ollama está rodando?)</option>}
+              {ollamaModels.length === 0 && <option value={model}>{model} ({t("settingsOllamaModelsError")})</option>}
             </select>
-            <button onClick={refreshOllamaModels} className="p-2 rounded-lg" style={{ background: "#111111", border: "1px solid #1e1e1e", color: "#888" }} title="Atualizar modelos instalados">
+            <button onClick={refreshOllamaModels} className="p-2 rounded-lg" style={{ background: "#111111", border: "1px solid #1e1e1e", color: "#888" }} title={t("settingsRefreshModels")}>
               <RefreshCw size={14} className={loadingModels ? "animate-spin" : ""} />
             </button>
           </div>
@@ -196,33 +227,33 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
         {/* Local: base URL. Cloud: API key. */}
         {info.kind === "local" ? (
           <>
-            <label className="block text-[10px] tracking-wider uppercase mb-1.5" style={{ color: "#555" }}>Ollama URL</label>
+            <label className="block text-[10px] tracking-wider uppercase mb-1.5" style={{ color: "#555" }}>{t("settingsOllamaUrl")}</label>
             <input
               value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} onBlur={refreshOllamaModels}
               className="w-full mb-4 px-3 py-2 rounded-lg text-sm outline-none"
               style={{ background: "#111111", border: "1px solid #1e1e1e", color: "#E0E0E0" }}
             />
-            <p className="text-[10px] mb-4" style={{ color: "#444" }}>Requer o Ollama rodando localmente (ollama.com). Nenhum dado sai desta máquina.</p>
+            <p className="text-[10px] mb-4" style={{ color: "#444" }}>{t("settingsOllamaNote")}</p>
           </>
         ) : (
           <>
             <label className="block text-[10px] tracking-wider uppercase mb-1.5" style={{ color: "#555" }}>
-              API Key {hasKey && <span style={{ color: "#2ecc71" }}>(salva • criptografada)</span>}
+              API Key {hasKey && <span style={{ color: "#2ecc71" }}>({t("settingsApiKeySaved")})</span>}
             </label>
             <input
               type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)}
-              placeholder={hasKey ? "•••••••••••••••• (deixe em branco para manter)" : provider === "github" ? "github_pat_..." : "sk-..."}
+              placeholder={hasKey ? t("settingsApiKeyKeepPlaceholder") : provider === "github" ? t("settingsApiKeyPlaceholderGithub") : t("settingsApiKeyPlaceholder")}
               className="w-full mb-4 px-3 py-2 rounded-lg text-sm outline-none"
               style={{ background: "#111111", border: "1px solid #1e1e1e", color: "#E0E0E0" }}
             />
             <p className="text-[10px] mb-4" style={{ color: "#444" }}>
-              Armazenado criptografado nesta máquina via keychain do SO. Nunca enviado para outro lugar exceto a API oficial de {info.label}.
+              {t("settingsApiKeyNote")} {info.label}.
             </p>
           </>
         )}
 
         {/* System prompt / persona */}
-        <label className="block text-[10px] tracking-wider uppercase mb-1.5" style={{ color: "#555" }}>Prompt do sistema (persona de Hampton)</label>
+        <label className="block text-[10px] tracking-wider uppercase mb-1.5" style={{ color: "#555" }}>{t("settingsSystemPrompt")}</label>
         <textarea
           value={systemPrompt} onChange={(e) => setSystemPrompt(e.target.value)} rows={3}
           className="w-full mb-4 px-3 py-2 rounded-lg text-sm outline-none resize-none"
@@ -231,7 +262,7 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
 
         {/* Fallback provider */}
         <label className="block text-[10px] tracking-wider uppercase mb-1.5" style={{ color: "#555" }}>
-          Provider de fallback (usado automaticamente se o principal falhar)
+          {t("settingsFallbackProvider")}
         </label>
         <div className="flex items-center gap-2 mb-4">
           <select
@@ -240,14 +271,14 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
             className="px-3 py-2 rounded-lg text-xs outline-none"
             style={{ background: "#111111", border: "1px solid #1e1e1e", color: "#aaa" }}
           >
-            <option value="none">Nenhum</option>
+            <option value="none">{t("settingsFallbackNone")}</option>
             {(Object.keys(PROVIDER_INFO) as OrunProvider[]).filter((p) => p !== provider).map((p) => (
               <option key={p} value={p}>{PROVIDER_INFO[p].label}</option>
             ))}
           </select>
           {fallbackProvider !== "none" && (
             <input
-              value={fallbackModel} onChange={(e) => setFallbackModel(e.target.value)} placeholder="nome do modelo"
+              value={fallbackModel} onChange={(e) => setFallbackModel(e.target.value)} placeholder={t("settingsModelName")}
               className="flex-1 px-3 py-2 rounded-lg text-xs outline-none"
               style={{ background: "#111111", border: "1px solid #1e1e1e", color: "#aaa" }}
             />
@@ -256,18 +287,18 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
 
         {/* Run in background */}
         <label className="flex items-center justify-between mb-2 px-3 py-2.5 rounded-lg" style={{ background: "#111111", border: "1px solid #1e1e1e" }}>
-          <span className="text-xs" style={{ fontFamily: "'Sora', sans-serif", color: "#ccc" }}>Manter rodando em segundo plano</span>
+          <span className="text-xs" style={{ fontFamily: "'Sora', sans-serif", color: "#ccc" }}>{t("settingsRunInBackground")}</span>
           <input type="checkbox" checked={runInBackground} onChange={(e) => setRunInBackground(e.target.checked)} className="accent-[#C00018]" />
         </label>
 
         {/* Wake word */}
         <label className="flex items-center justify-between mb-1 px-3 py-2.5 rounded-lg" style={{ background: "#111111", border: "1px solid #1e1e1e" }}>
-          <span className="text-xs" style={{ fontFamily: "'Sora', sans-serif", color: "#ccc" }}>Diga "Hampton" ou "Orun" para conversar <span style={{ color: "#C00018" }}>(beta)</span></span>
+          <span className="text-xs" style={{ fontFamily: "'Sora', sans-serif", color: "#ccc" }}>{t("settingsWakeWord")} <span style={{ color: "#C00018" }}>{t("settingsWakeWordBeta")}</span></span>
           <input type="checkbox" checked={wakeWordEnabled} onChange={(e) => setWakeWordEnabled(e.target.checked)} className="accent-[#C00018]" />
         </label>
         {wakeWordEnabled ? (
           <p className="text-[9px] mb-3" style={{ color: "#666" }}>
-            Usa o reconhecimento de voz embutido do navegador — o áudio é enviado para os servidores do Google para transcrição, não processado localmente.
+            {t("settingsWakeWordNote")}
           </p>
         ) : <div className="mb-4" />}
 
@@ -277,7 +308,7 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
           className="w-full flex items-center justify-center gap-1.5 py-2.5 mb-4 rounded-lg text-xs"
           style={{ background: "#111111", border: "1px solid #1e1e1e", color: "#888" }}
         >
-          <MessageCircle size={13} style={{ color: "#25D366" }} /> Conector WhatsApp
+          <MessageCircle size={13} style={{ color: "#25D366" }} /> {t("settingsWhatsAppConnector")}
         </button>
 
         {/* Updates */}
@@ -288,17 +319,17 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
           style={{ background: "#111111", border: "1px solid #1e1e1e", color: "#888" }}
         >
           {checkingUpdate && <Loader2 size={13} className="animate-spin" />}
-          Verificar atualizações
+          {t("settingsCheckUpdates")}
         </button>
-        {updateStatus?.status === "not-available" && <p className="text-[10px] mb-3" style={{ color: "#2ecc71" }}>Você está na versão mais recente.</p>}
-        {updateStatus?.status === "available" && <p className="text-[10px] mb-3" style={{ color: "#FF1A2D" }}>Atualização {updateStatus.version} disponível — baixando…</p>}
-        {updateStatus?.status === "downloading" && <p className="text-[10px] mb-3" style={{ color: "#FF1A2D" }}>Baixando atualização… {updateStatus.percent ?? 0}%</p>}
+        {updateStatus?.status === "not-available" && <p className="text-[10px] mb-3" style={{ color: "#2ecc71" }}>{t("settingsLatestVersion")}</p>}
+        {updateStatus?.status === "available" && <p className="text-[10px] mb-3" style={{ color: "#FF1A2D" }}>{t("settingsUpdateAvailable")} {updateStatus.version}</p>}
+        {updateStatus?.status === "downloading" && <p className="text-[10px] mb-3" style={{ color: "#FF1A2D" }}>{t("settingsDownloadingUpdate")} {updateStatus.percent ?? 0}%</p>}
         {updateStatus?.status === "downloaded" && (
           <button onClick={() => window.orun.app.installUpdate()} className="w-full py-2 mb-3 rounded-lg text-xs" style={{ background: "#C00018", color: "#fff" }}>
-            Reiniciar e instalar atualização {updateStatus.version}
+            {t("settingsRestartInstall")} {updateStatus.version}
           </button>
         )}
-        {updateStatus?.status === "error" && <p className="text-[10px] mb-3" style={{ color: "#C00018" }}>{updateStatus.message || "Falha ao verificar atualizações."}</p>}
+        {updateStatus?.status === "error" && <p className="text-[10px] mb-3" style={{ color: "#C00018" }}>{updateStatus.message || t("settingsUpdateFailed")}</p>}
 
         {/* Per-agent models + usage links */}
         <div className="grid grid-cols-2 gap-2 mb-4">
@@ -307,14 +338,14 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
             className="flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs"
             style={{ background: "#111111", border: "1px solid #1e1e1e", color: "#888" }}
           >
-            <Users size={13} /> Modelos por agente
+            <Users size={13} /> {t("settingsModelsPerAgent")}
           </button>
           <button
             onClick={onOpenUsage}
             className="flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs"
             style={{ background: "#111111", border: "1px solid #1e1e1e", color: "#888" }}
           >
-            <Activity size={13} /> Uso hoje
+            <Activity size={13} /> {t("settingsUsageToday")}
           </button>
         </div>
 
@@ -328,10 +359,10 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
             {testState === "testing" && <Loader2 size={13} className="animate-spin" />}
             {testState === "ok" && <CheckCircle2 size={13} style={{ color: "#2ecc71" }} />}
             {testState === "error" && <XCircle size={13} style={{ color: "#C00018" }} />}
-            Testar conexão
+            {t("settingsTestConnection")}
           </button>
           <button onClick={async () => { await save(); onClose(); }} className="flex-1 py-2 rounded-lg text-xs" style={{ background: "#C00018", color: "#fff" }}>
-            Salvar
+            {t("settingsSave")}
           </button>
         </div>
         {testState === "error" && <p className="text-[10px] mt-2" style={{ color: "#C00018" }}>{testError}</p>}

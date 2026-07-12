@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { X, MessageCircle, QrCode, CheckCircle2, Loader2, AlertTriangle } from "lucide-react";
 import { isElectron } from "../constants";
+import { useTranslation } from "../../i18n/I18nProvider";
 import type { OrunWhatsAppStatus } from "../../types/orun";
 
 export function WhatsAppPanel({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
   const [status, setStatus] = useState<OrunWhatsAppStatus["status"]>("disconnected");
   const [qr, setQr] = useState<string | null>(null);
   const [selfJid, setSelfJid] = useState<string | null>(null);
@@ -59,12 +61,12 @@ export function WhatsAppPanel({ onClose }: { onClose: () => void }) {
         <div className="flex items-start gap-2 mb-5 p-3 rounded-lg" style={{ background: "rgba(255,170,0,0.06)", border: "1px solid rgba(255,170,0,0.2)" }}>
           <AlertTriangle size={13} style={{ color: "#ffaa00", flexShrink: 0, marginTop: 1 }} />
           <p className="text-[10px]" style={{ color: "#cc9900" }}>
-              Usa uma biblioteca não oficial de protocolo WhatsApp Web (Baileys), não a API oficial da Meta.
-              Isso viola os Termos de Serviço do WhatsApp — risco baixo para uso pessoal, mas não zero.
+              {t("whatsappDisclaimer1")}
+              {t("whatsappDisclaimer2")}
           </p>
         </div>
 
-        {!isElectron && <p className="text-[11px]" style={{ color: "#555" }}>Só funciona no aplicativo Electron empacotado.</p>}
+        {!isElectron && <p className="text-[11px]" style={{ color: "#555" }}>{t("whatsappBrowserWarning")}</p>}
 
         {isElectron && (
           <>
@@ -78,30 +80,30 @@ export function WhatsAppPanel({ onClose }: { onClose: () => void }) {
             {status === "qr" && qr && (
               <div className="text-center mb-4">
                 <img src={qr} alt="Scan with WhatsApp" className="mx-auto rounded-lg" style={{ width: 220, height: 220 }} />
-                <p className="text-[10px] mt-2" style={{ color: "#555" }}>WhatsApp → Dispositivos conectados → Conectar dispositivo → escaneie isso.</p>
+                <p className="text-[10px] mt-2" style={{ color: "#555" }}>{t("whatsappScanInstruction")}</p>
               </div>
             )}
 
-            {status === "connecting" && <p className="text-[11px] mb-3" style={{ color: "#555" }}><Loader2 size={13} className="animate-spin inline mr-1.5" />Conectando…</p>}
+            {status === "connecting" && <p className="text-[11px] mb-3" style={{ color: "#555" }}><Loader2 size={13} className="animate-spin inline mr-1.5" />{t("whatsappConnecting")}</p>}
 
             {status === "connected" && (
               <div className="flex items-center gap-1.5 mb-4 text-[11px]" style={{ color: "#2ecc71" }}>
-                <CheckCircle2 size={13} /> Conectado{selfJid ? ` como ${selfJid.split("@")[0]}` : ""}
+                <CheckCircle2 size={13} /> {t("whatsappConnected")}{selfJid ? ` como ${selfJid.split("@")[0]}` : ""}
               </div>
             )}
 
             <label className="block text-[10px] tracking-wider uppercase mb-1.5" style={{ color: "#555" }}>
-              Chat que o Orun OS escuta
+              {t("whatsappListenChat")}
             </label>
             <input
               value={listenJid} onChange={(e) => setListenJid(e.target.value)} onBlur={saveListenJid}
-              placeholder="Preenchido automaticamente com seu próprio chat ao conectar"
+              placeholder={t("whatsappAutoFill")}
               className="w-full px-3 py-2 rounded-lg text-xs outline-none mb-2"
               style={{ background: "#111111", border: "1px solid #1e1e1e", color: "#E0E0E0", fontFamily: "'JetBrains Mono', monospace" }}
             />
             <p className="text-[10px]" style={{ color: "#444" }}>
-              Envie para si mesmo uma foto de comida neste chat e o agente Nutritionist responde com calorias.
-              Mensagens de texto vão para Hampton. Apenas este chat é processado.
+              {t("whatsappFoodPhotoNote")}
+              {t("whatsappTextNote")}
             </p>
           </>
         )}

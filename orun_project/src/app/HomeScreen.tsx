@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { useTranslation } from "../i18n/I18nProvider";
 import { HamptonAvatar } from "./components/HamptonAvatar";
 import { AgentsPanel } from "./components/AgentsPanel";
 import { Sidebar } from "./components/Sidebar";
@@ -14,7 +15,7 @@ import { ConversationList } from "./components/ConversationList";
 import { VoicesPicker } from "./components/VoicesPicker";
 import { ModelPicker } from "./components/ModelPicker";
 import { WhatsAppPanel } from "./components/WhatsAppPanel";
-import { HAMPTON_REPLIES, isElectron, AGENTS } from "./constants";
+import { getHamptonReplies, isElectron, getAgents } from "./constants";
 import type { HamptonState, Message } from "./types";
 
 // ── Speech recognition (Chromium's built-in engine — NOT local/private;
@@ -23,6 +24,7 @@ import type { HamptonState, Message } from "./types";
 const SpeechRecognitionCtor: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
 export function HomeScreen() {
+  const { t, speechLang } = useTranslation();
   const [activeNav, setActiveNav] = useState("home");
   const [agentsOpen, setAgentsOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -202,7 +204,7 @@ export function HomeScreen() {
           },
           onError: (message) => {
             setHamptonState("speaking");
-            const errText = `Não foi possível acessar o motor de IA. ${message || "Verifique Configurações → Motor de IA para confirmar que o provider está configurado."}`;
+            const errText = `${t("homeErrorAccess")} ${message || ""}`;
             setMessages(p => {
               const exists = p.some(m => m.id === replyId);
               return exists ? p.map(m => (m.id === replyId ? { ...m, content: errText } : m)) : [...p, { id: replyId, role: "hampton", content: errText }];
@@ -213,7 +215,7 @@ export function HomeScreen() {
         });
       } catch (err: any) {
         setHamptonState("speaking");
-        const reply: Message = { id: `${Date.now() + 1}`, role: "hampton", content: `Não foi possível acessar o motor de IA. ${err?.message || "Verifique Configurações → Motor de IA."}` };
+        const reply: Message = { id: `${Date.now() + 1}`, role: "hampton", content: `${t("homeErrorAccessShort")} ${err?.message || ""}` };
         setMessages(p => [...p, reply]);
         setTimeout(() => setHamptonState("idle"), 1200);
       }
@@ -221,9 +223,10 @@ export function HomeScreen() {
     }
 
     // Browser preview fallback (no Electron backend available)
+    const hamptonReplies = getHamptonReplies(t);
     setTimeout(() => {
       setHamptonState("speaking");
-      const reply: Message = { id: `${Date.now() + 1}`, role: "hampton", content: HAMPTON_REPLIES[Math.floor(Math.random() * HAMPTON_REPLIES.length)] };
+      const reply: Message = { id: `${Date.now() + 1}`, role: "hampton", content: hamptonReplies[Math.floor(Math.random() * hamptonReplies.length)] };
       setMessages(p => [...p, reply]);
       speak(reply.content);
       setTimeout(() => setHamptonState("idle"), 2200);
@@ -275,7 +278,7 @@ export function HomeScreen() {
     if (!SpeechRecognitionCtor) { setHamptonState(p => p === "listening" ? "idle" : "listening"); return; }
     if (recognitionRef.current) { recognitionRef.current.stop(); recognitionRef.current = null; setHamptonState("idle"); return; }
     const recognition = new SpeechRecognitionCtor();
-    recognition.lang = "pt-BR";
+    recognition.lang = speechLang;
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
     recognition.onstart = () => setHamptonState("listening");
@@ -295,7 +298,7 @@ export function HomeScreen() {
   useEffect(() => {
     if (!wakeWordEnabled || !SpeechRecognitionCtor) return;
     const recognition = new SpeechRecognitionCtor();
-    recognition.lang = "pt-BR";
+    recognition.lang = speechLang;
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.onresult = (event: any) => {
@@ -321,7 +324,8 @@ export function HomeScreen() {
   const isStreaming = hamptonState === "speaking" || hamptonState === "thinking";
   const lastMessage = messages[messages.length - 1];
   const anyPanelOpen = agentsOpen || historyOpen;
-  const currentAgent = activeAgent ? AGENTS.find(a => a.name === activeAgent) : null;
+  const agents = getAgents(t);
+  const currentAgent = activeAgent ? agents.find(a => a.name === activeAgent) : null;
 
   return (
     <div className="fixed inset-0 flex" style={{ background: "#080808" }}>
@@ -366,11 +370,11 @@ export function HomeScreen() {
               >
                 <HamptonAvatar state={hamptonState} />
                 <motion.div className="text-center mt-5 space-y-1.5" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-                  <p className="text-3xl tracking-wide" style={{ fontFamily: "'Cormorant Garamond', serif", color: "#F5F5F5", fontWeight: 300 }}>Bem-vindo de volta, Caique.</p>
-                  <p className="text-sm" style={{ fontFamily: "'Inter', sans-serif", color: "#444", fontWeight: 300 }}>Como posso te ajudar hoje?</p>
+                  <p className="text-3xl tracking-wide" style={{ fontFamily: "'Cormorant Garamond', serif", color: "#F5F5F5", fontWeight: 300 }}>{t("homeWelcomeBack")}</p>
+                  <p className="text-sm" style={{ fontFamily: "'Inter', sans-serif", color: "#444", fontWeight: 300 }}>{t("homeHowCanIHelp")}</p>
                 </motion.div>
                 <div className="flex items-center gap-3 mt-6">
-                  {["IA Nativa", "Modelos na Nuvem", "Memória Ativa"].map((label, i) => (
+                  {[t("statusNativeAI"), t("homeCloudModels"), t("homeActiveMemory")].map((label, i) => (
                     <div key={i} className="flex items-center gap-1.5 px-3 py-1 rounded-full border" style={{ borderColor: "#1e1e1e", background: "#0e0e0e" }}>
                       <div className="w-1 h-1 rounded-full" style={{ background: i === 0 ? "#C00018" : "#3a3a3a", boxShadow: i === 0 ? "0 0 4px #C00018" : "none" }} />
                       <span className="text-[9px] tracking-wider" style={{ fontFamily: "'Sora', sans-serif", color: "#555" }}>{label}</span>
@@ -384,9 +388,9 @@ export function HomeScreen() {
                       style={{ fontFamily: "'Sora', sans-serif", color: "#C00018", animation: "orunStatePulse 1s ease-in-out infinite", display: "inline-block" }}
                       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                     >
-                      {hamptonState === "listening" && "● Escutando"}
-                      {hamptonState === "thinking" && "● Pensando"}
-                      {hamptonState === "speaking" && "● Falando"}
+                      {hamptonState === "listening" && t("homeListening")}
+                      {hamptonState === "thinking" && t("homeThinking")}
+                      {hamptonState === "speaking" && t("homeSpeaking")}
                     </motion.span>
                   )}
                 </AnimatePresence>
@@ -400,16 +404,16 @@ export function HomeScreen() {
                   </div>
                   {hamptonState !== "idle" && (
                     <span className="text-[9px] tracking-widest uppercase" style={{ fontFamily: "'Sora', sans-serif", color: "#C00018" }}>
-                    {hamptonState === "thinking" && "Pensando..."}
-                    {hamptonState === "speaking" && "Falando..."}
-                    {hamptonState === "listening" && "Escutando..."}
+                    {hamptonState === "thinking" && `${t("homeThinking")}...`}
+                    {hamptonState === "speaking" && `${t("homeSpeaking")}...`}
+                    {hamptonState === "listening" && `${t("homeListening")}...`}
                     </span>
                   )}
                   {isStreaming && cancelStreamRef.current && (
-                    <button onClick={stopStreaming} className="text-[9px] tracking-widest uppercase px-3 py-1 rounded-full border transition-colors" style={{ fontFamily: "'Sora', sans-serif", color: "#FF1A2D", borderColor: "rgba(192,0,24,0.35)" }}>■ Parar</button>
+                    <button onClick={stopStreaming} className="text-[9px] tracking-widest uppercase px-3 py-1 rounded-full border transition-colors" style={{ fontFamily: "'Sora', sans-serif", color: "#FF1A2D", borderColor: "rgba(192,0,24,0.35)" }}>{t("homeStop")}</button>
                   )}
                   {hasVoiceConfigured && (
-                    <button onClick={() => setSpeechEnabled(p => !p)} title={speechEnabled ? "Silenciar respostas por voz" : "Ativar respostas por voz"} className="text-[9px] tracking-widest uppercase px-3 py-1 rounded-full border transition-colors" style={{ fontFamily: "'Sora', sans-serif", color: speechEnabled ? "#888" : "#444", borderColor: "#1e1e1e" }}>
+                    <button onClick={() => setSpeechEnabled(p => !p)} title={speechEnabled ? t("homeMuteVoice") : t("homeEnableVoice")} className="text-[9px] tracking-widest uppercase px-3 py-1 rounded-full border transition-colors" style={{ fontFamily: "'Sora', sans-serif", color: speechEnabled ? "#888" : "#444", borderColor: "#1e1e1e" }}>
                       {speechEnabled ? "🔊" : "🔇"}
                     </button>
                   )}
@@ -420,7 +424,7 @@ export function HomeScreen() {
                     onMouseEnter={e => (e.currentTarget.style.color = "#888")}
                     onMouseLeave={e => (e.currentTarget.style.color = "#333")}
                   >
-                    Nova Conversa
+                    {t("homeNewConversation")}
                   </button>
                 </div>
 

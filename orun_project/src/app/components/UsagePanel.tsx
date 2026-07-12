@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { X, ArrowLeft, Activity } from "lucide-react";
 import { isElectron } from "../constants";
+import { useTranslation } from "../../i18n/I18nProvider";
 import type { OrunUsageRow, OrunTTSUsageRow } from "../../types/orun";
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -22,6 +23,7 @@ const PROVIDER_LABELS: Record<string, string> = {
 };
 
 export function UsagePanel({ onClose, onBack }: { onClose: () => void; onBack: () => void }) {
+  const { t } = useTranslation();
   const [rows, setRows] = useState<OrunUsageRow[]>([]);
   const [ttsRows, setTtsRows] = useState<OrunTTSUsageRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,16 +54,16 @@ export function UsagePanel({ onClose, onBack }: { onClose: () => void; onBack: (
           <div className="flex items-center gap-2.5">
             <button onClick={onBack} style={{ color: "#666" }}><ArrowLeft size={15} /></button>
             <Activity size={14} style={{ color: "#C00018" }} />
-            <span className="text-sm tracking-widest uppercase" style={{ fontFamily: "'Sora', sans-serif", color: "#F5F5F5" }}>Uso Hoje</span>
+            <span className="text-sm tracking-widest uppercase" style={{ fontFamily: "'Sora', sans-serif", color: "#F5F5F5" }}>{t("usageTitle")}</span>
           </div>
           <button onClick={onClose} style={{ color: "#666" }}><X size={16} /></button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
-          {!isElectron && <p className="text-[11px]" style={{ color: "#555" }}>O rastreamento de uso só funciona no aplicativo Electron empacotado.</p>}
-          {isElectron && loading && <p className="text-[11px]" style={{ color: "#555" }}>Carregando…</p>}
+          {!isElectron && <p className="text-[11px]" style={{ color: "#555" }}>{t("usageBrowserWarning")}</p>}
+          {isElectron && loading && <p className="text-[11px]" style={{ color: "#555" }}>{t("usageLoading")}</p>}
           {isElectron && !loading && rows.length === 0 && (
-            <p className="text-[11px]" style={{ color: "#555" }}>Nenhuma requisição hoje. Envie uma mensagem para Hampton e volte aqui.</p>
+            <p className="text-[11px]" style={{ color: "#555" }}>{t("usageNoRequests")}</p>
           )}
           {rows.length > 0 && (
             <div className="space-y-3">
@@ -80,15 +82,15 @@ export function UsagePanel({ onClose, onBack }: { onClose: () => void; onBack: (
                 </div>
               ))}
               <p className="text-[10px] pt-1" style={{ color: "#444" }}>
-                {totalRequests} requisição(ões) no total em todos os providers hoje.
-                As contagens de tokens vêm do relatório de cada provider — alguns (como Ollama) só reportam depois que uma resposta termina.
+                {totalRequests} {t("usageTotalRequests")}
+                {t("usageTokenNote")}
               </p>
             </div>
           )}
 
           {ttsRows.length > 0 && (
             <div className="mt-5 pt-4 border-t space-y-3" style={{ borderColor: "#1a1a1a" }}>
-              <p className="text-[10px] tracking-wider uppercase" style={{ color: "#555" }}>Voz (TTS)</p>
+              <p className="text-[10px] tracking-wider uppercase" style={{ color: "#555" }}>{t("usageVoiceTTS")}</p>
               {ttsRows.map((r) => (
                 <div key={r.engine} className="p-3 rounded-xl border" style={{ borderColor: "#1a1a1a", background: "#111111" }}>
                   <div className="flex items-center justify-between">

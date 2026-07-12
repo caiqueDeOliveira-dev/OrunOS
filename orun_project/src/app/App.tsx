@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { I18nProvider } from "../i18n/I18nProvider";
 import { GlobalStyles } from "./components/GlobalStyles";
 import { CustomCursor } from "./components/CustomCursor";
 import { SplashScreen } from "./components/SplashScreen";
@@ -11,9 +12,10 @@ export default function App() {
   const [phase, setPhase] = useState<Phase>("splash");
 
   return (
-    <div className="fixed inset-0 overflow-hidden" style={{ background: "#080808" }}>
-      <GlobalStyles />
-      <CustomCursor />
+    <I18nProvider>
+      <div className="fixed inset-0 overflow-hidden" style={{ background: "#080808" }}>
+        <GlobalStyles />
+        <CustomCursor />
 
       <AnimatePresence mode="wait">
         {phase === "splash" && (
@@ -34,6 +36,7 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+      </div>
+    </I18nProvider>
   );
 }

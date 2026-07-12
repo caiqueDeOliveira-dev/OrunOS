@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { X, CheckCircle2, XCircle, Loader2, Zap, Send, Plus, Trash2 } from "lucide-react";
 import { isElectron } from "../constants";
+import { useTranslation } from "../../i18n/I18nProvider";
 import type { OrunAutomationAction } from "../../types/orun";
 
 export function AutomationPanel({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
   const [baseUrl, setBaseUrl] = useState("http://localhost:5678");
   const [apiKey, setApiKey] = useState("");
   const [hasKey, setHasKey] = useState(false);
@@ -66,7 +68,7 @@ export function AutomationPanel({ onClose }: { onClose: () => void }) {
       setWorkflows(await window.orun.n8n.listWorkflows());
     } else {
       setTestState("error");
-      setTestError(result.error || "Erro desconhecido");
+      setTestError(result.error || t("automationError"));
     }
   };
 
@@ -77,7 +79,7 @@ export function AutomationPanel({ onClose }: { onClose: () => void }) {
     try { payload = JSON.parse(webhookPayload); } catch { payload = { raw: webhookPayload }; }
     const result = await window.orun.n8n.triggerWebhook({ webhookUrl: webhookUrl.trim(), payload, headerName: headerName.trim() || undefined, headerValue: headerValue.trim() || undefined });
     if (result.ok) { setWebhookState("ok"); setWebhookResult(JSON.stringify(result.result, null, 2)); }
-    else { setWebhookState("error"); setWebhookResult(result.error || "Erro desconhecido"); }
+    else { setWebhookState("error"); setWebhookResult(result.error || t("automationError")); }
   };
 
   return (
@@ -97,19 +99,20 @@ export function AutomationPanel({ onClose }: { onClose: () => void }) {
           <div className="flex items-center gap-2">
             <Zap size={15} style={{ color: "#C00018" }} />
             <span className="text-sm tracking-widest uppercase" style={{ fontFamily: "'Sora', sans-serif", color: "#F5F5F5" }}>
-              Automação — n8n
+              {t("automationTitle")}
             </span>
           </div>
           <button onClick={onClose} style={{ color: "#666" }}><X size={16} /></button>
         </div>
         <p className="text-[10px] mb-5" style={{ color: "#555" }}>
-          Orun OS não inclui o n8n — é um aplicativo separado que você hospeda (Docker) ou roda no n8n Cloud.
-          Isso conecta a uma instância que você já possui em execução.
+          {t("automationN8nNote1")}
+          <br />
+          {t("automationN8nNote2")}
         </p>
 
         {!isElectron && (
           <div className="mb-4 px-3 py-2 rounded-lg text-[11px]" style={{ background: "rgba(192,0,24,0.08)", color: "#C00018", border: "1px solid rgba(192,0,24,0.2)" }}>
-            Executando no navegador — isso só funciona no aplicativo Electron empacotado.
+            {t("automationBrowserWarning")}
           </div>
         )}
 
@@ -121,11 +124,11 @@ export function AutomationPanel({ onClose }: { onClose: () => void }) {
         />
 
         <label className="block text-[10px] tracking-wider uppercase mb-1.5" style={{ color: "#555" }}>
-          API Key {hasKey && <span style={{ color: "#2ecc71" }}>(salva • criptografada)</span>}
+          API Key {hasKey && <span style={{ color: "#2ecc71" }}>{t("automationApiKeySaved")}</span>}
         </label>
         <input
           type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)}
-          placeholder={hasKey ? "•••••••••••••••• (deixe em branco para manter)" : "n8n → Configurações → n8n API → Criar"}
+          placeholder={hasKey ? "•••••••••••••••• ".concat(t("automationApiKeyKeep")) : t("automationApiKeyPlaceholder")}
           className="w-full mb-4 px-3 py-2 rounded-lg text-sm outline-none"
           style={{ background: "#111111", border: "1px solid #1e1e1e", color: "#E0E0E0" }}
         />
@@ -138,12 +141,12 @@ export function AutomationPanel({ onClose }: { onClose: () => void }) {
           {testState === "testing" && <Loader2 size={13} className="animate-spin" />}
           {testState === "ok" && <CheckCircle2 size={13} style={{ color: "#2ecc71" }} />}
           {testState === "error" && <XCircle size={13} style={{ color: "#C00018" }} />}
-          Testar conexão e listar workflows
+          {t("automationTestConnection")}
         </button>
         {testState === "error" && <p className="text-[10px] mb-3" style={{ color: "#C00018" }}>{testError}</p>}
         {testState === "ok" && (
           <div className="mb-4 space-y-1">
-            <p className="text-[10px]" style={{ color: "#2ecc71" }}>Conectado — {workflowCount} workflow(s) encontrado(s).</p>
+            <p className="text-[10px]" style={{ color: "#2ecc71" }}>{t("automationConnected")}</p>
             {workflows.slice(0, 6).map((w) => (
               <div key={w.id} className="flex items-center gap-1.5 text-[10px]" style={{ color: "#888" }}>
                 <div className="w-1 h-1 rounded-full" style={{ background: w.active ? "#2ecc71" : "#444" }} />
@@ -158,19 +161,19 @@ export function AutomationPanel({ onClose }: { onClose: () => void }) {
         {/* Let Hampton trigger automations autonomously */}
         <label className="flex items-center justify-between mb-3 px-3 py-2.5 rounded-lg" style={{ background: "#111111", border: "1px solid #1e1e1e" }}>
           <span className="text-xs" style={{ fontFamily: "'Sora', sans-serif", color: "#ccc" }}>
-            Permitir que Hampton dispare automações automaticamente <span style={{ color: "#C00018" }}>(beta)</span>
+            {t("automationAutoTrigger")} <span style={{ color: "#C00018" }}>(beta)</span>
           </span>
           <input type="checkbox" checked={autoTrigger} onChange={(e) => { setAutoTrigger(e.target.checked); }} onBlur={save} className="accent-[#C00018]" />
         </label>
         {autoTrigger && (
           <p className="text-[10px] mb-3" style={{ color: "#555" }}>
-            Hampton decidirá sozinho, no meio da conversa, quando uma automação salva abaixo se encaixa no que você pediu.
-            Ele só pode escolher da lista que você define — não pode inventar novas URLs de webhook.
+            {t("automationAutoTriggerNote1")}
+            {" "}{t("automationAutoTriggerNote2")}
           </p>
         )}
 
-        <p className="text-[10px] tracking-wider uppercase mb-2" style={{ color: "#555" }}>Automações salvas</p>
-        {actions.length === 0 && <p className="text-[10px] mb-2" style={{ color: "#444" }}>Nenhuma ainda — adicione uma abaixo.</p>}
+        <p className="text-[10px] tracking-wider uppercase mb-2" style={{ color: "#555" }}>{t("automationSavedTitle")}</p>
+        {actions.length === 0 && <p className="text-[10px] mb-2" style={{ color: "#444" }}>{t("automationNoneYet")}</p>}
         <div className="space-y-1.5 mb-3">
           {actions.map((a) => (
             <div key={a.name} className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: "#111111", border: "1px solid #1e1e1e" }}>
@@ -183,26 +186,26 @@ export function AutomationPanel({ onClose }: { onClose: () => void }) {
           ))}
         </div>
         <div className="p-3 rounded-lg mb-4 space-y-2" style={{ background: "#0f0f0f", border: "1px dashed #222" }}>
-          <input value={newAction.name} onChange={(e) => setNewAction((p) => ({ ...p, name: e.target.value }))} placeholder="Nome (ex: enviar_email)" className="w-full px-2.5 py-1.5 rounded-md text-xs outline-none" style={{ background: "#111111", border: "1px solid #1e1e1e", color: "#ddd" }} />
-          <input value={newAction.description} onChange={(e) => setNewAction((p) => ({ ...p, description: e.target.value }))} placeholder="O que faz (Hampton lê isso para decidir quando usar)" className="w-full px-2.5 py-1.5 rounded-md text-xs outline-none" style={{ background: "#111111", border: "1px solid #1e1e1e", color: "#ddd" }} />
+          <input value={newAction.name} onChange={(e) => setNewAction((p) => ({ ...p, name: e.target.value }))} placeholder={t("automationNamePlaceholder")} className="w-full px-2.5 py-1.5 rounded-md text-xs outline-none" style={{ background: "#111111", border: "1px solid #1e1e1e", color: "#ddd" }} />
+          <input value={newAction.description} onChange={(e) => setNewAction((p) => ({ ...p, description: e.target.value }))} placeholder={t("automationDescPlaceholder")} className="w-full px-2.5 py-1.5 rounded-md text-xs outline-none" style={{ background: "#111111", border: "1px solid #1e1e1e", color: "#ddd" }} />
           <input value={newAction.webhookUrl} onChange={(e) => setNewAction((p) => ({ ...p, webhookUrl: e.target.value }))} placeholder="Webhook URL" className="w-full px-2.5 py-1.5 rounded-md text-xs outline-none" style={{ background: "#111111", border: "1px solid #1e1e1e", color: "#ddd" }} />
           <button onClick={addAction} className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs" style={{ background: "#151515", border: "1px solid #232323", color: "#888" }}>
-            <Plus size={12} /> Adicionar automação
+            <Plus size={12} /> {t("automationAdd")}
           </button>
         </div>
 
         <div className="h-px my-4" style={{ background: "#1a1a1a" }} />
 
         {/* Manual webhook tester */}
-        <p className="text-[10px] tracking-wider uppercase mb-2" style={{ color: "#555" }}>Disparar um workflow (nó Webhook)</p>
+        <p className="text-[10px] tracking-wider uppercase mb-2" style={{ color: "#555" }}>{t("automationTriggerNote")}</p>
         <input
           value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} placeholder="https://your-n8n.com/webhook/your-path"
           className="w-full mb-2 px-3 py-2 rounded-lg text-sm outline-none"
           style={{ background: "#111111", border: "1px solid #1e1e1e", color: "#E0E0E0" }}
         />
         <div className="flex gap-2 mb-2">
-          <input value={headerName} onChange={(e) => setHeaderName(e.target.value)} placeholder="Nome do header (opcional)" className="flex-1 px-3 py-2 rounded-lg text-xs outline-none" style={{ background: "#111111", border: "1px solid #1e1e1e", color: "#aaa" }} />
-          <input value={headerValue} onChange={(e) => setHeaderValue(e.target.value)} placeholder="Valor do header" className="flex-1 px-3 py-2 rounded-lg text-xs outline-none" style={{ background: "#111111", border: "1px solid #1e1e1e", color: "#aaa" }} />
+          <input value={headerName} onChange={(e) => setHeaderName(e.target.value)} placeholder={t("automationHeaderName")} className="flex-1 px-3 py-2 rounded-lg text-xs outline-none" style={{ background: "#111111", border: "1px solid #1e1e1e", color: "#aaa" }} />
+          <input value={headerValue} onChange={(e) => setHeaderValue(e.target.value)} placeholder={t("automationHeaderValue")} className="flex-1 px-3 py-2 rounded-lg text-xs outline-none" style={{ background: "#111111", border: "1px solid #1e1e1e", color: "#aaa" }} />
         </div>
         <textarea
           value={webhookPayload} onChange={(e) => setWebhookPayload(e.target.value)} rows={3}
@@ -215,7 +218,7 @@ export function AutomationPanel({ onClose }: { onClose: () => void }) {
           style={{ background: "#C00018", color: "#fff", opacity: !webhookUrl.trim() ? 0.4 : 1 }}
         >
           {webhookState === "sending" ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
-          Enviar
+          {t("automationSend")}
         </button>
         {webhookResult && (
           <pre className="mt-2 p-2 rounded-lg text-[9px] overflow-x-auto" style={{ background: "#111111", border: "1px solid #1e1e1e", color: webhookState === "error" ? "#C00018" : "#888", fontFamily: "'JetBrains Mono', monospace" }}>
