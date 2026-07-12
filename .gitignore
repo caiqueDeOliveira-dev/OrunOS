@@ -1,7 +1,12 @@
 node_modules/
 dist/
 release/
-build/
+build/*
+!build/icon.png
+!build/icon-top.ico
+!build/icon-top.png
+!build/tray-icon.png
+!build/tray-icon@2x.png
 .env
 .env.local
 *.log
