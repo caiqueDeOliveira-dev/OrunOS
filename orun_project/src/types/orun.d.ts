@@ -1,6 +1,6 @@
 export {};
 
-export type OrunProvider = "ollama" | "anthropic" | "openai" | "openrouter" | "groq" | "github";
+export type OrunProvider = "ollama" | "anthropic" | "openai" | "openrouter" | "groq" | "github" | "opencodezen";
 
 interface OrunChatMessage {
   role: "user" | "assistant" | "system";

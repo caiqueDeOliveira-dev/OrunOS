@@ -11,6 +11,7 @@ const PROVIDER_INFO: Record<OrunProvider, { label: string; kind: "local" | "clou
   openrouter: { label: "OpenRouter", kind: "cloud" },
   groq: { label: "Groq", kind: "cloud" },
   github: { label: "GitHub Models", kind: "cloud" },
+  opencodezen: { label: "OpenCode Zen", kind: "cloud" },
 };
 
 export function ModelPicker({ onClose }: { onClose: () => void }) {
@@ -82,7 +83,7 @@ export function ModelPicker({ onClose }: { onClose: () => void }) {
         <AnimatePresence mode="wait">
           {!provider ? (
             <motion.div key="providers" className="p-4 overflow-y-auto scrollbar-hide" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <p className="text-[10px] px-2 mb-3" style={{ color: "#555" }}>Double-click a provider to see its models.</p>
+              <p className="text-[10px] px-2 mb-3" style={{ color: "#555" }}>Clique duas vezes em um provider para ver seus modelos.</p>
               <div className="grid grid-cols-2 gap-2">
                 {(Object.keys(PROVIDER_INFO) as OrunProvider[]).map((p) => {
                   const info = PROVIDER_INFO[p];
@@ -104,8 +105,8 @@ export function ModelPicker({ onClose }: { onClose: () => void }) {
             </motion.div>
           ) : (
             <motion.div key="models" className="flex-1 overflow-y-auto p-4 scrollbar-hide" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              {loading && <p className="text-[11px] text-center py-4" style={{ color: "#555" }}><Loader2 size={14} className="animate-spin inline mr-1.5" />Loading models…</p>}
-              {!loading && models.length === 0 && <p className="text-[10px]" style={{ color: "#555" }}>No models found. Type one manually in Settings if needed.</p>}
+              {loading && <p className="text-[11px] text-center py-4" style={{ color: "#555" }}><Loader2 size={14} className="animate-spin inline mr-1.5" />Carregando modelos…</p>}
+              {!loading && models.length === 0 && <p className="text-[10px]" style={{ color: "#555" }}>Nenhum modelo encontrado. Digite um manualmente nas Configurações se necessário.</p>}
               <div className="space-y-1.5">
                 {models.map((model) => {
                   const isSelected = selected?.provider === provider && selected.model === model;

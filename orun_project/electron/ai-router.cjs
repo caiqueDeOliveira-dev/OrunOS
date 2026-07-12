@@ -151,6 +151,7 @@ const OPENAI_COMPATIBLE = {
   openrouter: { baseUrl: "https://openrouter.ai/api/v1", authHeaders: (key) => ({ Authorization: `Bearer ${key}`, "HTTP-Referer": "https://orunos.local", "X-Title": "Orun OS" }), defaultModel: "meta-llama/llama-3.3-70b-instruct:free" },
   groq: { baseUrl: "https://api.groq.com/openai/v1", authHeaders: (key) => ({ Authorization: `Bearer ${key}` }), defaultModel: "llama-3.3-70b-versatile" },
   github: { baseUrl: "https://models.github.ai/inference", authHeaders: (key) => ({ Authorization: `Bearer ${key}`, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" }), defaultModel: "openai/gpt-4o" },
+  opencodezen: { baseUrl: "https://opencode.ai/zen/v1", authHeaders: (key) => ({ Authorization: `Bearer ${key}` }), defaultModel: "openai/gpt-5.6-sol" },
 };
 
 function isOpenAICompatible(provider) {
@@ -328,6 +329,7 @@ const KNOWN_FREE_MODELS = {
   openrouter: ["meta-llama/llama-3.3-70b-instruct:free", "google/gemini-2.0-flash-exp:free", "deepseek/deepseek-chat:free", "qwen/qwen-2.5-72b-instruct:free"],
   groq: ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768", "gemma2-9b-it"],
   github: ["openai/gpt-4o", "openai/gpt-4o-mini", "meta/llama-3.3-70b-instruct", "mistral-ai/mistral-large-2411"],
+  opencodezen: ["openai/gpt-5.6-sol", "zai/glm-4.7", "zhipuai/glm-4.7-flash", "stepfun/step-3.5-flash:free", "minimax/MiniMax-M2.5", "openrouter/moonshotai/kimi-k2.5"],
 };
 
 module.exports = {
