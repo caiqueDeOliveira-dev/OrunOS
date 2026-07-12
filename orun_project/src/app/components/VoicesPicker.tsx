@@ -164,6 +164,11 @@ export function VoicesPicker({ onClose }: { onClose: () => void }) {
                 {ENGINE_INFO[engine].needsBaseUrl && (
                   <input value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder={t("voicesLocalUrl")} className="w-full px-3 py-2 rounded-lg text-xs outline-none" style={{ background: "#111111", border: "1px solid #1e1e1e", color: "#E0E0E0" }} />
                 )}
+                {engine === "f5tts" && (
+                  <p className="text-[9px] px-1" style={{ color: "#555" }}>
+                    Default server: <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#888" }}>http://localhost:8080</span> — Run <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#888" }}>start.bat</span> in the <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#888" }}>f5tts-server/</span> directory to launch.
+                  </p>
+                )}
                 <button onClick={saveEngineConfig} className="w-full py-1.5 rounded-lg text-[10px]" style={{ background: "#151515", border: "1px solid #232323", color: "#888" }}>
                   {t("voicesSaveRefresh")}
                 </button>

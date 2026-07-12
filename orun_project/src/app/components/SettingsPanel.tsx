@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { X, Cpu, Cloud, CheckCircle2, XCircle, Loader2, RefreshCw, Users, Activity, MessageCircle, Globe, Sparkles } from "lucide-react";
+import { X, Cpu, Cloud, CheckCircle2, XCircle, Loader2, RefreshCw, Users, Activity, MessageCircle, Globe, Sparkles, Volume2 } from "lucide-react";
 import { useTranslation } from "../../i18n/I18nProvider";
 import { LANGUAGE_OPTIONS, type Language } from "../../i18n/translations";
 import { isElectron } from "../constants";
@@ -38,6 +38,8 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
   const [wakeWordEnabled, setWakeWordEnabled] = useState(false);
   const [updateStatus, setUpdateStatus] = useState<{ status: string; version?: string; percent?: number; message?: string } | null>(null);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [ttsEngine, setTtsEngine] = useState<string>("");
+  const [ttsVoice, setTtsVoice] = useState<string>("");
 
   useEffect(() => {
     if (!isElectron) return;
@@ -56,6 +58,7 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
     });
     window.orun.settings.get<boolean>("runInBackground").then((v) => setRunInBackground(Boolean(v)));
     window.orun.settings.get<boolean>("wakeWordEnabled").then((v) => setWakeWordEnabled(Boolean(v)));
+    window.orun.settings.get<{ engine: string; voiceId: string }>("tts").then((v) => { if (v) { setTtsEngine(v.engine); setTtsVoice(v.voiceId); } });
     const unsubscribe = window.orun.app.onUpdateStatus((status) => { setUpdateStatus(status); setCheckingUpdate(false); });
     return unsubscribe;
   }, []);
@@ -314,6 +317,25 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
         >
           <MessageCircle size={13} style={{ color: "#25D366" }} /> {t("settingsWhatsAppConnector")}
         </button>
+
+        {/* TTS / F5-TTS info */}
+        {ttsEngine && (
+          <div className="mb-4 px-3 py-2.5 rounded-lg" style={{ background: "#111111", border: "1px solid #1e1e1e" }}>
+            <div className="flex items-center gap-1.5 mb-1">
+              <Volume2 size={12} style={{ color: "#888" }} />
+              <span className="text-[10px] tracking-wider uppercase" style={{ fontFamily: "'Sora', sans-serif", color: "#888" }}>Text-to-Speech</span>
+            </div>
+            <p className="text-[10px]" style={{ color: "#555" }}>
+              Engine: <span style={{ color: "#aaa" }}>{ttsEngine.toUpperCase()}</span>
+              {ttsVoice && <span> — Voice: <span style={{ color: "#aaa", fontFamily: "'JetBrains Mono', monospace" }}>{ttsVoice}</span></span>}
+            </p>
+            {ttsEngine === "f5tts" && (
+              <p className="text-[9px] mt-1" style={{ color: "#444" }}>
+                Server: <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#666" }}>http://localhost:8080</span> — Start with <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#666" }}>f5tts-server/start.bat</span>
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Updates */}
         <button

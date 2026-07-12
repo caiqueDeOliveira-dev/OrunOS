@@ -77,14 +77,14 @@ export function WhatsAppPanel({ onClose }: { onClose: () => void }) {
               </button>
             )}
 
-            {status === "qr" && qr && (
+            {qr && status !== "connected" && (
               <div className="text-center mb-4">
                 <img src={qr} alt="Scan with WhatsApp" className="mx-auto rounded-lg" style={{ width: 220, height: 220 }} />
                 <p className="text-[10px] mt-2" style={{ color: "#555" }}>{t("whatsappScanInstruction")}</p>
               </div>
             )}
 
-            {status === "connecting" && <p className="text-[11px] mb-3" style={{ color: "#555" }}><Loader2 size={13} className="animate-spin inline mr-1.5" />{t("whatsappConnecting")}</p>}
+            {status === "connecting" && !qr && <p className="text-[11px] mb-3" style={{ color: "#555" }}><Loader2 size={13} className="animate-spin inline mr-1.5" />{t("whatsappConnecting")}</p>}
 
             {status === "connected" && (
               <div className="flex items-center gap-1.5 mb-4 text-[11px]" style={{ color: "#2ecc71" }}>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { X, ArrowLeft, Pencil, Clock } from "lucide-react";
+import { X, ArrowLeft, Pencil, Clock, ChevronDown, Sparkles } from "lucide-react";
 import { getAgents, isElectron } from "../constants";
 import { useTranslation } from "../../i18n/I18nProvider";
 import type { OrunProvider } from "../../types/orun";
@@ -21,11 +21,14 @@ export function AgentModelsPanel({ onClose, onBack }: { onClose: () => void; onB
   const [schedules, setSchedules] = useState<Record<string, Schedule>>({});
   const [editingPrompt, setEditingPrompt] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [modelCatalog, setModelCatalog] = useState<Record<string, { id: string; free: boolean }[]>>({});
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isElectron) return;
     window.orun.settings.get<Record<string, Override>>("agentModels").then((v) => setOverrides(v || {}));
     window.orun.schedules.get().then((s) => setSchedules(s || {}));
+    window.orun.ai.modelCatalog().then(setModelCatalog);
   }, []);
 
   const setAgentProvider = (agent: string, provider: OrunProvider | "default") => {
@@ -101,12 +104,33 @@ export function AgentModelsPanel({ onClose, onBack }: { onClose: () => void; onB
                     <option value="default">{t("agentModelsDefault")}</option>
                     {(Object.keys(PROVIDER_LABELS) as OrunProvider[]).map((p) => <option key={p} value={p}>{PROVIDER_LABELS[p]}</option>)}
                   </select>
-                  <input
-                    value={override?.model || ""} onChange={(e) => setAgentModel(agent.name, e.target.value)} disabled={!override}
-                    placeholder={override ? t("agentModelsModelName") : "—"}
-                    className="flex-1 min-w-0 px-2 py-1.5 rounded-md text-[10px] outline-none disabled:opacity-30"
-                    style={{ background: "#111111", border: "1px solid #1e1e1e", color: "#aaa", fontFamily: "'JetBrains Mono', monospace" }}
-                  />
+                  <div className="relative flex-1 min-w-0">
+                    <button
+                      onClick={() => setOpenDropdown(openDropdown === agent.name ? null : agent.name)}
+                      disabled={!override}
+                      className="w-full flex items-center justify-between gap-1 px-2 py-1.5 rounded-md text-[10px] text-left outline-none disabled:opacity-30"
+                      style={{ background: "#111111", border: `1px solid ${openDropdown === agent.name ? "#C00018" : "#1e1e1e"}`, color: override?.model ? "#E0E0E0" : "#666", fontFamily: "'JetBrains Mono', monospace" }}
+                    >
+                      <span className="truncate">{override?.model || t("agentModelsModelName")}</span>
+                      <ChevronDown size={10} style={{ color: "#555", flexShrink: 0 }} />
+                    </button>
+                    {openDropdown === agent.name && override && (
+                      <div className="absolute z-50 mt-1 w-full max-h-40 overflow-y-auto rounded-lg border scrollbar-hide" style={{ background: "#0c0c0c", borderColor: "#C00018" }}>
+                        {(modelCatalog[override.provider] || []).map((m) => (
+                          <button
+                            key={m.id}
+                            onClick={() => { setAgentModel(agent.name, m.id); setOpenDropdown(null); }}
+                            className="w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] text-left"
+                            style={{ background: override.model === m.id ? "rgba(192,0,24,0.12)" : "transparent", color: override.model === m.id ? "#FF1A2D" : "#888", fontFamily: "'JetBrains Mono', monospace" }}
+                          >
+                            {m.free && <Sparkles size={8} style={{ color: "#2ecc71" }} />}
+                            <span className="truncate">{m.id}</span>
+                            <span className="ml-auto text-[7px]" style={{ color: m.free ? "#2ecc71" : "#555" }}>{m.free ? "FREE" : "PAID"}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <button onClick={() => setEditingPrompt(editing ? null : agent.name)} title={t("agentModelsCustomPersona")} style={{ color: editing ? "#FF1A2D" : "#555" }}><Pencil size={13} /></button>
                   <button
                     onClick={() => setSchedules((prev) => ({ ...prev, [agent.name]: { ...schedule, enabled: !schedule.enabled } }))}

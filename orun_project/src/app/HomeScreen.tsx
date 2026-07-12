@@ -425,7 +425,7 @@ export function HomeScreen() {
       {anyPanelOpen && <div className="fixed inset-0 z-20" onClick={() => { setAgentsOpen(false); setHistoryOpen(false); setActiveNav("home"); }} />}
 
       <div className="flex-1 flex flex-col ml-16 overflow-hidden">
-        <StatusBar />
+        <StatusBar onOpenModelPicker={() => setModelPickerOpen(true)} />
 
         <div className="flex-1 flex flex-col overflow-hidden">
           <AnimatePresence mode="wait">

@@ -188,6 +188,28 @@ function formatMessagesFor(provider, messages) {
   });
 }
 
+// ── Rate-limit retry helpers ─────────────────────────────────────────────
+
+function parseRetryAfter(err) {
+  try {
+    const msg = err?.message || "";
+    const jsonStart = msg.indexOf("{");
+    if (jsonStart < 0) return null;
+    const obj = JSON.parse(msg.slice(jsonStart));
+    return obj?.error?.metadata?.retry_after_seconds ?? null;
+  } catch { return null; }
+}
+
+function sleepMs(ms) { return new Promise((r) => setTimeout(r, ms)); }
+
+function nextFreeModel(provider, currentModel) {
+  const free = KNOWN_FREE_MODELS[provider];
+  if (!free || free.length <= 1) return null;
+  const idx = free.indexOf(currentModel);
+  const nextIdx = (idx + 1) % free.length;
+  return free[nextIdx];
+}
+
 // ── Non-streaming chat — all return { text, usage: {tokensIn, tokensOut} } ─
 
 async function chatOllama({ model, messages, baseUrl }) {
@@ -220,81 +242,76 @@ async function chatOpenAICompatible(provider, { model, messages, apiKey }) {
   return { text: choice.message.content, usage: { tokensIn: result.usage?.prompt_tokens || 0, tokensOut: result.usage?.completion_tokens || 0 } };
 }
 
-async function routeChat(req) {
+// Inner routeChat — no retry logic, used by retry wrapper
+async function routeChatOnce(req) {
   if (req.provider === "ollama") return chatOllama(req);
   if (req.provider === "anthropic") return chatAnthropic(req);
   if (isOpenAICompatible(req.provider)) return chatOpenAICompatible(req.provider, req);
   throw new Error(`Unknown AI provider: ${req.provider}`);
 }
 
-// ── Streaming chat — resolve to { text, usage } too; onChunk still fires per delta ─
-
-async function streamOllama({ model, messages, baseUrl, onChunk, onRequestReady }) {
-  const url = `${baseUrl || "http://localhost:11434"}/api/chat`;
-  let full = "";
-  let usage = { tokensIn: 0, tokensOut: 0 };
-  await streamPOST(url, {}, { model, messages, stream: true }, (line) => {
-    let obj; try { obj = JSON.parse(line); } catch { return; }
-    const delta = obj?.message?.content;
-    if (delta) { full += delta; onChunk(delta); }
-    if (obj.done) usage = { tokensIn: obj.prompt_eval_count || 0, tokensOut: obj.eval_count || 0 };
-  }, onRequestReady);
-  if (!full) throw new Error("Ollama returned an empty response — is the model pulled? (ollama pull <model>)");
-  return { text: full, usage };
+/**
+ * routeChat with 429 retry: if the provider returns HTTP 429 with
+ * retry_after_seconds, waits that long and retries. If retries are
+ * exhausted, auto-falls back to the next free model for that provider.
+ */
+async function routeChat(req) {
+  let lastErr;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      return await routeChatOnce(req);
+    } catch (err) {
+      lastErr = err;
+      const retryAfter = parseRetryAfter(err);
+      if (retryAfter && attempt === 0) {
+        console.log(`[ai-router] ${req.provider} rate-limited, retrying in ${retryAfter}s`);
+        await sleepMs(retryAfter * 1000);
+        continue;
+      }
+      break;
+    }
+  }
+  // Fallback: if the model was rate-limited, try the next free model
+  if (isOpenAICompatible(req.provider) && KNOWN_FREE_MODELS[req.provider]) {
+    const next = nextFreeModel(req.provider, req.model);
+    if (next && next !== req.model) {
+      console.log(`[ai-router] ${req.provider} rate-limited on ${req.model}, falling back to ${next}`);
+      return routeChatOnce({ ...req, model: next });
+    }
+  }
+  throw lastErr;
 }
 
-async function streamAnthropic({ model, messages, apiKey, onChunk, onRequestReady }) {
-  if (!apiKey) throw new Error("Missing Anthropic API key.");
-  const system = messages.find((m) => m.role === "system")?.content;
-  const rest = messages.filter((m) => m.role !== "system");
-  let full = "";
-  let usage = { tokensIn: 0, tokensOut: 0 };
-  await streamPOST(
-    "https://api.anthropic.com/v1/messages",
-    { "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
-    { model: model || "claude-sonnet-4-6", max_tokens: 1024, system, stream: true, messages: rest.map((m) => ({ role: m.role, content: m.content })) },
-    (line) => {
-      if (!line.startsWith("data:")) return;
-      const data = line.slice(5).trim();
-      if (data === "[DONE]") return;
-      let obj; try { obj = JSON.parse(data); } catch { return; }
-      if (obj.type === "content_block_delta" && obj.delta?.type === "text_delta") { full += obj.delta.text; onChunk(obj.delta.text); }
-      if (obj.type === "message_start") usage.tokensIn = obj.message?.usage?.input_tokens || 0;
-      if (obj.type === "message_delta") usage.tokensOut = obj.usage?.output_tokens || usage.tokensOut;
-    },
-    onRequestReady
-  );
-  return { text: full, usage };
-}
-
-async function streamOpenAICompatible(provider, { model, messages, apiKey, onChunk, onRequestReady }) {
-  const cfg = OPENAI_COMPATIBLE[provider];
-  if (!apiKey) throw new Error(`Missing API key for ${provider}.`);
-  let full = "";
-  let usage = { tokensIn: 0, tokensOut: 0 };
-  await streamPOST(
-    `${cfg.baseUrl}/chat/completions`,
-    cfg.authHeaders(apiKey),
-    { model: model || cfg.defaultModel, messages, stream: true, stream_options: { include_usage: true } },
-    (line) => {
-      if (!line.startsWith("data:")) return;
-      const data = line.slice(5).trim();
-      if (data === "[DONE]") return;
-      let obj; try { obj = JSON.parse(data); } catch { return; }
-      const delta = obj.choices?.[0]?.delta?.content;
-      if (delta) { full += delta; onChunk(delta); }
-      if (obj.usage) usage = { tokensIn: obj.usage.prompt_tokens || 0, tokensOut: obj.usage.completion_tokens || 0 };
-    },
-    onRequestReady
-  );
-  return { text: full, usage };
-}
-
-async function streamChat(req) {
+async function streamChatOnce(req) {
   if (req.provider === "ollama") return streamOllama(req);
   if (req.provider === "anthropic") return streamAnthropic(req);
   if (isOpenAICompatible(req.provider)) return streamOpenAICompatible(req.provider, req);
   throw new Error(`Unknown AI provider: ${req.provider}`);
+}
+
+async function streamChat(req) {
+  let lastErr;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      return await streamChatOnce(req);
+    } catch (err) {
+      lastErr = err;
+      const retryAfter = parseRetryAfter(err);
+      if (retryAfter && attempt === 0) {
+        await sleepMs(retryAfter * 1000);
+        continue;
+      }
+      break;
+    }
+  }
+  if (isOpenAICompatible(req.provider) && KNOWN_FREE_MODELS[req.provider]) {
+    const next = nextFreeModel(req.provider, req.model);
+    if (next && next !== req.model) {
+      console.log(`[ai-router] ${req.provider} stream rate-limited on ${req.model}, falling back to ${next}`);
+      return streamChatOnce({ ...req, model: next });
+    }
+  }
+  throw lastErr;
 }
 
 // ── Utilities used by the Settings panel ─────────────────────────────────
