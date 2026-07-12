@@ -202,7 +202,7 @@ export function HomeScreen() {
           },
           onError: (message) => {
             setHamptonState("speaking");
-            const errText = `I couldn't reach the AI engine. ${message || "Check Settings → AI Engine to confirm your provider is configured."}`;
+            const errText = `Não foi possível acessar o motor de IA. ${message || "Verifique Configurações → Motor de IA para confirmar que o provider está configurado."}`;
             setMessages(p => {
               const exists = p.some(m => m.id === replyId);
               return exists ? p.map(m => (m.id === replyId ? { ...m, content: errText } : m)) : [...p, { id: replyId, role: "hampton", content: errText }];
@@ -213,7 +213,7 @@ export function HomeScreen() {
         });
       } catch (err: any) {
         setHamptonState("speaking");
-        const reply: Message = { id: `${Date.now() + 1}`, role: "hampton", content: `I couldn't reach the AI engine. ${err?.message || "Check Settings → AI Engine."}` };
+        const reply: Message = { id: `${Date.now() + 1}`, role: "hampton", content: `Não foi possível acessar o motor de IA. ${err?.message || "Verifique Configurações → Motor de IA."}` };
         setMessages(p => [...p, reply]);
         setTimeout(() => setHamptonState("idle"), 1200);
       }
@@ -366,11 +366,11 @@ export function HomeScreen() {
               >
                 <HamptonAvatar state={hamptonState} />
                 <motion.div className="text-center mt-5 space-y-1.5" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-                  <p className="text-3xl tracking-wide" style={{ fontFamily: "'Cormorant Garamond', serif", color: "#F5F5F5", fontWeight: 300 }}>Welcome back, Caique.</p>
-                  <p className="text-sm" style={{ fontFamily: "'Inter', sans-serif", color: "#444", fontWeight: 300 }}>How can I help you today?</p>
+                  <p className="text-3xl tracking-wide" style={{ fontFamily: "'Cormorant Garamond', serif", color: "#F5F5F5", fontWeight: 300 }}>Bem-vindo de volta, Caique.</p>
+                  <p className="text-sm" style={{ fontFamily: "'Inter', sans-serif", color: "#444", fontWeight: 300 }}>Como posso te ajudar hoje?</p>
                 </motion.div>
                 <div className="flex items-center gap-3 mt-6">
-                  {["Native AI Engine", "Cloud Models", "Memory Active"].map((label, i) => (
+                  {["IA Nativa", "Modelos na Nuvem", "Memória Ativa"].map((label, i) => (
                     <div key={i} className="flex items-center gap-1.5 px-3 py-1 rounded-full border" style={{ borderColor: "#1e1e1e", background: "#0e0e0e" }}>
                       <div className="w-1 h-1 rounded-full" style={{ background: i === 0 ? "#C00018" : "#3a3a3a", boxShadow: i === 0 ? "0 0 4px #C00018" : "none" }} />
                       <span className="text-[9px] tracking-wider" style={{ fontFamily: "'Sora', sans-serif", color: "#555" }}>{label}</span>
@@ -384,9 +384,9 @@ export function HomeScreen() {
                       style={{ fontFamily: "'Sora', sans-serif", color: "#C00018", animation: "orunStatePulse 1s ease-in-out infinite", display: "inline-block" }}
                       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                     >
-                      {hamptonState === "listening" && "● Listening"}
-                      {hamptonState === "thinking" && "● Thinking"}
-                      {hamptonState === "speaking" && "● Speaking"}
+                      {hamptonState === "listening" && "● Escutando"}
+                      {hamptonState === "thinking" && "● Pensando"}
+                      {hamptonState === "speaking" && "● Falando"}
                     </motion.span>
                   )}
                 </AnimatePresence>
@@ -400,16 +400,16 @@ export function HomeScreen() {
                   </div>
                   {hamptonState !== "idle" && (
                     <span className="text-[9px] tracking-widest uppercase" style={{ fontFamily: "'Sora', sans-serif", color: "#C00018" }}>
-                      {hamptonState === "thinking" && "Thinking..."}
-                      {hamptonState === "speaking" && "Speaking..."}
-                      {hamptonState === "listening" && "Listening..."}
+                    {hamptonState === "thinking" && "Pensando..."}
+                    {hamptonState === "speaking" && "Falando..."}
+                    {hamptonState === "listening" && "Escutando..."}
                     </span>
                   )}
                   {isStreaming && cancelStreamRef.current && (
-                    <button onClick={stopStreaming} className="text-[9px] tracking-widest uppercase px-3 py-1 rounded-full border transition-colors" style={{ fontFamily: "'Sora', sans-serif", color: "#FF1A2D", borderColor: "rgba(192,0,24,0.35)" }}>■ Stop</button>
+                    <button onClick={stopStreaming} className="text-[9px] tracking-widest uppercase px-3 py-1 rounded-full border transition-colors" style={{ fontFamily: "'Sora', sans-serif", color: "#FF1A2D", borderColor: "rgba(192,0,24,0.35)" }}>■ Parar</button>
                   )}
                   {hasVoiceConfigured && (
-                    <button onClick={() => setSpeechEnabled(p => !p)} title={speechEnabled ? "Mute voice replies" : "Unmute voice replies"} className="text-[9px] tracking-widest uppercase px-3 py-1 rounded-full border transition-colors" style={{ fontFamily: "'Sora', sans-serif", color: speechEnabled ? "#888" : "#444", borderColor: "#1e1e1e" }}>
+                    <button onClick={() => setSpeechEnabled(p => !p)} title={speechEnabled ? "Silenciar respostas por voz" : "Ativar respostas por voz"} className="text-[9px] tracking-widest uppercase px-3 py-1 rounded-full border transition-colors" style={{ fontFamily: "'Sora', sans-serif", color: speechEnabled ? "#888" : "#444", borderColor: "#1e1e1e" }}>
                       {speechEnabled ? "🔊" : "🔇"}
                     </button>
                   )}
@@ -420,7 +420,7 @@ export function HomeScreen() {
                     onMouseEnter={e => (e.currentTarget.style.color = "#888")}
                     onMouseLeave={e => (e.currentTarget.style.color = "#333")}
                   >
-                    New Chat
+                    Nova Conversa
                   </button>
                 </div>
 

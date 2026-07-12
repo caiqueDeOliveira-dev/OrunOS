@@ -14,7 +14,7 @@ export function AgentsPanel({ onClose, onSelectAgent }: { onClose: () => void; o
     >
       <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: "#1a1a1a" }}>
         <span className="text-[10px] tracking-[0.24em] uppercase text-[#B5B5B5]" style={{ fontFamily: "'Sora', sans-serif" }}>
-          Agents
+          Agentes
         </span>
         <button
           onClick={onClose}

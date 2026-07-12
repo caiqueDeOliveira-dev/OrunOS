@@ -78,10 +78,10 @@ export function MessageBubble({
         {!editing && hovering && !streaming && (
           <div className="flex flex-col gap-1 pb-1">
             {!isHampton && onEdit && (
-              <button onClick={() => { setDraft(msg.content); setEditing(true); }} title="Edit & resend" style={{ color: "#555" }}><Pencil size={12} /></button>
+              <button onClick={() => { setDraft(msg.content); setEditing(true); }} title="Editar e reenviar" style={{ color: "#555" }}><Pencil size={12} /></button>
             )}
             {isHampton && onRegenerate && (
-              <button onClick={onRegenerate} title="Regenerate" style={{ color: "#555" }}><RefreshCw size={12} /></button>
+              <button onClick={onRegenerate} title="Regenerar" style={{ color: "#555" }}><RefreshCw size={12} /></button>
             )}
           </div>
         )}

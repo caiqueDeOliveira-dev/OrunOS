@@ -52,7 +52,7 @@ export function VoicesPicker({ onClose }: { onClose: () => void }) {
     try {
       setVoices(await window.orun.tts.listVoices(eng));
     } catch (err: any) {
-      setVoicesError(err?.message || "Failed to load voices — check your API key/config below.");
+      setVoicesError(err?.message || "Falha ao carregar vozes — verifique sua API key/configuração abaixo.");
     }
     setLoadingVoices(false);
   };
@@ -120,7 +120,7 @@ export function VoicesPicker({ onClose }: { onClose: () => void }) {
           {!engine ? (
             <motion.div key="engines" className="p-4 overflow-y-auto scrollbar-hide" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <p className="text-[10px] px-2 mb-3" style={{ color: "#555" }}>
-                Double-click a provider to see its voices. Single-click a voice to hear it, double-click to select it.
+                Clique duas vezes em um provider para ver suas vozes. Clique uma vez para ouvir, duas vezes para selecionar.
               </p>
               <div className="grid grid-cols-2 gap-2">
                 {(Object.keys(ENGINE_INFO) as OrunTTSEngine[]).map((eng) => {
@@ -151,27 +151,27 @@ export function VoicesPicker({ onClose }: { onClose: () => void }) {
                 {ENGINE_INFO[engine].needsKey && (
                   <input
                     type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)}
-                    placeholder={hasKey ? "API key saved • encrypted (leave blank to keep)" : "API key"}
+                    placeholder={hasKey ? "API key salva • criptografada (deixe em branco para manter)" : "API key"}
                     className="w-full px-3 py-2 rounded-lg text-xs outline-none"
                     style={{ background: "#111111", border: "1px solid #1e1e1e", color: "#E0E0E0" }}
                   />
                 )}
                 {ENGINE_INFO[engine].needsRegion && (
-                  <input value={region} onChange={(e) => setRegion(e.target.value)} placeholder="Azure region (e.g. eastus)" className="w-full px-3 py-2 rounded-lg text-xs outline-none" style={{ background: "#111111", border: "1px solid #1e1e1e", color: "#E0E0E0" }} />
+                  <input value={region} onChange={(e) => setRegion(e.target.value)} placeholder="Região Azure (ex: eastus)" className="w-full px-3 py-2 rounded-lg text-xs outline-none" style={{ background: "#111111", border: "1px solid #1e1e1e", color: "#E0E0E0" }} />
                 )}
                 {ENGINE_INFO[engine].needsBaseUrl && (
-                  <input value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="Local server URL" className="w-full px-3 py-2 rounded-lg text-xs outline-none" style={{ background: "#111111", border: "1px solid #1e1e1e", color: "#E0E0E0" }} />
+                  <input value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="URL do servidor local" className="w-full px-3 py-2 rounded-lg text-xs outline-none" style={{ background: "#111111", border: "1px solid #1e1e1e", color: "#E0E0E0" }} />
                 )}
                 <button onClick={saveEngineConfig} className="w-full py-1.5 rounded-lg text-[10px]" style={{ background: "#151515", border: "1px solid #232323", color: "#888" }}>
-                  Save & refresh voices
+                  Salvar e atualizar vozes
                 </button>
               </div>
 
-              {loadingVoices && <p className="text-[11px] text-center py-4" style={{ color: "#555" }}><Loader2 size={14} className="animate-spin inline mr-1.5" />Loading voices…</p>}
+              {loadingVoices && <p className="text-[11px] text-center py-4" style={{ color: "#555" }}><Loader2 size={14} className="animate-spin inline mr-1.5" />Carregando vozes…</p>}
               {voicesError && <p className="text-[10px] mb-2" style={{ color: "#C00018" }}>{voicesError}</p>}
               {!loadingVoices && !voicesError && voices.length === 0 && (
                 <p className="text-[10px]" style={{ color: "#555" }}>
-                  {engine === "piper" ? "Piper has no voice-listing API — pick the voice/model on the server side; this just uses whatever it's configured with." : "No voices found."}
+                  {engine === "piper" ? "Piper não tem API de listagem de vozes — escolha a voz/modelo no servidor; isso apenas usa o que estiver configurado." : "Nenhuma voz encontrada."}
                 </p>
               )}
 

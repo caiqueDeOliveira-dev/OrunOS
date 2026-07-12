@@ -21,11 +21,11 @@ export function StatusBar() {
       <div className="flex items-center gap-5">
         <div className="flex items-center gap-1.5">
           <Cpu size={10} style={{ color: "#444" }} />
-          <span className="text-[9px] tracking-wider" style={{ fontFamily: "'JetBrains Mono', monospace", color: "#444" }}>Native AI</span>
+          <span className="text-[9px] tracking-wider" style={{ fontFamily: "'JetBrains Mono', monospace", color: "#444" }}>IA Nativa</span>
         </div>
         <div className="flex items-center gap-1.5">
           <Wifi size={10} style={{ color: "#444" }} />
-          <span className="text-[9px] tracking-wider" style={{ fontFamily: "'JetBrains Mono', monospace", color: "#444" }}>Connected</span>
+          <span className="text-[9px] tracking-wider" style={{ fontFamily: "'JetBrains Mono', monospace", color: "#444" }}>Conectado</span>
         </div>
         <Bell size={12} style={{ color: "#333" }} />
         <span className="text-[10px] tabular-nums" style={{ fontFamily: "'JetBrains Mono', monospace", color: "#888" }}>

@@ -41,7 +41,7 @@ export function ChatInput({
       {image && (
         <div className="flex items-center gap-2 mb-2 px-3 py-2 rounded-xl" style={{ background: "#0f0f0f", border: "1px solid #222" }}>
           <img src={image.previewUrl} alt="attached" className="rounded-md object-cover" style={{ width: 36, height: 36 }} />
-          <span className="text-[10px]" style={{ color: "#666" }}>Image attached</span>
+          <span className="text-[10px]" style={{ color: "#666" }}>Imagem anexada</span>
           <button onClick={() => setImage(null)} className="ml-auto p-1" style={{ color: "#555" }}><XIcon size={13} /></button>
         </div>
       )}
@@ -74,7 +74,7 @@ export function ChatInput({
           style={{ color: image ? "#FF1A2D" : "#333" }}
           onMouseEnter={e => { if (!image) { e.currentTarget.style.color = "#888"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; } }}
           onMouseLeave={e => { if (!image) { e.currentTarget.style.color = "#333"; e.currentTarget.style.background = "transparent"; } }}
-          title="Attach a photo (e.g. a meal for the Nutritionist agent)"
+          title="Anexar uma foto (ex: uma refeição para o agente Nutritionist)"
         >
           <Upload size={17} />
         </button>
@@ -86,7 +86,7 @@ export function ChatInput({
           value={value}
           onChange={e => setValue(e.target.value)}
           onKeyDown={e => e.key === "Enter" && submit()}
-          placeholder="Ask Hampton anything... (try /vozes or /model)"
+          placeholder="Pergunte qualquer coisa ao Hampton... (tente /vozes ou /model)"
           className="flex-1 bg-transparent outline-none text-sm"
           style={{
             fontFamily: "'Inter', sans-serif",
@@ -109,7 +109,7 @@ export function ChatInput({
         </button>
       </div>
       <p className="text-center mt-2.5 text-[9px] tracking-wider" style={{ fontFamily: "'Inter', sans-serif", color: "#222" }}>
-        Hampton may make mistakes. Always verify important information.
+        Hampton pode cometer erros. Sempre verifique informações importantes.
       </p>
     </div>
   );

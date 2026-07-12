@@ -59,12 +59,12 @@ export function WhatsAppPanel({ onClose }: { onClose: () => void }) {
         <div className="flex items-start gap-2 mb-5 p-3 rounded-lg" style={{ background: "rgba(255,170,0,0.06)", border: "1px solid rgba(255,170,0,0.2)" }}>
           <AlertTriangle size={13} style={{ color: "#ffaa00", flexShrink: 0, marginTop: 1 }} />
           <p className="text-[10px]" style={{ color: "#cc9900" }}>
-            Uses an unofficial WhatsApp Web protocol library (Baileys), not Meta's official API.
-            This is against WhatsApp's Terms of Service — low risk for personal, low-volume use, but not zero.
+              Usa uma biblioteca não oficial de protocolo WhatsApp Web (Baileys), não a API oficial da Meta.
+              Isso viola os Termos de Serviço do WhatsApp — risco baixo para uso pessoal, mas não zero.
           </p>
         </div>
 
-        {!isElectron && <p className="text-[11px]" style={{ color: "#555" }}>Only works inside the packaged Electron app.</p>}
+        {!isElectron && <p className="text-[11px]" style={{ color: "#555" }}>Só funciona no aplicativo Electron empacotado.</p>}
 
         {isElectron && (
           <>
@@ -78,30 +78,30 @@ export function WhatsAppPanel({ onClose }: { onClose: () => void }) {
             {status === "qr" && qr && (
               <div className="text-center mb-4">
                 <img src={qr} alt="Scan with WhatsApp" className="mx-auto rounded-lg" style={{ width: 220, height: 220 }} />
-                <p className="text-[10px] mt-2" style={{ color: "#555" }}>WhatsApp → Linked Devices → Link a Device → scan this.</p>
+                <p className="text-[10px] mt-2" style={{ color: "#555" }}>WhatsApp → Dispositivos conectados → Conectar dispositivo → escaneie isso.</p>
               </div>
             )}
 
-            {status === "connecting" && <p className="text-[11px] mb-3" style={{ color: "#555" }}><Loader2 size={13} className="animate-spin inline mr-1.5" />Connecting…</p>}
+            {status === "connecting" && <p className="text-[11px] mb-3" style={{ color: "#555" }}><Loader2 size={13} className="animate-spin inline mr-1.5" />Conectando…</p>}
 
             {status === "connected" && (
               <div className="flex items-center gap-1.5 mb-4 text-[11px]" style={{ color: "#2ecc71" }}>
-                <CheckCircle2 size={13} /> Connected{selfJid ? ` as ${selfJid.split("@")[0]}` : ""}
+                <CheckCircle2 size={13} /> Conectado{selfJid ? ` como ${selfJid.split("@")[0]}` : ""}
               </div>
             )}
 
             <label className="block text-[10px] tracking-wider uppercase mb-1.5" style={{ color: "#555" }}>
-              Chat Orun OS listens to
+              Chat que o Orun OS escuta
             </label>
             <input
               value={listenJid} onChange={(e) => setListenJid(e.target.value)} onBlur={saveListenJid}
-              placeholder="Auto-filled with your own chat once connected"
+              placeholder="Preenchido automaticamente com seu próprio chat ao conectar"
               className="w-full px-3 py-2 rounded-lg text-xs outline-none mb-2"
               style={{ background: "#111111", border: "1px solid #1e1e1e", color: "#E0E0E0", fontFamily: "'JetBrains Mono', monospace" }}
             />
             <p className="text-[10px]" style={{ color: "#444" }}>
-              Send yourself a food photo in this chat and the Nutritionist agent replies with calories.
-              Text messages go to Hampton. Only this one chat is ever acted on.
+              Envie para si mesmo uma foto de comida neste chat e o agente Nutritionist responde com calorias.
+              Mensagens de texto vão para Hampton. Apenas este chat é processado.
             </p>
           </>
         )}

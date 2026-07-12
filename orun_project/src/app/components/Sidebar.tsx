@@ -49,9 +49,9 @@ export function Sidebar({
       {/* Bottom */}
       <div className="flex flex-col gap-0.5">
         {[
-          { icon: History, id: "history", title: "Conversation History", onClick: onHistoryClick },
-          { icon: Settings, id: "settings", title: "Settings", onClick: onSettingsClick },
-          { icon: User, id: "profile", title: "Profile", onClick: () => {} },
+          { icon: History, id: "history", title: "Histórico de Conversas", onClick: onHistoryClick },
+          { icon: Settings, id: "settings", title: "Configurações", onClick: onSettingsClick },
+          { icon: User, id: "profile", title: "Perfil", onClick: () => {} },
         ].map(item => {
           const Icon = item.icon;
           return (

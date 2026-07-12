@@ -63,7 +63,7 @@ export function BootSequence({ onDone }: { onDone: () => void }) {
             Orun OS
           </div>
           <div className="text-[9px] tracking-[0.22em] text-[#FF1A2D]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-            v1.0.0 — BOOT SEQUENCE
+            v0.1.0 — SEQUÊNCIA DE INICIALIZAÇÃO
           </div>
         </div>
 
@@ -82,7 +82,7 @@ export function BootSequence({ onDone }: { onDone: () => void }) {
 
         <div className="space-y-2">
           <div className="flex justify-between">
-            <span className="text-[9px] tracking-widest text-[#888]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>LOADING</span>
+            <span className="text-[9px] tracking-widest text-[#888]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>CARREGANDO</span>
             <span className="text-[9px] tabular-nums text-[#FF1A2D]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{progress}%</span>
           </div>
           <div className="w-full rounded-full" style={{ height: 1, background: "rgba(255,255,255,0.1)" }}>

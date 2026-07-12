@@ -70,20 +70,20 @@ export function ConversationList({
         className="flex items-center gap-2 mx-4 mt-3 px-3 py-2 rounded-lg text-xs transition-colors"
         style={{ background: "rgba(192,0,24,0.08)", border: "1px solid rgba(192,0,24,0.2)", color: "#FF1A2D", fontFamily: "'Sora', sans-serif" }}
       >
-        <Plus size={13} /> New chat
+        <Plus size={13} /> Nova conversa
       </button>
 
       <div className="flex-1 overflow-y-auto py-2 mt-2 scrollbar-hide">
         {!isElectron && (
           <p className="px-5 text-[10px]" style={{ color: "#444" }}>
-            History is only available in the packaged Electron app.
+            O histórico só está disponível no aplicativo Electron empacotado.
           </p>
         )}
         {isElectron && loading && (
-          <p className="px-5 text-[10px]" style={{ color: "#444" }}>Loading…</p>
+          <p className="px-5 text-[10px]" style={{ color: "#444" }}>Carregando…</p>
         )}
         {isElectron && !loading && conversations.length === 0 && (
-          <p className="px-5 text-[10px]" style={{ color: "#444" }}>No conversations yet.</p>
+          <p className="px-5 text-[10px]" style={{ color: "#444" }}>Nenhuma conversa ainda.</p>
         )}
         {conversations.map(c => (
           <button
@@ -97,7 +97,7 @@ export function ConversationList({
           >
             <MessageSquare size={13} style={{ flexShrink: 0, color: c.id === activeId ? "#C00018" : "inherit" }} />
             <span className="text-xs truncate flex-1" style={{ fontFamily: "'Sora', sans-serif", fontWeight: 300 }}>
-              {c.title || "New chat"}
+              {c.title || "Nova conversa"}
             </span>
             <span
               onClick={e => remove(e, c.id)}
