@@ -1,9 +1,17 @@
 import { motion } from "motion/react";
-import { X } from "lucide-react";
+import { X, BarChart3 } from "lucide-react";
 import { useTranslation } from "../../i18n/I18nProvider";
 import { getAgents } from "../constants";
 
-export function AgentsPanel({ onClose, onSelectAgent }: { onClose: () => void; onSelectAgent: (agentName: string) => void }) {
+const DATA_AGENTS = ["Finance", "Health", "Developer", "Teacher"];
+
+interface Props {
+  onClose: () => void;
+  onSelectAgent: (agentName: string) => void;
+  onViewData?: (agentName: string) => void;
+}
+
+export function AgentsPanel({ onClose, onSelectAgent, onViewData }: Props) {
   const { t } = useTranslation();
   const AGENTS = getAgents(t);
   return (
@@ -33,11 +41,12 @@ export function AgentsPanel({ onClose, onSelectAgent }: { onClose: () => void; o
       <div className="flex-1 overflow-y-auto py-2 scrollbar-hide">
         {AGENTS.map((agent, idx) => {
           const Icon = agent.icon;
+          const hasData = DATA_AGENTS.includes(agent.name);
           return (
             <motion.button
               key={agent.name}
               onClick={() => { if (!agent.special) onSelectAgent(agent.name); else onClose(); }}
-              className="w-full flex items-center gap-3 px-5 py-2.5 text-left transition-colors"
+              className="w-full flex items-center gap-3 px-5 py-2.5 text-left transition-colors group"
               style={{ color: "#888" }}
               whileHover={{ backgroundColor: "rgba(255,255,255,0.025)", color: "#F5F5F5" }}
               initial={{ opacity: 0, x: -8 }}
@@ -45,7 +54,7 @@ export function AgentsPanel({ onClose, onSelectAgent }: { onClose: () => void; o
               transition={{ delay: idx * 0.025 }}
             >
               <Icon size={13} style={{ color: agent.special ? "#C00018" : "inherit", flexShrink: 0 }} />
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <div className="text-xs truncate" style={{
                   fontFamily: "'Sora', sans-serif",
                   fontWeight: agent.special ? 500 : 300,
@@ -57,6 +66,16 @@ export function AgentsPanel({ onClose, onSelectAgent }: { onClose: () => void; o
                   {agent.role}
                 </div>
               </div>
+              {hasData && onViewData && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onViewData(agent.name); }}
+                  className="opacity-0 group-hover:opacity-100 p-1 rounded transition-opacity"
+                  style={{ color: "#555" }}
+                  title={`View ${agent.name} data`}
+                >
+                  <BarChart3 size={12} />
+                </button>
+              )}
               {agent.special && (
                 <div className="ml-auto w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#C00018", boxShadow: "0 0 5px #C00018" }} />
               )}

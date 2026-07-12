@@ -80,6 +80,59 @@ export interface OrunNutritionDaily {
   totals: { calories: number; protein_g: number; carbs_g: number; fat_g: number };
 }
 
+export interface OrunFinanceEntry {
+  id: string;
+  date: string;
+  description: string;
+  amount: number;
+  currency: string;
+  category: string | null;
+  type: string;
+  source: string;
+  created_at: number;
+}
+
+export interface OrunFinanceDaily {
+  entries: OrunFinanceEntry[];
+  totals: { income: number; expenses: number };
+  balance: number;
+}
+
+export interface OrunHealthEntry {
+  id: string;
+  date: string;
+  metric: string;
+  value: number;
+  unit: string | null;
+  notes: string | null;
+  source: string;
+  created_at: number;
+}
+
+export interface OrunDeveloperReview {
+  id: string;
+  date: string;
+  repo: string | null;
+  file_path: string | null;
+  summary: string;
+  issues_found: number;
+  severity: string | null;
+  source: string;
+  created_at: number;
+}
+
+export interface OrunTeacherProgress {
+  id: string;
+  date: string;
+  subject: string;
+  topic: string;
+  status: string;
+  score: number | null;
+  notes: string | null;
+  source: string;
+  created_at: number;
+}
+
 export interface OrunWhatsAppStatus {
   status: "disconnected" | "connecting" | "qr" | "connected";
   selfJid?: string;
@@ -146,6 +199,18 @@ interface OrunAPI {
   };
   nutrition: {
     getDaily: (date?: string) => Promise<OrunNutritionDaily>;
+  };
+  finance: {
+    getDaily: (date?: string) => Promise<OrunFinanceDaily>;
+  };
+  health: {
+    getDaily: (date?: string) => Promise<OrunHealthEntry[]>;
+  };
+  developer: {
+    getReviews: (date?: string) => Promise<OrunDeveloperReview[]>;
+  };
+  teacher: {
+    getProgress: (date?: string) => Promise<OrunTeacherProgress[]>;
   };
   whatsapp: {
     connect: () => Promise<{ ok: boolean; error?: string }>;

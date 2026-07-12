@@ -15,6 +15,7 @@ import { ConversationList } from "./components/ConversationList";
 import { VoicesPicker } from "./components/VoicesPicker";
 import { ModelPicker } from "./components/ModelPicker";
 import { WhatsAppPanel } from "./components/WhatsAppPanel";
+import { AgentDataPanel } from "./components/AgentDataPanel";
 import { getHamptonReplies, isElectron, getAgents } from "./constants";
 import type { HamptonState, Message } from "./types";
 
@@ -35,6 +36,7 @@ export function HomeScreen() {
   const [voicesOpen, setVoicesOpen] = useState(false);
   const [modelPickerOpen, setModelPickerOpen] = useState(false);
   const [whatsappOpen, setWhatsappOpen] = useState(false);
+  const [agentDataOpen, setAgentDataOpen] = useState<string | null>(null);
   const [speechEnabled, setSpeechEnabled] = useState(true);
   const [hasVoiceConfigured, setHasVoiceConfigured] = useState(false);
   const [hamptonState, setHamptonState] = useState<HamptonState>("idle");
@@ -337,7 +339,7 @@ export function HomeScreen() {
       />
 
       <AnimatePresence>
-        {agentsOpen && <AgentsPanel onClose={() => { setAgentsOpen(false); setActiveNav("home"); }} onSelectAgent={openAgentChat} />}
+        {agentsOpen && <AgentsPanel onClose={() => { setAgentsOpen(false); setActiveNav("home"); }} onSelectAgent={openAgentChat} onViewData={(name) => { setAgentsOpen(false); setAgentDataOpen(name); }} />}
         {historyOpen && <ConversationList activeId={conversationId} onClose={() => setHistoryOpen(false)} onSelect={openConversation} onNew={startNewChat} />}
         {settingsOpen && !agentModelsOpen && !usageOpen && (
           <SettingsPanel
@@ -353,6 +355,7 @@ export function HomeScreen() {
         {voicesOpen && <VoicesPicker onClose={() => setVoicesOpen(false)} />}
         {modelPickerOpen && <ModelPicker onClose={() => setModelPickerOpen(false)} />}
         {whatsappOpen && <WhatsAppPanel onClose={() => setWhatsappOpen(false)} />}
+        {agentDataOpen && <AgentDataPanel agent={agentDataOpen as any} onClose={() => setAgentDataOpen(null)} />}
       </AnimatePresence>
 
       {anyPanelOpen && <div className="fixed inset-0 z-20" onClick={() => { setAgentsOpen(false); setHistoryOpen(false); setActiveNav("home"); }} />}
