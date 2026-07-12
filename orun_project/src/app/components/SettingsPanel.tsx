@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { X, Cpu, Cloud, CheckCircle2, XCircle, Loader2, RefreshCw, Users, Activity, MessageCircle, Globe } from "lucide-react";
+import { X, Cpu, Cloud, CheckCircle2, XCircle, Loader2, RefreshCw, Users, Activity, MessageCircle, Globe, Sparkles } from "lucide-react";
 import { useTranslation } from "../../i18n/I18nProvider";
 import { LANGUAGE_OPTIONS, type Language } from "../../i18n/translations";
 import { isElectron } from "../constants";
@@ -31,6 +31,7 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
   const [ollamaModels, setOllamaModels] = useState<string[]>([]);
   const [loadingModels, setLoadingModels] = useState(false);
   const [freeModels, setFreeModels] = useState<Record<string, string[]>>({});
+  const [modelCatalog, setModelCatalog] = useState<Record<string, { id: string; free: boolean }[]>>({});
   const [fallbackProvider, setFallbackProvider] = useState<OrunProvider | "none">("none");
   const [fallbackModel, setFallbackModel] = useState("");
   const [runInBackground, setRunInBackground] = useState(false);
@@ -49,6 +50,7 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
       }
     });
     window.orun.ai.knownFreeModels().then(setFreeModels);
+    window.orun.ai.modelCatalog().then(setModelCatalog);
     window.orun.settings.get<{ provider: OrunProvider; model: string } | null>("aiFallback").then((fb) => {
       if (fb) { setFallbackProvider(fb.provider); setFallbackModel(fb.model); }
     });
@@ -106,7 +108,7 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
   };
 
   const info = PROVIDER_INFO[provider];
-  const suggestions = freeModels[provider] || [];
+  const catalogModels = modelCatalog[provider] || [];
 
   return (
     <motion.div
@@ -207,16 +209,18 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
               className="w-full mb-2 px-3 py-2 rounded-lg text-sm outline-none"
               style={{ background: "#111111", border: "1px solid #1e1e1e", color: "#E0E0E0" }}
             />
-            {suggestions.length > 0 && (
+            {catalogModels.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mb-3">
-                {suggestions.map((s) => (
+                {catalogModels.map((m) => (
                   <button
-                    key={s}
-                    onClick={() => setModel(s)}
-                    className="px-2 py-1 rounded-md text-[9px]"
-                    style={{ background: model === s ? "rgba(192,0,24,0.15)" : "#111111", border: `1px solid ${model === s ? "#C00018" : "#1e1e1e"}`, color: model === s ? "#FF1A2D" : "#666", fontFamily: "'JetBrains Mono', monospace" }}
+                    key={m.id}
+                    onClick={() => setModel(m.id)}
+                    className="flex items-center gap-1 px-2 py-1 rounded-md text-[9px]"
+                    style={{ background: model === m.id ? "rgba(192,0,24,0.15)" : "#111111", border: `1px solid ${model === m.id ? "#C00018" : "#1e1e1e"}`, color: model === m.id ? "#FF1A2D" : "#666", fontFamily: "'JetBrains Mono', monospace" }}
                   >
-                    {s}
+                    {m.free && <Sparkles size={8} style={{ color: "#2ecc71" }} />}
+                    <span>{m.id}</span>
+                    <span className="ml-0.5 text-[7px]" style={{ color: m.free ? "#2ecc71" : "#555" }}>{m.free ? "FREE" : "PAID"}</span>
                   </button>
                 ))}
               </div>

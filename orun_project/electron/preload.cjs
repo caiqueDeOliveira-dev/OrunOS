@@ -45,6 +45,7 @@ contextBridge.exposeInMainWorld("orun", {
     listOllamaModels: (baseUrl) => ipcRenderer.invoke("ai:list-ollama-models", baseUrl),
     listCloudModels: (provider) => ipcRenderer.invoke("ai:list-cloud-models", provider),
     knownFreeModels: () => ipcRenderer.invoke("ai:known-free-models"),
+    modelCatalog: () => ipcRenderer.invoke("ai:model-catalog"),
     providers: () => ipcRenderer.invoke("ai:providers"),
     usageToday: () => ipcRenderer.invoke("ai:usage-today"),
   },
@@ -87,6 +88,18 @@ contextBridge.exposeInMainWorld("orun", {
   },
   nutrition: {
     getDaily: (date) => ipcRenderer.invoke("nutrition:get-daily", date),
+  },
+  finance: {
+    getDaily: (date) => ipcRenderer.invoke("finance:get-daily", date),
+  },
+  health: {
+    getDaily: (date) => ipcRenderer.invoke("health:get-daily", date),
+  },
+  developer: {
+    getReviews: (date) => ipcRenderer.invoke("developer:get-reviews", date),
+  },
+  teacher: {
+    getProgress: (date) => ipcRenderer.invoke("teacher:get-progress", date),
   },
   whatsapp: {
     connect: () => ipcRenderer.invoke("whatsapp:connect"),

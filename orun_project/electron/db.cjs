@@ -66,6 +66,53 @@ function init(userDataPath) {
       source TEXT NOT NULL DEFAULT 'app',
       created_at INTEGER NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS finance_log (
+      id TEXT PRIMARY KEY,
+      date TEXT NOT NULL,
+      description TEXT NOT NULL,
+      amount REAL NOT NULL,
+      currency TEXT NOT NULL DEFAULT 'USD',
+      category TEXT,
+      type TEXT NOT NULL DEFAULT 'expense',
+      source TEXT NOT NULL DEFAULT 'app',
+      created_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS health_log (
+      id TEXT PRIMARY KEY,
+      date TEXT NOT NULL,
+      metric TEXT NOT NULL,
+      value REAL NOT NULL,
+      unit TEXT,
+      notes TEXT,
+      source TEXT NOT NULL DEFAULT 'app',
+      created_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS developer_reviews (
+      id TEXT PRIMARY KEY,
+      date TEXT NOT NULL,
+      repo TEXT,
+      file_path TEXT,
+      summary TEXT NOT NULL,
+      issues_found INTEGER DEFAULT 0,
+      severity TEXT,
+      source TEXT NOT NULL DEFAULT 'app',
+      created_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS teacher_progress (
+      id TEXT PRIMARY KEY,
+      date TEXT NOT NULL,
+      subject TEXT NOT NULL,
+      topic TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'learning',
+      score INTEGER,
+      notes TEXT,
+      source TEXT NOT NULL DEFAULT 'app',
+      created_at INTEGER NOT NULL
+    );
   `);
 
   // Migration for DBs created before the "agent" column existed.
@@ -194,6 +241,66 @@ function getDailyNutrition(date = todayKey()) {
   return { entries: rows, totals };
 }
 
+// ── Finance log ───────────────────────────────────────────────────────
+
+function recordExpense(entry) {
+  db.prepare(
+    `INSERT INTO finance_log (id, date, description, amount, currency, category, type, source, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(entry.id, entry.date || todayKey(), entry.description, entry.amount, entry.currency || "USD", entry.category || null, entry.type || "expense", entry.source || "app", Date.now());
+}
+
+function getDailyFinance(date = todayKey()) {
+  const rows = db.prepare(`SELECT * FROM finance_log WHERE date = ? ORDER BY created_at ASC`).all(date);
+  const totals = rows.reduce(
+    (acc, r) => ({
+      income: acc.income + (r.type === "income" ? (r.amount || 0) : 0),
+      expenses: acc.expenses + (r.type === "expense" ? (r.amount || 0) : 0),
+    }),
+    { income: 0, expenses: 0 }
+  );
+  return { entries: rows, totals, balance: totals.income - totals.expenses };
+}
+
+// ── Health log ────────────────────────────────────────────────────────
+
+function recordHealthMetric(entry) {
+  db.prepare(
+    `INSERT INTO health_log (id, date, metric, value, unit, notes, source, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(entry.id, entry.date || todayKey(), entry.metric, entry.value, entry.unit || null, entry.notes || null, entry.source || "app", Date.now());
+}
+
+function getDailyHealth(date = todayKey()) {
+  return db.prepare(`SELECT * FROM health_log WHERE date = ? ORDER BY created_at ASC`).all(date);
+}
+
+// ── Developer reviews ────────────────────────────────────────────────
+
+function recordReview(entry) {
+  db.prepare(
+    `INSERT INTO developer_reviews (id, date, repo, file_path, summary, issues_found, severity, source, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(entry.id, entry.date || todayKey(), entry.repo || null, entry.file_path || null, entry.summary, entry.issues_found || 0, entry.severity || null, entry.source || "app", Date.now());
+}
+
+function getDailyReviews(date = todayKey()) {
+  return db.prepare(`SELECT * FROM developer_reviews WHERE date = ? ORDER BY created_at ASC`).all(date);
+}
+
+// ── Teacher progress ────────────────────────────────────────────────
+
+function recordProgress(entry) {
+  db.prepare(
+    `INSERT INTO teacher_progress (id, date, subject, topic, status, score, notes, source, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(entry.id, entry.date || todayKey(), entry.subject, entry.topic, entry.status || "learning", entry.score ?? null, entry.notes || null, entry.source || "app", Date.now());
+}
+
+function getDailyProgress(date = todayKey()) {
+  return db.prepare(`SELECT * FROM teacher_progress WHERE date = ? ORDER BY created_at ASC`).all(date);
+}
+
 module.exports = {
   init,
   createConversation,
@@ -210,4 +317,12 @@ module.exports = {
   getTTSUsageToday,
   recordMeal,
   getDailyNutrition,
+  recordExpense,
+  getDailyFinance,
+  recordHealthMetric,
+  getDailyHealth,
+  recordReview,
+  getDailyReviews,
+  recordProgress,
+  getDailyProgress,
 };

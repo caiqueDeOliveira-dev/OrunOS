@@ -107,6 +107,7 @@ interface OrunAPI {
     listOllamaModels: (baseUrl?: string) => Promise<string[]>;
     listCloudModels: (provider: OrunProvider) => Promise<string[]>;
     knownFreeModels: () => Promise<Record<string, string[]>>;
+    modelCatalog: () => Promise<Record<string, { id: string; free: boolean }[]>>;
     providers: () => Promise<OrunProvider[]>;
     usageToday: () => Promise<OrunUsageRow[]>;
   };

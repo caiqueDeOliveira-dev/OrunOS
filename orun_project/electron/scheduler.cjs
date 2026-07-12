@@ -33,7 +33,7 @@ function scheduleAgent(agentName, time) {
 }
 
 async function runAgentTask(agentName) {
-  const { db, aiRouter, agentPrompts } = deps;
+  const { db, aiRouter, agentPrompts, processAgentReply } = deps;
   const globalAI = { ...{ provider: "ollama", model: "llama3.1" }, ...db.getSetting("ai", {}) };
   const override = db.getSetting("agentModels", {})[agentName];
   const provider = override?.provider || globalAI.provider;
@@ -41,20 +41,30 @@ async function runAgentTask(agentName) {
   const apiKey = deps.getSecret(provider);
   const systemPrompt = agentPrompts.promptFor(agentName, override?.systemPrompt);
 
-  const userPrompt = agentName === "Personal Trainer" ? "Generate today's workout." : "Generate today's update.";
+  const userPrompts = {
+    "Personal Trainer": "Generate today's workout.",
+    Finance: "Analyze today's spending habits and provide a brief financial tip.",
+    Health: "Check in on today's health metrics and provide a wellness reminder.",
+    Developer: "Review a common coding pattern and suggest improvements.",
+    Teacher: "Suggest a micro-learning topic for today.",
+    Nutritionist: "Suggest a healthy meal idea for today.",
+  };
+  const userPrompt = userPrompts[agentName] || "Generate today's update.";
   const result = await aiRouter.routeChat({
     provider, model, baseUrl: globalAI.baseUrl, apiKey,
     messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }],
   });
 
+  const finalText = processAgentReply ? processAgentReply(agentName, result.text) : result.text;
+
   // Log into that agent's default conversation so it's visible in-app too.
   const conversations = db.listConversations(agentName);
   let convo = conversations[0];
   if (!convo) convo = db.createConversation(`${agentName}-${Date.now()}`, `${agentName} — daily`, agentName);
-  db.addMessage(convo.id, { id: `${Date.now()}`, role: "assistant", content: result.text });
+  db.addMessage(convo.id, { id: `${Date.now()}`, role: "assistant", content: finalText });
 
-  await deps.deliver(agentName, result.text);
-  return result.text;
+  await deps.deliver(agentName, finalText);
+  return finalText;
 }
 
 function setSchedule(agentName, cfg) {

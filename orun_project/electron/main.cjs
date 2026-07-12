@@ -153,6 +153,57 @@ function maybeLogNutrition(agentId, text) {
   return `${text}\n\n📊 Today so far: ${Math.round(totals.calories)} kcal (${Math.round(totals.protein_g)}g protein, ${Math.round(totals.carbs_g)}g carbs, ${Math.round(totals.fat_g)}g fat).`;
 }
 
+/** Finance replies with a JSON block — parse and log the transaction, showing daily summary. */
+function maybeLogFinance(agentId, text) {
+  if (agentId !== "Finance") return text;
+  const parsed = agentPrompts.extractFinanceJSON(text);
+  if (!parsed) return text;
+  db.recordExpense({ id: randomUUID(), ...parsed, source: "app" });
+  const { totals, balance } = db.getDailyFinance();
+  const emoji = parsed.type === "income" ? "💰" : "💸";
+  return `${text}\n\n${emoji} Today: +$${totals.income.toFixed(2)} / -$${totals.expenses.toFixed(2)} (balance: $${balance.toFixed(2)}).`;
+}
+
+/** Health replies with a JSON block — parse and log the metric. */
+function maybeLogHealth(agentId, text) {
+  if (agentId !== "Health") return text;
+  const parsed = agentPrompts.extractHealthJSON(text);
+  if (!parsed) return text;
+  db.recordHealthMetric({ id: randomUUID(), ...parsed, source: "app" });
+  return `${text}\n\n❤️ Logged: ${parsed.metric} = ${parsed.value}${parsed.unit ? " " + parsed.unit : ""}.`;
+}
+
+/** Developer replies with a JSON block — parse and log the review. */
+function maybeLogDeveloper(agentId, text) {
+  if (agentId !== "Developer") return text;
+  const parsed = agentPrompts.extractDeveloperJSON(text);
+  if (!parsed) return text;
+  db.recordReview({ id: randomUUID(), ...parsed, source: "app" });
+  const severityEmoji = { low: "🟢", medium: "🟡", high: "🟠", critical: "🔴" }[parsed.severity] || "⚪";
+  return `${text}\n\n🔍 Review logged: ${parsed.issues_found} issue(s) found ${severityEmoji} ${parsed.severity}.`;
+}
+
+/** Teacher replies with a JSON block — parse and log the progress. */
+function maybeLogTeacher(agentId, text) {
+  if (agentId !== "Teacher") return text;
+  const parsed = agentPrompts.extractTeacherJSON(text);
+  if (!parsed) return text;
+  db.recordProgress({ id: randomUUID(), ...parsed, source: "app" });
+  const statusEmoji = { learning: "📖", reviewed: "✅", mastered: "🏆" }[parsed.status] || "📚";
+  return `${text}\n\n${statusEmoji} Progress: ${parsed.subject} → ${parsed.topic} (${parsed.status}${parsed.score != null ? ", score: " + parsed.score : ""}).`;
+}
+
+/** Unified post-processing — runs all agent-specific extractors. */
+function processAgentReply(agentId, text) {
+  let result = text;
+  result = maybeLogNutrition(agentId, result);
+  result = maybeLogFinance(agentId, result);
+  result = maybeLogHealth(agentId, result);
+  result = maybeLogDeveloper(agentId, result);
+  result = maybeLogTeacher(agentId, result);
+  return result;
+}
+
 /** Scans a finished reply for an action tag and fires the matching n8n webhook, if enabled. */
 async function processActions(text) {
   const n8nCfg = db.getSetting("n8n", {});
@@ -194,7 +245,7 @@ function registerIpcHandlers() {
     try {
       const result = await aiRouter.routeChat({ provider: settings.provider, model: settings.model, baseUrl: settings.baseUrl, apiKey, messages: context });
       recordUsageSafely(settings.provider, result.usage);
-      return maybeLogNutrition(agentId, await processActions(result.text));
+      return processAgentReply(agentId, await processActions(result.text));
     } catch (err) {
       const fallback = db.getSetting("aiFallback", null);
       if (fallback?.provider) {
@@ -202,7 +253,7 @@ function registerIpcHandlers() {
         try {
           const result = await aiRouter.routeChat({ provider: fallback.provider, model: fallback.model, apiKey: keys[fallback.provider], messages: context });
           recordUsageSafely(fallback.provider, result.usage);
-          return maybeLogNutrition(agentId, await processActions(result.text));
+          return processAgentReply(agentId, await processActions(result.text));
         } catch (fallbackErr) {
           log.error("[ai:chat] fallback also failed:", fallbackErr.message);
           throw fallbackErr;
@@ -235,7 +286,7 @@ function registerIpcHandlers() {
       const { result } = await attempt(settings.provider, settings.model, settings.baseUrl, keys[settings.provider]);
       activeStreamRequests.delete(requestId);
       recordUsageSafely(settings.provider, result.usage);
-      const finalText = maybeLogNutrition(agentId, await processActions(result.text));
+      const finalText = processAgentReply(agentId, await processActions(result.text));
       send(`ai:chat-stream:done:${requestId}`, finalText);
     } catch (err) {
       activeStreamRequests.delete(requestId);
@@ -248,7 +299,7 @@ function registerIpcHandlers() {
           const { result } = await attempt(fallback.provider, fallback.model, undefined, keys[fallback.provider]);
           activeStreamRequests.delete(requestId);
           recordUsageSafely(fallback.provider, result.usage);
-          const finalText = maybeLogNutrition(agentId, await processActions(result.text));
+          const finalText = processAgentReply(agentId, await processActions(result.text));
           send(`ai:chat-stream:done:${requestId}`, finalText);
           return;
         } catch (fallbackErr) {
@@ -280,6 +331,7 @@ function registerIpcHandlers() {
   });
   ipcMain.handle("ai:list-cloud-models", async (_event, provider) => aiRouter.listCloudModels(provider, readSecretStore()[provider]));
   ipcMain.handle("ai:known-free-models", () => aiRouter.KNOWN_FREE_MODELS);
+  ipcMain.handle("ai:model-catalog", () => aiRouter.getModelCatalog());
   ipcMain.handle("ai:providers", () => aiRouter.PROVIDERS);
   ipcMain.handle("ai:usage-today", () => db.getUsageToday());
 
@@ -386,6 +438,18 @@ function registerIpcHandlers() {
   // Nutrition log
   ipcMain.handle("nutrition:get-daily", (_event, date) => db.getDailyNutrition(date));
 
+  // Finance log
+  ipcMain.handle("finance:get-daily", (_event, date) => db.getDailyFinance(date));
+
+  // Health log
+  ipcMain.handle("health:get-daily", (_event, date) => db.getDailyHealth(date));
+
+  // Developer reviews
+  ipcMain.handle("developer:get-reviews", (_event, date) => db.getDailyReviews(date));
+
+  // Teacher progress
+  ipcMain.handle("teacher:get-progress", (_event, date) => db.getDailyProgress(date));
+
   // WhatsApp connector
   ipcMain.handle("whatsapp:connect", async () => {
     try {
@@ -441,7 +505,7 @@ async function handleWhatsAppMessage({ jid, text, imageBase64, fromMe }) {
     const { context } = await aiRouter.buildContext({ messages: [userMessage], systemPrompt, provider: settings.provider, model: settings.model, baseUrl: settings.baseUrl, apiKey: keys[settings.provider] });
     const result = await aiRouter.routeChat({ provider: settings.provider, model: settings.model, baseUrl: settings.baseUrl, apiKey: keys[settings.provider], messages: context });
     recordUsageSafely(settings.provider, result.usage);
-    const finalText = maybeLogNutrition(agentId, result.text);
+    const finalText = processAgentReply(agentId, result.text);
     await whatsapp.sendMessage(jid, finalText);
   } catch (err) {
     log.error("[whatsapp] failed to handle message:", err.message);
@@ -474,7 +538,7 @@ app.whenReady().then(() => {
     onMessage: (msg) => handleWhatsAppMessage(msg).catch((err) => log.error("[whatsapp] handler crashed:", err.message)),
   });
 
-  scheduler.init({ db, aiRouter, agentPrompts, log, getSecret: (provider) => readSecretStore()[provider], deliver: deliverAgentMessage });
+  scheduler.init({ db, aiRouter, agentPrompts, log, getSecret: (provider) => readSecretStore()[provider], deliver: deliverAgentMessage, processAgentReply });
 
   globalShortcut.register("CommandOrControl+Shift+H", () => {
     if (mainWindow?.isVisible()) { mainWindow.focus(); } else { mainWindow?.show(); mainWindow?.focus(); }

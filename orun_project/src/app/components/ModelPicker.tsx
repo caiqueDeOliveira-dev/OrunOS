@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, ArrowLeft, Cloud, Cpu, Check, Loader2, RefreshCw } from "lucide-react";
+import { X, ArrowLeft, Cloud, Cpu, Check, Loader2, RefreshCw, Sparkles } from "lucide-react";
 import { isElectron } from "../constants";
 import { useTranslation } from "../../i18n/I18nProvider";
 import type { OrunProvider } from "../../types/orun";
@@ -15,10 +15,12 @@ const PROVIDER_INFO: Record<OrunProvider, { label: string; kind: "local" | "clou
   opencodezen: { label: "OpenCode Zen", kind: "cloud" },
 };
 
+type CatalogModel = { id: string; free: boolean };
+
 export function ModelPicker({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
   const [provider, setProvider] = useState<OrunProvider | null>(null);
-  const [models, setModels] = useState<string[]>([]);
+  const [models, setModels] = useState<CatalogModel[]>([]);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<{ provider: OrunProvider; model: string } | null>(null);
 
@@ -34,12 +36,22 @@ export function ModelPicker({ onClose }: { onClose: () => void }) {
     setLoading(true);
     if (p === "ollama") {
       const cfg = await window.orun.settings.get<{ baseUrl?: string }>("ai");
-      setModels(await window.orun.ai.listOllamaModels(cfg?.baseUrl));
+      const ollamaModels = await window.orun.ai.listOllamaModels(cfg?.baseUrl);
+      setModels(ollamaModels.map((m) => ({ id: m, free: true })));
     } else {
+      const catalog = await window.orun.ai.modelCatalog();
+      const catalogModels = catalog[p] || [];
       const free = await window.orun.ai.knownFreeModels();
-      const cloudList = await window.orun.ai.listCloudModels(p);
-      const combined = Array.from(new Set([...(free[p] || []), ...cloudList]));
-      setModels(combined);
+      const freeIds = new Set(free[p] || []);
+      const merged = catalogModels.length > 0
+        ? catalogModels
+        : Object.values(freeIds).flat().map((id) => ({ id, free: true }));
+      const deduped = Array.from(new Map(merged.map((m) => [m.id, m])).values());
+      deduped.sort((a, b) => {
+        if (a.free !== b.free) return a.free ? -1 : 1;
+        return a.id.localeCompare(b.id);
+      });
+      setModels(deduped);
     }
     setLoading(false);
   };
@@ -110,16 +122,25 @@ export function ModelPicker({ onClose }: { onClose: () => void }) {
               {loading && <p className="text-[11px] text-center py-4" style={{ color: "#555" }}><Loader2 size={14} className="animate-spin inline mr-1.5" />{t("modelPickerLoading")}</p>}
               {!loading && models.length === 0 && <p className="text-[10px]" style={{ color: "#555" }}>{t("modelPickerNotFound")}</p>}
               <div className="space-y-1.5">
-                {models.map((model) => {
-                  const isSelected = selected?.provider === provider && selected.model === model;
+                {models.map((m) => {
+                  const isSelected = selected?.provider === provider && selected.model === m.id;
                   return (
                     <button
-                      key={model}
-                      onClick={() => selectModel(model)}
+                      key={m.id}
+                      onClick={() => selectModel(m.id)}
                       className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left"
                       style={{ background: isSelected ? "rgba(192,0,24,0.08)" : "#111111", border: `1px solid ${isSelected ? "#C00018" : "#1e1e1e"}` }}
                     >
-                      <span className="text-xs flex-1 truncate" style={{ fontFamily: "'JetBrains Mono', monospace", color: isSelected ? "#F5F5F5" : "#ccc" }}>{model}</span>
+                      <span className="text-xs flex-1 truncate" style={{ fontFamily: "'JetBrains Mono', monospace", color: isSelected ? "#F5F5F5" : "#ccc" }}>{m.id}</span>
+                      {m.free ? (
+                        <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-medium tracking-wider" style={{ background: "rgba(46,204,113,0.12)", color: "#2ecc71" }}>
+                          <Sparkles size={9} /> FREE
+                        </span>
+                      ) : (
+                        <span className="px-1.5 py-0.5 rounded text-[8px] font-medium tracking-wider" style={{ background: "rgba(255,26,45,0.1)", color: "#888" }}>
+                          PAID
+                        </span>
+                      )}
                       {isSelected && <Check size={13} style={{ color: "#FF1A2D" }} />}
                     </button>
                   );
