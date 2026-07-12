@@ -20,7 +20,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install
+      - run: npm ci --ignore-scripts
+      - run: npx electron-builder install-app-deps
       - run: npm run build
       - run: npx electron-builder --win --publish never
         env:
@@ -46,7 +47,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install
+      - run: npm ci --ignore-scripts
+      - run: npx electron-builder install-app-deps
       - run: npm run build
       - run: npx electron-builder --mac --publish never
         env:
@@ -72,7 +74,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install
+      - run: npm ci --ignore-scripts
+      - run: npx electron-builder install-app-deps
       - run: npm run build
       - run: npx electron-builder --linux --publish never
       - uses: actions/upload-artifact@v4
