@@ -18,6 +18,8 @@ import { WhatsAppPanel } from "./components/WhatsAppPanel";
 import { AgentDataPanel } from "./components/AgentDataPanel";
 import { ProjectsPanel } from "./components/ProjectsPanel";
 import { FilesPanel } from "./components/FilesPanel";
+import { SchedulesPanel } from "./components/SchedulesPanel";
+import { SocialMediaPanel } from "./components/SocialMediaPanel";
 import { MemoryPanel } from "./components/MemoryPanel";
 import { getHamptonReplies, isElectron, getAgents } from "./constants";
 import type { HamptonState, Message } from "./types";
@@ -36,6 +38,7 @@ export function HomeScreen() {
   const [agentModelsOpen, setAgentModelsOpen] = useState(false);
   const [usageOpen, setUsageOpen] = useState(false);
   const [automationOpen, setAutomationOpen] = useState(false);
+  const [schedulesOpen, setSchedulesOpen] = useState(false);
   const [voicesOpen, setVoicesOpen] = useState(false);
   const [modelPickerOpen, setModelPickerOpen] = useState(false);
   const [whatsappOpen, setWhatsappOpen] = useState(false);
@@ -43,6 +46,7 @@ export function HomeScreen() {
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [filesOpen, setFilesOpen] = useState(false);
   const [memoryOpen, setMemoryOpen] = useState(false);
+  const [socialMediaOpen, setSocialMediaOpen] = useState(false);
   const [speechEnabled, setSpeechEnabled] = useState(true);
   const [hasVoiceConfigured, setHasVoiceConfigured] = useState(false);
   const [hamptonState, setHamptonState] = useState<HamptonState>("idle");
@@ -199,43 +203,92 @@ export function HomeScreen() {
         streamedTextRef.current = "";
         activeConvoIdRef.current = convoId;
 
-        cancelStreamRef.current = window.orun.ai.chatStream(history as any, {
-          agentId: activeAgent || undefined,
-          onChunk: (delta) => {
-            if (firstChunk) {
-              setHamptonState("speaking");
-              setMessages(p => [...p, { id: replyId, role: "hampton", content: "" }]);
-              firstChunk = false;
-            }
-            streamedText += delta;
-            streamedTextRef.current = streamedText;
-            setMessages(p => p.map(m => (m.id === replyId ? { ...m, content: streamedText } : m)));
-            speakIncremental(streamedText);
-          },
-          onDone: async (fullText) => {
-            const finalText = fullText || streamedText;
-            setMessages(p => p.map(m => (m.id === replyId ? { ...m, content: finalText } : m)));
-            if (convoId) await window.orun.conversations.addMessage(convoId, { id: replyId, role: "assistant", content: finalText });
-            cancelStreamRef.current = null;
-            speakRemainder(finalText);
-            setTimeout(() => setHamptonState("idle"), 900);
-          },
-          onError: (message) => {
-            setHamptonState("speaking");
-            const errText = `${t("homeErrorAccess")} ${message || ""}`;
-            setMessages(p => {
-              const exists = p.some(m => m.id === replyId);
-              return exists ? p.map(m => (m.id === replyId ? { ...m, content: errText } : m)) : [...p, { id: replyId, role: "hampton", content: errText }];
-            });
-            cancelStreamRef.current = null;
-            setTimeout(() => setHamptonState("idle"), 1200);
-          },
-        });
+        // Use autonomous mode for Hampton (no agent) and Social Media (needs publish_to_social tool)
+        const useAutonomous = !activeAgent || activeAgent === "Social Media";
+
+        if (useAutonomous) {
+          // ── Autonomous mode: Hampton uses tools in a loop ──────────
+          const toolCallsMap = new Map<string, { id: string; name: string; arguments: Record<string, unknown>; result?: unknown }>();
+
+          cancelStreamRef.current = window.orun.ai.autonomous(history as any, {
+            agentId: activeAgent || undefined,
+            onToolCall: (tc) => {
+              setHamptonState("thinking");
+              toolCallsMap.set(tc.id, { ...tc });
+              // Show tool call in the message
+              const toolArray = Array.from(toolCallsMap.values());
+              setMessages(p => {
+                const exists = p.some(m => m.id === replyId);
+                const msg: Message = { id: replyId, role: "hampton", content: "", toolCalls: toolArray };
+                return exists ? p.map(m => (m.id === replyId ? msg : m)) : [...p, msg];
+              });
+            },
+            onToolResult: (tr) => {
+              const existing = toolCallsMap.get(tr.id);
+              if (existing) {
+                existing.result = tr.result;
+                const toolArray = Array.from(toolCallsMap.values());
+                setMessages(p => p.map(m => (m.id === replyId ? { ...m, toolCalls: toolArray } : m)));
+              }
+            },
+            onDone: async (fullText) => {
+              const finalText = fullText || streamedText;
+              const toolArray = Array.from(toolCallsMap.values());
+              setMessages(p => p.map(m => (m.id === replyId ? { ...m, content: finalText, toolCalls: toolArray.length ? toolArray : undefined } : m)));
+              if (convoId) await window.orun.conversations.addMessage(convoId, { id: replyId, role: "assistant", content: finalText });
+              cancelStreamRef.current = null;
+              speakRemainder(finalText);
+              setTimeout(() => setHamptonState("idle"), 900);
+            },
+            onError: (message) => {
+              const errText = `${t("homeErrorAccess")} ${message || ""}`;
+              setMessages(p => {
+                const exists = p.some(m => m.id === replyId);
+                return exists ? p.map(m => (m.id === replyId ? { ...m, content: errText } : m)) : [...p, { id: replyId, role: "hampton", content: errText }];
+              });
+              cancelStreamRef.current = null;
+              setHamptonState("idle");
+            },
+          });
+        } else {
+          // ── Regular streaming mode for sub-agents ─────────────────
+          cancelStreamRef.current = window.orun.ai.chatStream(history as any, {
+            agentId: activeAgent || undefined,
+            onChunk: (delta) => {
+              if (firstChunk) {
+                setHamptonState("speaking");
+                setMessages(p => [...p, { id: replyId, role: "hampton", content: "" }]);
+                firstChunk = false;
+              }
+              streamedText += delta;
+              streamedTextRef.current = streamedText;
+              setMessages(p => p.map(m => (m.id === replyId ? { ...m, content: streamedText } : m)));
+              speakIncremental(streamedText);
+            },
+            onDone: async (fullText) => {
+              const finalText = fullText || streamedText;
+              setMessages(p => p.map(m => (m.id === replyId ? { ...m, content: finalText } : m)));
+              if (convoId) await window.orun.conversations.addMessage(convoId, { id: replyId, role: "assistant", content: finalText });
+              cancelStreamRef.current = null;
+              speakRemainder(finalText);
+              setTimeout(() => setHamptonState("idle"), 900);
+            },
+            onError: (message) => {
+              setHamptonState("idle");
+              const errText = `${t("homeErrorAccess")} ${message || ""}`;
+              setMessages(p => {
+                const exists = p.some(m => m.id === replyId);
+                return exists ? p.map(m => (m.id === replyId ? { ...m, content: errText } : m)) : [...p, { id: replyId, role: "hampton", content: errText }];
+              });
+              cancelStreamRef.current = null;
+              setTimeout(() => setHamptonState("idle"), 1200);
+            },
+          });
+        }
       } catch (err: any) {
-        setHamptonState("speaking");
+        setHamptonState("idle");
         const reply: Message = { id: `${Date.now() + 1}`, role: "hampton", content: `${t("homeErrorAccessShort")} ${err?.message || ""}` };
         setMessages(p => [...p, reply]);
-        setTimeout(() => setHamptonState("idle"), 1200);
       }
       return;
     }
@@ -412,7 +465,8 @@ export function HomeScreen() {
         )}
         {agentModelsOpen && <AgentModelsPanel onClose={() => setAgentModelsOpen(false)} onBack={() => { setAgentModelsOpen(false); setSettingsOpen(true); }} />}
         {usageOpen && <UsagePanel onClose={() => setUsageOpen(false)} onBack={() => { setUsageOpen(false); setSettingsOpen(true); }} />}
-        {automationOpen && <AutomationPanel onClose={() => { setAutomationOpen(false); setActiveNav("home"); }} />}
+        {automationOpen && <AutomationPanel onClose={() => { setAutomationOpen(false); setActiveNav("home"); }} onOpenSchedules={() => setSchedulesOpen(true)} onOpenSocialMedia={() => setSocialMediaOpen(true)} />}
+        {schedulesOpen && <SchedulesPanel onClose={() => { setSchedulesOpen(false); setActiveNav("home"); }} />}
         {voicesOpen && <VoicesPicker onClose={() => setVoicesOpen(false)} />}
         {modelPickerOpen && <ModelPicker onClose={() => setModelPickerOpen(false)} />}
         {whatsappOpen && <WhatsAppPanel onClose={() => setWhatsappOpen(false)} />}
@@ -420,6 +474,7 @@ export function HomeScreen() {
         {projectsOpen && <ProjectsPanel onClose={() => { setProjectsOpen(false); setActiveNav("home"); }} />}
         {filesOpen && <FilesPanel onClose={() => { setFilesOpen(false); setActiveNav("home"); }} />}
         {memoryOpen && <MemoryPanel onClose={() => { setMemoryOpen(false); setActiveNav("home"); }} />}
+        {socialMediaOpen && <SocialMediaPanel onClose={() => { setSocialMediaOpen(false); setActiveNav("home"); }} onSelectAgent={(name) => { setSocialMediaOpen(false); setActiveNav("home"); setSelectedAgent(name); }} />}
       </AnimatePresence>
 
       {anyPanelOpen && <div className="fixed inset-0 z-20" onClick={() => { setAgentsOpen(false); setHistoryOpen(false); setActiveNav("home"); }} />}

@@ -13,25 +13,27 @@ const http = require("http");
 
 // ── Low-level HTTP helpers ──────────────────────────────────────────────
 
-function postJSON(urlString, headers, body) {
+function postJSON(urlString, headers, body, timeoutMs = 15000) {
   return new Promise((resolve, reject) => {
     const url = new URL(urlString);
     const lib = url.protocol === "https:" ? https : http;
     const payload = JSON.stringify(body);
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(), timeoutMs);
     const req = lib.request(
       { hostname: url.hostname, port: url.port || (url.protocol === "https:" ? 443 : 80), path: url.pathname + url.search, method: "POST",
-        headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(payload), ...headers }, timeout: 60000 },
+        headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(payload), ...headers }, signal: ac.signal },
       (res) => {
         let data = "";
         res.on("data", (chunk) => (data += chunk));
         res.on("end", () => {
+          clearTimeout(timer);
           if (res.statusCode && res.statusCode >= 400) { reject(new Error(`HTTP ${res.statusCode}: ${data.slice(0, 500)}`)); return; }
           try { resolve(JSON.parse(data)); } catch (e) { reject(new Error(`Failed to parse response: ${data.slice(0, 500)}`)); }
         });
       }
     );
-    req.on("timeout", () => req.destroy(new Error("Request timed out")));
-    req.on("error", reject);
+    req.on("error", (err) => { clearTimeout(timer); reject(err); });
     req.write(payload);
     req.end();
   });
@@ -110,7 +112,7 @@ function trimContext(messages, systemPrompt, maxMessages = 16) {
 }
 
 const SUMMARY_PROMPT =
-  "Summarize the following conversation history in a few short paragraphs, preserving names, decisions, numbers, and any facts needed to continue the conversation naturally. Output only the summary, no preamble.";
+  "Summarize the following conversation history in a few short paragraphs, preserving names, decisions, numbers, and any facts needed to continue the conversation naturally. Output only the summary, no preamble. IMPORTANTE: Resuma em português do Brasil (pt-BR).";
 
 /**
  * Smarter context builder: if the conversation is short, just trims as
@@ -151,7 +153,7 @@ const OPENAI_COMPATIBLE = {
   openrouter: { baseUrl: "https://openrouter.ai/api/v1", authHeaders: (key) => ({ Authorization: `Bearer ${key}`, "HTTP-Referer": "https://orunos.local", "X-Title": "Orun OS" }), defaultModel: "meta-llama/llama-3.3-70b-instruct:free" },
   groq: { baseUrl: "https://api.groq.com/openai/v1", authHeaders: (key) => ({ Authorization: `Bearer ${key}` }), defaultModel: "llama-3.3-70b-versatile" },
   github: { baseUrl: "https://models.github.ai/inference", authHeaders: (key) => ({ Authorization: `Bearer ${key}`, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" }), defaultModel: "openai/gpt-4o" },
-  opencodezen: { baseUrl: "https://opencode.ai/zen/v1", authHeaders: (key) => ({ Authorization: `Bearer ${key}` }), defaultModel: "openai/gpt-5.6-sol" },
+  opencodezen: { baseUrl: "https://opencode.ai/zen/v1", authHeaders: (key) => ({ Authorization: `Bearer ${key}` }), defaultModel: "gpt-5.6-sol" },
 };
 
 function isOpenAICompatible(provider) {
@@ -164,7 +166,11 @@ function isOpenAICompatible(provider) {
 
 function formatMessagesFor(provider, messages) {
   return messages.map((m) => {
-    if (!m.image) return { role: m.role, content: m.content };
+    // Preserve tool_call_id and tool_calls for autonomous loop
+    const extra = {};
+    if (m.tool_call_id) extra.tool_call_id = m.tool_call_id;
+    if (m.tool_calls) extra.tool_calls = m.tool_calls;
+    if (!m.image) return { role: m.role, content: m.content, ...extra };
     if (provider === "anthropic") {
       return {
         role: m.role,
@@ -212,34 +218,94 @@ function nextFreeModel(provider, currentModel) {
 
 // ── Non-streaming chat — all return { text, usage: {tokensIn, tokensOut} } ─
 
-async function chatOllama({ model, messages, baseUrl }) {
+async function chatOllama({ model, messages, baseUrl, tools }) {
   const url = `${baseUrl || "http://localhost:11434"}/api/chat`;
-  const result = await postJSON(url, {}, { model, messages: formatMessagesFor("ollama", messages), stream: false });
-  if (!result || !result.message || typeof result.message.content !== "string") throw new Error("Unexpected response shape from Ollama.");
-  return { text: result.message.content, usage: { tokensIn: result.prompt_eval_count || 0, tokensOut: result.eval_count || 0 } };
+  const body = { model, messages: formatMessagesFor("ollama", messages), stream: false };
+  if (tools && tools.length) body.tools = tools;
+  const result = await postJSON(url, {}, body);
+  if (!result || !result.message) throw new Error("Unexpected response shape from Ollama.");
+  const toolCalls = (result.message.tool_calls || []).map((tc) => ({
+    id: `call_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    name: tc.function.name,
+    arguments: tc.function.arguments,
+  }));
+  return { text: result.message.content || null, toolCalls, usage: { tokensIn: result.prompt_eval_count || 0, tokensOut: result.eval_count || 0 } };
 }
 
-async function chatAnthropic({ model, messages, apiKey }) {
+async function chatAnthropic({ model, messages, apiKey, tools }) {
   if (!apiKey) throw new Error("Missing Anthropic API key.");
   const system = messages.find((m) => m.role === "system")?.content;
   const rest = messages.filter((m) => m.role !== "system");
-  const result = await postJSON(
-    "https://api.anthropic.com/v1/messages",
-    { "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
-    { model: model || "claude-sonnet-4-6", max_tokens: 1024, system, messages: formatMessagesFor("anthropic", rest) }
-  );
-  const textBlock = (result.content || []).find((b) => b.type === "text");
-  if (!textBlock) throw new Error("No text content returned by Claude API.");
-  return { text: textBlock.text, usage: { tokensIn: result.usage?.input_tokens || 0, tokensOut: result.usage?.output_tokens || 0 } };
+  const body = { model: model || "claude-sonnet-4-6", max_tokens: 4096, system, messages: formatMessagesFor("anthropic", rest) };
+  if (tools && tools.length) {
+    body.tools = tools.map((t) => ({ name: t.function.name, description: t.function.description, input_schema: t.function.parameters }));
+  }
+  const result = await postJSON("https://api.anthropic.com/v1/messages", { "x-api-key": apiKey, "anthropic-version": "2023-06-01" }, body);
+  const textBlocks = (result.content || []).filter((b) => b.type === "text");
+  const toolBlocks = (result.content || []).filter((b) => b.type === "tool_use");
+  const text = textBlocks.map((b) => b.text).join("\n") || null;
+  const toolCalls = toolBlocks.map((b) => ({ id: b.id, name: b.name, arguments: b.input }));
+  return { text, toolCalls, usage: { tokensIn: result.usage?.input_tokens || 0, tokensOut: result.usage?.output_tokens || 0 } };
 }
 
-async function chatOpenAICompatible(provider, { model, messages, apiKey }) {
+async function chatOpenAICompatible(provider, { model, messages, apiKey, tools }) {
   const cfg = OPENAI_COMPATIBLE[provider];
   if (!apiKey) throw new Error(`Missing API key for ${provider}.`);
-  const result = await postJSON(`${cfg.baseUrl}/chat/completions`, cfg.authHeaders(apiKey), { model: model || cfg.defaultModel, messages: formatMessagesFor(provider, messages) });
+  const body = { model: model || cfg.defaultModel, messages: formatMessagesFor(provider, messages) };
+  if (tools && tools.length) body.tools = tools;
+  const result = await postJSON(`${cfg.baseUrl}/chat/completions`, cfg.authHeaders(apiKey), body);
   const choice = result.choices && result.choices[0];
   if (!choice) throw new Error(`No choice returned by ${provider}.`);
-  return { text: choice.message.content, usage: { tokensIn: result.usage?.prompt_tokens || 0, tokensOut: result.usage?.completion_tokens || 0 } };
+  const toolCalls = (choice.message.tool_calls || []).map((tc) => ({
+    id: tc.id,
+    name: tc.function.name,
+    arguments: JSON.parse(tc.function.arguments),
+  }));
+  return { text: choice.message.content || null, toolCalls, usage: { tokensIn: result.usage?.prompt_tokens || 0, tokensOut: result.usage?.completion_tokens || 0 } };
+}
+
+// ── Streaming functions ────────────────────────────────────────────────
+
+async function streamOllama({ model, messages, baseUrl, onToken }) {
+  const url = `${baseUrl || "http://localhost:11434"}/api/chat`;
+  const body = { model, messages: formatMessagesFor("ollama", messages), stream: true };
+  let fullText = "";
+  await streamPOST(url, {}, body, (line) => {
+    try {
+      const obj = JSON.parse(line);
+      if (obj.message?.content) { fullText += obj.message.content; onToken?.(obj.message.content); }
+    } catch { /* ignore partial lines */ }
+  });
+  return { text: fullText, toolCalls: [], usage: { tokensIn: 0, tokensOut: 0 } };
+}
+
+async function streamAnthropic({ model, messages, apiKey, onToken }) {
+  const system = messages.find((m) => m.role === "system")?.content;
+  const rest = messages.filter((m) => m.role !== "system");
+  const body = { model: model || "claude-sonnet-4-6", max_tokens: 4096, system, messages: formatMessagesFor("anthropic", rest), stream: true };
+  let fullText = "";
+  await streamPOST("https://api.anthropic.com/v1/messages", { "x-api-key": apiKey, "anthropic-version": "2023-06-01", accept: "application/vnd.ant.messages+json" }, body, (line) => {
+    try {
+      const obj = JSON.parse(line.replace(/^data: /, ""));
+      if (obj.type === "content_block_delta" && obj.delta?.text) { fullText += obj.delta.text; onToken?.(obj.delta.text); }
+    } catch { /* ignore */ }
+  });
+  return { text: fullText, toolCalls: [], usage: { tokensIn: 0, tokensOut: 0 } };
+}
+
+async function streamOpenAICompatible(provider, { model, messages, apiKey, onToken }) {
+  const cfg = OPENAI_COMPATIBLE[provider];
+  if (!apiKey) throw new Error(`Missing API key for ${provider}.`);
+  const body = { model: model || cfg.defaultModel, messages: formatMessagesFor(provider, messages), stream: true };
+  let fullText = "";
+  await streamPOST(`${cfg.baseUrl}/chat/completions`, cfg.authHeaders(apiKey), body, (line) => {
+    try {
+      const obj = JSON.parse(line.replace(/^data: /, ""));
+      const delta = obj.choices?.[0]?.delta?.content;
+      if (delta) { fullText += delta; onToken?.(delta); }
+    } catch { /* ignore */ }
+  });
+  return { text: fullText, toolCalls: [], usage: { tokensIn: 0, tokensOut: 0 } };
 }
 
 // Inner routeChat — no retry logic, used by retry wrapper
@@ -254,29 +320,45 @@ async function routeChatOnce(req) {
  * routeChat with 429 retry: if the provider returns HTTP 429 with
  * retry_after_seconds, waits that long and retries. If retries are
  * exhausted, auto-falls back to the next free model for that provider.
+ * Includes a per-request timeout to prevent hanging.
  */
 async function routeChat(req) {
   let lastErr;
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      return await routeChatOnce(req);
+      const result = await Promise.race([
+        routeChatOnce(req),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Request timed out after 10s")), 10000)),
+      ]);
+      return result;
     } catch (err) {
       lastErr = err;
-      const retryAfter = parseRetryAfter(err);
-      if (retryAfter && attempt === 0) {
-        console.log(`[ai-router] ${req.provider} rate-limited, retrying in ${retryAfter}s`);
-        await sleepMs(retryAfter * 1000);
-        continue;
+      if (!err.message?.includes("timed out")) {
+        const retryAfter = parseRetryAfter(err);
+        if (retryAfter && attempt === 0) {
+          const waitSec = Math.min(retryAfter, 5);
+          console.log(`[ai-router] ${req.provider} rate-limited, retrying in ${waitSec}s`);
+          await sleepMs(waitSec * 1000);
+          continue;
+        }
       }
       break;
     }
   }
-  // Fallback: if the model was rate-limited, try the next free model
+  // Fallback: try the next free model within same provider
   if (isOpenAICompatible(req.provider) && KNOWN_FREE_MODELS[req.provider]) {
     const next = nextFreeModel(req.provider, req.model);
     if (next && next !== req.model) {
-      console.log(`[ai-router] ${req.provider} rate-limited on ${req.model}, falling back to ${next}`);
-      return routeChatOnce({ ...req, model: next });
+      console.log(`[ai-router] ${req.provider} falling back to ${next}`);
+      try {
+        const result = await Promise.race([
+          routeChatOnce({ ...req, model: next }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("Request timed out after 10s")), 10000)),
+        ]);
+        return result;
+      } catch (fallbackErr) {
+        lastErr = fallbackErr;
+      }
     }
   }
   throw lastErr;
@@ -325,6 +407,14 @@ async function testConnection(req) {
   }
 }
 
+/**
+ * Chat with tool-calling support. Same as routeChat but documents the
+ * `tools` parameter. Returns { text, toolCalls, usage }.
+ */
+async function chatWithTools(req) {
+  return routeChat(req);
+}
+
 async function listOllamaModels(baseUrl) {
   const url = `${baseUrl || "http://localhost:11434"}/api/tags`;
   const result = await getJSON(url);
@@ -344,26 +434,16 @@ async function listCloudModels(provider, apiKey) {
 
 const KNOWN_FREE_MODELS = {
   openrouter: [
-    "openrouter/owl-alpha:free",
-    "nvidia/nemotron-3-super:free",
-    "poolside/laguna-m.1:free",
-    "openai/gpt-oss-120b:free",
-    "openai/gpt-oss-20b:free",
-    "nvidia/nemotron-3-ultra:free",
-    "z-ai/glm-4.5-air:free",
-    "nvidia/nemotron-nano-12b-vl:free",
+    "meta-llama/llama-3.3-70b-instruct:free",
     "qwen/qwen3-coder:free",
     "google/gemma-4-31b:free",
     "moonshotai/kimi-k2.6:free",
     "minimax/minimax-m2.7:free",
-    "meta-llama/llama-4-maverick:free",
-    "meta-llama/llama-3.3-70b-instruct:free",
+    "nvidia/nemotron-3-ultra:free",
   ],
   groq: [
     "llama-3.3-70b-versatile",
     "llama-3.1-8b-instant",
-    "openai/gpt-oss-120b",
-    "openai/gpt-oss-20b",
     "qwen/qwen3-32b",
     "meta-llama/llama-4-scout-17b-16e-instruct",
     "deepseek/deepseek-r1-distill-llama-70b",
@@ -377,14 +457,14 @@ const KNOWN_FREE_MODELS = {
     "meta/llama-4-scout-17b-16e-instruct",
   ],
   opencodezen: [
-    "openai/gpt-5.6-sol",
-    "zai/glm-4.7",
-    "zhipuai/glm-4.7-flash",
-    "stepfun/step-3.5-flash:free",
-    "minimax/MiniMax-M2.5",
-    "openrouter/moonshotai/kimi-k2.5",
-    "nvidia/nemotron-3-ultra-free",
-    "cohere/north-mini-code-free",
+    "gpt-5.6-sol",
+    "gpt-5.5",
+    "gpt-5.4-mini",
+    "deepseek-v4-flash-free",
+    "mimo-v2.5-free",
+    "hy3-free",
+    "nemotron-3-ultra-free",
+    "north-mini-code-free",
   ],
 };
 
@@ -421,19 +501,11 @@ const MODEL_CATALOG = {
     { id: "claude-opus-4.8", free: false },
   ],
   openrouter: [
-    { id: "openrouter/owl-alpha:free", free: true },
-    { id: "nvidia/nemotron-3-super:free", free: true },
-    { id: "poolside/laguna-m.1:free", free: true },
-    { id: "openai/gpt-oss-120b:free", free: true },
-    { id: "openai/gpt-oss-20b:free", free: true },
     { id: "nvidia/nemotron-3-ultra:free", free: true },
-    { id: "z-ai/glm-4.5-air:free", free: true },
-    { id: "nvidia/nemotron-nano-12b-vl:free", free: true },
     { id: "qwen/qwen3-coder:free", free: true },
     { id: "google/gemma-4-31b:free", free: true },
     { id: "moonshotai/kimi-k2.6:free", free: true },
     { id: "minimax/minimax-m2.7:free", free: true },
-    { id: "meta-llama/llama-4-maverick:free", free: true },
     { id: "meta-llama/llama-3.3-70b-instruct:free", free: true },
     { id: "deepseek/deepseek-v4-flash", free: false },
     { id: "z-ai/glm-5.1", free: false },
@@ -442,10 +514,8 @@ const MODEL_CATALOG = {
     { id: "moonshotai/kimi-k2.6", free: false },
   ],
   groq: [
-    { id: "llama-3.1-8b-instant", free: true },
     { id: "llama-3.3-70b-versatile", free: true },
-    { id: "openai/gpt-oss-120b", free: true },
-    { id: "openai/gpt-oss-20b", free: true },
+    { id: "llama-3.1-8b-instant", free: true },
     { id: "qwen/qwen3-32b", free: true },
     { id: "meta-llama/llama-4-scout-17b-16e-instruct", free: true },
     { id: "deepseek/deepseek-r1-distill-llama-70b", free: true },
@@ -459,41 +529,63 @@ const MODEL_CATALOG = {
     { id: "meta/llama-4-scout-17b-16e-instruct", free: true },
   ],
   opencodezen: [
-    { id: "openai/gpt-5.6-sol", free: true },
-    { id: "zai/glm-4.7", free: true },
-    { id: "zhipuai/glm-4.7-flash", free: true },
-    { id: "stepfun/step-3.5-flash:free", free: true },
-    { id: "minimax/MiniMax-M2.5", free: true },
-    { id: "openrouter/moonshotai/kimi-k2.5", free: true },
-    { id: "nvidia/nemotron-3-ultra-free", free: true },
-    { id: "cohere/north-mini-code-free", free: true },
-    { id: "openai/gpt-5.5", free: false },
-    { id: "openai/gpt-5.5-pro", free: false },
-    { id: "openai/gpt-5.4", free: false },
-    { id: "openai/gpt-5.4-pro", free: false },
-    { id: "openai/gpt-5.4-mini", free: false },
-    { id: "openai/gpt-5.4-nano", free: false },
-    { id: "openai/gpt-5.3-codex", free: false },
-    { id: "openai/gpt-5.3-codex-spark", free: false },
-    { id: "openai/gpt-5.2", free: false },
-    { id: "openai/gpt-5.2-codex", free: false },
-    { id: "openai/gpt-5.1", free: false },
-    { id: "openai/gpt-5.1-codex", free: false },
-    { id: "openai/gpt-5.1-codex-max", free: false },
-    { id: "openai/gpt-5.1-codex-mini", free: false },
-    { id: "openai/gpt-5", free: false },
-    { id: "openai/gpt-5-codex", free: false },
-    { id: "openai/gpt-5-nano", free: false },
-    { id: "openai/gpt-5-mini", free: false },
-    { id: "openai/gpt-5-pro", free: false },
-    { id: "anthropic/claude-opus-4-1", free: false },
-    { id: "anthropic/claude-sonnet-4", free: false },
-    { id: "qwen/qwen3.5-plus", free: false },
-    { id: "qwen/qwen3.7-plus", free: false },
-    { id: "minimax/minimax-m3", free: false },
-    { id: "google/gemini-3-pro", free: false },
-    { id: "google/gemini-3.5-flash", free: false },
-    { id: "x-ai/grok-4", free: false },
+    { id: "gpt-5.6-sol", free: true },
+    { id: "gpt-5.6-terra", free: false },
+    { id: "gpt-5.6-luna", free: false },
+    { id: "gpt-5.5", free: false },
+    { id: "gpt-5.5-pro", free: false },
+    { id: "gpt-5.4", free: false },
+    { id: "gpt-5.4-pro", free: false },
+    { id: "gpt-5.4-mini", free: false },
+    { id: "gpt-5.4-nano", free: false },
+    { id: "gpt-5.3-codex", free: false },
+    { id: "gpt-5.3-codex-spark", free: false },
+    { id: "gpt-5.2", free: false },
+    { id: "gpt-5.2-codex", free: false },
+    { id: "gpt-5.1", free: false },
+    { id: "gpt-5.1-codex", free: false },
+    { id: "gpt-5.1-codex-max", free: false },
+    { id: "gpt-5.1-codex-mini", free: false },
+    { id: "gpt-5", free: false },
+    { id: "gpt-5-codex", free: false },
+    { id: "gpt-5-nano", free: false },
+    { id: "gpt-5-mini", free: false },
+    { id: "gpt-5-pro", free: false },
+    { id: "claude-opus-4-1", free: false },
+    { id: "claude-opus-4-5", free: false },
+    { id: "claude-opus-4-6", free: false },
+    { id: "claude-opus-4-7", free: false },
+    { id: "claude-opus-4-8", free: false },
+    { id: "claude-fable-5", free: false },
+    { id: "claude-sonnet-4", free: false },
+    { id: "claude-sonnet-4-5", free: false },
+    { id: "claude-sonnet-4-6", free: false },
+    { id: "claude-sonnet-5", free: false },
+    { id: "claude-haiku-4-5", free: false },
+    { id: "gemini-3-flash", free: false },
+    { id: "gemini-3.1-pro", free: false },
+    { id: "gemini-3.5-flash", free: false },
+    { id: "grok-4.5", free: false },
+    { id: "grok-build-0.1", free: false },
+    { id: "deepseek-v4-flash", free: false },
+    { id: "deepseek-v4-pro", free: false },
+    { id: "glm-5", free: false },
+    { id: "glm-5.1", free: false },
+    { id: "glm-5.2", free: false },
+    { id: "minimax-m2.5", free: false },
+    { id: "minimax-m2.7", free: false },
+    { id: "minimax-m3", free: false },
+    { id: "kimi-k2.5", free: false },
+    { id: "kimi-k2.6", free: false },
+    { id: "kimi-k2.7-code", free: false },
+    { id: "qwen3.5-plus", free: false },
+    { id: "qwen3.6-plus", free: false },
+    { id: "big-pickle", free: false },
+    { id: "deepseek-v4-flash-free", free: true },
+    { id: "mimo-v2.5-free", free: true },
+    { id: "hy3-free", free: true },
+    { id: "nemotron-3-ultra-free", free: true },
+    { id: "north-mini-code-free", free: true },
   ],
 };
 
@@ -502,7 +594,7 @@ function getModelCatalog() {
 }
 
 module.exports = {
-  routeChat, streamChat, testConnection, trimContext, buildContext,
+  routeChat, streamChat, chatWithTools, testConnection, trimContext, buildContext,
   listOllamaModels, listCloudModels, KNOWN_FREE_MODELS, getModelCatalog,
   PROVIDERS: Object.keys(OPENAI_COMPATIBLE).concat(["ollama", "anthropic"]),
 };

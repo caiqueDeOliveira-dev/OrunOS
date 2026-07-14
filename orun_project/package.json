@@ -4,7 +4,7 @@
   "description": "Orun OS — a personal AI desktop assistant with local and cloud model support.",
   "author": "Grupo Orun Soluções Tecnológicas",
   "private": true,
-  "version": "0.4.0",
+  "version": "0.5.0",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
@@ -52,6 +52,7 @@
     "@radix-ui/react-tooltip": "1.1.8",
     "@remotion/bundler": "^4.0.489",
     "@remotion/renderer": "^4.0.489",
+    "@supabase/supabase-js": "^2.110.2",
     "@whiskeysockets/baileys": "7.0.0-rc13",
     "better-sqlite3": "11.10.0",
     "better-sqlite3-multiple-ciphers": "^12.11.1",
@@ -60,6 +61,7 @@
     "clsx": "2.1.1",
     "cmdk": "1.1.1",
     "date-fns": "3.6.0",
+    "dotenv": "^17.4.2",
     "electron-log": "5.2.4",
     "electron-updater": "6.3.9",
     "embla-carousel-react": "8.6.0",
@@ -70,6 +72,7 @@
     "node-audio-mixer": "^2.2.0",
     "node-cron": "3.0.3",
     "node-wav": "^0.0.2",
+    "pg": "^8.22.0",
     "qrcode": "1.5.4",
     "react": "18.3.1",
     "react-day-picker": "8.10.1",
@@ -155,5 +158,8 @@
     "overrides": {
       "vite": "6.3.5"
     }
+  },
+  "allowScripts": {
+    "electron@31.7.7": true
   }
 }

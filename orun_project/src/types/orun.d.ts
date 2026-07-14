@@ -28,6 +28,26 @@ interface OrunStreamCallbacks {
   agentId?: string;
 }
 
+export interface OrunToolCall {
+  id: string;
+  name: string;
+  arguments: Record<string, unknown>;
+}
+
+export interface OrunToolResult {
+  id: string;
+  name: string;
+  result: unknown;
+}
+
+interface OrunAutonomousCallbacks {
+  onToolCall?: (tc: OrunToolCall) => void;
+  onToolResult?: (tr: OrunToolResult) => void;
+  onDone?: (fullText: string) => void;
+  onError?: (message: string) => void;
+  agentId?: string;
+}
+
 interface OrunN8nConfig {
   baseUrl?: string;
 }
@@ -46,6 +66,37 @@ export interface OrunAutomationAction {
   webhookUrl: string;
   headerName?: string;
   headerValue?: string;
+}
+
+export interface OrunSocialMediaWebhook {
+  webhookUrl: string;
+  headerName?: string;
+  headerValue?: string;
+}
+
+export type OrunSocialMediaPlatform = "instagram" | "tiktok" | "twitter";
+
+export interface OrunSocialMediaPublishOpts {
+  platform: OrunSocialMediaPlatform;
+  text: string;
+  hook?: string;
+  hashtags?: string[];
+  imageUrl?: string;
+  videoUrl?: string;
+  format?: string;
+}
+
+export interface OrunSocialMediaPublishResult {
+  ok: boolean;
+  platform?: string;
+  result?: unknown;
+  error?: string;
+}
+
+export interface OrunSocialMediaPlatformTest {
+  configured: boolean;
+  ok?: boolean;
+  error?: string;
 }
 
 export type OrunTTSEngine = "elevenlabs" | "google" | "azure" | "xtts" | "piper" | "bark" | "f5tts";
@@ -200,6 +251,8 @@ interface OrunAPI {
     chat: (messages: OrunChatMessage[], agentId?: string) => Promise<string>;
     /** Returns stop() — call to cancel the in-flight request server-side. */
     chatStream: (messages: OrunChatMessage[], callbacks: OrunStreamCallbacks) => () => void;
+    /** Autonomous agent loop — Hampton uses tools in a loop. Returns stop(). */
+    autonomous: (messages: OrunChatMessage[], callbacks: OrunAutonomousCallbacks) => () => void;
     testConnection: (settings?: Partial<OrunAISettings>) => Promise<{ ok: boolean; error?: string }>;
     listOllamaModels: (baseUrl?: string) => Promise<string[]>;
     listCloudModels: (provider: OrunProvider) => Promise<string[]>;
@@ -226,6 +279,13 @@ interface OrunAPI {
     listWorkflows: () => Promise<{ id: string; name: string; active: boolean }[]>;
     testConnection: (cfg?: OrunN8nConfig) => Promise<{ ok: boolean; error?: string; workflowCount?: number }>;
     triggerWebhook: (args: { webhookUrl: string; payload?: unknown; headerName?: string; headerValue?: string }) => Promise<{ ok: boolean; result?: unknown; error?: string }>;
+  };
+  socialMedia: {
+    getConfig: () => Promise<Record<OrunSocialMediaPlatform, OrunSocialMediaWebhook | undefined>>;
+    setConfig: (cfg: Record<OrunSocialMediaPlatform, OrunSocialMediaWebhook | undefined>) => Promise<boolean>;
+    publish: (opts: OrunSocialMediaPublishOpts) => Promise<OrunSocialMediaPublishResult>;
+    publishMulti: (opts: { platforms: OrunSocialMediaPlatform[]; text: string; hook?: string; hashtags?: string[]; imageUrl?: string; videoUrl?: string; format?: string }) => Promise<OrunSocialMediaPublishResult[]>;
+    test: () => Promise<Record<string, OrunSocialMediaPlatformTest>>;
   };
   app: {
     setRunInBackground: (value: boolean) => Promise<boolean>;
@@ -287,12 +347,28 @@ interface OrunAPI {
     disconnect: () => Promise<boolean>;
     status: () => Promise<OrunWhatsAppStatus["status"]>;
     sendTest: (jid: string, text: string) => Promise<{ ok: boolean; error?: string }>;
+    getAgentJids: () => Promise<Record<string, string>>;
+    setAgentJids: (agentJids: Record<string, string>) => Promise<boolean>;
     onStatusUpdate: (callback: (status: OrunWhatsAppStatus) => void) => () => void;
     onQR: (callback: (dataUrl: string) => void) => () => void;
   };
   schedules: {
     get: () => Promise<Record<string, OrunSchedule>>;
     set: (agentName: string, cfg: OrunSchedule) => Promise<boolean>;
+  };
+  healthGoals: {
+    get: () => Promise<{ target_weight_kg?: number; target_height_cm?: number; current_weight_kg?: number; current_height_cm?: number; start_weight_kg?: number; start_date?: string } | null>;
+    set: (goals: { target_weight_kg?: number; target_height_cm?: number; current_weight_kg?: number; current_height_cm?: number; start_weight_kg?: number; start_date?: string }) => Promise<boolean>;
+    weeklyWeight: () => Promise<{ current?: { weight: number; date: string }; lastWeek?: { weight: number; date: string }; weeklyChange?: number; totalLost?: number; goals?: { target?: number; start?: number } }>;
+    logWeight: (weightKg: number) => Promise<boolean>;
+  };
+  agenda: {
+    get: (date?: string) => Promise<Array<{ id: string; date: string; title: string; description?: string; time?: string; completed: number }>>;
+    add: (entry: { title: string; description?: string; time?: string; completed?: boolean }) => Promise<boolean>;
+    clear: (date?: string) => Promise<boolean>;
+  };
+  nutritionFile: {
+    getToday: () => Promise<string | null>;
   };
   stt: {
     engines: () => Promise<string[]>;

@@ -22,7 +22,7 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
   const [model, setModel] = useState(PROVIDER_INFO.ollama.defaultModel);
   const [baseUrl, setBaseUrl] = useState("http://localhost:11434");
   const [systemPrompt, setSystemPrompt] = useState(
-    "You are Hampton, the central AI of Orun OS, a personal AI operating system. Be direct, helpful, and concise."
+    "You are Hampton, the central AI of Orun OS, a personal AI operating system. Be direct, helpful, and concise. IMPORTANTE: Sempre responda em português do Brasil (pt-BR). Nunca use outro idioma."
   );
   const [apiKey, setApiKey] = useState("");
   const [hasKey, setHasKey] = useState(false);
@@ -95,9 +95,11 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
     await window.orun.app.setRunInBackground(runInBackground);
     await window.orun.settings.set("wakeWordEnabled", wakeWordEnabled);
     if (apiKey.trim()) {
-      await window.orun.settings.setApiKey(provider, apiKey.trim());
-      setApiKey("");
-      setHasKey(true);
+      const ok = await window.orun.settings.setApiKey(provider, apiKey.trim());
+      if (ok) {
+        setApiKey("");
+        setHasKey(true);
+      }
     }
   };
 
@@ -163,7 +165,7 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
         {/* Version display */}
         <div className="flex items-center justify-between mb-5 px-3 py-2.5 rounded-lg" style={{ background: "#111111", border: "1px solid #1e1e1e" }}>
           <span className="text-xs" style={{ fontFamily: "'Sora', sans-serif", color: "#888" }}>Orun OS</span>
-          <span className="text-[10px] tabular-nums" style={{ fontFamily: "'JetBrains Mono', monospace", color: "#555" }}>v0.2.0</span>
+          <span className="text-[10px] tabular-nums" style={{ fontFamily: "'JetBrains Mono', monospace", color: "#555" }}>v{__APP_VERSION__}</span>
         </div>
 
         {/* Provider selector — 6 providers, 3 per row */}

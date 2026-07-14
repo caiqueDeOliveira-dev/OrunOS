@@ -18,20 +18,43 @@ let db;
 function init(userDataPath, encryptionKey) {
   const dbPath = path.join(userDataPath, "orun-os.sqlite3");
   fs.mkdirSync(userDataPath, { recursive: true });
-  db = new Database(dbPath);
-  if (encryptionKey) {
-    try {
-      db.pragma(`key = '${encryptionKey.replace(/'/g, "''")}'`);
-      // Verify the key works by running a simple query
-      db.prepare("SELECT count(*) FROM sqlite_master").get();
-    } catch {
-      // If key doesn't work (first run with encryption), re-encrypt
+
+  function openDb(filePath) {
+    const d = new Database(filePath);
+    if (encryptionKey) {
+      // Check if the DB is already readable (not encrypted) before applying a key.
       try {
-        db.pragma(`rekey = '${encryptionKey.replace(/'/g, "''")}'`);
-      } catch { /* ignore — will work on next restart */ }
+        d.prepare("SELECT count(*) FROM sqlite_master").get();
+        // DB opened without a key — it is not encrypted. Nothing to do.
+      } catch {
+        // DB needs a key — either decrypt or encrypt for the first time.
+        try {
+          d.pragma(`key = '${encryptionKey.replace(/'/g, "''")}'`);
+          d.prepare("SELECT count(*) FROM sqlite_master").get();
+        } catch {
+          // First run — the DB was created unencrypted; encrypt it now.
+          try {
+            d.pragma(`rekey = '${encryptionKey.replace(/'/g, "''")}'`);
+          } catch { /* ignore — will work on next restart */ }
+        }
+      }
     }
+    d.pragma("journal_mode = WAL");
+    return d;
   }
-  db.pragma("journal_mode = WAL");
+
+  try {
+    db = openDb(dbPath);
+  } catch (err) {
+    const isCorrupt = /unsupported file format|file is not a database|not a database/i.test(err.message);
+    if (!isCorrupt) throw err;
+    console.error("[db] Database corrupted, recreating:", err.message);
+    try { db.close(); } catch { /* may not be open */ }
+    for (const ext of ["", "-wal", "-shm"]) {
+      try { fs.unlinkSync(dbPath + ext); } catch { /* ignore */ }
+    }
+    db = openDb(dbPath);
+  }
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS conversations (
@@ -171,6 +194,37 @@ function init(userDataPath, encryptionKey) {
       status TEXT NOT NULL DEFAULT 'draft',
       output_url TEXT,
       effects_applied TEXT,
+      source TEXT NOT NULL DEFAULT 'app',
+      created_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS sync_outbox (
+      id TEXT PRIMARY KEY,
+      table_name TEXT NOT NULL,
+      payload TEXT NOT NULL,
+      created_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS health_goals (
+      id TEXT PRIMARY KEY,
+      target_weight_kg REAL,
+      target_height_cm REAL,
+      current_weight_kg REAL,
+      current_height_cm REAL,
+      start_weight_kg REAL,
+      start_date TEXT,
+      notes TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS daily_agenda (
+      id TEXT PRIMARY KEY,
+      date TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      time TEXT,
+      completed INTEGER NOT NULL DEFAULT 0,
       source TEXT NOT NULL DEFAULT 'app',
       created_at INTEGER NOT NULL
     );
@@ -425,8 +479,61 @@ function getDailyMusicProjects(date = todayKey()) {
   return db.prepare(`SELECT * FROM music_projects WHERE date = ? ORDER BY created_at ASC`).all(date);
 }
 
+// ── Health goals & weight tracking ───────────────────────────────────
+
+function saveHealthGoals(goals) {
+  const existing = db.prepare(`SELECT id FROM health_goals LIMIT 1`).get();
+  const now = Date.now();
+  if (existing) {
+    db.prepare(`UPDATE health_goals SET target_weight_kg=?, target_height_cm=?, current_weight_kg=?, current_height_cm=?, start_weight_kg=?, start_date=?, notes=?, updated_at=? WHERE id=?`)
+      .run(goals.target_weight_kg ?? null, goals.target_height_cm ?? null, goals.current_weight_kg ?? null, goals.current_height_cm ?? null, goals.start_weight_kg ?? null, goals.start_date || null, goals.notes || null, now, existing.id);
+  } else {
+    db.prepare(`INSERT INTO health_goals (id, target_weight_kg, target_height_cm, current_weight_kg, current_height_cm, start_weight_kg, start_date, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      .run(`hg-${Date.now()}`, goals.target_weight_kg ?? null, goals.target_height_cm ?? null, goals.current_weight_kg ?? null, goals.current_height_cm ?? null, goals.start_weight_kg ?? null, goals.start_date || null, goals.notes || null, now, now);
+  }
+}
+
+function getHealthGoals() {
+  return db.prepare(`SELECT * FROM health_goals LIMIT 1`).get() || null;
+}
+
+function getWeeklyWeightComparison() {
+  const today = new Date();
+  const todayStr = today.toISOString().slice(0, 10);
+  const weekAgo = new Date(today.getTime() - 7 * 86400000).toISOString().slice(0, 10);
+
+  const latest = db.prepare(`SELECT value, date FROM health_log WHERE metric = 'peso' ORDER BY created_at DESC LIMIT 1`).get();
+  const weekAgoEntry = db.prepare(`SELECT value, date FROM health_log WHERE metric = 'peso' AND date <= ? ORDER BY created_at DESC LIMIT 1`).get(weekAgo);
+
+  const goals = getHealthGoals();
+  const diffKg = latest && weekAgoEntry ? (latest.value - weekAgoEntry.value) : null;
+  const totalLost = latest && goals?.start_weight_kg ? (goals.start_weight_kg - latest.value) : null;
+
+  return {
+    current: latest ? { weight: latest.value, date: latest.date } : null,
+    lastWeek: weekAgoEntry ? { weight: weekAgoEntry.value, date: weekAgoEntry.date } : null,
+    weeklyChange: diffKg != null ? Math.round(diffKg * 100) / 100 : null,
+    totalLost: totalLost != null ? Math.round(totalLost * 100) / 100 : null,
+    goals: goals ? { target: goals.target_weight_kg, start: goals.start_weight_kg } : null,
+  };
+}
+
+function saveDailyAgenda(entry) {
+  db.prepare(`INSERT INTO daily_agenda (id, date, title, description, time, completed, source, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(entry.id || `da-${Date.now()}`, entry.date || todayKey(), entry.title, entry.description || null, entry.time || null, entry.completed ? 1 : 0, entry.source || "app", Date.now());
+}
+
+function getDailyAgenda(date = todayKey()) {
+  return db.prepare(`SELECT * FROM daily_agenda WHERE date = ? ORDER BY time ASC`).all(date);
+}
+
+function clearDailyAgenda(date = todayKey()) {
+  db.prepare(`DELETE FROM daily_agenda WHERE date = ?`).run(date);
+}
+
 module.exports = {
   init,
+  getDb: () => db,
   createConversation,
   addMessage,
   truncateFrom,
@@ -457,4 +564,10 @@ module.exports = {
   recordMusicProject,
   updateMusicProject,
   getDailyMusicProjects,
+  saveHealthGoals,
+  getHealthGoals,
+  getWeeklyWeightComparison,
+  saveDailyAgenda,
+  getDailyAgenda,
+  clearDailyAgenda,
 };

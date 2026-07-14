@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { X, CheckCircle2, XCircle, Loader2, Zap, Send, Plus, Trash2 } from "lucide-react";
+import { X, CheckCircle2, XCircle, Loader2, Zap, Send, Plus, Trash2, Clock, Share2 } from "lucide-react";
 import { isElectron } from "../constants";
 import { useTranslation } from "../../i18n/I18nProvider";
 import type { OrunAutomationAction } from "../../types/orun";
 
-export function AutomationPanel({ onClose }: { onClose: () => void }) {
+export function AutomationPanel({ onClose, onOpenSchedules, onOpenSocialMedia }: { onClose: () => void; onOpenSchedules?: () => void; onOpenSocialMedia?: () => void }) {
   const { t } = useTranslation();
   const [baseUrl, setBaseUrl] = useState("http://localhost:5678");
   const [apiKey, setApiKey] = useState("");
@@ -104,11 +104,27 @@ export function AutomationPanel({ onClose }: { onClose: () => void }) {
           </div>
           <button onClick={onClose} style={{ color: "#666" }}><X size={16} /></button>
         </div>
-        <p className="text-[10px] mb-5" style={{ color: "#555" }}>
+        <p className="text-[10px] mb-4" style={{ color: "#555" }}>
           {t("automationN8nNote1")}
           <br />
           {t("automationN8nNote2")}
         </p>
+
+        {/* Quick access to Schedules */}
+        {onOpenSchedules && (
+          <button onClick={() => { onClose(); onOpenSchedules(); }} className="w-full flex items-center gap-2 mb-2 px-3 py-2.5 rounded-lg text-xs" style={{ background: "rgba(192,0,24,0.08)", border: "1px solid rgba(192,0,24,0.2)", color: "#C00018" }}>
+            <Clock size={14} />
+            <span style={{ fontFamily: "'Sora', sans-serif" }}>Automações & Horários — Cardápio, Treino, Agenda diária</span>
+          </button>
+        )}
+
+        {/* Quick access to Social Media */}
+        {onOpenSocialMedia && (
+          <button onClick={() => { onClose(); onOpenSocialMedia(); }} className="w-full flex items-center gap-2 mb-4 px-3 py-2.5 rounded-lg text-xs" style={{ background: "rgba(155,89,182,0.08)", border: "1px solid rgba(155,89,182,0.2)", color: "#9b59b6" }}>
+            <Share2 size={14} />
+            <span style={{ fontFamily: "'Sora', sans-serif" }}>Social Media — Stories, Reels, Carrosséis, TikTok, X</span>
+          </button>
+        )}
 
         {!isElectron && (
           <div className="mb-4 px-3 py-2 rounded-lg text-[11px]" style={{ background: "rgba(192,0,24,0.08)", color: "#C00018", border: "1px solid rgba(192,0,24,0.2)" }}>

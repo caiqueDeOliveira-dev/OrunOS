@@ -41,6 +41,46 @@ contextBridge.exposeInMainWorld("orun", {
   ai: {
     chat: (messages, agentId) => ipcRenderer.invoke("ai:chat", { messages, agentId }),
     chatStream,
+    /**
+     * Autonomous agent loop — Hampton uses tools (file ops, shell, web, memory)
+     * in a loop until it produces a final text response.
+     * Returns a stop() function.
+     * Callbacks: onToolCall({id,name,arguments}), onToolResult({id,name,result}),
+     *            onDone(fullText), onError(message)
+     */
+    autonomous(messages, { onToolCall, onToolResult, onDone, onError, agentId } = {}) {
+      const requestId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const tcChannel = `ai:autonomous:tool-call:${requestId}`;
+      const trChannel = `ai:autonomous:tool-result:${requestId}`;
+      const doneChannel = `ai:autonomous:done:${requestId}`;
+      const errorChannel = `ai:autonomous:error:${requestId}`;
+      let finished = false;
+
+      const handleTC = (_e, data) => onToolCall?.(data);
+      const handleTR = (_e, data) => onToolResult?.(data);
+      const handleDone = (_e, text) => { finished = true; remove(); onDone?.(text); };
+      const handleError = (_e, msg) => { finished = true; remove(); onError?.(msg); };
+
+      function remove() {
+        ipcRenderer.removeListener(tcChannel, handleTC);
+        ipcRenderer.removeListener(trChannel, handleTR);
+        ipcRenderer.removeListener(doneChannel, handleDone);
+        ipcRenderer.removeListener(errorChannel, handleError);
+      }
+
+      ipcRenderer.on(tcChannel, handleTC);
+      ipcRenderer.on(trChannel, handleTR);
+      ipcRenderer.on(doneChannel, handleDone);
+      ipcRenderer.on(errorChannel, handleError);
+      ipcRenderer.send("ai:autonomous", { requestId, messages, agentId });
+
+      return function stop() {
+        if (finished) return;
+        finished = true;
+        remove();
+        ipcRenderer.send("ai:autonomous-cancel", requestId);
+      };
+    },
     testConnection: (settings) => ipcRenderer.invoke("ai:test-connection", settings),
     listOllamaModels: (baseUrl) => ipcRenderer.invoke("ai:list-ollama-models", baseUrl),
     listCloudModels: (provider) => ipcRenderer.invoke("ai:list-cloud-models", provider),
@@ -67,6 +107,13 @@ contextBridge.exposeInMainWorld("orun", {
     listWorkflows: () => ipcRenderer.invoke("n8n:list-workflows"),
     testConnection: (cfg) => ipcRenderer.invoke("n8n:test-connection", cfg),
     triggerWebhook: (args) => ipcRenderer.invoke("n8n:trigger-webhook", args),
+  },
+  socialMedia: {
+    getConfig: () => ipcRenderer.invoke("social-media:get-config"),
+    setConfig: (cfg) => ipcRenderer.invoke("social-media:set-config", cfg),
+    publish: (opts) => ipcRenderer.invoke("social-media:publish", opts),
+    publishMulti: (opts) => ipcRenderer.invoke("social-media:publish-multi", opts),
+    test: () => ipcRenderer.invoke("social-media:test"),
   },
   app: {
     setRunInBackground: (value) => ipcRenderer.invoke("app:set-run-in-background", value),
@@ -137,6 +184,10 @@ contextBridge.exposeInMainWorld("orun", {
     disconnect: () => ipcRenderer.invoke("whatsapp:disconnect"),
     status: () => ipcRenderer.invoke("whatsapp:status"),
     sendTest: (jid, text) => ipcRenderer.invoke("whatsapp:send-test", { jid, text }),
+    getAgentJids: () => ipcRenderer.invoke("whatsapp:get-agent-jids"),
+    setAgentJids: (agentJids) => ipcRenderer.invoke("whatsapp:set-agent-jids", agentJids),
+    listGroups: () => ipcRenderer.invoke("whatsapp:list-groups"),
+    testGroup: (jid, agentName) => ipcRenderer.invoke("whatsapp:test-group", jid, agentName),
     onStatusUpdate: (callback) => {
       const handler = (_e, status) => callback(status);
       ipcRenderer.on("whatsapp:status-update", handler);
@@ -151,5 +202,25 @@ contextBridge.exposeInMainWorld("orun", {
   schedules: {
     get: () => ipcRenderer.invoke("schedules:get"),
     set: (agentName, cfg) => ipcRenderer.invoke("schedules:set", agentName, cfg),
+  },
+  healthGoals: {
+    get: () => ipcRenderer.invoke("health:get-goals"),
+    set: (goals) => ipcRenderer.invoke("health:set-goals", goals),
+    weeklyWeight: () => ipcRenderer.invoke("health:weekly-weight"),
+    logWeight: (weightKg) => ipcRenderer.invoke("health:log-weight", weightKg),
+  },
+  agenda: {
+    get: (date) => ipcRenderer.invoke("agenda:get", date),
+    add: (entry) => ipcRenderer.invoke("agenda:add", entry),
+    clear: (date) => ipcRenderer.invoke("agenda:clear", date),
+  },
+  nutritionFile: {
+    getToday: () => ipcRenderer.invoke("nutrition:get-today-file"),
+  },
+  sync: {
+    status: () => ipcRenderer.invoke("sync:status"),
+    trigger: () => ipcRenderer.invoke("sync:trigger"),
+    test: () => ipcRenderer.invoke("sync:test"),
+    configure: (databaseUrl) => ipcRenderer.invoke("sync:configure", { databaseUrl }),
   },
 });

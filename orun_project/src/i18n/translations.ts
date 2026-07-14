@@ -55,6 +55,7 @@ type TranslationKeys = {
   agentVideoProduction: string;
   agentAudioMusic: string;
   agentAutomationBots: string;
+  agentSocialMedia: string;
   agentImageCamera: string;
   agentSpeechAudio: string;
   agentKnowledgeMemory: string;
@@ -270,6 +271,7 @@ export const translations: Record<Language, TranslationKeys> = {
     agentVideoProduction: "Produção de Vídeo",
     agentAudioMusic: "Áudio & Música",
     agentAutomationBots: "Automação & Bots",
+    agentSocialMedia: "Redes Sociais",
     agentImageCamera: "IA de Imagem & Câmera",
     agentSpeechAudio: "Fala & Áudio",
     agentKnowledgeMemory: "Conhecimento & Memória",
@@ -484,6 +486,7 @@ export const translations: Record<Language, TranslationKeys> = {
     agentVideoProduction: "Video Production",
     agentAudioMusic: "Audio & Music",
     agentAutomationBots: "Automation & Bots",
+    agentSocialMedia: "Social Media",
     agentImageCamera: "Image AI & Camera",
     agentSpeechAudio: "Speech & Audio",
     agentKnowledgeMemory: "Knowledge & Memory",
@@ -698,6 +701,7 @@ export const translations: Record<Language, TranslationKeys> = {
     agentVideoProduction: "Producción de Video",
     agentAudioMusic: "Audio y Música",
     agentAutomationBots: "Automatización y Bots",
+    agentSocialMedia: "Redes Sociales",
     agentImageCamera: "IA de Imagen y Cámara",
     agentSpeechAudio: "Habla y Audio",
     agentKnowledgeMemory: "Conocimiento y Memoria",
@@ -912,6 +916,7 @@ export const translations: Record<Language, TranslationKeys> = {
     agentVideoProduction: "Production Vidéo",
     agentAudioMusic: "Audio & Musique",
     agentAutomationBots: "Automatisation & Bots",
+    agentSocialMedia: "Réseaux Sociaux",
     agentImageCamera: "IA d'Image & Caméra",
     agentSpeechAudio: "Parole & Audio",
     agentKnowledgeMemory: "Connaissance & Mémoire",

@@ -1,7 +1,7 @@
 import {
   Home, Users, FolderOpen, Sparkles, Brain, Zap, Files, Settings,
   Code, Music, Video, Globe, Eye, Volume2, Database, Cpu, Activity,
-  Heart, DollarSign, BookOpen, Languages,
+  Heart, DollarSign, BookOpen, Languages, Share2,
 } from "lucide-react";
 import type { translations } from "../i18n/translations";
 
@@ -38,6 +38,7 @@ export function getAgents(t: T) {
     { name: "Video Editor", role: t("agentVideoProduction"), icon: Video },
     { name: "Music Producer", role: t("agentAudioMusic"), icon: Music },
     { name: "Automation", role: t("agentAutomationBots"), icon: Zap },
+    { name: "Social Media", role: t("agentSocialMedia"), icon: Share2 },
     { name: "Vision", role: t("agentImageCamera"), icon: Eye },
     { name: "Voice", role: t("agentSpeechAudio"), icon: Volume2 },
     { name: "Memory Manager", role: t("agentKnowledgeMemory"), icon: Database },
