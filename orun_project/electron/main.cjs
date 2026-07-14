@@ -533,6 +533,7 @@ async function autonomousLoop({ messages, agentId, sender, requestId, cancelledR
       }
 
       send(`ai:autonomous:tool-result:${requestId}`, { id: tc.id, name: tc.name, result: toolResult });
+      log.info(`[autonomous] tool_result: ${tc.name} → ${JSON.stringify(toolResult).slice(0, 300)}`);
 
       // Feed assistant + tool result back into context
       context.push({
