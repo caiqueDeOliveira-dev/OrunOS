@@ -1,0 +1,52 @@
+// Creator Audio store — shared by all components
+import { createStore } from "../../lib/store";
+import {
+  CHANNEL_COLORS, CHANNEL_NAMES, SAMPLE_NAMES, EFFECT_COLORS,
+  type DJState, type Channel,
+} from "./creator-audio-types";
+
+export const useDJStore = createStore<DJState>({
+  channels: CHANNEL_NAMES.map((name, i) => ({
+    id: `ch${i}`,
+    name,
+    color: CHANNEL_COLORS[i],
+    volume: 0.5,
+    pan: 0,
+    muted: false,
+    solo: false,
+    active: true,
+    eqHi: 0.5,
+    eqMid: 0.5,
+    eqLo: 0.5,
+    cue: false,
+  })),
+  masterVolume: 0.8,
+  crossfader: 0,
+  bpm: 128,
+  isPlaying: false,
+  isRecording: false,
+  syncOn: false,
+  recordTime: 0,
+  recordFormat: "WAV",
+  recordQuality: "Alta",
+  deckA: { track: "", artist: "", current: "00:00", total: "00:00", pitch: 0, position: 0, key: "", bpm: 128, loaded: false, waveformData: [] },
+  deckB: { track: "", artist: "", current: "00:00", total: "00:00", pitch: 0, position: 0, key: "", bpm: 126, loaded: false, waveformData: [] },
+  effects: [
+    { name: "Reverb", active: false, wetDry: 0.3, paramX: 0.5, paramY: 0.5, color: EFFECT_COLORS[0] },
+    { name: "Delay", active: false, wetDry: 0.4, paramX: 0.6, paramY: 0.3, color: EFFECT_COLORS[1] },
+    { name: "Flanger", active: false, wetDry: 0.2, paramX: 0.7, paramY: 0.4, color: EFFECT_COLORS[2] },
+    { name: "Filter LP", active: false, wetDry: 0.5, paramX: 0.8, paramY: 0.2, color: EFFECT_COLORS[3] },
+    { name: "Bitcrush", active: false, wetDry: 0.15, paramX: 0.3, paramY: 0.6, color: EFFECT_COLORS[4] },
+    { name: "Phaser", active: false, wetDry: 0.25, paramX: 0.4, paramY: 0.7, color: EFFECT_COLORS[5] },
+  ],
+  samples: SAMPLE_NAMES.map((s) => ({ ...s, active: false })),
+  lowerTab: "efeitos",
+  cueMix: 0.5,
+  headphoneVolume: 0.75,
+  hotCuesA: [null, null, null, null, null, null, null, null],
+  hotCuesB: [null, null, null, null, null, null, null, null],
+  cuePointA: null,
+  cuePointB: null,
+  tapTimes: [],
+  playingDeck: null,
+});

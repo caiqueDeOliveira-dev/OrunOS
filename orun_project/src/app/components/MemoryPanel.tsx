@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "motion/react";
 import { X, Brain, Tag, Search, Plus, Clock, Trash2 } from "lucide-react";
+import { useTranslation } from "../../i18n/I18nProvider";
 
 interface MemoryEntry {
   id: string;
@@ -18,6 +19,7 @@ const MOCK_MEMORIES: MemoryEntry[] = [
 ];
 
 export function MemoryPanel({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
   const [memories] = useState<MemoryEntry[]>(MOCK_MEMORIES);
   const [search, setSearch] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -45,31 +47,31 @@ export function MemoryPanel({ onClose }: { onClose: () => void }) {
     >
       <motion.div
         className="w-[500px] max-h-[88vh] overflow-y-auto rounded-2xl border scrollbar-hide"
-        style={{ background: "#0c0c0c", borderColor: "#1e1e1e" }}
+        style={{ background: "var(--card)", borderColor: "var(--border)" }}
         initial={{ opacity: 0, y: 12, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 12, scale: 0.98 }}
         transition={{ type: "spring", damping: 28, stiffness: 320 }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: "#1a1a1a" }}>
+        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: "var(--border)" }}>
           <div className="flex items-center gap-2.5">
             <Brain size={14} style={{ color: "#C00018" }} />
-            <span className="text-sm tracking-widest uppercase" style={{ fontFamily: "'Sora', sans-serif", color: "#F5F5F5" }}>Memory</span>
+            <span className="text-sm tracking-widest uppercase" style={{ fontFamily: "'Sora', sans-serif", color: "var(--foreground)" }}>{t("memory_title")}</span>
           </div>
-          <button onClick={onClose} style={{ color: "#666" }}><X size={16} /></button>
+          <button onClick={onClose} style={{ color: "var(--muted-foreground)" }}><X size={16} /></button>
         </div>
 
         <div className="px-6 py-4">
           {/* Search */}
           <div className="relative mb-3">
-            <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "#555" }} />
+            <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--muted-foreground)" }} />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search memories..."
+              placeholder={t("memory_search_placeholder")}
               className="w-full pl-8 pr-3 py-2 rounded-lg text-[11px] outline-none"
-              style={{ background: "#111111", border: "1px solid #1e1e1e", color: "#ccc", fontFamily: "'Inter', sans-serif" }}
+              style={{ background: "var(--secondary)", border: "1px solid var(--border)", color: "var(--foreground)", fontFamily: "'Inter', sans-serif" }}
             />
           </div>
 
@@ -81,9 +83,9 @@ export function MemoryPanel({ onClose }: { onClose: () => void }) {
                 onClick={() => toggleTag(tag)}
                 className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] tracking-wider uppercase transition-colors"
                 style={{
-                  background: selectedTags.includes(tag) ? "rgba(192,0,24,0.15)" : "#111111",
-                  border: `1px solid ${selectedTags.includes(tag) ? "#C00018" : "#1e1e1e"}`,
-                  color: selectedTags.includes(tag) ? "#FF1A2D" : "#666",
+                  background: selectedTags.includes(tag) ? "rgba(192,0,24,0.15)" : "var(--secondary)",
+                  border: `1px solid ${selectedTags.includes(tag) ? "#C00018" : "var(--border)"}`,
+                  color: selectedTags.includes(tag) ? "#FF1A2D" : "var(--muted-foreground)",
                 }}
               >
                 <Tag size={8} /> {tag}
@@ -93,18 +95,18 @@ export function MemoryPanel({ onClose }: { onClose: () => void }) {
 
           <div className="space-y-2">
             {filtered.map((m) => (
-              <div key={m.id} className="px-3 py-3 rounded-lg" style={{ background: "#111111", border: "1px solid #1e1e1e" }}>
+              <div key={m.id} className="px-3 py-3 rounded-lg" style={{ background: "var(--secondary)", border: "1px solid var(--border)" }}>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[11px] font-medium" style={{ color: "#ccc", fontFamily: "'Sora', sans-serif" }}>{m.title}</span>
+                  <span className="text-[11px] font-medium" style={{ color: "var(--foreground)", fontFamily: "'Sora', sans-serif" }}>{m.title}</span>
                   <div className="ml-auto flex items-center gap-1">
-                    <Clock size={9} style={{ color: "#444" }} />
-                    <span className="text-[9px]" style={{ color: "#444" }}>{new Date(m.created_at).toLocaleDateString()}</span>
+                    <Clock size={9} style={{ color: "var(--muted-foreground)" }} />
+                    <span className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>{new Date(m.created_at).toLocaleDateString()}</span>
                   </div>
                 </div>
-                <div className="text-[10px] mb-1.5" style={{ color: "#888", fontFamily: "'Inter', sans-serif" }}>{m.content}</div>
+                <div className="text-[10px] mb-1.5" style={{ color: "var(--muted-foreground)", fontFamily: "'Inter', sans-serif" }}>{m.content}</div>
                 <div className="flex gap-1">
                   {m.tags.map((tag) => (
-                    <span key={tag} className="px-1.5 py-0.5 rounded text-[8px] tracking-wider uppercase" style={{ background: "#1a1a1a", color: "#555" }}>{tag}</span>
+                    <span key={tag} className="px-1.5 py-0.5 rounded text-[8px] tracking-wider uppercase" style={{ background: "var(--border)", color: "var(--muted-foreground)" }}>{tag}</span>
                   ))}
                 </div>
               </div>

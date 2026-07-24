@@ -5,12 +5,12 @@ import { isElectron } from "../app/constants";
 interface I18nContextValue {
   language: Language;
   setLanguage: (lang: Language) => void;
-  t: (key: keyof typeof translations["pt"]) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
   locale: string;
   speechLang: string;
 }
 
-const I18nContext = createContext<I18nContextValue>({
+export const I18nContext = createContext<I18nContextValue>({
   language: "pt",
   setLanguage: () => {},
   t: (key) => key,
@@ -36,8 +36,14 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const t = useCallback(
-    (key: keyof typeof translations["pt"]): string => {
-      return translations[language]?.[key] ?? translations["pt"][key] ?? key;
+    (key: string, params?: Record<string, string | number>): string => {
+      let text = (translations as Record<string, Record<string, string>>)[language]?.[key] ?? (translations as Record<string, Record<string, string>>)["pt"][key] ?? key;
+      if (params) {
+        Object.entries(params).forEach(([k, v]) => {
+          text = text.replace(new RegExp(`\\{${k}\\}`, "g"), String(v));
+        });
+      }
+      return text;
     },
     [language]
   );

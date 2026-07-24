@@ -181,17 +181,19 @@ ALTER TABLE video_projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE image3d_generations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE music_projects ENABLE ROW LEVEL SECURITY;
 
--- Permissive policy: anon key can do everything (desktop app has full access).
-CREATE POLICY "Full access for anon" ON conversations FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Full access for anon" ON messages FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Full access for anon" ON settings FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Full access for anon" ON usage FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Full access for anon" ON tts_usage FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Full access for anon" ON nutrition_log FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Full access for anon" ON finance_log FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Full access for anon" ON health_log FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Full access for anon" ON developer_reviews FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Full access for anon" ON teacher_progress FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Full access for anon" ON video_projects FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Full access for anon" ON image3d_generations FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Full access for anon" ON music_projects FOR ALL USING (true) WITH CHECK (true);
+-- RLS policies: restrict to service_role only (desktop app uses service_role key).
+-- The anon key should NOT have access — this prevents unauthorized access if the
+-- anon key is ever exposed (e.g. through the .env file).
+CREATE POLICY "Service role only" ON conversations FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
+CREATE POLICY "Service role only" ON messages FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
+CREATE POLICY "Service role only" ON settings FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
+CREATE POLICY "Service role only" ON usage FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
+CREATE POLICY "Service role only" ON tts_usage FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
+CREATE POLICY "Service role only" ON nutrition_log FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
+CREATE POLICY "Service role only" ON finance_log FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
+CREATE POLICY "Service role only" ON health_log FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
+CREATE POLICY "Service role only" ON developer_reviews FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
+CREATE POLICY "Service role only" ON teacher_progress FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
+CREATE POLICY "Service role only" ON video_projects FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
+CREATE POLICY "Service role only" ON image3d_generations FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
+CREATE POLICY "Service role only" ON music_projects FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');

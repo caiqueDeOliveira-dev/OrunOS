@@ -1,28 +1,32 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "motion/react";
 import { X, Share2, Instagram, Video, Twitter, Copy, Check, Loader2, Send, Settings2, Zap } from "lucide-react";
 import { isElectron } from "../constants";
 import { useTranslation } from "../../i18n/I18nProvider";
 
-const PLATFORMS = [
-  { id: "instagram_stories", label: "Stories", icon: Instagram, color: "#E1306C", desc: "15s por slide, 3-5 slides", publishKey: "instagram" as const, mediaType: "story" as const },
-  { id: "instagram_reels", label: "Reels", icon: Instagram, color: "#E1306C", desc: "30-90s, hook forte", publishKey: "instagram" as const, mediaType: "reel" as const },
-  { id: "instagram_carousel", label: "Carrossel", icon: Instagram, color: "#E1306C", desc: "5-10 slides, um ponto cada", publishKey: "instagram" as const, mediaType: "post" as const },
-  { id: "tiktok", label: "TikTok", icon: Video, color: "#000000", desc: "15-60s, ritmo rápido", publishKey: "tiktok" as const, mediaType: undefined },
-  { id: "x_post", label: "Post X", icon: Twitter, color: "#1DA1F2", desc: "280 chars, tweet único", publishKey: "twitter" as const, mediaType: undefined },
-  { id: "x_thread", label: "Thread X", icon: Twitter, color: "#1DA1F2", desc: "5-10 tweets encadeados", publishKey: "twitter" as const, mediaType: undefined },
-];
+function getPlatforms(t: (key: string) => string) {
+  return [
+    { id: "instagram_stories", label: "Stories", icon: Instagram, color: "#E1306C", desc: t("socialMediaStoriesDesc"), publishKey: "instagram" as const, mediaType: "story" as const },
+    { id: "instagram_reels", label: "Reels", icon: Instagram, color: "#E1306C", desc: t("socialMediaReelsDesc"), publishKey: "instagram" as const, mediaType: "reel" as const },
+    { id: "instagram_carousel", label: "Carrossel", icon: Instagram, color: "#E1306C", desc: t("socialMediaCarouselDesc"), publishKey: "instagram" as const, mediaType: "post" as const },
+    { id: "tiktok", label: "TikTok", icon: Video, color: "#000000", desc: t("socialMediaTikTokDesc"), publishKey: "tiktok" as const, mediaType: undefined },
+    { id: "x_post", label: "Post X", icon: Twitter, color: "#1DA1F2", desc: t("socialMediaXPostDesc"), publishKey: "twitter" as const, mediaType: undefined },
+    { id: "x_thread", label: "Thread X", icon: Twitter, color: "#1DA1F2", desc: t("socialMediaXThreadDesc"), publishKey: "twitter" as const, mediaType: undefined },
+  ];
+}
 
-const HOOKS = [
-  "Isso foi APAGADO da história brasileira",
-  "Nunca te ensinaram isso na escola",
-  "A história que ninguém conta",
-  "O homem que o mundo esqueceu",
-  "Uma história que TODO brasileiro deveria saber",
-  "Isso mudou o mundo para sempre",
-  "A verdade que ninguém fala",
-  "A luta que continua até hoje",
-];
+function getHooks(t: (key: string) => string) {
+  return [
+    t("socialMediaHook1"),
+    t("socialMediaHook2"),
+    t("socialMediaHook3"),
+    t("socialMediaHook4"),
+    t("socialMediaHook5"),
+    t("socialMediaHook6"),
+    t("socialMediaHook7"),
+    t("socialMediaHook8"),
+  ];
+}
 
 interface WebhookConfig {
   webhookUrl: string;
@@ -37,6 +41,8 @@ interface Props {
 
 export function SocialMediaPanel({ onClose, onSelectAgent }: Props) {
   const { t } = useTranslation();
+  const platforms = getPlatforms(t);
+  const hooks = getHooks(t);
   const [platform, setPlatform] = useState("instagram_reels");
   const [topic, setTopic] = useState("");
   const [hook, setHook] = useState("");
@@ -48,6 +54,12 @@ export function SocialMediaPanel({ onClose, onSelectAgent }: Props) {
   const [publishing, setPublishing] = useState(false);
   const [publishResult, setPublishResult] = useState<string | null>(null);
   const [mediaUrl, setMediaUrl] = useState("");
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   useEffect(() => {
     if (!isElectron) return;
@@ -66,7 +78,7 @@ export function SocialMediaPanel({ onClose, onSelectAgent }: Props) {
     setGenerating(true);
     setResult(null);
 
-    const platformInfo = PLATFORMS.find((p) => p.id === platform);
+    const platformInfo = platforms.find((p) => p.id === platform);
     const prompt = `Crie um conteúdo para ${platformInfo?.label} sobre: "${topic}". ` +
       (hook ? `Use este gancho: "${hook}". ` : "") +
       `Plataforma: ${platform}. ` +
@@ -83,7 +95,7 @@ export function SocialMediaPanel({ onClose, onSelectAgent }: Props) {
 
   const publishContent = async (text: string) => {
     if (!isElectron || !text.trim()) return;
-    const platformInfo = PLATFORMS.find((p) => p.id === platform);
+    const platformInfo = platforms.find((p) => p.id === platform);
     if (!platformInfo) return;
 
     setPublishing(true);
@@ -97,8 +109,8 @@ export function SocialMediaPanel({ onClose, onSelectAgent }: Props) {
     if (platformInfo.publishKey === "instagram") {
       if (!mediaUrl.trim()) {
         setPublishing(false);
-        setPublishResult("Erro: Instagram requer uma URL de imagem");
-        setTimeout(() => setPublishResult(null), 5000);
+        setPublishResult(t("socialMediaInstagramReqImage"));
+        setTimeout(() => { if (mountedRef.current) setPublishResult(null); }, 5000);
         return;
       }
       payload.imageUrl = mediaUrl;
@@ -106,8 +118,8 @@ export function SocialMediaPanel({ onClose, onSelectAgent }: Props) {
     } else if (platformInfo.publishKey === "tiktok") {
       if (!mediaUrl.trim()) {
         setPublishing(false);
-        setPublishResult("Erro: TikTok requer uma URL de video ou imagem");
-        setTimeout(() => setPublishResult(null), 5000);
+        setPublishResult(t("socialMediaTiktokReqMedia"));
+        setTimeout(() => { if (mountedRef.current) setPublishResult(null); }, 5000);
         return;
       }
       if (mediaUrl.includes(".mp4") || mediaUrl.includes("video")) {
@@ -121,17 +133,17 @@ export function SocialMediaPanel({ onClose, onSelectAgent }: Props) {
 
     setPublishing(false);
     if (result.ok) {
-      setPublishResult(`Publicado em ${platformInfo.label} com sucesso!`);
+      setPublishResult(`${t("socialMediaPublishedSuccess")} ${platformInfo.label}`);
     } else {
-      setPublishResult(`Erro: ${result.error}`);
+      setPublishResult(`${t("socialMediaPublishError")}: ${result.error}`);
     }
-    setTimeout(() => setPublishResult(null), 5000);
+    setTimeout(() => { if (mountedRef.current) setPublishResult(null); }, 5000);
   };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setTimeout(() => { if (mountedRef.current) setCopied(false); }, 2000);
   };
 
   const configuredPlatforms = Object.keys(webhookConfig).filter((k) => webhookConfig[k]?.webhookUrl);
@@ -150,7 +162,7 @@ export function SocialMediaPanel({ onClose, onSelectAgent }: Props) {
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
         className="rounded-2xl p-5 w-full max-w-md max-h-[85vh] overflow-y-auto scrollbar-hide"
-        style={{ background: "#0d0d0d", border: "1px solid #1e1e1e" }}
+        style={{ background: "var(--card)", border: "1px solid var(--border)" }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
@@ -166,29 +178,29 @@ export function SocialMediaPanel({ onClose, onSelectAgent }: Props) {
             )}
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => setShowSettings(!showSettings)} style={{ color: showSettings ? "#9b59b6" : "#666" }}>
+            <button onClick={() => setShowSettings(!showSettings)} style={{ color: showSettings ? "#9b59b6" : "var(--muted-foreground)" }}>
               <Settings2 size={14} />
             </button>
-            <button onClick={onClose} style={{ color: "#666" }}><X size={16} /></button>
+            <button onClick={onClose} style={{ color: "var(--muted-foreground)" }}><X size={16} /></button>
           </div>
         </div>
 
-        <p className="text-[10px] mb-4" style={{ color: "#666" }}>
-          Crie conteúdo viral para Instagram, TikTok e X focado em histórias apagadas e luta contra o racismo.
+        <p className="text-[10px] mb-4" style={{ color: "var(--muted-foreground)" }}>
+          {t("socialMediaCreateViral")}
         </p>
 
         {/* Webhook Settings */}
         {showSettings && (
-          <div className="mb-4 p-3 rounded-lg" style={{ background: "#111", border: "1px solid #1e1e1e" }}>
+          <div className="mb-4 p-3 rounded-lg" style={{ background: "var(--secondary)", border: "1px solid var(--border)" }}>
             <span className="text-[10px] uppercase tracking-wider block mb-2" style={{ color: "#9b59b6" }}>
-              Webhooks n8n
+              {t("socialMediaWebhooksN8n")}
             </span>
-            <p className="text-[9px] mb-3" style={{ color: "#555" }}>
-              Configure as URLs dos webhooks n8n para publicar via Buffer. Payload: {"{ text, imageUrl?, videoUrl?, format? }"}
+            <p className="text-[9px] mb-3" style={{ color: "var(--muted-foreground)" }}>
+              {t("socialMediaConfigureWebhooks")}
             </p>
             {(["instagram", "tiktok", "twitter"] as const).map((p) => (
               <div key={p} className="mb-2">
-                <label className="block text-[9px] uppercase tracking-wider mb-1" style={{ color: "#666" }}>{p}</label>
+                <label className="block text-[9px] uppercase tracking-wider mb-1" style={{ color: "var(--muted-foreground)" }}>{p}</label>
                 <input
                   value={webhookConfig[p]?.webhookUrl || ""}
                   onChange={(e) => setWebhookConfig((prev) => ({
@@ -197,26 +209,26 @@ export function SocialMediaPanel({ onClose, onSelectAgent }: Props) {
                   }))}
                   placeholder={`https://seu-n8n.com/webhook/social-${p}`}
                   className="w-full px-2 py-1.5 rounded text-[10px] outline-none"
-                  style={{ background: "#0a0a0a", border: "1px solid #1e1e1e", color: "#ccc" }}
+                  style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }}
                 />
               </div>
             ))}
             <button
               onClick={async () => { await saveWebhookConfig(); setShowSettings(false); }}
               className="w-full mt-2 py-1.5 rounded text-[10px]"
-              style={{ background: "#9b59b6", color: "#fff" }}
+              style={{ background: "#9b59b6", color: "var(--foreground)" }}
             >
-              Salvar Webhooks
+              {t("socialMediaSaveWebhooks")}
             </button>
           </div>
         )}
 
         {/* Platform Selection */}
-        <label className="block text-[10px] tracking-wider uppercase mb-1.5" style={{ color: "#555" }}>
-          Plataforma
+        <label className="block text-[10px] tracking-wider uppercase mb-1.5" style={{ color: "var(--muted-foreground)" }}>
+          {t("socialMediaPlatform")}
         </label>
         <div className="grid grid-cols-3 gap-1.5 mb-4">
-          {PLATFORMS.map((p) => {
+          {platforms.map((p) => {
             const isConfigured = !!webhookConfig[p.publishKey]?.webhookUrl;
             return (
               <button
@@ -224,9 +236,9 @@ export function SocialMediaPanel({ onClose, onSelectAgent }: Props) {
                 onClick={() => setPlatform(p.id)}
                 className="flex flex-col items-center gap-1 px-2 py-2 rounded-lg text-[10px]"
                 style={{
-                  background: platform === p.id ? "#1a1a1a" : "#111",
-                  border: `1px solid ${platform === p.id ? p.color : "#1e1e1e"}`,
-                  color: platform === p.id ? "#fff" : "#888",
+                  background: platform === p.id ? "var(--border)" : "var(--secondary)",
+                  border: `1px solid ${platform === p.id ? p.color : "var(--border)"}`,
+                  color: platform === p.id ? "var(--foreground)" : "var(--muted-foreground)",
                 }}
               >
                 <p.icon size={12} />
@@ -238,31 +250,31 @@ export function SocialMediaPanel({ onClose, onSelectAgent }: Props) {
         </div>
 
         {/* Topic */}
-        <label className="block text-[10px] tracking-wider uppercase mb-1.5" style={{ color: "#555" }}>
-          Tópico / Pessoa / Evento
+        <label className="block text-[10px] tracking-wider uppercase mb-1.5" style={{ color: "var(--muted-foreground)" }}>
+          {t("social_topic_label")}
         </label>
         <input
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
-          placeholder="Ex: Thomas Sankara, Escravidão no Brasil, Angela Davis..."
+          placeholder={t("social_topic_placeholder")}
           className="w-full px-3 py-2 rounded-lg text-xs outline-none mb-3"
-          style={{ background: "#111", border: "1px solid #1e1e1e", color: "#E0E0E0" }}
+          style={{ background: "var(--secondary)", border: "1px solid var(--border)", color: "var(--foreground)" }}
         />
 
         {/* Hook Selection */}
-        <label className="block text-[10px] tracking-wider uppercase mb-1.5" style={{ color: "#555" }}>
-          Gancho (opcional)
+        <label className="block text-[10px] tracking-wider uppercase mb-1.5" style={{ color: "var(--muted-foreground)" }}>
+          {t("social_hook_label")}
         </label>
         <div className="flex flex-wrap gap-1.5 mb-4">
-          {HOOKS.map((h) => (
+          {hooks.map((h) => (
             <button
               key={h}
               onClick={() => setHook(hook === h ? "" : h)}
               className="px-2 py-1 rounded-md text-[9px]"
               style={{
-                background: hook === h ? "#9b59b6" : "#111",
-                border: `1px solid ${hook === h ? "#9b59b6" : "#1e1e1e"}`,
-                color: hook === h ? "#fff" : "#888",
+                background: hook === h ? "#9b59b6" : "var(--secondary)",
+                border: `1px solid ${hook === h ? "#9b59b6" : "var(--border)"}`,
+                color: hook === h ? "var(--foreground)" : "var(--muted-foreground)",
               }}
             >
               {h}
@@ -271,18 +283,18 @@ export function SocialMediaPanel({ onClose, onSelectAgent }: Props) {
         </div>
 
         {/* Media URL (for Instagram/TikTok) */}
-        {(PLATFORMS.find((p) => p.id === platform)?.publishKey === "instagram" ||
-          PLATFORMS.find((p) => p.id === platform)?.publishKey === "tiktok") && (
+        {(platforms.find((p) => p.id === platform)?.publishKey === "instagram" ||
+          platforms.find((p) => p.id === platform)?.publishKey === "tiktok") && (
           <>
-            <label className="block text-[10px] tracking-wider uppercase mb-1.5" style={{ color: "#555" }}>
-              {PLATFORMS.find((p) => p.id === platform)?.publishKey === "instagram" ? "URL da Imagem (obrigatorio)" : "URL da Midia (obrigatorio)"}
+            <label className="block text-[10px] tracking-wider uppercase mb-1.5" style={{ color: "var(--muted-foreground)" }}>
+              {platforms.find((p) => p.id === platform)?.publishKey === "instagram" ? t("socialMediaImageUrl") : t("socialMediaMediaUrl")}
             </label>
             <input
               value={mediaUrl}
               onChange={(e) => setMediaUrl(e.target.value)}
-              placeholder="https://exemplo.com/foto.jpg"
+              placeholder={t("social_photo_placeholder")}
               className="w-full px-3 py-2 rounded-lg text-xs outline-none mb-3"
-              style={{ background: "#111", border: "1px solid #1e1e1e", color: "#E0E0E0" }}
+              style={{ background: "var(--secondary)", border: "1px solid var(--border)", color: "var(--foreground)" }}
             />
           </>
         )}
@@ -293,14 +305,14 @@ export function SocialMediaPanel({ onClose, onSelectAgent }: Props) {
           disabled={!topic.trim() || generating}
           className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs mb-3"
           style={{
-            background: topic.trim() ? "#9b59b6" : "#1a1a1a",
+            background: topic.trim() ? "#9b59b6" : "var(--border)",
             border: "1px solid #232323",
-            color: topic.trim() ? "#fff" : "#555",
+            color: topic.trim() ? "var(--foreground)" : "var(--muted-foreground)",
             opacity: generating ? 0.7 : 1,
           }}
         >
           {generating ? <Loader2 size={13} className="animate-spin" /> : <Share2 size={13} />}
-          {generating ? "Gerando..." : "Gerar Conteúdo"}
+          {generating ? t("socialMediaGenerating") : t("socialMediaGenerateContent")}
         </button>
 
         {/* Publish Result */}
@@ -316,33 +328,33 @@ export function SocialMediaPanel({ onClose, onSelectAgent }: Props) {
 
         {/* Result */}
         {result && (
-          <div className="p-3 rounded-lg" style={{ background: "#111", border: "1px solid #1e1e1e" }}>
+          <div className="p-3 rounded-lg" style={{ background: "var(--secondary)", border: "1px solid var(--border)" }}>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] uppercase tracking-wider" style={{ color: "#9b59b6" }}>Prompt Gerado</span>
+                <span className="text-[10px] uppercase tracking-wider" style={{ color: "#9b59b6" }}>{t("socialMediaGeneratedPrompt")}</span>
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => copyToClipboard(result)}
                   className="flex items-center gap-1 px-2 py-0.5 rounded text-[9px]"
-                  style={{ background: "#1a1a1a", color: "#888" }}
+                  style={{ background: "var(--border)", color: "var(--muted-foreground)" }}
                 >
                   {copied ? <Check size={10} /> : <Copy size={10} />}
-                  {copied ? "Copiado!" : "Copiar"}
+                  {copied ? t("socialMediaCopied") : t("socialMediaCopy")}
                 </button>
                 <button
                   onClick={() => publishContent(result)}
                   disabled={publishing}
                   className="flex items-center gap-1 px-2 py-0.5 rounded text-[9px]"
                   style={{
-                    background: webhookConfig[PLATFORMS.find((p) => p.id === platform)?.publishKey || ""]?.webhookUrl ? "rgba(46,204,113,0.15)" : "#1a1a1a",
-                    color: webhookConfig[PLATFORMS.find((p) => p.id === platform)?.publishKey || ""]?.webhookUrl ? "#2ecc71" : "#555",
+                    background: webhookConfig[platforms.find((p) => p.id === platform)?.publishKey || ""]?.webhookUrl ? "rgba(46,204,113,0.15)" : "var(--border)",
+                    color: webhookConfig[platforms.find((p) => p.id === platform)?.publishKey || ""]?.webhookUrl ? "#2ecc71" : "var(--muted-foreground)",
                   }}
                 >
                   {publishing ? <Loader2 size={10} className="animate-spin" /> : <Send size={10} />}
-                  Publicar
+                    {t("socialMediaPublish")}
                 </button>
               </div>
             </div>
-            <p className="text-[11px] whitespace-pre-wrap" style={{ color: "#ccc" }}>{result}</p>
+            <p className="text-[11px] whitespace-pre-wrap" style={{ color: "var(--foreground)" }}>{result}</p>
           </div>
         )}
       </motion.div>

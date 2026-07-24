@@ -1,7 +1,6 @@
 import {
   Home, Users, FolderOpen, Sparkles, Brain, Zap, Files, Settings,
-  Code, Music, Video, Globe, Eye, Volume2, Database, Cpu, Activity,
-  Heart, DollarSign, BookOpen, Languages, Share2,
+  Code, Music, Video, Globe, Heart, DollarSign, BookOpen, Share2, Megaphone, Car,
 } from "lucide-react";
 import type { translations } from "../i18n/translations";
 
@@ -26,22 +25,14 @@ export function getAgents(t: T) {
   return [
     { name: "Hampton", role: t("agentCentralIntelligence"), icon: Brain, special: true },
     { name: "Developer", role: t("agentCodeEngineering"), icon: Code },
-    { name: "Designer", role: t("agentUIUX"), icon: Sparkles },
-    { name: "3D Designer", role: t("agent3DModeling"), icon: Cpu },
-    { name: "Researcher", role: t("agentResearchAnalysis"), icon: Globe },
-    { name: "Health", role: t("agentHealthMonitoring"), icon: Heart },
-    { name: "Nutritionist", role: t("agentDietNutrition"), icon: Activity },
-    { name: "Personal Trainer", role: t("agentFitnessTraining"), icon: Activity },
+    { name: "Designer", role: t("agentDesignVisual"), icon: Sparkles },
+    { name: "Creator", role: t("agentAudiovisualContent"), icon: Video },
+    { name: "Health", role: t("agentHealth"), icon: Heart },
     { name: "Finance", role: t("agentBudgetInvestments"), icon: DollarSign },
-    { name: "Teacher", role: t("agentLearningEducation"), icon: BookOpen },
-    { name: "Translator", role: t("agentLanguagesCulture"), icon: Languages },
-    { name: "Video Editor", role: t("agentVideoProduction"), icon: Video },
-    { name: "Music Producer", role: t("agentAudioMusic"), icon: Music },
+    { name: "Teacher", role: t("agentLearningLanguages"), icon: BookOpen },
+    { name: "Marketing", role: t("agentMarketingSocial"), icon: Megaphone },
     { name: "Automation", role: t("agentAutomationBots"), icon: Zap },
-    { name: "Social Media", role: t("agentSocialMedia"), icon: Share2 },
-    { name: "Vision", role: t("agentImageCamera"), icon: Eye },
-    { name: "Voice", role: t("agentSpeechAudio"), icon: Volume2 },
-    { name: "Memory Manager", role: t("agentKnowledgeMemory"), icon: Database },
+    { name: "Automotive", role: t("agentAutomotive"), icon: Car },
     { name: "System", role: t("agentOSConfig"), icon: Settings },
   ];
 }

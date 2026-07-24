@@ -41,9 +41,9 @@ describe("extractFinanceJSON", () => {
     expect(extractFinanceJSON('{"description": "free item", "amount": 0}')).toBeNull();
   });
 
-  it("defaults currency to USD", () => {
+  it("defaults currency to BRL", () => {
     const result = extractFinanceJSON('{"description": "Lunch", "amount": 12.99}');
-    expect(result.currency).toBe("USD");
+    expect(result.currency).toBe("BRL");
   });
 
   it("normalizes type to expense if not income", () => {

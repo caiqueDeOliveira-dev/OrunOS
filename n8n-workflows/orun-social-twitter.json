@@ -1,0 +1,87 @@
+{
+  "name": "Orun Social - Buffer (Twitter/X)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "social-twitter",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-tw",
+      "name": "Webhook Twitter",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "social-twitter"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.buffer.com",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"query\": \"mutation CreatePost {\\n  createPost(input: {\\n    text: \\\"{{ $json.body.text }}\\\",\\n    channelId: \\\"6a56337980cc80cdcab127ba\\\",\\n    schedulingType: automatic,\\n    mode: addToQueue\\n  }) {\\n    ... on PostActionSuccess {\\n      post {\\n        id\\n        text\\n      }\\n    }\\n    ... on MutationError {\\n      message\\n    }\\n  }\\n}\"\n}",
+        "options": {}
+      },
+      "id": "buffer-tw",
+      "name": "Buffer API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [420, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Buffer API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"ok\": true, \"platform\": \"twitter\", \"result\": $json } }}",
+        "options": {}
+      },
+      "id": "resp-ok",
+      "name": "Sucesso",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [640, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Twitter": {
+      "main": [
+        [
+          {
+            "node": "Buffer API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buffer API": {
+      "main": [
+        [
+          {
+            "node": "Sucesso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "name": "orun-social"
+    }
+  ]
+}

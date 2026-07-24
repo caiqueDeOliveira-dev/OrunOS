@@ -1,0 +1,429 @@
+{
+  "name": "Orun - Spotify API (All-in-One)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "spotify",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            { "outputIndex": 0, "value": "search" },
+            { "outputIndex": 1, "value": "playlists" },
+            { "outputIndex": 2, "value": "playlist-tracks" },
+            { "outputIndex": 3, "value": "currently-playing" },
+            { "outputIndex": 4, "value": "play" },
+            { "outputIndex": 5, "value": "pause" },
+            { "outputIndex": 6, "value": "skip-next" },
+            { "outputIndex": 7, "value": "skip-previous" },
+            { "outputIndex": 8, "value": "devices" },
+            { "outputIndex": 9, "value": "user" },
+            { "outputIndex": 10, "value": "top-tracks" },
+            { "outputIndex": 11, "value": "recently-played" },
+            { "outputIndex": 12, "value": "queue" },
+            { "outputIndex": 13, "value": "add-to-queue" }
+          ]
+        },
+        "dataType": "string",
+        "value": "={{ $json.body.action }}"
+      },
+      "id": "switch-1",
+      "name": "Switch",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.spotify.com/v1/search?q={{ encodeURIComponent($json.body.query) }}&type={{ $json.body.types || 'track' }}&limit={{ $json.body.limit || 10 }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Webhook').first().json.body.accessToken }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "search-1",
+      "name": "Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [660, 100]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.spotify.com/v1/me/playlists?limit={{ $('Webhook').first().json.body.limit || 20 }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Webhook').first().json.body.accessToken }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "playlists-1",
+      "name": "Playlists",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [660, 220]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.spotify.com/v1/playlists/{{ $('Webhook').first().json.body.playlistId }}/tracks?limit={{ $('Webhook').first().json.body.limit || 50 }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Webhook').first().json.body.accessToken }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "playlist-tracks-1",
+      "name": "Playlist Tracks",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [660, 340]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.spotify.com/v1/me/player/currently-playing",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Webhook').first().json.body.accessToken }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "now-playing-1",
+      "name": "Now Playing",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [660, 460]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "https://api.spotify.com/v1/me/player/play",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Webhook').first().json.body.accessToken }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "context_uri",
+              "value": "={{ $('Webhook').first().json.body.contextUri || '' }}"
+            },
+            {
+              "name": "uris",
+              "value": "={{ $('Webhook').first().json.body.uris || '' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "play-1",
+      "name": "Play",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [660, 580]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "https://api.spotify.com/v1/me/player/pause",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Webhook').first().json.body.accessToken }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "pause-1",
+      "name": "Pause",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [660, 700]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.spotify.com/v1/me/player/next",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Webhook').first().json.body.accessToken }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "next-1",
+      "name": "Skip Next",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [660, 820]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.spotify.com/v1/me/player/previous",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Webhook').first().json.body.accessToken }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "prev-1",
+      "name": "Skip Previous",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [660, 940]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.spotify.com/v1/me/player/devices",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Webhook').first().json.body.accessToken }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "devices-1",
+      "name": "Devices",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [660, 1060]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.spotify.com/v1/me",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Webhook').first().json.body.accessToken }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "user-1",
+      "name": "User",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [660, 1180]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.spotify.com/v1/me/top/tracks?limit={{ $('Webhook').first().json.body.limit || 10 }}&time_range={{ $('Webhook').first().json.body.timeRange || 'medium_term' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Webhook').first().json.body.accessToken }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "top-tracks-1",
+      "name": "Top Tracks",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [660, 1300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.spotify.com/v1/me/player/recently-played?limit={{ $('Webhook').first().json.body.limit || 20 }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Webhook').first().json.body.accessToken }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "recently-1",
+      "name": "Recently Played",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [660, 1420]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.spotify.com/v1/me/player/queue",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Webhook').first().json.body.accessToken }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "queue-1",
+      "name": "Queue",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [660, 1540]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.spotify.com/v1/me/player/queue",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Webhook').first().json.body.accessToken }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "uri",
+              "value": "={{ $('Webhook').first().json.body.uri }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "add-queue-1",
+      "name": "Add to Queue",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [660, 1660]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "respond-1",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [920, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { 'error': 'Unknown action' } }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "respond-error-1",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [660, 1780]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [{ "node": "Search", "type": "main", "index": 0 }],
+        [{ "node": "Playlists", "type": "main", "index": 0 }],
+        [{ "node": "Playlist Tracks", "type": "main", "index": 0 }],
+        [{ "node": "Now Playing", "type": "main", "index": 0 }],
+        [{ "node": "Play", "type": "main", "index": 0 }],
+        [{ "node": "Pause", "type": "main", "index": 0 }],
+        [{ "node": "Skip Next", "type": "main", "index": 0 }],
+        [{ "node": "Skip Previous", "type": "main", "index": 0 }],
+        [{ "node": "Devices", "type": "main", "index": 0 }],
+        [{ "node": "User", "type": "main", "index": 0 }],
+        [{ "node": "Top Tracks", "type": "main", "index": 0 }],
+        [{ "node": "Recently Played", "type": "main", "index": 0 }],
+        [{ "node": "Queue", "type": "main", "index": 0 }],
+        [{ "node": "Add to Queue", "type": "main", "index": 0 }],
+        [{ "node": "Respond Error", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "name": "orun-spotify"
+    }
+  ]
+}

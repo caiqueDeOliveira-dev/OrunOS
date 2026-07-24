@@ -33,6 +33,16 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          three: ['three', '@react-three/fiber', '@react-three/drei'],
+          motion: ['motion'],
+        },
+      },
+    },
+  },
   resolve: {
     alias: {
       // Alias @ to the src directory

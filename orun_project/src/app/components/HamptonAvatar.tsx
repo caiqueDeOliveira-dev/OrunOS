@@ -1,27 +1,6 @@
-import { useEffect, useState } from "react";
 import type { HamptonState } from "../types";
 
 export function HamptonAvatar({ state }: { state: HamptonState }) {
-  const [blinkOpen, setBlinkOpen] = useState(true);
-  const [mouthOpen, setMouthOpen] = useState(false);
-
-  // Blink every 3-5 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setBlinkOpen(false);
-      setTimeout(() => setBlinkOpen(true), 120);
-    }, 3000 + Math.random() * 2000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Mouth movement when speaking
-  useEffect(() => {
-    if (state !== "speaking") { setMouthOpen(false); return; }
-    const interval = setInterval(() => setMouthOpen((p) => !p), 180);
-    return () => { clearInterval(interval); setMouthOpen(false); };
-  }, [state]);
-
-  const eyeScaleY = blinkOpen ? 1 : 0.1;
   const speaking = state === "speaking";
   const thinking = state === "thinking";
   const listening = state === "listening";
@@ -70,129 +49,160 @@ export function HamptonAvatar({ state }: { state: HamptonState }) {
         </div>
       )}
 
-      <svg width="300" height="355" viewBox="0 0 300 355" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <filter id="h-eyeGlow" x="-80%" y="-80%" width="260%" height="260%">
-            <feGaussianBlur stdDeviation="5.5" result="blur" />
-            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-          </filter>
-          <filter id="h-softBlur" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="12" />
-          </filter>
-          <filter id="h-armorGlow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="3" result="blur" />
-            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-          </filter>
-          <radialGradient id="h-eye" cx="33%" cy="33%" r="68%">
-            <stop offset="0%" stopColor="#FF7788" />
-            <stop offset="40%" stopColor="#FF1A2D" />
-            <stop offset="100%" stopColor="#6A000E" />
-          </radialGradient>
-          <radialGradient id="h-head" cx="50%" cy="32%" r="68%">
-            <stop offset="0%" stopColor="#1c1c1c" />
-            <stop offset="100%" stopColor="#070707" />
-          </radialGradient>
-          <linearGradient id="h-armorLine" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#C00018" stopOpacity="0" />
-            <stop offset="50%" stopColor="#FF1A2D" stopOpacity="1" />
-            <stop offset="100%" stopColor="#C00018" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-
-        {/* Background aura blob */}
-        <ellipse cx="150" cy="190" rx="110" ry="120" fill="#C00018" opacity="0.035" filter="url(#h-softBlur)" />
-
-        {/* ─ LEFT EAR ─ */}
-        <polygon points="48,180 30,16 138,164" fill="#0b0b0b" stroke="#1e1e1e" strokeWidth="1" />
-        <polygon points="58,173 50,46 126,166" fill="rgba(192,0,24,0.09)" />
-        <line x1="50" y1="46" x2="126" y2="166" stroke="#C00018" strokeWidth="0.6" opacity="0.3" />
-        <circle cx="30" cy="16" r="3" fill="#C00018" opacity="0.2" filter="url(#h-armorGlow)" />
-
-        {/* ─ RIGHT EAR ─ */}
-        <polygon points="252,180 270,16 162,164" fill="#0b0b0b" stroke="#1e1e1e" strokeWidth="1" />
-        <polygon points="242,173 250,46 174,166" fill="rgba(192,0,24,0.09)" />
-        <line x1="250" y1="46" x2="174" y2="166" stroke="#C00018" strokeWidth="0.6" opacity="0.3" />
-        <circle cx="270" cy="16" r="3" fill="#C00018" opacity="0.2" filter="url(#h-armorGlow)" />
-
-        {/* ─ HEAD ─ */}
-        <polygon
-          points="48,180 40,286 66,320 150,336 234,320 260,286 252,180 182,162 150,155 118,162"
-          fill="url(#h-head)"
-          stroke="#1d1d1d"
-          strokeWidth="1"
+      {/* Orb core — holographic */}
+      <div className="relative" style={{ width: 220, height: 220 }}>
+        {/* Outer hologram field */}
+        <div
+          className="absolute rounded-full"
+          style={{
+            inset: 5,
+            border: "1px solid rgba(192,0,24,0.2)",
+            boxShadow: `
+              0 0 30px rgba(192,0,24,0.15),
+              inset 0 0 30px rgba(192,0,24,0.05)
+            `,
+            animation: `orunAuraPulse ${thinking ? "0.8s" : "2.5s"} ease-in-out infinite`,
+          }}
         />
 
-        {/* Forehead center ridge */}
-        <polygon points="118,162 150,155 182,162 150,182" fill="#151515" stroke="#1e1e1e" strokeWidth="0.5" />
+        {/* Hologram scanlines */}
+        <div
+          className="absolute rounded-full overflow-hidden pointer-events-none"
+          style={{ inset: 10, opacity: 0.08 }}
+        >
+          {[...Array(12)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-full"
+              style={{
+                height: 1,
+                background: "rgba(255,255,255,0.6)",
+                top: `${(i + 1) * 7.5}%`,
+              }}
+            />
+          ))}
+        </div>
 
-        {/* Geometric head detail lines */}
-        <line x1="150" y1="182" x2="150" y2="240" stroke="#1a1a1a" strokeWidth="0.5" opacity="0.8" />
-        <path d="M 40,215 L 70,210" stroke="#181818" strokeWidth="0.8" opacity="0.7" />
-        <path d="M 260,215 L 230,210" stroke="#181818" strokeWidth="0.8" opacity="0.7" />
+        {/* Hologram flicker sweep */}
+        <div
+          className="absolute rounded-full overflow-hidden pointer-events-none"
+          style={{ inset: 12 }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background: "linear-gradient(180deg, transparent 0%, rgba(255,80,80,0.12) 50%, transparent 100%)",
+              height: "40%",
+              animation: "orunHoloScan 3s ease-in-out infinite",
+            }}
+          />
+        </div>
 
-        {/* Cheekbone angles */}
-        <polygon points="40,200 68,192 55,240" fill="none" stroke="#191919" strokeWidth="0.5" opacity="0.6" />
-        <polygon points="260,200 232,192 245,240" fill="none" stroke="#191919" strokeWidth="0.5" opacity="0.6" />
+        {/* Inner glow */}
+        <div
+          className="absolute rounded-full"
+          style={{
+            inset: 22,
+            background: "radial-gradient(circle at 40% 35%, rgba(255,60,60,0.4) 0%, rgba(192,0,24,0.2) 40%, transparent 70%)",
+            filter: "blur(10px)",
+          }}
+        />
 
-        {/* ─ BROW RIDGES ─ */}
-        <path d="M 78,204 Q 108,197 138,202" stroke="#252525" strokeWidth="1.5" fill="none" />
-        <path d="M 222,204 Q 192,197 162,202" stroke="#252525" strokeWidth="1.5" fill="none" />
+        {/* Core sphere */}
+        <div
+          className="absolute rounded-full"
+          style={{
+            inset: 35,
+            background: "radial-gradient(circle at 38% 32%, #ff4040 0%, #C00018 30%, #7a0010 65%, #3a0008 100%)",
+            boxShadow: `
+              inset -8px -8px 20px rgba(0,0,0,0.4),
+              inset 6px 6px 16px rgba(255,140,140,0.3),
+              0 0 40px rgba(192,0,24,0.3),
+              0 0 80px rgba(192,0,24,0.15)
+            `,
+          }}
+        />
 
-        {/* ─ LEFT EYE ─ */}
-        <ellipse cx="108" cy="222" rx="26" ry="16" fill="#C00018" opacity="0.18"
-          filter="url(#h-eyeGlow)"
-          style={{ animation: "orunEyePulse 2.8s ease-in-out infinite" }} />
-        <ellipse cx="108" cy="222" rx="20" ry={13 * eyeScaleY} fill="url(#h-eye)" filter="url(#h-eyeGlow)"
-          style={{ transition: "ry 0.08s ease" }} />
-        <ellipse cx="108" cy="222" rx="5" ry={10 * eyeScaleY} fill="#020008"
-          style={{ transition: "ry 0.08s ease" }} />
-        <ellipse cx="103" cy="217" rx="3" ry="2" fill="rgba(255,190,190,0.55)" />
+        {/* Specular highlight */}
+        <div
+          className="absolute rounded-full"
+          style={{
+            width: 40, height: 24,
+            top: 55, left: 65,
+            background: "radial-gradient(ellipse, rgba(255,255,255,0.35) 0%, transparent 70%)",
+            transform: "rotate(-20deg)",
+          }}
+        />
 
-        {/* ─ RIGHT EYE ─ */}
-        <ellipse cx="192" cy="222" rx="26" ry="16" fill="#C00018" opacity="0.18"
-          filter="url(#h-eyeGlow)"
-          style={{ animation: "orunEyePulse 2.8s ease-in-out infinite" }} />
-        <ellipse cx="192" cy="222" rx="20" ry={13 * eyeScaleY} fill="url(#h-eye)" filter="url(#h-eyeGlow)"
-          style={{ transition: "ry 0.08s ease" }} />
-        <ellipse cx="192" cy="222" rx="5" ry={10 * eyeScaleY} fill="#020008"
-          style={{ transition: "ry 0.08s ease" }} />
-        <ellipse cx="187" cy="217" rx="3" ry="2" fill="rgba(255,190,190,0.55)" />
+        {/* Hologram interference lines on sphere */}
+        <div
+          className="absolute rounded-full overflow-hidden pointer-events-none"
+          style={{ inset: 35, opacity: 0.06 }}
+        >
+          {[...Array(8)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-full"
+              style={{
+                height: 1,
+                background: "white",
+                top: `${(i + 1) * 11}%`,
+              }}
+            />
+          ))}
+        </div>
 
-        {/* ─ SNOUT / MUZZLE ─ */}
-        <ellipse cx="150" cy="260" rx="50" ry="38" fill="#0f0f0f" stroke="#1a1a1a" strokeWidth="0.5" />
-        <line x1="150" y1="246" x2="150" y2="270" stroke="#191919" strokeWidth="0.5" />
-        {/* Nose */}
-        <ellipse cx="150" cy="275" rx="14" ry="9" fill="#171717" stroke="#222222" strokeWidth="1" />
-        <ellipse cx="144" cy="274" rx="3.5" ry="2.5" fill="#0a0a0a" />
-        <ellipse cx="156" cy="274" rx="3.5" ry="2.5" fill="#0a0a0a" />
-        {/* Mouth — opens when speaking */}
-        {mouthOpen ? (
-          <ellipse cx="150" cy="292" rx="14" ry="5" fill="#0a0a0a" stroke="#1e1e1e" strokeWidth="0.8" />
-        ) : (
-          <path d="M 132,290 Q 150,299 168,290" stroke="#1e1e1e" strokeWidth="1" fill="none" />
-        )}
+        {/* "O" logo mark */}
+        <div
+          className="absolute flex items-center justify-center"
+          style={{ inset: 0, pointerEvents: "none" }}
+        >
+          <svg width="52" height="52" viewBox="0 0 52 52" fill="none" style={{ filter: "drop-shadow(0 0 8px rgba(255,255,255,0.15))", opacity: 0.6 }}>
+            <circle cx="26" cy="26" r="22" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" fill="none" />
+            <circle cx="26" cy="26" r="16" stroke="rgba(255,255,255,0.25)" strokeWidth="0.75" fill="none" />
+            <circle cx="26" cy="26" r="3" fill="rgba(255,255,255,0.4)" />
+          </svg>
+        </div>
 
-        {/* ─ NECK / THROAT ─ */}
-        <polygon points="118,318 134,336 150,342 166,336 182,318 168,304 150,312 132,304" fill="#0d0d0d" stroke="#1a1a1a" strokeWidth="0.5" />
+        {/* Orbiting dot */}
+        <div
+          className="absolute"
+          style={{
+            inset: 0,
+            animation: thinking ? "orunSpin 2s linear infinite" : "orunSpin 6s linear infinite",
+          }}
+        >
+          <div
+            className="absolute rounded-full"
+            style={{
+              width: 5, height: 5,
+              background: "#ff6060",
+              top: 0, left: "50%", marginLeft: -2.5,
+              boxShadow: "0 0 8px rgba(255,96,96,0.6)",
+            }}
+          />
+        </div>
 
-        {/* ─ CHEST ARMOR ─ */}
-        <polygon points="66,320 80,346 220,346 234,320 150,335" fill="#0d0d0d" stroke="#1d1d1d" strokeWidth="1" />
-        <polygon points="28,346 66,320 80,346" fill="#0b0b0b" stroke="#C00018" strokeWidth="0.6" opacity="0.35" />
-        <polygon points="272,346 234,320 220,346" fill="#0b0b0b" stroke="#C00018" strokeWidth="0.6" opacity="0.35" />
-        {/* Armor glow lines */}
-        <line x1="118" y1="338" x2="150" y2="328"
-          stroke="url(#h-armorLine)" strokeWidth="1.5"
-          style={{ animation: "orunArmorPulse 2.2s ease-in-out infinite" }} />
-        <line x1="182" y1="338" x2="150" y2="328"
-          stroke="url(#h-armorLine)" strokeWidth="1.5"
-          style={{ animation: "orunArmorPulse 2.2s ease-in-out infinite" }} />
-        <line x1="80" y1="344" x2="150" y2="328" stroke="#C00018" strokeWidth="0.4" opacity="0.2" />
-        <line x1="220" y1="344" x2="150" y2="328" stroke="#C00018" strokeWidth="0.4" opacity="0.2" />
-        {/* Center hex */}
-        <polygon points="144,332 148,327 152,327 156,332 152,337 148,337"
-          fill="none" stroke="#C00018" strokeWidth="0.6" opacity="0.5"
-          style={{ animation: "orunArmorPulse 2.2s ease-in-out infinite" }} />
-      </svg>
+        {/* Second orbit ring (opposite direction) */}
+        <div
+          className="absolute"
+          style={{
+            inset: -8,
+            animation: thinking ? "orunSpinReverse 3s linear infinite" : "orunSpinReverse 8s linear infinite",
+          }}
+        >
+          <div
+            className="absolute rounded-full"
+            style={{
+              width: 3, height: 3,
+              background: "rgba(255,180,180,0.5)",
+              bottom: 10, right: 0,
+              boxShadow: "0 0 6px rgba(255,120,120,0.4)",
+            }}
+          />
+        </div>
+      </div>
 
       {/* Thinking — vertical beam above head */}
       {thinking && (

@@ -2,8 +2,10 @@ export function GlobalStyles() {
   return (
     <style>{`
       * { cursor: none !important; }
+      input, textarea, select, [role="textbox"] { cursor: text !important; }
       .scrollbar-hide::-webkit-scrollbar { display: none; }
       .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+      input::placeholder { color: var(--muted-foreground); opacity: 0.6; }
       @keyframes orunFloat {
         0%, 100% { transform: translateY(0px); }
         50% { transform: translateY(-10px); }
@@ -35,6 +37,22 @@ export function GlobalStyles() {
       @keyframes orunScan {
         0% { top: -2px; }
         100% { top: 100%; }
+      }
+      @keyframes orunSpin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      @keyframes orunSpinReverse {
+        0% { transform: rotate(360deg); }
+        100% { transform: rotate(0deg); }
+      }
+      @keyframes orunHoloScan {
+        0%, 100% { transform: translateY(-100%); }
+        50% { transform: translateY(250%); }
+      }
+      @keyframes avatarPulse {
+        0%, 100% { transform: scale(1); opacity: 0.6; }
+        50% { transform: scale(1.15); opacity: 1; }
       }
     `}</style>
   );

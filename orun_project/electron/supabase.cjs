@@ -10,6 +10,7 @@
 const path = require("path");
 const fs = require("fs");
 const { Pool } = require("pg");
+const logger = require("./logger.cjs");
 
 let pool = null;
 let syncInProgress = false;
@@ -57,9 +58,12 @@ function init() {
   }
   pool = new Pool({
     connectionString: url,
-    ssl: { rejectUnauthorized: false },
+    ssl: url.includes("localhost") || url.includes("127.0.0.1") ? false : { rejectUnauthorized: true },
     max: 5,
     idleTimeoutMillis: 10_000,
+  });
+  pool.on("error", (err) => {
+    logger.db.error("[supabase] Unexpected idle client error:", err.message);
   });
   return true;
 }
@@ -137,7 +141,7 @@ async function push(localDb) {
 
     return { pushed: totalPushed };
   } catch (err) {
-    console.error("[sync] push failed:", err.message);
+    logger.db.error("[sync] push failed:", err.message);
     return { pushed: 0, error: err.message };
   } finally {
     syncInProgress = false;
@@ -185,7 +189,7 @@ async function pull(localDb) {
 
     return { pulled: totalPulled };
   } catch (err) {
-    console.error("[sync] pull failed:", err.message);
+    logger.db.error("[sync] pull failed:", err.message);
     return { pulled: 0, error: err.message };
   } finally {
     syncInProgress = false;
@@ -221,7 +225,7 @@ function enqueue(localDb, tableName, row) {
       )
       .run(row.id || `${tableName}-${Date.now()}`, tableName, JSON.stringify(row), Date.now());
   } catch (err) {
-    console.error("[sync] enqueue failed:", err.message);
+    logger.db.error("[sync] enqueue failed:", err.message);
   }
 }
 

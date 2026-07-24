@@ -6,15 +6,17 @@
 const path = require("path");
 const fs = require("fs");
 const QRCode = require("qrcode");
+const logger = require("./logger.cjs");
 
 let sock = null;
 let currentStatus = "disconnected";
 let listeners = { onStatus: () => {}, onQR: () => {}, onMessage: () => {} };
 let reconnectTimer = null;
 let reconnectAttempts = 0;
-const MAX_RECONNECT_ATJECTS = 10;
+const MAX_RECONNECT_ATTEMPTS = 10;
 let knownGroups = []; // [{ jid, name }]
 let userDataPath = "";
+let autoConnectEnabled = true;
 
 function getStatus() {
   return currentStatus;
@@ -44,8 +46,6 @@ function saveGroups() {
 function addGroup(jid, name) {
   if (!jid || !jid.endsWith("@g.us")) return;
   const existing = knownGroups.find((g) => g.jid === jid);
-  // Only update name if the new name is not a pushName (i.e. not the user's own name)
-  // We consider a name valid if it's longer than 2 chars and not purely a personal name pattern
   if (existing) {
     if (name && name !== "Grupo sem nome" && !existing.nameFixed) {
       existing.name = name;
@@ -56,42 +56,77 @@ function addGroup(jid, name) {
   }
   knownGroups.push({ jid, name: name || "Grupo sem nome", nameFixed: false });
   saveGroups();
-  console.log(`[whatsapp] discovered group: ${name} (${jid})`);
+  logger.wa.info(`[whatsapp] discovered group: ${name} (${jid})`);
 }
 
 function listGroups() {
   return knownGroups;
 }
 
-async function connect(path) {
-  userDataPath = path;
+async function connect(userData) {
+  userDataPath = userData;
   loadGroups();
 
   const baileys = await import("@whiskeysockets/baileys");
-  const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, makeCacheableSignalKeyStore, downloadMediaMessage } = baileys;
+  const {
+    default: makeWASocket,
+    useMultiFileAuthState,
+    DisconnectReason,
+    makeCacheableSignalKeyStore,
+    downloadMediaMessage,
+    fetchLatestBaileysVersion,
+    Browsers,
+  } = baileys;
 
   if (currentStatus === "connecting" || currentStatus === "connected") return sock;
+
+  if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
 
   currentStatus = "connecting";
   listeners.onStatus(currentStatus);
 
-  const authDir = path + "/whatsapp-auth";
-  const { state, saveCreds } = await useMultiFileAuthState(authDir);
+  const authDir = userDataPath + "/whatsapp-auth";
+  let state, saveCreds;
+  try {
+    ({ state, saveCreds } = await useMultiFileAuthState(authDir));
+  } catch (err) {
+    logger.wa.error("[whatsapp] auth state failed:", err.message);
+    currentStatus = "disconnected";
+    listeners.onStatus(currentStatus, { error: err.message });
+    return null;
+  }
 
-  sock = makeWASocket({
+  let version;
+  try {
+    const v = await fetchLatestBaileysVersion();
+    version = v.version;
+    logger.wa.info(`[whatsapp] WA Web version: ${version.join(".")}`);
+  } catch (err) {
+    logger.wa.warn("[whatsapp] could not fetch WA version, using default:", err.message);
+    version = [2, 3000, 1035194821];
+  }
+
+  const newSock = makeWASocket({
     auth: {
       creds: state.creds,
       keys: makeCacheableSignalKeyStore(state.keys),
     },
     printQRInTerminal: false,
-    reconnectInterval: (attempt) => Math.min(1000 * Math.pow(2, attempt), 30000),
-    maxReconnectAttempts: MAX_RECONNECT_ATJECTS,
+    version,
+    browser: Browsers.windows("Chrome"),
+    generateHighQualityLinkPreview: false,
+    syncFullHistory: false,
   });
 
-  sock.ev.on("creds.update", saveCreds);
+  sock = newSock;
 
-  sock.ev.on("connection.update", async (update) => {
-    const { connection, lastDisconnect, qr } = update;
+  newSock.ev.on("creds.update", saveCreds);
+
+  newSock.ev.on("connection.update", async (update) => {
+    if (newSock !== sock) return;
+    const { connection, lastDisconnect, qr, isNewLogin } = update;
+
+    logger.wa.info(`[whatsapp] connection.update: connection=${connection} qr=${!!qr} isNewLogin=${isNewLogin} statusCode=${lastDisconnect?.error?.output?.statusCode}`);
 
     if (qr) {
       try {
@@ -99,7 +134,7 @@ async function connect(path) {
         const dataUrl = await QRCode.toDataURL(qr, { width: 256, margin: 2 });
         listeners.onQR(dataUrl);
       } catch (err) {
-        console.error("[whatsapp] QRCode.toDataURL failed:", err.message);
+        logger.wa.error("[whatsapp] QRCode.toDataURL failed:", err.message);
         currentStatus = "qr";
         listeners.onQR(null);
       }
@@ -109,21 +144,19 @@ async function connect(path) {
     if (connection === "open") {
       currentStatus = "connected";
       reconnectAttempts = 0;
-      if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
-      listeners.onStatus(currentStatus, { selfJid: sock.user?.id });
+      logger.wa.info("[whatsapp] connected as", newSock.user?.id);
+      listeners.onStatus(currentStatus, { selfJid: newSock.user?.id });
 
-      // Actively fetch all groups the user participates in
       try {
-        const result = await sock.groupFetchAllParticipating();
+        const result = await newSock.groupFetchAllParticipating();
         if (result && typeof result === "object") {
           for (const [jid, metadata] of Object.entries(result)) {
             addGroup(jid, metadata.subject || metadata.name || "Grupo sem nome");
           }
-          console.log(`[whatsapp] fetched ${knownGroups.length} groups from Baileys`);
-          // Now fetch metadata for each group to get correct names
+          logger.wa.info(`[whatsapp] fetched ${knownGroups.length} groups from Baileys`);
           for (const g of knownGroups) {
             try {
-              const meta = await sock.groupMetadata(g.jid);
+              const meta = await newSock.groupMetadata(g.jid);
               if (meta?.subject) {
                 g.name = meta.subject;
                 g.nameFixed = true;
@@ -131,38 +164,48 @@ async function connect(path) {
             } catch { /* group might be inaccessible */ }
           }
           saveGroups();
-          listeners.onStatus(currentStatus, { selfJid: sock.user?.id, groupsRefreshed: true });
+          listeners.onStatus(currentStatus, { selfJid: newSock.user?.id, groupsRefreshed: true });
         }
       } catch (err) {
-        console.error("[whatsapp] groupFetchAllParticipating failed:", err.message);
-        // Fallback: try store
-        try {
-          if (sock.store && typeof sock.store.chats?.all === "function") {
-            const allChats = sock.store.chats.all();
-            for (const chat of allChats) {
-              if (chat.id?.endsWith("@g.us")) {
-                addGroup(chat.id, chat.name || chat.subject);
-              }
-            }
-          }
-        } catch { /* store not available */ }
+        logger.wa.error("[whatsapp] groupFetchAllParticipating failed:", err.message);
       }
     }
 
     if (connection === "close") {
       const statusCode = lastDisconnect?.error?.output?.statusCode;
       const loggedOut = statusCode === DisconnectReason.loggedOut;
+      const msg = lastDisconnect?.error?.message || "unknown";
+      logger.wa.info(`[whatsapp] connection closed: statusCode=${statusCode} loggedOut=${loggedOut} msg=${msg}`);
       currentStatus = "disconnected";
       listeners.onStatus(currentStatus, { loggedOut });
-      if (!loggedOut && reconnectAttempts < MAX_RECONNECT_ATJECTS) {
-        reconnectAttempts++;
-        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+
+      if (loggedOut) {
+        logger.wa.info("[whatsapp] logged out, cleaning auth");
+        try { fs.rmSync(authDir, { recursive: true, force: true }); } catch { /* ignore */ }
+        reconnectAttempts = 0;
+        return;
+      }
+
+      reconnectAttempts++;
+      if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+        const delay = Math.min(2000 * Math.pow(1.5, reconnectAttempts), 60000);
+        logger.wa.info(`[whatsapp] reconnecting in ${delay}ms (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
         reconnectTimer = setTimeout(() => connect(userDataPath).catch(() => {}), delay);
+      } else {
+        logger.wa.info("[whatsapp] max reconnect attempts reached, waiting 120s cooldown");
+        setTimeout(() => {
+          reconnectAttempts = 0;
+          if (autoConnectEnabled) {
+            logger.wa.info("[whatsapp] cooldown expired, retrying auto-connect");
+            connect(userDataPath).catch(() => {});
+          }
+        }, 120000);
       }
     }
   });
 
-  sock.ev.on("messages.upsert", async ({ messages, type }) => {
+  newSock.ev.on("messages.upsert", async ({ messages, type }) => {
+    if (newSock !== sock) return;
     if (type !== "notify") return;
     for (const msg of messages) {
       if (!msg.message) continue;
@@ -170,18 +213,9 @@ async function connect(path) {
       const isImage = Boolean(msg.message.imageMessage);
       const text = msg.message.conversation || msg.message.extendedTextMessage?.text || msg.message.imageMessage?.caption || "";
 
-      // Auto-discover groups from incoming messages
       if (jid?.endsWith("@g.us")) {
         const groupName = msg.message.groupMetadata?.subject || msg.pushName || null;
         addGroup(jid, groupName);
-
-        // Also try to get group name from the conversation store
-        try {
-          if (sock.store && typeof sock.store.chats?.get === "function") {
-            const chat = sock.store.chats.get(jid);
-            if (chat?.name) addGroup(jid, chat.name);
-          }
-        } catch { /* ignore */ }
       }
 
       let imageBase64 = null;
@@ -198,6 +232,7 @@ async function connect(path) {
     }
   });
 
+  logger.wa.info("[whatsapp] socket created, waiting for connection...");
   return sock;
 }
 
@@ -217,7 +252,7 @@ async function sendMessage(jid, text) {
 
 async function disconnect() {
   if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
-  reconnectAttempts = MAX_RECONNECT_ATJECTS;
+  reconnectAttempts = MAX_RECONNECT_ATTEMPTS;
   if (sock) {
     try { await sock.logout(); } catch { /* already disconnected */ }
     sock = null;
@@ -232,4 +267,4 @@ async function sendTestMessage(jid, agentName) {
   await sock.sendMessage(jid, { text: msg });
 }
 
-module.exports = { connect, disconnect, sendMessage, getStatus, setListeners, listGroups, sendTestMessage };
+module.exports = { connect, disconnect, sendMessage, getStatus, setListeners, listGroups, sendTestMessage, autoConnect: connect, setAutoConnect: (enabled) => { autoConnectEnabled = enabled; } };

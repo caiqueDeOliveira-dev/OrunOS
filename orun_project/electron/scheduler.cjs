@@ -26,16 +26,27 @@ function reloadAll() {
 
   const schedules = deps.db.getSetting("schedules", {});
   for (const [agentName, cfg] of Object.entries(schedules)) {
-    if (cfg?.enabled && cfg.time) scheduleAgent(agentName, cfg.time);
+    if (cfg?.enabled && cfg.time) {
+      // Marketing always runs hourly
+      const freq = agentName === "Marketing" ? "hourly" : (cfg.frequency || "daily");
+      scheduleAgent(agentName, cfg.time, freq);
+    }
   }
 }
 
-function scheduleAgent(agentName, time) {
-  const [hour, minute] = (time || "07:00").split(":").map(Number);
-  const cronExpr = `${minute || 0} ${hour || 7} * * *`;
+function scheduleAgent(agentName, time, frequency) {
+  let cronExpr;
+  if (frequency === "hourly" && agentName === "Marketing") {
+    const [hour, minute] = (time || "09:00").split(":").map(Number);
+    cronExpr = `${minute || 0} * * * *`;
+    deps.log.info(`[scheduler] ${agentName} scheduled hourly at :${minute || 0} past each hour`);
+  } else {
+    const [hour, minute] = (time || "07:00").split(":").map(Number);
+    cronExpr = `${minute || 0} ${hour || 7} * * *`;
+    deps.log.info(`[scheduler] ${agentName} scheduled daily at ${time}`);
+  }
   const task = cron.schedule(cronExpr, () => runAgentTask(agentName).catch((err) => deps.log.error(`[scheduler] ${agentName} failed:`, err.message)));
   scheduledJobs.set(agentName, task);
-  deps.log.info(`[scheduler] ${agentName} scheduled daily at ${time}`);
 }
 
 async function runAgentTask(agentName) {
@@ -48,12 +59,26 @@ async function runAgentTask(agentName) {
   const systemPrompt = agentPrompts.promptFor(agentName, override?.systemPrompt);
 
   const userPrompt = buildUserPrompt(agentName, db);
-  const result = await aiRouter.routeChat({
-    provider, model, baseUrl: globalAI.baseUrl, apiKey,
-    messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }],
-  });
 
-  const finalText = processAgentReply ? processAgentReply(agentName, result.text) : result.text;
+  // Use autonomous loop for agents that need tools (Marketing, Designer)
+  const needsTools = agentName === "Marketing" || agentName === "Designer";
+
+  let finalText;
+  if (needsTools && deps.autonomousLoop) {
+    finalText = await deps.autonomousLoop({
+      messages: [{ role: "user", content: userPrompt }],
+      agentId: agentName,
+      sender: { isDestroyed: () => false, send: () => {} }, // no-op sender for background
+      requestId: `scheduler-${agentName}-${Date.now()}`,
+      cancelledRef: { cancelled: false },
+    });
+  } else {
+    const result = await aiRouter.routeChat({
+      provider, model, baseUrl: globalAI.baseUrl, apiKey,
+      messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }],
+    });
+    finalText = processAgentReply ? processAgentReply(agentName, result.text) : result.text;
+  }
 
   // Log into that agent's default conversation so it's visible in-app too.
   const conversations = db.listConversations(agentName);
@@ -153,7 +178,7 @@ function buildUserPrompt(agentName, db) {
         `5. Responda em português do Brasil`;
     }
 
-    case "Social Media": {
+    case "Marketing": {
       const topics = [
         "Thomas Sankara e a revolução de Burkina Faso",
         "Patrice Lumumba e a independência do Congo",
@@ -172,24 +197,35 @@ function buildUserPrompt(agentName, db) {
         "Dandara dos Palmares — a guerreira que o história esqueceu",
       ];
       const todayTopic = topics[new Date().getDay() % topics.length];
+      const hour = new Date().getHours();
+      const formats = ["x_post", "instagram_stories", "instagram_reels", "instagram_carousel", "tiktok"];
+      const currentFormat = formats[hour % formats.length];
       const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
       const nutritionYesterday = db.getDailyNutrition(yesterday);
       const calTotal = nutritionYesterday.totals?.calories || 0;
 
-      return `Crie uma PUBLICAÇÃO DIÁRIA para as redes sociais sobre: "${todayTopic}".\n\n` +
-        `CONTEXTO:\n` +
-        `Calorias consumidas ontem: ${Math.round(calTotal)}kcal\n` +
-        `Data: ${today}\n\n` +
-        `INSTRUÇÕES:\n` +
-        `1. Crie conteúdo em 3 formatos:\n` +
-        `   a) Instagram Reels (30-60s): Script completo com gancho, narrativa e CTA\n` +
-        `   b) Instagram Carrossel (5 slides): Título + 3 pontos-chave + CTA\n` +
-        `   c) Post X/Twitter: Tweet principal + Thread de 3-5 tweets\n` +
+      const formatInstructions = {
+        x_post: `Post X/Twitter (280 chars): Tweet curto e impactante. Use 🧵 se for thread.`,
+        instagram_stories: `Instagram Stories (15s por slide, 3-5 slides): Hook → Contexto → Clímax → CTA.`,
+        instagram_reels: `Instagram Reels (30-90s): Script completo com gancho forte nos 3s, narrativa envolvente e CTA.`,
+        instagram_carousel: `Instagram Carrossel (5-10 slides): Título + pontos-chave + CTA final.`,
+        tiktok: `TikTok (15-60s): Hook trending, ritmo rápido, textos na tela, ending compartilhável.`,
+      };
+
+      return `Crie UMA publicação para as redes sociais sobre: "${todayTopic}".\n\n` +
+        `FORMATO DE HOJE: ${currentFormat.toUpperCase()}\n` +
+        `INSTRUÇÕES PARA ESSE FORMATO:\n${formatInstructions[currentFormat]}\n\n` +
+        `CONTEXTO:\nCalorias consumidas ontem: ${Math.round(calTotal)}kcal\nData: ${today}\n\n` +
+        `REGRAS:\n` +
+        `1. Foque APENAS no formato solicitado acima\n` +
         `2. Use linguagem envolvente e emocional\n` +
         `3. Foque em histórias apagadas, resistência negra, anti-racismo\n` +
         `4. Inclua 15-20 hashtags relevantes\n` +
-        `5. Sugira melhor horário para postar\n` +
-        `6. Ao final, bloco JSON: {"platform": "multi", "format": "daily_content", "hook": "gancho principal", "hashtags": [...], "cta": "ação", "best_time": "horário"}\n` +
+        `5. Ao final, publique automaticamente usando a ferramenta publish_to_social\n` +
+        `   - Para instagram_stories / instagram_reels / instagram_carousel → platform: "instagram"\n` +
+        `   - Para tiktok → platform: "tiktok"\n` +
+        `   - Para x_post → platform: "twitter"\n` +
+        `6. Gere imagem primeiro com generate_image para Instagram e TikTok\n` +
         `7. Responda em português do Brasil`;
     }
 

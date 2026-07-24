@@ -1,580 +1,272 @@
-import { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { useEffect, useRef, useState, useCallback, Suspense, lazy } from "react";
+import { AnimatePresence } from "motion/react";
 import { useTranslation } from "../i18n/I18nProvider";
-import { HamptonAvatar } from "./components/HamptonAvatar";
 import { AgentsPanel } from "./components/AgentsPanel";
 import { Sidebar } from "./components/Sidebar";
 import { StatusBar } from "./components/StatusBar";
-import { ChatInput, type AttachedImage } from "./components/ChatInput";
-import { MessageBubble } from "./components/MessageBubble";
-import { SettingsPanel } from "./components/SettingsPanel";
-import { AgentModelsPanel } from "./components/AgentModelsPanel";
-import { AutomationPanel } from "./components/AutomationPanel";
-import { UsagePanel } from "./components/UsagePanel";
-import { ConversationList } from "./components/ConversationList";
-import { VoicesPicker } from "./components/VoicesPicker";
-import { ModelPicker } from "./components/ModelPicker";
-import { WhatsAppPanel } from "./components/WhatsAppPanel";
-import { AgentDataPanel } from "./components/AgentDataPanel";
-import { ProjectsPanel } from "./components/ProjectsPanel";
-import { FilesPanel } from "./components/FilesPanel";
-import { SchedulesPanel } from "./components/SchedulesPanel";
-import { SocialMediaPanel } from "./components/SocialMediaPanel";
-import { MemoryPanel } from "./components/MemoryPanel";
+import { ChatInput } from "./components/ChatInput";
+import { VoiceLevelBar } from "./components/VoiceLevelBar";
 import { getHamptonReplies, isElectron, getAgents } from "./constants";
-import type { HamptonState, Message } from "./types";
+import type { HamptonState } from "./types";
+import { usePanelNavigation } from "./hooks/usePanelNavigation";
+import { useChat } from "./hooks/useChat";
+import { useVoice } from "./hooks/useVoice";
+import { useTTS } from "./hooks/useTTS";
+import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
+import { useVoiceSettings } from "./hooks/useVoiceSettings";
+import { AgentCardSkeleton } from "./components/Skeleton";
+import { AvatarHome } from "./components/AvatarHome";
+import { ChatView } from "./components/ChatView";
+import { WorkspaceView } from "./components/WorkspaceView";
+import { PluginSettings } from "./plugins/PluginSettings";
+import { ProfilePanel } from "./components/ProfilePanel";
+import { TelegramPanel } from "./components/TelegramPanel";
+import { OfflineBanner } from "./components/OfflineBanner";
+import { hasPlugin, getWorkspacePluginId } from "./plugins/PluginRegistry";
 
-// ── Speech recognition (Chromium's built-in engine — NOT local/private;
-// audio goes to Google's servers for transcription). Used for both the
-// push-to-talk mic button and the soft "Hampton"/"Orun" wake word. ────────
-const SpeechRecognitionCtor: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+const WORKSPACE_PLUGINS = [
+  () => import("./plugins/workspaces/workspace-system-console"),
+  () => import("./plugins/workspaces/workspace-health-dashboard"),
+  () => import("./plugins/workspaces/workspace-finance-ledger"),
+  () => import("./plugins/workspaces/workspace-teacher-whiteboard"),
+  () => import("./plugins/workspaces/workspace-marketing-studio"),
+  () => import("./plugins/workspaces/workspace-automation-flow"),
+  () => import("./plugins/workspaces/workspace-developer-ide"),
+  () => import("./plugins/workspaces/workspace-designer-image"),
+  () => import("./plugins/workspaces/workspace-creator-audio"),
+  () => import("./plugins/workspaces/workspace-automotive-garage"),
+];
+
+const HamptonAvatar = lazy(() => import("./components/HamptonAvatar").then(m => ({ default: m.HamptonAvatar })));
+const HamptonWolf = lazy(() => import("./components/HamptonWolf").then(m => ({ default: m.HamptonWolf })));
+const SettingsPanel = lazy(() => import("./components/SettingsPanel").then(m => ({ default: m.SettingsPanel })));
+const AgentModelsPanel = lazy(() => import("./components/AgentModelsPanel").then(m => ({ default: m.AgentModelsPanel })));
+const AutomationPanel = lazy(() => import("./components/AutomationPanel").then(m => ({ default: m.AutomationPanel })));
+const UsagePanel = lazy(() => import("./components/UsagePanel").then(m => ({ default: m.UsagePanel })));
+const ConversationList = lazy(() => import("./components/ConversationList").then(m => ({ default: m.ConversationList })));
+const VoicesPicker = lazy(() => import("./components/VoicesPicker").then(m => ({ default: m.VoicesPicker })));
+const ModelPicker = lazy(() => import("./components/ModelPicker").then(m => ({ default: m.ModelPicker })));
+const WhatsAppPanel = lazy(() => import("./components/WhatsAppPanel").then(m => ({ default: m.WhatsAppPanel })));
+const AgentDataPanel = lazy(() => import("./components/AgentDataPanel").then(m => ({ default: m.AgentDataPanel })));
+const ProjectsPanel = lazy(() => import("./components/ProjectsPanel").then(m => ({ default: m.ProjectsPanel })));
+const FilesPanel = lazy(() => import("./components/FilesPanel").then(m => ({ default: m.FilesPanel })));
+const SchedulesPanel = lazy(() => import("./components/SchedulesPanel").then(m => ({ default: m.SchedulesPanel })));
+const SocialMediaPanel = lazy(() => import("./components/SocialMediaPanel").then(m => ({ default: m.SocialMediaPanel })));
+const MemoryPanel = lazy(() => import("./components/MemoryPanel").then(m => ({ default: m.MemoryPanel })));
+const CommandPalette = lazy(() => import("./components/CommandPalette").then(m => ({ default: m.CommandPalette })));
+const ExportPanel = lazy(() => import("./components/ExportPanel").then(m => ({ default: m.ExportPanel })));
+const AgentPage = lazy(() => import("./components/AgentPage").then(m => ({ default: m.AgentPage })));
 
 export function HomeScreen() {
-  const { t, speechLang } = useTranslation();
-  const [activeNav, setActiveNav] = useState("home");
-  const [agentsOpen, setAgentsOpen] = useState(false);
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [agentModelsOpen, setAgentModelsOpen] = useState(false);
-  const [usageOpen, setUsageOpen] = useState(false);
-  const [automationOpen, setAutomationOpen] = useState(false);
-  const [schedulesOpen, setSchedulesOpen] = useState(false);
-  const [voicesOpen, setVoicesOpen] = useState(false);
-  const [modelPickerOpen, setModelPickerOpen] = useState(false);
-  const [whatsappOpen, setWhatsappOpen] = useState(false);
-  const [agentDataOpen, setAgentDataOpen] = useState<string | null>(null);
-  const [projectsOpen, setProjectsOpen] = useState(false);
-  const [filesOpen, setFilesOpen] = useState(false);
-  const [memoryOpen, setMemoryOpen] = useState(false);
-  const [socialMediaOpen, setSocialMediaOpen] = useState(false);
-  const [speechEnabled, setSpeechEnabled] = useState(true);
-  const [hasVoiceConfigured, setHasVoiceConfigured] = useState(false);
+  const { t } = useTranslation();
   const [hamptonState, setHamptonState] = useState<HamptonState>("idle");
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [chatMode, setChatMode] = useState(false);
-  const [conversationId, setConversationId] = useState<string | null>(null);
-  const [activeAgent, setActiveAgent] = useState<string | null>(null);
-  const [wakeWordEnabled, setWakeWordEnabled] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [pluginSettingsOpen, setPluginSettingsOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [telegramOpen, setTelegramOpen] = useState(false);
+  const [loadingAgents, setLoadingAgents] = useState(true);
+  const [voiceVolume, setVoiceVolume] = useState(0);
+  const [voicePartial, setVoicePartial] = useState("");
 
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const cancelStreamRef = useRef<(() => void) | null>(null);
-  const streamedTextRef = useRef("");
-  const spokenUpToRef = useRef(0);
-  const replyIdRef = useRef<string | null>(null);
-  const activeConvoIdRef = useRef<string | null>(null);
-  const ttsSettingsRef = useRef<{ engine: string; voiceId: string; enabled?: boolean } | null>(null);
-  const audioQueueRef = useRef<Promise<void>>(Promise.resolve());
-  const recognitionRef = useRef<any>(null);
-  const wakeRecognitionRef = useRef<any>(null);
-  const sttSettingsRef = useRef<{ engine: string; baseUrl?: string } | null>(null);
-
-  // ── TTS settings + queued sentence playback ─────────────────────────────
-
-  const refreshTTSSettings = async () => {
-    if (!isElectron) return;
-    const v = await window.orun.settings.get<{ engine: string; voiceId: string; enabled?: boolean }>("tts");
-    ttsSettingsRef.current = v || null;
-    setHasVoiceConfigured(Boolean(v?.engine && v?.voiceId));
-  };
-  useEffect(() => { refreshTTSSettings(); }, []);
-  useEffect(() => { if (!voicesOpen) refreshTTSSettings(); }, [voicesOpen]);
-
-  // STT settings
   useEffect(() => {
-    if (!isElectron) return;
-    window.orun.settings.get<{ engine: string; baseUrl?: string }>("stt").then((v) => { sttSettingsRef.current = v || null; }).catch(() => {});
+    const timer = setTimeout(() => setLoadingAgents(false), 300);
+    return () => clearTimeout(timer);
   }, []);
 
-  /** Queues a sentence for playback so multiple chunks never overlap. */
-  const speak = (text: string) => {
-    if (!isElectron || !speechEnabled || !text.trim()) return;
-    const v = ttsSettingsRef.current;
-    if (!v?.engine || !v?.voiceId) return;
-    audioQueueRef.current = audioQueueRef.current.then(async () => {
-      try {
-        const { audioBase64, mime } = await window.orun.tts.synthesize(v.engine as any, v.voiceId, text.slice(0, 500));
-        await new Promise<void>((resolve) => {
-          const audio = new Audio(`data:${mime};base64,${audioBase64}`);
-          audio.onended = () => resolve();
-          audio.onerror = () => resolve();
-          audio.play().catch(() => resolve());
-        });
-      } catch {
-        // Speech is a nice-to-have — never let a TTS failure block the text reply.
-      }
-    });
-  };
+  useEffect(() => {
+    WORKSPACE_PLUGINS.forEach((load) => load().catch(() => {}));
+  }, []);
 
-  /** Call as text streams in — speaks each finished sentence immediately instead of waiting for the whole reply. */
-  const speakIncremental = (fullTextSoFar: string) => {
-    const rest = fullTextSoFar.slice(spokenUpToRef.current);
-    const match = rest.match(/^[\s\S]*?[.!?]+(\s|$)/);
-    if (match) {
-      speak(match[0]);
-      spokenUpToRef.current += match[0].length;
-    }
-  };
-  const speakRemainder = (fullText: string) => {
-    const rest = fullText.slice(spokenUpToRef.current);
-    if (rest.trim()) speak(rest);
-    spokenUpToRef.current = fullText.length;
-  };
+  const spokenUpToRef = useRef(0);
 
-  // ── Conversation / navigation ────────────────────────────────────────────
+  const voiceSettings = useVoiceSettings();
+  const nav = usePanelNavigation();
+  const tts = useTTS({ spokenUpToRef });
 
-  const handleNavClick = (id: string) => {
-    setActiveNav(id);
-    setAgentsOpen(id === "agents");
-    if (id === "agents") setHistoryOpen(false);
-    if (id === "automation") setAutomationOpen(true);
-    if (id === "projects") setProjectsOpen(true);
-    if (id === "files") setFilesOpen(true);
-    if (id === "memory") setMemoryOpen(true);
-  };
+  const chat = useChat({
+    t,
+    onHamptonStateChange: setHamptonState,
+    speak: tts.speak,
+    speakIncremental: tts.speakIncremental,
+    speakRemainder: tts.speakRemainder,
+    getHamptonReplies: () => getHamptonReplies(t),
+    spokenUpToRef,
+  });
 
-  const startNewChat = () => {
-    setMessages([]);
-    setConversationId(null);
-    setChatMode(false);
-    setActiveAgent(null);
-    setHamptonState("idle");
-    setHistoryOpen(false);
-  };
+  const startNewChat = useCallback(() => {
+    chat.startNewChat();
+  }, [chat]);
 
-  const openConversation = async (id: string) => {
-    if (!isElectron) return;
-    const rows = await window.orun.conversations.messages(id);
-    setMessages(rows.map(r => ({ id: r.id, role: r.role === "assistant" ? "hampton" : "user", content: r.content })));
-    setConversationId(id);
-    setActiveAgent(null);
-    setChatMode(true);
-    setHistoryOpen(false);
-  };
+  const voice = useVoice({
+    onTranscript: (text) => chat.handleSend(text),
+    onStateChange: (state) => setHamptonState(state),
+    onVolume: setVoiceVolume,
+    onPartialTranscript: setVoicePartial,
+    onStopTTS: tts.stopTTS,
+    wakeWordEnabled: voiceSettings.wakeWordEnabled,
+    whisperConfig: voiceSettings.whisperUrl ? { baseUrl: voiceSettings.whisperUrl, language: "pt" } : undefined,
+    conversationalMode: voiceSettings.conversationalMode,
+    externalHamptonState: hamptonState,
+    noiseSuppression: voiceSettings.noiseSuppression,
+    responseDelay: voiceSettings.responseDelay,
+    t,
+  });
 
-  const openAgentChat = async (agentName: string) => {
-    setAgentsOpen(false);
-    setActiveAgent(agentName);
-    setMessages([]);
-    setChatMode(true);
-    if (!isElectron) { setConversationId(null); return; }
-    const existing = await window.orun.conversations.list(agentName);
-    if (existing.length > 0) {
-      const rows = await window.orun.conversations.messages(existing[0].id);
-      setMessages(rows.map(r => ({ id: r.id, role: r.role === "assistant" ? "hampton" : "user", content: r.content })));
-      setConversationId(existing[0].id);
-    } else {
-      setConversationId(null);
-    }
-  };
+  useKeyboardShortcuts({ nav, setCommandPaletteOpen, setProfileOpen, setTelegramOpen });
 
-  // ── Sending messages (Hampton or a specific agent, with optional image) ──
-
-  const handleSend = async (content: string, image?: AttachedImage) => {
-    if (!content && !image) return;
-    const userMsg: Message = { id: `${Date.now()}`, role: "user", content: content || "(photo)" };
-    setMessages(p => [...p, userMsg]);
-    setChatMode(true);
-    setHamptonState("thinking");
-    spokenUpToRef.current = 0;
-
-    if (isElectron) {
-      try {
-        let convoId = conversationId;
-        if (!convoId) {
-          const convo = await window.orun.conversations.create((content || "Photo").slice(0, 40), activeAgent || undefined);
-          convoId = convo.id;
-          setConversationId(convoId);
-        }
-        await window.orun.conversations.addMessage(convoId, { id: userMsg.id, role: "user", content: userMsg.content });
-
-        const history = [...messages, userMsg].map((m, idx, arr) => {
-          const isLast = idx === arr.length - 1;
-          return {
-            role: (m.role === "hampton" ? "assistant" : "user") as "assistant" | "user",
-            content: m.content,
-            ...(isLast && image ? { image: { base64: image.base64, mime: image.mime } } : {}),
-          };
-        });
-
-        const replyId = `${Date.now() + 1}`;
-        let streamedText = "";
-        let firstChunk = true;
-        replyIdRef.current = replyId;
-        streamedTextRef.current = "";
-        activeConvoIdRef.current = convoId;
-
-        // Use autonomous mode for Hampton (no agent) and Social Media (needs publish_to_social tool)
-        const useAutonomous = !activeAgent || activeAgent === "Social Media";
-
-        if (useAutonomous) {
-          // ── Autonomous mode: Hampton uses tools in a loop ──────────
-          const toolCallsMap = new Map<string, { id: string; name: string; arguments: Record<string, unknown>; result?: unknown }>();
-
-          cancelStreamRef.current = window.orun.ai.autonomous(history as any, {
-            agentId: activeAgent || undefined,
-            onToolCall: (tc) => {
-              setHamptonState("thinking");
-              toolCallsMap.set(tc.id, { ...tc });
-              // Show tool call in the message
-              const toolArray = Array.from(toolCallsMap.values());
-              setMessages(p => {
-                const exists = p.some(m => m.id === replyId);
-                const msg: Message = { id: replyId, role: "hampton", content: "", toolCalls: toolArray };
-                return exists ? p.map(m => (m.id === replyId ? msg : m)) : [...p, msg];
-              });
-            },
-            onToolResult: (tr) => {
-              const existing = toolCallsMap.get(tr.id);
-              if (existing) {
-                existing.result = tr.result;
-                const toolArray = Array.from(toolCallsMap.values());
-                setMessages(p => p.map(m => (m.id === replyId ? { ...m, toolCalls: toolArray } : m)));
-              }
-            },
-            onDone: async (fullText) => {
-              const finalText = fullText || streamedText;
-              const toolArray = Array.from(toolCallsMap.values());
-              setMessages(p => p.map(m => (m.id === replyId ? { ...m, content: finalText, toolCalls: toolArray.length ? toolArray : undefined } : m)));
-              if (convoId) await window.orun.conversations.addMessage(convoId, { id: replyId, role: "assistant", content: finalText });
-              cancelStreamRef.current = null;
-              speakRemainder(finalText);
-              setTimeout(() => setHamptonState("idle"), 900);
-            },
-            onError: (message) => {
-              const errText = `${t("homeErrorAccess")} ${message || ""}`;
-              setMessages(p => {
-                const exists = p.some(m => m.id === replyId);
-                return exists ? p.map(m => (m.id === replyId ? { ...m, content: errText } : m)) : [...p, { id: replyId, role: "hampton", content: errText }];
-              });
-              cancelStreamRef.current = null;
-              setHamptonState("idle");
-            },
-          });
-        } else {
-          // ── Regular streaming mode for sub-agents ─────────────────
-          cancelStreamRef.current = window.orun.ai.chatStream(history as any, {
-            agentId: activeAgent || undefined,
-            onChunk: (delta) => {
-              if (firstChunk) {
-                setHamptonState("speaking");
-                setMessages(p => [...p, { id: replyId, role: "hampton", content: "" }]);
-                firstChunk = false;
-              }
-              streamedText += delta;
-              streamedTextRef.current = streamedText;
-              setMessages(p => p.map(m => (m.id === replyId ? { ...m, content: streamedText } : m)));
-              speakIncremental(streamedText);
-            },
-            onDone: async (fullText) => {
-              const finalText = fullText || streamedText;
-              setMessages(p => p.map(m => (m.id === replyId ? { ...m, content: finalText } : m)));
-              if (convoId) await window.orun.conversations.addMessage(convoId, { id: replyId, role: "assistant", content: finalText });
-              cancelStreamRef.current = null;
-              speakRemainder(finalText);
-              setTimeout(() => setHamptonState("idle"), 900);
-            },
-            onError: (message) => {
-              setHamptonState("idle");
-              const errText = `${t("homeErrorAccess")} ${message || ""}`;
-              setMessages(p => {
-                const exists = p.some(m => m.id === replyId);
-                return exists ? p.map(m => (m.id === replyId ? { ...m, content: errText } : m)) : [...p, { id: replyId, role: "hampton", content: errText }];
-              });
-              cancelStreamRef.current = null;
-              setTimeout(() => setHamptonState("idle"), 1200);
-            },
-          });
-        }
-      } catch (err: any) {
-        setHamptonState("idle");
-        const reply: Message = { id: `${Date.now() + 1}`, role: "hampton", content: `${t("homeErrorAccessShort")} ${err?.message || ""}` };
-        setMessages(p => [...p, reply]);
-      }
-      return;
-    }
-
-    // Browser preview fallback (no Electron backend available)
-    const hamptonReplies = getHamptonReplies(t);
-    setTimeout(() => {
-      setHamptonState("speaking");
-      const reply: Message = { id: `${Date.now() + 1}`, role: "hampton", content: hamptonReplies[Math.floor(Math.random() * hamptonReplies.length)] };
-      setMessages(p => [...p, reply]);
-      speak(reply.content);
-      setTimeout(() => setHamptonState("idle"), 2200);
-    }, 1800);
-  };
-
-  // ── Edit & regenerate ─────────────────────────────────────────────────────
-
-  const editMessage = async (messageId: string, newContent: string) => {
-    const idx = messages.findIndex(m => m.id === messageId);
-    if (idx === -1) return;
-    const kept = messages.slice(0, idx);
-    setMessages(kept);
-    if (isElectron && conversationId) await window.orun.conversations.truncateFrom(conversationId, messageId);
-    handleSend(newContent);
-  };
-
-  const regenerate = async () => {
-    for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i].role === "user") {
-        const lastUser = messages[i];
-        const kept = messages.slice(0, i);
-        setMessages(kept);
-        if (isElectron && conversationId) await window.orun.conversations.truncateFrom(conversationId, lastUser.id);
-        handleSend(lastUser.content);
-        return;
-      }
-    }
-  };
-
-  // ── Stop streaming ───────────────────────────────────────────────────────
-
-  const stopStreaming = async () => {
-    if (!cancelStreamRef.current) return;
-    cancelStreamRef.current();
-    cancelStreamRef.current = null;
-    const replyId = replyIdRef.current;
-    const finalText = streamedTextRef.current || "(stopped)";
-    if (replyId) {
-      setMessages(p => p.map(m => (m.id === replyId ? { ...m, content: finalText } : m)));
-      if (activeConvoIdRef.current) await window.orun.conversations.addMessage(activeConvoIdRef.current, { id: replyId, role: "assistant", content: finalText });
-    }
-    setHamptonState("idle");
-  };
-
-  // ── Real mic dictation (push-to-talk) ────────────────────────────────────
-  // Supports two engines: Chromium's built-in (browser) or local Whisper server.
-
-  const handleMicClick = async () => {
-    // Toggle off if already listening
-    if (recognitionRef.current) { recognitionRef.current.stop(); recognitionRef.current = null; setHamptonState("idle"); return; }
-
-    const sttCfg = sttSettingsRef.current;
-    const useLocal = sttCfg?.engine === "whisper" && sttCfg?.baseUrl;
-
-    if (useLocal) {
-      // ── Local Whisper: record audio, then send to local server ────────
-      try {
-        setHamptonState("listening");
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
-        const chunks: Blob[] = [];
-        mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
-        mediaRecorder.onstop = async () => {
-          stream.getTracks().forEach((t) => t.stop());
-          const blob = new Blob(chunks, { type: "audio/webm" });
-          const reader = new FileReader();
-          reader.onloadend = async () => {
-            const base64 = (reader.result as string).split(",")[1];
-            try {
-              setHamptonState("thinking");
-              const { text } = await window.orun.stt.transcribe({
-                baseUrl: sttCfg!.baseUrl!,
-                audioBase64: base64,
-                mimeType: "audio/webm",
-                language: speechLang.slice(0, 2),
-              });
-              if (text.trim()) handleSend(text.trim());
-              else setHamptonState("idle");
-            } catch {
-              setHamptonState("idle");
-            }
-          };
-          reader.readAsDataURL(blob);
-        };
-        recognitionRef.current = { stop: () => mediaRecorder.stop() };
-        mediaRecorder.start();
-      } catch {
-        setHamptonState("idle");
-      }
-      return;
-    }
-
-    // ── Browser (Chromium SpeechRecognition → Google) ────────────────────
-    if (!SpeechRecognitionCtor) { setHamptonState(p => p === "listening" ? "idle" : "listening"); return; }
-    const recognition = new SpeechRecognitionCtor();
-    recognition.lang = speechLang;
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-    recognition.onstart = () => setHamptonState("listening");
-    recognition.onresult = (event: any) => {
-      const transcript = event.results[event.results.length - 1][0].transcript;
-      handleSend(transcript);
-    };
-    recognition.onerror = () => setHamptonState("idle");
-    recognition.onend = () => { recognitionRef.current = null; setHamptonState(p => (p === "listening" ? "idle" : p)); };
-    recognitionRef.current = recognition;
-    recognition.start();
-  };
-
-  // ── Soft wake word: continuous recognition watching for "Hampton"/"Orun" ─
-  // Not local — Chromium sends audio to Google for this. Opt-in, off by default.
+  useEffect(() => () => chat.cleanup(), [chat.cleanup]);
 
   useEffect(() => {
-    if (!wakeWordEnabled || !SpeechRecognitionCtor) return;
-    const recognition = new SpeechRecognitionCtor();
-    recognition.lang = speechLang;
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.onresult = (event: any) => {
-      const transcript = Array.from(event.results).map((r: any) => r[0].transcript).join(" ").toLowerCase();
-      const match = transcript.match(/(hampton|orun)\b(.*)/i);
-      if (match && match[2] && match[2].trim().length > 2) {
-        handleSend(match[2].trim());
-        recognition.stop();
-      }
-    };
-    recognition.onend = () => { if (wakeWordEnabled) { try { recognition.start(); } catch { /* already running */ } } };
-    wakeRecognitionRef.current = recognition;
-    try { recognition.start(); } catch { /* ignore */ }
-    return () => { recognition.onend = null; recognition.stop(); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wakeWordEnabled]);
-
-  useEffect(() => { window.orun?.settings?.get<boolean>("wakeWordEnabled").then((v) => setWakeWordEnabled(Boolean(v))).catch(() => {}); }, []);
-
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
-  useEffect(() => () => cancelStreamRef.current?.(), []);
+    if (!isElectron) return;
+    const skipResume = sessionStorage.getItem("orun-skip-resume");
+    if (skipResume) { sessionStorage.removeItem("orun-skip-resume"); return; }
+    chat.autoResumeLastConversation();
+  }, []);
 
   const isStreaming = hamptonState === "speaking" || hamptonState === "thinking";
-  const lastMessage = messages[messages.length - 1];
-  const anyPanelOpen = agentsOpen || historyOpen;
+  const anyPanelOpen = nav.anyPanelOpen;
   const agents = getAgents(t);
-  const currentAgent = activeAgent ? agents.find(a => a.name === activeAgent) : null;
+  const currentAgent = chat.activeAgent ? agents.find(a => a.name === chat.activeAgent) : null;
+  const workspacePluginId = nav.workspaceOpen ? getWorkspacePluginId(nav.workspaceOpen) : null;
+
+  const handleSlashCommand = useCallback((cmd: string) => {
+    if (cmd === "vozes") nav.setVoicesOpen(true);
+    else if (cmd === "model") nav.setModelPickerOpen(true);
+    else if (cmd === "limpar") chat.startNewChat();
+    else if (cmd === "historico") nav.setHistoryOpen(true);
+    else if (cmd === "agentes") nav.setAgentsOpen(true);
+    else if (cmd === "resumir") chat.handleSend("Resuma esta conversa");
+    else if (cmd === "exportar") chat.handleSend("Exporte esta conversa");
+    else if (cmd === "memoria") chat.handleSend("Busque na minha memoria");
+    else if (cmd === "ajuda") chat.handleSend("Quais comandos estao disponiveis?");
+  }, [nav, chat]);
 
   return (
-    <div className="fixed inset-0 flex" style={{ background: "#080808" }}>
+    <div className="fixed inset-0 flex pt-8" style={{ background: "var(--background)" }}>
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-[var(--primary)] focus:text-[var(--primary-foreground)] focus:rounded">
+        {t("skipToContent")}
+      </a>
+
       <Sidebar
-        activeNav={activeNav}
-        onNavClick={handleNavClick}
-        onSettingsClick={() => setSettingsOpen(true)}
-        onHistoryClick={() => { setHistoryOpen(p => !p); setAgentsOpen(false); }}
+        activeNav={nav.activeNav}
+        onNavClick={nav.handleNavClick}
+        onSettingsClick={() => nav.setSettingsOpen(true)}
+        onHistoryClick={() => { nav.setHistoryOpen(p => !p); nav.setAgentsOpen(false); }}
+        onPluginsClick={() => setPluginSettingsOpen(true)}
+        onProfileClick={() => setProfileOpen(true)}
       />
 
-      <AnimatePresence>
-        {agentsOpen && <AgentsPanel onClose={() => { setAgentsOpen(false); setActiveNav("home"); }} onSelectAgent={openAgentChat} onViewData={(name) => { setAgentsOpen(false); setAgentDataOpen(name); }} />}
-        {historyOpen && <ConversationList activeId={conversationId} onClose={() => setHistoryOpen(false)} onSelect={openConversation} onNew={startNewChat} />}
-        {settingsOpen && !agentModelsOpen && !usageOpen && (
-          <SettingsPanel
-            onClose={() => setSettingsOpen(false)}
-            onOpenAgentModels={() => { setSettingsOpen(false); setAgentModelsOpen(true); }}
-            onOpenUsage={() => { setSettingsOpen(false); setUsageOpen(true); }}
-            onOpenWhatsApp={() => { setSettingsOpen(false); setWhatsappOpen(true); }}
-          />
-        )}
-        {agentModelsOpen && <AgentModelsPanel onClose={() => setAgentModelsOpen(false)} onBack={() => { setAgentModelsOpen(false); setSettingsOpen(true); }} />}
-        {usageOpen && <UsagePanel onClose={() => setUsageOpen(false)} onBack={() => { setUsageOpen(false); setSettingsOpen(true); }} />}
-        {automationOpen && <AutomationPanel onClose={() => { setAutomationOpen(false); setActiveNav("home"); }} onOpenSchedules={() => setSchedulesOpen(true)} onOpenSocialMedia={() => setSocialMediaOpen(true)} />}
-        {schedulesOpen && <SchedulesPanel onClose={() => { setSchedulesOpen(false); setActiveNav("home"); }} />}
-        {voicesOpen && <VoicesPicker onClose={() => setVoicesOpen(false)} />}
-        {modelPickerOpen && <ModelPicker onClose={() => setModelPickerOpen(false)} />}
-        {whatsappOpen && <WhatsAppPanel onClose={() => setWhatsappOpen(false)} />}
-        {agentDataOpen && <AgentDataPanel agent={agentDataOpen as any} onClose={() => setAgentDataOpen(null)} />}
-        {projectsOpen && <ProjectsPanel onClose={() => { setProjectsOpen(false); setActiveNav("home"); }} />}
-        {filesOpen && <FilesPanel onClose={() => { setFilesOpen(false); setActiveNav("home"); }} />}
-        {memoryOpen && <MemoryPanel onClose={() => { setMemoryOpen(false); setActiveNav("home"); }} />}
-        {socialMediaOpen && <SocialMediaPanel onClose={() => { setSocialMediaOpen(false); setActiveNav("home"); }} onSelectAgent={(name) => { setSocialMediaOpen(false); setActiveNav("home"); setSelectedAgent(name); }} />}
-      </AnimatePresence>
-
-      {anyPanelOpen && <div className="fixed inset-0 z-20" onClick={() => { setAgentsOpen(false); setHistoryOpen(false); setActiveNav("home"); }} />}
-
-      <div className="flex-1 flex flex-col ml-16 overflow-hidden">
-        <StatusBar onOpenModelPicker={() => setModelPickerOpen(true)} />
-
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <AnimatePresence mode="wait">
-            {!chatMode ? (
-              <motion.div
-                key="avatar-home"
-                className="flex-1 flex flex-col items-center justify-center pb-4"
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 0.96 }} transition={{ duration: 0.4 }}
-              >
-                <HamptonAvatar state={hamptonState} />
-                <motion.div className="text-center mt-5 space-y-1.5" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-                  <p className="text-3xl tracking-wide" style={{ fontFamily: "'Cormorant Garamond', serif", color: "#F5F5F5", fontWeight: 300 }}>{t("homeWelcomeBack")}</p>
-                  <p className="text-sm" style={{ fontFamily: "'Inter', sans-serif", color: "#444", fontWeight: 300 }}>{t("homeHowCanIHelp")}</p>
-                </motion.div>
-                <div className="flex items-center gap-3 mt-6">
-                  {[t("statusNativeAI"), t("homeCloudModels"), t("homeActiveMemory")].map((label, i) => (
-                    <div key={i} className="flex items-center gap-1.5 px-3 py-1 rounded-full border" style={{ borderColor: "#1e1e1e", background: "#0e0e0e" }}>
-                      <div className="w-1 h-1 rounded-full" style={{ background: i === 0 ? "#C00018" : "#3a3a3a", boxShadow: i === 0 ? "0 0 4px #C00018" : "none" }} />
-                      <span className="text-[9px] tracking-wider" style={{ fontFamily: "'Sora', sans-serif", color: "#555" }}>{label}</span>
-                    </div>
-                  ))}
+      {/* ── Panel overlays ─────────────────────────────────────────── */}
+      <Suspense fallback={null}>
+        <AnimatePresence>
+          {nav.agentsOpen && (
+            loadingAgents ? (
+              <div className="fixed inset-y-0 left-16 w-80 z-30 p-4 space-y-4 overflow-y-auto" style={{ background: "var(--background)", borderRight: "1px solid var(--border)" }}>
+                <div className="space-y-3">
+                  {Array.from({ length: 6 }).map((_, i) => <AgentCardSkeleton key={i} />)}
                 </div>
-                <AnimatePresence>
-                  {hamptonState !== "idle" && (
-                    <motion.span
-                      className="mt-4 text-[10px] tracking-[0.22em] uppercase"
-                      style={{ fontFamily: "'Sora', sans-serif", color: "#C00018", animation: "orunStatePulse 1s ease-in-out infinite", display: "inline-block" }}
-                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    >
-                      {hamptonState === "listening" && t("homeListening")}
-                      {hamptonState === "thinking" && t("homeThinking")}
-                      {hamptonState === "speaking" && t("homeSpeaking")}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </motion.div>
+              </div>
             ) : (
-              <motion.div key="chat-mode" className="flex-1 flex flex-col overflow-hidden" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                <div className="flex items-center gap-3 px-10 py-3 border-b" style={{ borderColor: "#111111" }}>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full" style={{ background: "#C00018", boxShadow: "0 0 6px #C00018", animation: hamptonState !== "idle" ? "orunStatePulse 1s ease-in-out infinite" : "none" }} />
-                    <span className="text-xs tracking-wider" style={{ fontFamily: "'Sora', sans-serif", color: "#888", fontWeight: 300 }}>{currentAgent?.name || "Hampton"}</span>
-                  </div>
-                  {hamptonState !== "idle" && (
-                    <span className="text-[9px] tracking-widest uppercase" style={{ fontFamily: "'Sora', sans-serif", color: "#C00018" }}>
-                    {hamptonState === "thinking" && `${t("homeThinking")}...`}
-                    {hamptonState === "speaking" && `${t("homeSpeaking")}...`}
-                    {hamptonState === "listening" && `${t("homeListening")}...`}
-                    </span>
-                  )}
-                  {isStreaming && cancelStreamRef.current && (
-                    <button onClick={stopStreaming} className="text-[9px] tracking-widest uppercase px-3 py-1 rounded-full border transition-colors" style={{ fontFamily: "'Sora', sans-serif", color: "#FF1A2D", borderColor: "rgba(192,0,24,0.35)" }}>{t("homeStop")}</button>
-                  )}
-                  {hasVoiceConfigured && (
-                    <button onClick={() => setSpeechEnabled(p => !p)} title={speechEnabled ? t("homeMuteVoice") : t("homeEnableVoice")} className="text-[9px] tracking-widest uppercase px-3 py-1 rounded-full border transition-colors" style={{ fontFamily: "'Sora', sans-serif", color: speechEnabled ? "#888" : "#444", borderColor: "#1e1e1e" }}>
-                      {speechEnabled ? "🔊" : "🔇"}
-                    </button>
-                  )}
-                  <button
-                    onClick={startNewChat}
-                    className="ml-auto text-[9px] tracking-widest uppercase px-3 py-1 rounded-full border transition-colors"
-                    style={{ fontFamily: "'Sora', sans-serif", color: "#333", borderColor: "#1e1e1e" }}
-                    onMouseEnter={e => (e.currentTarget.style.color = "#888")}
-                    onMouseLeave={e => (e.currentTarget.style.color = "#333")}
-                  >
-                    {t("homeNewConversation")}
-                  </button>
-                </div>
+              <AgentsPanel onClose={() => { nav.setAgentsOpen(false); nav.setActiveNav("home"); }} onSelectAgent={(name) => { nav.setAgentsOpen(false); chat.openAgentChat(name); }} onOpenAgentPage={(name) => { nav.setAgentsOpen(false); nav.setAgentPage(name); }} onViewData={(name) => { nav.setAgentsOpen(false); nav.setAgentDataOpen(name); }} />
+            )
+          )}
+          {nav.historyOpen && <ConversationList activeId={chat.conversationId} onClose={() => nav.setHistoryOpen(false)} onSelect={(id) => { chat.openConversation(id); nav.setHistoryOpen(false); }} onNew={() => { startNewChat(); nav.setHistoryOpen(false); }} />}
+          {nav.settingsOpen && !nav.agentModelsOpen && !nav.usageOpen && (
+            <SettingsPanel onClose={() => nav.setSettingsOpen(false)} onOpenAgentModels={() => { nav.setSettingsOpen(false); nav.setAgentModelsOpen(true); }} onOpenUsage={() => { nav.setSettingsOpen(false); nav.setUsageOpen(true); }} onOpenWhatsApp={() => { nav.setSettingsOpen(false); nav.setWhatsappOpen(true); }} onOpenTelegram={() => { nav.setSettingsOpen(false); setTelegramOpen(true); }} />
+          )}
+          {nav.agentModelsOpen && <AgentModelsPanel onClose={() => nav.setAgentModelsOpen(false)} onBack={() => { nav.setAgentModelsOpen(false); nav.setSettingsOpen(true); }} />}
+          {nav.usageOpen && <UsagePanel onClose={() => nav.setUsageOpen(false)} onBack={() => { nav.setUsageOpen(false); nav.setSettingsOpen(true); }} />}
+          {nav.automationOpen && <AutomationPanel onClose={() => { nav.setAutomationOpen(false); nav.setActiveNav("home"); }} onOpenSchedules={() => nav.setSchedulesOpen(true)} onOpenSocialMedia={() => nav.setSocialMediaOpen(true)} />}
+          {nav.schedulesOpen && <SchedulesPanel onClose={() => { nav.setSchedulesOpen(false); nav.setActiveNav("home"); }} />}
+          {nav.voicesOpen && <VoicesPicker onClose={() => nav.setVoicesOpen(false)} />}
+          {nav.modelPickerOpen && <ModelPicker onClose={() => nav.setModelPickerOpen(false)} />}
+          {nav.whatsappOpen && <WhatsAppPanel onClose={() => nav.setWhatsappOpen(false)} />}
+          {nav.agentDataOpen && <AgentDataPanel agent={nav.agentDataOpen as "Finance" | "Health" | "Developer" | "Teacher" | "Creator" | "Designer"} onClose={() => nav.setAgentDataOpen(null)} />}
+          {nav.projectsOpen && <ProjectsPanel onClose={() => { nav.setProjectsOpen(false); nav.setActiveNav("home"); }} />}
+          {nav.filesOpen && <FilesPanel onClose={() => { nav.setFilesOpen(false); nav.setActiveNav("home"); }} />}
+          {nav.memoryOpen && <MemoryPanel onClose={() => { nav.setMemoryOpen(false); nav.setActiveNav("home"); }} />}
+          {nav.socialMediaOpen && <SocialMediaPanel onClose={() => { nav.setSocialMediaOpen(false); nav.setActiveNav("home"); }} onSelectAgent={(name) => { nav.setSocialMediaOpen(false); nav.setActiveNav("home"); chat.openAgentChat(name); }} />}
+          {nav.exportImportOpen && <ExportPanel onClose={() => nav.setExportImportOpen(false)} />}
+          {pluginSettingsOpen && <PluginSettings onClose={() => setPluginSettingsOpen(false)} />}
+          {profileOpen && <ProfilePanel onClose={() => setProfileOpen(false)} />}
+          {telegramOpen && <TelegramPanel onClose={() => setTelegramOpen(false)} />}
+          {nav.agentPage && (
+            <AgentPage agent={nav.agentPage} onClose={() => nav.setAgentPage(null)} onStartChat={(name) => { nav.setAgentPage(null); chat.openAgentChat(name); }} onOpenWorkspace={(name) => { nav.setAgentPage(null); chat.openAgentChat(name); nav.setWorkspaceOpen(name); }} />
+          )}
+        </AnimatePresence>
+      </Suspense>
 
-                <div className="flex-1 overflow-y-auto px-10 py-6 space-y-4 scrollbar-hide">
-                  {messages.map(msg => (
-                    <MessageBubble
-                      key={msg.id}
-                      msg={msg}
-                      streaming={isStreaming && msg.id === lastMessage?.id && msg.role === "hampton"}
-                      onEdit={msg.role === "user" ? (content) => editMessage(msg.id, content) : undefined}
-                      onRegenerate={msg.role === "hampton" && msg.id === lastMessage?.id ? regenerate : undefined}
-                    />
-                  ))}
-                  <div ref={bottomRef} />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+      {anyPanelOpen && <div className="fixed inset-0 z-20" onClick={() => { nav.setAgentsOpen(false); nav.setHistoryOpen(false); nav.setActiveNav("home"); }} />}
 
-          <ChatInput
-            onSend={handleSend}
-            onMicClick={handleMicClick}
-            listening={hamptonState === "listening"}
-            onSlashCommand={(cmd) => { if (cmd === "vozes") setVoicesOpen(true); if (cmd === "model") setModelPickerOpen(true); }}
+      {/* ── Main content ──────────────────────────────────────────── */}
+      <div id="main-content" className="flex-1 flex flex-col ml-16 overflow-hidden">
+        <StatusBar onOpenModelPicker={() => nav.setModelPickerOpen(true)} hamptonState={hamptonState} />
+        <OfflineBanner />
+
+        {workspacePluginId && hasPlugin(workspacePluginId) ? (
+          <WorkspaceView
+            workspacePluginId={workspacePluginId}
+            hamptonState={hamptonState}
+            messages={chat.messages}
+            onSendMessage={chat.handleSend}
+            onMicClick={voice.toggleRecording}
+            voiceVolume={voiceVolume}
+            partialTranscript={voicePartial}
+            onClose={() => { nav.setWorkspaceOpen(null); nav.setActiveNav("home"); }}
           />
-        </div>
+        ) : (
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <AnimatePresence mode="wait">
+              {!chat.chatMode ? (
+                <AvatarHome hamptonState={hamptonState} />
+              ) : (
+                <ChatView
+                  messages={chat.messages}
+                  hamptonState={hamptonState}
+                  isStreaming={isStreaming}
+                  isLoadingMessages={chat.isLoadingMessages}
+                  activeAgentName={chat.activeAgent}
+                  onStopStreaming={chat.stopStreaming}
+                  onEditMessage={chat.editMessage}
+                  onRegenerate={chat.regenerate}
+                  onStartNewChat={startNewChat}
+                  speechEnabled={tts.speechEnabled}
+                  hasVoiceConfigured={tts.hasVoiceConfigured}
+                  onToggleSpeech={() => tts.setSpeechEnabled(p => !p)}
+                />
+              )}
+            </AnimatePresence>
+
+            <VoiceLevelBar
+              volume={voiceVolume}
+              active={hamptonState === "listening" || hamptonState === "thinking"}
+              state={hamptonState}
+            />
+            <ChatInput
+              onSend={chat.handleSend}
+              onMicClick={voice.toggleRecording}
+              listening={hamptonState === "listening"}
+              volume={voiceVolume}
+              partialTranscript={voicePartial}
+              onSlashCommand={handleSlashCommand}
+            />
+          </div>
+        )}
       </div>
 
+      <Suspense fallback={null}>
+        <CommandPalette open={commandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} onNavigate={(id) => {
+          if (id === "home") nav.setActiveNav("home");
+          else if (id === "agents") nav.setAgentsOpen(true);
+          else if (id === "projects") nav.setProjectsOpen(true);
+          else if (id === "settings") nav.setSettingsOpen(true);
+          else if (id === "history") nav.setHistoryOpen(true);
+        }} onAgentSelect={(name) => chat.openAgentChat(name)} onNewChat={startNewChat} />
+      </Suspense>
+
+      {nav.exportImportOpen && <div className="fixed inset-0 z-20" onClick={() => nav.setExportImportOpen(false)} />}
+
+      {/* CRT scan line + vignette overlays */}
       <div className="fixed inset-0 pointer-events-none z-[9990]" style={{ background: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.025) 2px, rgba(0,0,0,0.025) 4px)" }} />
       <div className="fixed inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at 55% 45%, rgba(192,0,24,0.038) 0%, transparent 55%)" }} />
     </div>

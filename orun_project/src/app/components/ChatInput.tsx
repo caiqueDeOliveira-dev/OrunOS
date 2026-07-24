@@ -1,34 +1,115 @@
-import { useRef, useState } from "react";
-import { Mic, Upload, X as XIcon, Send } from "lucide-react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
+import { Mic, Upload, X as XIcon, Send, Command } from "lucide-react";
 import { useTranslation } from "../../i18n/I18nProvider";
+import { useToast } from "./Toast";
+import { VolumeVisualizer } from "./VolumeVisualizer";
+import { LiveTranscription } from "./LiveTranscription";
 
 export interface AttachedImage { base64: string; mime: string; previewUrl: string }
 
-export function ChatInput({
-  onSend, onMicClick, listening, onSlashCommand,
+interface SlashCommand {
+  command: string;
+  label: string;
+  description: string;
+}
+
+const getSlashCommands = (t: (key: string) => string): SlashCommand[] => [
+  { command: "/historico", label: t("slashHistory"), description: t("slashHistoryDesc") },
+  { command: "/limpar", label: t("slashClear"), description: t("slashClearDesc") },
+  { command: "/resumir", label: t("slashSummarize"), description: t("slashSummarizeDesc") },
+  { command: "/exportar", label: t("slashExport"), description: t("slashExportDesc") },
+  { command: "/vozes", label: t("slashVoices"), description: t("slashVoicesDesc") },
+  { command: "/model", label: t("slashModel"), description: t("slashModelDesc") },
+  { command: "/memoria", label: t("slashMemory"), description: t("slashMemoryDesc") },
+  { command: "/agentes", label: t("slashAgents"), description: t("slashAgentsDesc") },
+  { command: "/ajuda", label: t("slashHelp"), description: t("slashHelpDesc") },
+];
+
+export const ChatInput = React.memo(function ChatInput({
+  onSend, onMicClick, listening, onSlashCommand, volume = 0, partialTranscript = "",
 }: {
   onSend: (message: string, image?: AttachedImage) => void;
   onMicClick: () => void;
   listening: boolean;
-  onSlashCommand?: (command: "vozes" | "model") => void;
+  onSlashCommand?: (command: string) => void;
+  volume?: number;
+  partialTranscript?: string;
 }) {
   const { t } = useTranslation();
+  const toast = useToast();
   const [value, setValue] = useState("");
   const [image, setImage] = useState<AttachedImage | null>(null);
+  const [slashOpen, setSlashOpen] = useState(false);
+  const [slashFilter, setSlashFilter] = useState("");
+  const [slashIndex, setSlashIndex] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const lastSubmitRef = useRef<number>(0);
 
-  const submit = () => {
+  const filteredCommands = getSlashCommands(t).filter(
+    (cmd) => cmd.command.includes(slashFilter.toLowerCase()) || cmd.label.toLowerCase().includes(slashFilter.toLowerCase())
+  );
+
+  useEffect(() => { setSlashIndex(0); }, [slashFilter]);
+
+  const submit = useCallback(() => {
+    const now = Date.now();
+    if (now - lastSubmitRef.current < 1000) return; // debounce 1s
+    lastSubmitRef.current = now;
     const trimmed = value.trim();
     if (!trimmed && !image) return;
     const lower = trimmed.toLowerCase();
-    if ((lower === "/vozes" || lower === "/voz") && onSlashCommand) { onSlashCommand("vozes"); setValue(""); return; }
-    if (lower === "/model" && onSlashCommand) { onSlashCommand("model"); setValue(""); return; }
+    if (lower === "/vozes" || lower === "/voz") { onSlashCommand?.("vozes"); setValue(""); setSlashOpen(false); return; }
+    if (lower === "/model") { onSlashCommand?.("model"); setValue(""); setSlashOpen(false); return; }
+    if (lower === "/limpar") { onSlashCommand?.("limpar"); setValue(""); setSlashOpen(false); return; }
+    if (lower === "/resumir") { onSlashCommand?.("resumir"); setValue(""); setSlashOpen(false); return; }
+    if (lower === "/exportar") { onSlashCommand?.("exportar"); setValue(""); setSlashOpen(false); return; }
+    if (lower === "/historico") { onSlashCommand?.("historico"); setValue(""); setSlashOpen(false); return; }
+    if (lower === "/memoria") { onSlashCommand?.("memoria"); setValue(""); setSlashOpen(false); return; }
+    if (lower === "/agentes") { onSlashCommand?.("agentes"); setValue(""); setSlashOpen(false); return; }
+    if (lower === "/ajuda") { onSlashCommand?.("ajuda"); setValue(""); setSlashOpen(false); return; }
     onSend(trimmed, image || undefined);
     setValue("");
     setImage(null);
+    setSlashOpen(false);
+  }, [value, image, onSend, onSlashCommand]);
+
+  const handleChange = (val: string) => {
+    setValue(val);
+    if (val.startsWith("/")) {
+      setSlashOpen(true);
+      setSlashFilter(val);
+    } else {
+      setSlashOpen(false);
+    }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (slashOpen && filteredCommands.length > 0) {
+      if (e.key === "ArrowDown") { e.preventDefault(); setSlashIndex((i) => Math.min(i + 1, filteredCommands.length - 1)); return; }
+      if (e.key === "ArrowUp") { e.preventDefault(); setSlashIndex((i) => Math.max(i - 1, 0)); return; }
+      if (e.key === "Tab" || (e.key === "Enter" && slashOpen)) {
+        e.preventDefault();
+        const cmd = filteredCommands[slashIndex];
+        if (cmd) { setValue(cmd.command + " "); setSlashOpen(false); }
+        return;
+      }
+      if (e.key === "Escape") { setSlashOpen(false); return; }
+    }
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); }
+  };
+
+  const selectCommand = (cmd: SlashCommand) => {
+    setValue(cmd.command + " ");
+    setSlashOpen(false);
+    inputRef.current?.focus();
+  };
+
+  const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
   const handleFile = (file: File) => {
+    if (file.size > MAX_FILE_SIZE) { toast.show(t("chatFileTooLarge"), "error"); return; }
+    if (!file.type.startsWith("image/")) { toast.show(t("chatUnsupportedFile"), "error"); return; }
     const reader = new FileReader();
     reader.onload = () => {
       const dataUrl = reader.result as string;
@@ -39,80 +120,133 @@ export function ChatInput({
   };
 
   return (
-    <div className="px-10 pb-7 pt-3">
+    <div className="px-10 pb-7 pt-3 relative">
+      {/* Live transcription overlay */}
+      <LiveTranscription text={partialTranscript} isVisible={listening} />
+
       {image && (
-        <div className="flex items-center gap-2 mb-2 px-3 py-2 rounded-xl" style={{ background: "#0f0f0f", border: "1px solid #222" }}>
+        <div className="flex items-center gap-2 mb-2 px-3 py-2 rounded-xl" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
           <img src={image.previewUrl} alt="attached" className="rounded-md object-cover" style={{ width: 36, height: 36 }} />
-          <span className="text-[10px]" style={{ color: "#666" }}>{t("chatImageAttached")}</span>
-          <button onClick={() => setImage(null)} className="ml-auto p-1" style={{ color: "#555" }}><XIcon size={13} /></button>
+          <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>{t("chatImageAttached")}</span>
+          <button onClick={() => setImage(null)} className="ml-auto p-1" style={{ color: "var(--muted-foreground)" }}><XIcon size={13} /></button>
         </div>
       )}
+
+      {/* Slash Commands Dropdown */}
+      {slashOpen && filteredCommands.length > 0 && (
+        <div
+          id="slash-command-listbox"
+          role="listbox"
+          aria-label={t("slashCommands") || "Slash commands"}
+          className="absolute bottom-full left-10 right-10 mb-2 rounded-xl border overflow-hidden z-50"
+          style={{ background: "var(--card)", borderColor: "var(--border)", boxShadow: "0 -8px 30px rgba(0,0,0,0.3)" }}
+        >
+          <div className="px-3 py-1.5 border-b" style={{ borderColor: "var(--border)" }}>
+            <span className="text-[9px] tracking-wider uppercase" style={{ color: "var(--muted-foreground)", fontFamily: "'Sora', sans-serif" }}>{t("chatInputCommands")}</span>
+          </div>
+          {filteredCommands.map((cmd, i) => (
+            <button
+              key={cmd.command}
+              id={`slash-command-option-${i}`}
+              role="option"
+              aria-selected={i === slashIndex}
+              onClick={() => selectCommand(cmd)}
+              className="w-full flex items-center gap-3 px-3 py-2 text-left transition-colors"
+              style={{
+                background: i === slashIndex ? "var(--accent)" : "transparent",
+              }}
+              onMouseEnter={() => setSlashIndex(i)}
+            >
+              <Command size={12} style={{ color: "var(--primary)" }} />
+              <div className="flex-1 min-w-0">
+                <span className="text-[11px] font-medium" style={{ color: "var(--foreground)" }}>{cmd.command}</span>
+                <span className="text-[10px] ml-2" style={{ color: "var(--muted-foreground)" }}>{cmd.description}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
       <div
         className="flex items-center gap-3 px-5 py-4 rounded-2xl border"
         style={{
-          background: "#0f0f0f",
-          borderColor: "#222222",
-          boxShadow: "0 0 0 1px rgba(192,0,24,0.04), 0 8px 40px rgba(0,0,0,0.45)",
+          background: "var(--card)",
+          borderColor: "var(--border)",
+          boxShadow: "0 0 0 1px color-mix(in srgb, var(--primary) 4%, transparent), 0 8px 40px rgba(0,0,0,0.15)",
         }}
       >
-        {/* Mic (real dictation via Web Speech API, wired in HomeScreen) */}
         <button
-          onClick={onMicClick}
-          className="p-2 rounded-lg flex-shrink-0 transition-all"
+          onClick={(e) => { e.preventDefault(); onMicClick(); }}
+          aria-label={listening ? t("ariaStopDictation") : t("ariaStartDictation")}
+          className="p-2 rounded-lg flex-shrink-0 transition-all select-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] outline-none"
           style={{
-            color: listening ? "#FF1A2D" : "#444",
-            background: listening ? "rgba(192,0,24,0.1)" : "transparent",
-            boxShadow: listening ? "0 0 10px rgba(192,0,24,0.3)" : "none",
+            color: listening ? "var(--primary)" : "var(--muted-foreground)",
+            background: listening ? "color-mix(in srgb, var(--primary) 15%, transparent)" : "transparent",
+            boxShadow: listening ? "0 0 14px color-mix(in srgb, var(--primary) 30%, transparent)" : "none",
           }}
         >
-          <Mic size={17} />
+          {listening ? (
+            <VolumeVisualizer
+              volume={volume}
+              isRecording={listening}
+              size={36}
+              barCount={16}
+            />
+          ) : (
+            <Mic size={17} />
+          )}
         </button>
 
-        {/* Attach image */}
         <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }} />
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="p-2 rounded-lg flex-shrink-0 transition-colors"
-          style={{ color: image ? "#FF1A2D" : "#333" }}
-          onMouseEnter={e => { if (!image) { e.currentTarget.style.color = "#888"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; } }}
-          onMouseLeave={e => { if (!image) { e.currentTarget.style.color = "#333"; e.currentTarget.style.background = "transparent"; } }}
+          className="p-2 rounded-lg flex-shrink-0 transition-colors focus-visible:ring-2 focus-visible:ring-[var(--primary)] outline-none"
+          style={{ color: image ? "var(--primary)" : "var(--muted-foreground)" }}
+          onMouseEnter={e => { if (!image) { e.currentTarget.style.color = "var(--foreground)"; e.currentTarget.style.background = "var(--accent)"; } }}
+          onMouseLeave={e => { if (!image) { e.currentTarget.style.color = "var(--muted-foreground)"; e.currentTarget.style.background = "transparent"; } }}
           title={t("chatAttachPhoto")}
+          aria-label={t("chatAttachPhoto")}
         >
           <Upload size={17} />
         </button>
 
-        <div className="w-px self-stretch" style={{ background: "#1e1e1e" }} />
+        <div className="w-px self-stretch" style={{ background: "var(--border)" }} />
 
         <input
+          ref={inputRef}
           type="text"
           value={value}
-          onChange={e => setValue(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && submit()}
+          onChange={e => handleChange(e.target.value)}
+          onKeyDown={handleKeyDown}
           placeholder={t("chatPlaceholder")}
           className="flex-1 bg-transparent outline-none text-sm"
+          role={slashOpen ? "combobox" : undefined}
+          aria-expanded={slashOpen}
+          aria-controls={slashOpen ? "slash-command-listbox" : undefined}
+          aria-activedescendant={slashOpen && filteredCommands.length > 0 ? `slash-command-option-${slashIndex}` : undefined}
           style={{
             fontFamily: "'Inter', sans-serif",
-            color: "#F5F5F5",
+            color: "var(--foreground)",
             fontWeight: 300,
           }}
         />
-        <style>{`input::placeholder { color: #2a2a2a; }`}</style>
 
         <button
           onClick={submit}
-          className="p-2 rounded-lg flex-shrink-0 transition-all"
+          aria-label={t("ariaSendMessage")}
+          className="p-2 rounded-lg flex-shrink-0 transition-all focus-visible:ring-2 focus-visible:ring-[var(--primary)] outline-none"
           style={{
-            background: (value.trim() || image) ? "#C00018" : "transparent",
-            color: (value.trim() || image) ? "#F5F5F5" : "#2a2a2a",
-            boxShadow: (value.trim() || image) ? "0 0 14px rgba(192,0,24,0.45)" : "none",
+            background: (value.trim() || image) ? "var(--primary)" : "transparent",
+            color: (value.trim() || image) ? "var(--primary-foreground)" : "var(--muted-foreground)",
+            boxShadow: (value.trim() || image) ? "0 0 14px color-mix(in srgb, var(--primary) 45%, transparent)" : "none",
           }}
         >
           <Send size={17} />
         </button>
       </div>
-      <p className="text-center mt-2.5 text-[9px] tracking-wider" style={{ fontFamily: "'Inter', sans-serif", color: "#222" }}>
+      <p className="text-center mt-2.5 text-[9px] tracking-wider" style={{ fontFamily: "'Inter', sans-serif", color: "var(--muted-foreground)" }}>
         {t("chatDisclaimer")}
       </p>
     </div>
   );
-}
+});

@@ -43,7 +43,7 @@ function FileIcon({ item }: { item: FileItem }) {
   if (["tsx", "ts", "js", "cjs", "py"].includes(ext || "")) return <FileCode size={13} style={{ color: "#3498db" }} />;
   if (["png", "jpg", "svg", "ico"].includes(ext || "")) return <FileImage size={13} style={{ color: "#2ecc71" }} />;
   if (["md", "txt", "json"].includes(ext || "")) return <FileText size={13} style={{ color: "#f39c12" }} />;
-  return <File size={13} style={{ color: "#666" }} />;
+  return <File size={13} style={{ color: "var(--muted-foreground)" }} />;
 }
 
 export function FilesPanel({ onClose }: { onClose: () => void }) {
@@ -62,35 +62,35 @@ export function FilesPanel({ onClose }: { onClose: () => void }) {
     >
       <motion.div
         className="w-[480px] max-h-[88vh] overflow-y-auto rounded-2xl border scrollbar-hide"
-        style={{ background: "#0c0c0c", borderColor: "#1e1e1e" }}
+        style={{ background: "var(--card)", borderColor: "var(--border)" }}
         initial={{ opacity: 0, y: 12, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 12, scale: 0.98 }}
         transition={{ type: "spring", damping: 28, stiffness: 320 }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: "#1a1a1a" }}>
+        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: "var(--border)" }}>
           <div className="flex items-center gap-2.5">
             {path.length > 0 ? (
-              <button onClick={() => setPath((p) => p.slice(0, -1))}><ArrowLeft size={15} style={{ color: "#666" }} /></button>
+              <button onClick={() => setPath((p) => p.slice(0, -1))}><ArrowLeft size={15} style={{ color: "var(--muted-foreground)" }} /></button>
             ) : (
               <FileText size={14} style={{ color: "#C00018" }} />
             )}
-            <span className="text-sm tracking-widest uppercase" style={{ fontFamily: "'Sora', sans-serif", color: "#F5F5F5" }}>
+            <span className="text-sm tracking-widest uppercase" style={{ fontFamily: "'Sora', sans-serif", color: "var(--foreground)" }}>
               {path.length > 0 ? path[path.length - 1].name : "Files"}
             </span>
           </div>
-          <button onClick={onClose} style={{ color: "#666" }}><X size={16} /></button>
+          <button onClick={onClose} style={{ color: "var(--muted-foreground)" }}><X size={16} /></button>
         </div>
 
         {/* Breadcrumb */}
         {path.length > 0 && (
-          <div className="px-6 py-2 flex items-center gap-1 text-[9px]" style={{ color: "#555" }}>
-            <button onClick={() => setPath([])} style={{ color: "#888" }}>root</button>
+          <div className="px-6 py-2 flex items-center gap-1 text-[9px]" style={{ color: "var(--muted-foreground)" }}>
+            <button onClick={() => setPath([])} style={{ color: "var(--muted-foreground)" }}>root</button>
             {path.map((p, i) => (
               <span key={i} className="flex items-center gap-1">
                 <ChevronRight size={8} />
-                <button onClick={() => setPath((prev) => prev.slice(0, i + 1))} style={{ color: i === path.length - 1 ? "#C00018" : "#888" }}>{p.name}</button>
+                <button onClick={() => setPath((prev) => prev.slice(0, i + 1))} style={{ color: i === path.length - 1 ? "#C00018" : "var(--muted-foreground)" }}>{p.name}</button>
               </span>
             ))}
           </div>
@@ -102,16 +102,16 @@ export function FilesPanel({ onClose }: { onClose: () => void }) {
               <button
                 key={item.name}
                 className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-colors"
-                style={{ background: "#111111", border: "1px solid #1e1e1e" }}
+                style={{ background: "var(--secondary)", border: "1px solid var(--border)" }}
                 onClick={() => { if (item.type === "folder") setPath((p) => [...p, item]); }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "#161616")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "#111111")}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent)")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "var(--secondary)")}
               >
                 <FileIcon item={item} />
-                <span className="text-[11px] flex-1" style={{ color: "#ccc", fontFamily: "'JetBrains Mono', monospace" }}>{item.name}</span>
-                {item.size && <span className="text-[9px]" style={{ color: "#444" }}>{item.size}</span>}
-                {item.modified && <span className="text-[9px]" style={{ color: "#444" }}>{item.modified}</span>}
-                {item.type === "folder" && <ChevronRight size={11} style={{ color: "#444" }} />}
+                <span className="text-[11px] flex-1" style={{ color: "var(--foreground)", fontFamily: "'JetBrains Mono', monospace" }}>{item.name}</span>
+                {item.size && <span className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>{item.size}</span>}
+                {item.modified && <span className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>{item.modified}</span>}
+                {item.type === "folder" && <ChevronRight size={11} style={{ color: "var(--muted-foreground)" }} />}
               </button>
             ))}
           </div>

@@ -1,0 +1,22 @@
+[
+  {
+    "keywords": [
+      "urgente",
+      "importante"
+    ],
+    "agent": "Marketing",
+    "action": "notify",
+    "id": "mrpk9w3r",
+    "enabled": true
+  },
+  {
+    "keywords": [
+      "reunião",
+      "meeting"
+    ],
+    "agent": "Finance",
+    "action": "task",
+    "id": "mrpk9w3s",
+    "enabled": true
+  }
+]

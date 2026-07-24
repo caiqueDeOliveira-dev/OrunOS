@@ -18,14 +18,32 @@ function req(method, urlStr, headers, body) {
   return new Promise((resolve, reject) => {
     const url = new URL(urlStr);
     const lib = url.protocol === "https:" ? https : http;
-    const payload = body !== undefined ? (typeof body === "string" ? body : JSON.stringify(body)) : undefined;
+    let payload;
+    let isBinary = false;
+    if (body !== undefined) {
+      if (Buffer.isBuffer(body)) {
+        payload = body;
+        isBinary = true;
+      } else if (typeof body === "string") {
+        payload = body;
+      } else {
+        payload = JSON.stringify(body);
+      }
+    }
+    const defaultHeaders = {};
+    if (payload) {
+      if (!isBinary) {
+        defaultHeaders["Content-Type"] = "application/json";
+      }
+      defaultHeaders["Content-Length"] = Buffer.byteLength(payload);
+    }
     const request = lib.request(
       {
         hostname: url.hostname,
         port: url.port || (url.protocol === "https:" ? 443 : 80),
         path: url.pathname + url.search,
         method,
-        headers: { ...(payload ? { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(payload) } : {}), ...headers },
+        headers: { ...defaultHeaders, ...headers },
         timeout: 30000,
       },
       (res) => {
@@ -69,14 +87,30 @@ async function transcribeWhisper(baseUrl, audioBuffer, mimeType = "audio/webm", 
   const fileFooter = Buffer.from(`\r\n--${boundary}\r\nContent-Disposition: form-data; name="model"\r\n\r\nsmall\r\n--${boundary}\r\nContent-Disposition: form-data; name="language"\r\n\r\n${language}\r\n--${boundary}\r\nContent-Disposition: form-data; name="response_format"\r\n\r\njson\r\n--${boundary}--\r\n`);
 
   const body = Buffer.concat([fileHeader, audioBuffer, fileFooter]);
+  const url = `${baseUrl}/v1/audio/transcriptions`;
 
-  const result = await req("POST", `${baseUrl}/v1/audio/transcriptions`, {
-    "Content-Type": `multipart/form-data; boundary=${boundary}`,
-    "Content-Length": body.length,
-  }, body);
+  try {
+    const result = await req("POST", url, {
+      "Content-Type": `multipart/form-data; boundary=${boundary}`,
+      "Content-Length": body.length,
+    }, body);
 
-  const parsed = JSON.parse(result.toString("utf8"));
-  return { text: parsed.text || "" };
+    const text = result.toString("utf8");
+    const parsed = JSON.parse(text);
+    return { text: parsed.text || "" };
+  } catch (err) {
+    // If /v1/audio/transcriptions fails, try /transcribe (faster-whisper native)
+    try {
+      const altResult = await req("POST", `${baseUrl}/transcribe`, {
+        "Content-Type": `multipart/form-data; boundary=${boundary}`,
+        "Content-Length": body.length,
+      }, body);
+      const parsed = JSON.parse(altResult.toString("utf8"));
+      return { text: parsed.text || parsed.transcription || "" };
+    } catch (err2) {
+      throw new Error(`STT failed: ${err.message} / ${err2.message}`);
+    }
+  }
 }
 
 /**

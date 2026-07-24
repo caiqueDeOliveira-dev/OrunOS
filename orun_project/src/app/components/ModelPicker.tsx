@@ -77,27 +77,27 @@ export function ModelPicker({ onClose }: { onClose: () => void }) {
     >
       <motion.div
         className="w-[440px] max-h-[80vh] flex flex-col rounded-2xl border overflow-hidden"
-        style={{ background: "#0c0c0c", borderColor: "#1e1e1e" }}
+        style={{ background: "var(--card)", borderColor: "var(--border)" }}
         initial={{ opacity: 0, y: 12, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: "#1a1a1a" }}>
+        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: "var(--border)" }}>
           <div className="flex items-center gap-2.5">
-            {provider && <button onClick={() => setProvider(null)} style={{ color: "#666" }}><ArrowLeft size={15} /></button>}
-            <span className="text-sm tracking-widest uppercase" style={{ fontFamily: "'Sora', sans-serif", color: "#F5F5F5" }}>
+            {provider && <button onClick={() => setProvider(null)} style={{ color: "var(--muted-foreground)" }}><ArrowLeft size={15} /></button>}
+            <span className="text-sm tracking-widest uppercase" style={{ fontFamily: "'Sora', sans-serif", color: "var(--foreground)" }}>
               {provider ? PROVIDER_INFO[provider].label : "/model"}
             </span>
           </div>
           <div className="flex items-center gap-2">
-            {provider && <button onClick={refresh} style={{ color: "#666" }}><RefreshCw size={14} className={loading ? "animate-spin" : ""} /></button>}
-            <button onClick={onClose} style={{ color: "#666" }}><X size={16} /></button>
+            {provider && <button onClick={refresh} style={{ color: "var(--muted-foreground)" }}><RefreshCw size={14} className={loading ? "animate-spin" : ""} /></button>}
+            <button onClick={onClose} style={{ color: "var(--muted-foreground)" }}><X size={16} /></button>
           </div>
         </div>
 
         <AnimatePresence mode="wait">
           {!provider ? (
             <motion.div key="providers" className="p-4 overflow-y-auto scrollbar-hide" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <p className="text-[10px] px-2 mb-3" style={{ color: "#555" }}>{t("modelPickerHint")}</p>
+              <p className="text-[10px] px-2 mb-3" style={{ color: "var(--muted-foreground)" }}>{t("modelPickerHint")}</p>
               <div className="grid grid-cols-2 gap-2">
                 {(Object.keys(PROVIDER_INFO) as OrunProvider[]).map((p) => {
                   const info = PROVIDER_INFO[p];
@@ -107,7 +107,7 @@ export function ModelPicker({ onClose }: { onClose: () => void }) {
                       key={p}
                       onDoubleClick={() => openProvider(p)}
                       className="flex items-center gap-1.5 p-3 rounded-xl border text-left"
-                      style={{ borderColor: isActive ? "#C00018" : "#1e1e1e", background: isActive ? "rgba(192,0,24,0.08)" : "#111111", color: isActive ? "#FF1A2D" : "#888" }}
+                      style={{ borderColor: isActive ? "#C00018" : "var(--border)", background: isActive ? "rgba(192,0,24,0.08)" : "var(--secondary)", color: isActive ? "#FF1A2D" : "var(--muted-foreground)" }}
                     >
                       {info.kind === "cloud" ? <Cloud size={13} /> : <Cpu size={13} />}
                       <span className="text-xs" style={{ fontFamily: "'Sora', sans-serif" }}>{info.label}</span>
@@ -119,8 +119,8 @@ export function ModelPicker({ onClose }: { onClose: () => void }) {
             </motion.div>
           ) : (
             <motion.div key="models" className="flex-1 overflow-y-auto p-4 scrollbar-hide" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              {loading && <p className="text-[11px] text-center py-4" style={{ color: "#555" }}><Loader2 size={14} className="animate-spin inline mr-1.5" />{t("modelPickerLoading")}</p>}
-              {!loading && models.length === 0 && <p className="text-[10px]" style={{ color: "#555" }}>{t("modelPickerNotFound")}</p>}
+              {loading && <p className="text-[11px] text-center py-4" style={{ color: "var(--muted-foreground)" }}><Loader2 size={14} className="animate-spin inline mr-1.5" />{t("modelPickerLoading")}</p>}
+              {!loading && models.length === 0 && <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>{t("modelPickerNotFound")}</p>}
               <div className="space-y-1.5">
                 {models.map((m) => {
                   const isSelected = selected?.provider === provider && selected.model === m.id;
@@ -129,15 +129,15 @@ export function ModelPicker({ onClose }: { onClose: () => void }) {
                       key={m.id}
                       onClick={() => selectModel(m.id)}
                       className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left"
-                      style={{ background: isSelected ? "rgba(192,0,24,0.08)" : "#111111", border: `1px solid ${isSelected ? "#C00018" : "#1e1e1e"}` }}
+                      style={{ background: isSelected ? "rgba(192,0,24,0.08)" : "var(--secondary)", border: `1px solid ${isSelected ? "#C00018" : "var(--border)"}` }}
                     >
-                      <span className="text-xs flex-1 truncate" style={{ fontFamily: "'JetBrains Mono', monospace", color: isSelected ? "#F5F5F5" : "#ccc" }}>{m.id}</span>
+                      <span className="text-xs flex-1 truncate" style={{ fontFamily: "'JetBrains Mono', monospace", color: isSelected ? "#F5F5F5" : "var(--foreground)" }}>{m.id}</span>
                       {m.free ? (
                         <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-medium tracking-wider" style={{ background: "rgba(46,204,113,0.12)", color: "#2ecc71" }}>
                           <Sparkles size={9} /> FREE
                         </span>
                       ) : (
-                        <span className="px-1.5 py-0.5 rounded text-[8px] font-medium tracking-wider" style={{ background: "rgba(255,26,45,0.1)", color: "#888" }}>
+                        <span className="px-1.5 py-0.5 rounded text-[8px] font-medium tracking-wider" style={{ background: "rgba(255,26,45,0.1)", color: "var(--muted-foreground)" }}>
                           PAID
                         </span>
                       )}

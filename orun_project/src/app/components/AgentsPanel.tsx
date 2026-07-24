@@ -3,36 +3,37 @@ import { X, BarChart3 } from "lucide-react";
 import { useTranslation } from "../../i18n/I18nProvider";
 import { getAgents } from "../constants";
 
-const DATA_AGENTS = ["Finance", "Health", "Developer", "Teacher", "Video Editor", "3D Designer", "Music Producer", "Social Media"];
+const DATA_AGENTS = ["Finance", "Health", "Developer", "Teacher", "Creator", "Designer", "Marketing"];
 
 interface Props {
   onClose: () => void;
   onSelectAgent: (agentName: string) => void;
+  onOpenAgentPage: (agentName: string) => void;
   onViewData?: (agentName: string) => void;
 }
 
-export function AgentsPanel({ onClose, onSelectAgent, onViewData }: Props) {
+export function AgentsPanel({ onClose, onSelectAgent, onOpenAgentPage, onViewData }: Props) {
   const { t } = useTranslation();
   const AGENTS = getAgents(t);
   return (
     <motion.div
-      className="fixed left-16 top-0 h-full z-30 flex flex-col border-r overflow-hidden"
-      style={{ width: 270, background: "#0e0e0e", borderColor: "#1e1e1e" }}
+      className="fixed left-16 top-8 h-[calc(100%-2rem)] z-30 flex flex-col border-r overflow-hidden"
+      style={{ width: 270, background: "var(--card)", borderColor: "var(--border)" }}
       initial={{ x: -270, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: -270, opacity: 0 }}
       transition={{ type: "spring", damping: 28, stiffness: 320 }}
     >
-      <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: "#1a1a1a" }}>
+      <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: "var(--border)" }}>
         <span className="text-[10px] tracking-[0.24em] uppercase text-[#B5B5B5]" style={{ fontFamily: "'Sora', sans-serif" }}>
           {t("agentModelsTitle")}
         </span>
         <button
           onClick={onClose}
           className="p-1 rounded transition-colors"
-          style={{ color: "#444" }}
+          style={{ color: "var(--muted-foreground)" }}
           onMouseEnter={e => (e.currentTarget.style.color = "#B5B5B5")}
-          onMouseLeave={e => (e.currentTarget.style.color = "#444")}
+          onMouseLeave={e => (e.currentTarget.style.color = "var(--muted-foreground)")}
         >
           <X size={14} />
         </button>
@@ -45,10 +46,10 @@ export function AgentsPanel({ onClose, onSelectAgent, onViewData }: Props) {
           return (
             <motion.button
               key={agent.name}
-              onClick={() => { if (!agent.special) onSelectAgent(agent.name); else onClose(); }}
+              onClick={() => { if (!agent.special) onOpenAgentPage(agent.name); else onClose(); }}
               className="w-full flex items-center gap-3 px-5 py-2.5 text-left transition-colors group"
-              style={{ color: "#888" }}
-              whileHover={{ backgroundColor: "rgba(255,255,255,0.025)", color: "#F5F5F5" }}
+              style={{ color: "var(--muted-foreground)" }}
+              whileHover={{ backgroundColor: "rgba(255,255,255,0.025)", color: "var(--foreground)" }}
               initial={{ opacity: 0, x: -8 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: idx * 0.025 }}
@@ -58,7 +59,7 @@ export function AgentsPanel({ onClose, onSelectAgent, onViewData }: Props) {
                 <div className="text-xs truncate" style={{
                   fontFamily: "'Sora', sans-serif",
                   fontWeight: agent.special ? 500 : 300,
-                  color: agent.special ? "#F5F5F5" : "inherit",
+                  color: agent.special ? "var(--foreground)" : "inherit",
                 }}>
                   {agent.name}
                 </div>
@@ -70,7 +71,7 @@ export function AgentsPanel({ onClose, onSelectAgent, onViewData }: Props) {
                 <button
                   onClick={(e) => { e.stopPropagation(); onViewData(agent.name); }}
                   className="opacity-0 group-hover:opacity-100 p-1 rounded transition-opacity"
-                  style={{ color: "#555" }}
+                  style={{ color: "var(--muted-foreground)" }}
                   title={`View ${agent.name} data`}
                 >
                   <BarChart3 size={12} />

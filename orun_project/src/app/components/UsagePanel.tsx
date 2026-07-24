@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { X, ArrowLeft, Activity } from "lucide-react";
+import { X, ArrowLeft, Activity, Loader2 } from "lucide-react";
 import { isElectron } from "../constants";
 import { useTranslation } from "../../i18n/I18nProvider";
 import type { OrunUsageRow, OrunTTSUsageRow } from "../../types/orun";
@@ -46,42 +46,42 @@ export function UsagePanel({ onClose, onBack }: { onClose: () => void; onBack: (
     >
       <motion.div
         className="w-[440px] max-h-[80vh] flex flex-col rounded-2xl border overflow-hidden"
-        style={{ background: "#0c0c0c", borderColor: "#1e1e1e" }}
+        style={{ background: "var(--card)", borderColor: "var(--border)" }}
         initial={{ opacity: 0, y: 12, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: "#1a1a1a" }}>
+        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: "var(--border)" }}>
           <div className="flex items-center gap-2.5">
-            <button onClick={onBack} style={{ color: "#666" }}><ArrowLeft size={15} /></button>
+            <button onClick={onBack} style={{ color: "var(--muted-foreground)" }}><ArrowLeft size={15} /></button>
             <Activity size={14} style={{ color: "#C00018" }} />
-            <span className="text-sm tracking-widest uppercase" style={{ fontFamily: "'Sora', sans-serif", color: "#F5F5F5" }}>{t("usageTitle")}</span>
+            <span className="text-sm tracking-widest uppercase" style={{ fontFamily: "'Sora', sans-serif", color: "var(--foreground)" }}>{t("usageTitle")}</span>
           </div>
-          <button onClick={onClose} style={{ color: "#666" }}><X size={16} /></button>
+          <button onClick={onClose} style={{ color: "var(--muted-foreground)" }}><X size={16} /></button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
-          {!isElectron && <p className="text-[11px]" style={{ color: "#555" }}>{t("usageBrowserWarning")}</p>}
-          {isElectron && loading && <p className="text-[11px]" style={{ color: "#555" }}>{t("usageLoading")}</p>}
+          {!isElectron && <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{t("usageBrowserWarning")}</p>}
+          {isElectron && loading && <div className="flex items-center gap-2"><Loader2 size={12} className="animate-spin" style={{ color: "var(--muted-foreground)" }} /><span className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{t("usageLoading")}</span></div>}
           {isElectron && !loading && rows.length === 0 && (
-            <p className="text-[11px]" style={{ color: "#555" }}>{t("usageNoRequests")}</p>
+            <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{t("usageNoRequests")}</p>
           )}
           {rows.length > 0 && (
             <div className="space-y-3">
               {rows.map((r) => (
-                <div key={r.provider} className="p-3 rounded-xl border" style={{ borderColor: "#1a1a1a", background: "#111111" }}>
+                <div key={r.provider} className="p-3 rounded-xl border" style={{ borderColor: "var(--border)", background: "var(--secondary)" }}>
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs" style={{ fontFamily: "'Sora', sans-serif", color: "#ddd" }}>
+                    <span className="text-xs" style={{ fontFamily: "'Sora', sans-serif", color: "var(--foreground)" }}>
                       {PROVIDER_LABELS[r.provider] || r.provider}
                     </span>
-                    <span className="text-[10px]" style={{ fontFamily: "'JetBrains Mono', monospace", color: "#555" }}>{r.requests} req</span>
+                    <span className="text-[10px]" style={{ fontFamily: "'JetBrains Mono', monospace", color: "var(--muted-foreground)" }}>{r.requests} req</span>
                   </div>
-                  <div className="flex gap-4 text-[10px]" style={{ fontFamily: "'JetBrains Mono', monospace", color: "#666" }}>
+                  <div className="flex gap-4 text-[10px]" style={{ fontFamily: "'JetBrains Mono', monospace", color: "var(--muted-foreground)" }}>
                     <span>in: {r.tokens_in.toLocaleString()}</span>
                     <span>out: {r.tokens_out.toLocaleString()}</span>
                   </div>
                 </div>
               ))}
-              <p className="text-[10px] pt-1" style={{ color: "#444" }}>
+              <p className="text-[10px] pt-1" style={{ color: "var(--muted-foreground)" }}>
                 {totalRequests} {t("usageTotalRequests")}
                 {t("usageTokenNote")}
               </p>
@@ -89,13 +89,13 @@ export function UsagePanel({ onClose, onBack }: { onClose: () => void; onBack: (
           )}
 
           {ttsRows.length > 0 && (
-            <div className="mt-5 pt-4 border-t space-y-3" style={{ borderColor: "#1a1a1a" }}>
-              <p className="text-[10px] tracking-wider uppercase" style={{ color: "#555" }}>{t("usageVoiceTTS")}</p>
+            <div className="mt-5 pt-4 border-t space-y-3" style={{ borderColor: "var(--border)" }}>
+              <p className="text-[10px] tracking-wider uppercase" style={{ color: "var(--muted-foreground)" }}>{t("usageVoiceTTS")}</p>
               {ttsRows.map((r) => (
-                <div key={r.engine} className="p-3 rounded-xl border" style={{ borderColor: "#1a1a1a", background: "#111111" }}>
+                <div key={r.engine} className="p-3 rounded-xl border" style={{ borderColor: "var(--border)", background: "var(--secondary)" }}>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs" style={{ fontFamily: "'Sora', sans-serif", color: "#ddd" }}>{PROVIDER_LABELS[r.engine] || r.engine}</span>
-                    <span className="text-[10px]" style={{ fontFamily: "'JetBrains Mono', monospace", color: "#555" }}>{r.requests} calls · {r.characters.toLocaleString()} chars</span>
+                    <span className="text-xs" style={{ fontFamily: "'Sora', sans-serif", color: "var(--foreground)" }}>{PROVIDER_LABELS[r.engine] || r.engine}</span>
+                    <span className="text-[10px]" style={{ fontFamily: "'JetBrains Mono', monospace", color: "var(--muted-foreground)" }}>{r.requests} calls · {r.characters.toLocaleString()} chars</span>
                   </div>
                 </div>
               ))}

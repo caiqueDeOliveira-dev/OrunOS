@@ -1,25 +1,31 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Pencil, RefreshCw, Check, X as XIcon, ChevronRight, Wrench } from "lucide-react";
+import Markdown from "react-markdown";
 import { useTranslation } from "../../i18n/I18nProvider";
 import type { Message } from "../types";
 
-const TOOL_LABELS: Record<string, string> = {
-  read_file: "Reading file",
-  write_file: "Writing file",
-  edit_file: "Editing file",
-  list_files: "Listing files",
-  search_files: "Searching files",
-  search_content: "Searching content",
-  run_command: "Running command",
-  web_fetch: "Fetching URL",
-  memory_save: "Saving memory",
-  memory_search: "Searching memory",
-  notify: "Sending notification",
-  schedule_task: "Scheduling task",
-};
+interface ToolResultError { error?: string; message?: string }
 
-export function MessageBubble({
+function useToolLabels() {
+  const { t } = useTranslation();
+  return {
+    read_file: t("toolReadingFile"),
+    write_file: t("toolWritingFile"),
+    edit_file: t("toolEditingFile"),
+    list_files: t("toolListingFiles"),
+    search_files: t("toolSearchingFiles"),
+    search_content: t("toolSearchingContent"),
+    run_command: t("toolRunningCommand"),
+    web_fetch: t("toolFetchingUrl"),
+    memory_save: t("toolSavingMemory"),
+    memory_search: t("toolSearchingMemory"),
+    notify: t("toolSendingNotification"),
+    schedule_task: t("toolSchedulingTask"),
+  };
+}
+
+export const MessageBubble = React.memo(function MessageBubble({
   msg, streaming, onEdit, onRegenerate,
 }: {
   msg: Message;
@@ -28,6 +34,7 @@ export function MessageBubble({
   onRegenerate?: () => void;
 }) {
   const { t } = useTranslation();
+  const toolLabels = useToolLabels();
   const isHampton = msg.role === "hampton";
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(msg.content);
@@ -59,10 +66,10 @@ export function MessageBubble({
         <div
           className="max-w-md px-4 py-3 rounded-2xl text-sm leading-relaxed"
           style={{
-            background: isHampton ? "#131313" : "rgba(192,0,24,0.08)",
-            border: `1px solid ${isHampton ? "#1e1e1e" : "rgba(192,0,24,0.18)"}`,
+            background: isHampton ? "var(--card)" : "rgba(192,0,24,0.08)",
+            border: `1px solid ${isHampton ? "var(--border)" : "rgba(192,0,24,0.18)"}`,
             fontFamily: "'Inter', sans-serif",
-            color: "#E0E0E0",
+            color: "var(--foreground)",
             fontWeight: 300,
           }}
         >
@@ -78,10 +85,10 @@ export function MessageBubble({
                 <Wrench size={10} />
                 <span>{toolCalls.length} tool{toolCalls.length > 1 ? "s" : ""}</span>
                 {!toolCalls.some(tc => !tc.result) && toolCalls.every(tc => tc.result) && (
-                  <span style={{ color: "#2ecc71" }}>done</span>
+                  <span style={{ color: "#22C55E" }}>{t("toolDone")}</span>
                 )}
                 {toolCalls.some(tc => !tc.result) && (
-                  <span style={{ color: "#666", animation: "orunStatePulse 1s ease-in-out infinite" }}>working...</span>
+                  <span style={{ color: "var(--muted-foreground)", animation: "orunStatePulse 1s ease-in-out infinite" }}>{t("toolWorking")}</span>
                 )}
               </button>
               <AnimatePresence>
@@ -96,21 +103,21 @@ export function MessageBubble({
                       <div key={tc.id} className="flex items-start gap-2 text-[11px] py-1 px-2 rounded" style={{ background: "rgba(192,0,24,0.05)", border: "1px solid rgba(192,0,24,0.1)" }}>
                         <div className="flex-shrink-0 mt-0.5">
                           {tc.result ? (
-                            <div className="w-1.5 h-1.5 rounded-full" style={{ background: "#2ecc71" }} />
+                            <div className="w-1.5 h-1.5 rounded-full" style={{ background: "#22C55E" }} />
                           ) : (
                             <div className="w-1.5 h-1.5 rounded-full" style={{ background: "#C00018", animation: "orunStatePulse 1s ease-in-out infinite" }} />
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <span style={{ color: "#C00018", fontFamily: "'Sora', sans-serif" }}>{TOOL_LABELS[tc.name] || tc.name}</span>
-                          {tc.arguments?.path && <span style={{ color: "#666" }}> — {String(tc.arguments.path).split(/[/\\]/).pop()}</span>}
-                          {tc.arguments?.command && <span style={{ color: "#666" }}> — {String(tc.arguments.command).slice(0, 40)}</span>}
-                          {tc.arguments?.url && <span style={{ color: "#666" }}> — {String(tc.arguments.url).slice(0, 40)}</span>}
-                          {tc.arguments?.key && <span style={{ color: "#666" }}> — {String(tc.arguments.key)}</span>}
-                          {tc.arguments?.query && <span style={{ color: "#666" }}> — {String(tc.arguments.query).slice(0, 40)}</span>}
-                          {tc.arguments?.pattern && <span style={{ color: "#666" }}> — {String(tc.arguments.pattern).slice(0, 40)}</span>}
-                          {tc.result && typeof tc.result === "object" && (tc.result as any).error && (
-                            <span style={{ color: "#e74c3c" }}> — {(tc.result as any).error}</span>
+                          <span style={{ color: "#C00018", fontFamily: "'Sora', sans-serif" }}>{(toolLabels as Record<string, string>)[tc.name] || tc.name}</span>
+                          {String(tc.arguments?.path ?? "") && <span style={{ color: "var(--muted-foreground)" }}> — {String(tc.arguments!.path).split(/[/\\]/).pop()}</span>}
+                          {String(tc.arguments?.command ?? "") && <span style={{ color: "var(--muted-foreground)" }}> — {String(tc.arguments!.command).slice(0, 40)}</span>}
+                          {String(tc.arguments?.url ?? "") && <span style={{ color: "var(--muted-foreground)" }}> — {String(tc.arguments!.url).slice(0, 40)}</span>}
+                          {String(tc.arguments?.key ?? "") && <span style={{ color: "var(--muted-foreground)" }}> — {String(tc.arguments!.key)}</span>}
+                          {String(tc.arguments?.query ?? "") && <span style={{ color: "var(--muted-foreground)" }}> — {String(tc.arguments!.query).slice(0, 40)}</span>}
+                          {String(tc.arguments?.pattern ?? "") && <span style={{ color: "var(--muted-foreground)" }}> — {String(tc.arguments!.pattern).slice(0, 40)}</span>}
+                          {tc.result != null && typeof tc.result === "object" && (tc.result as ToolResultError).error && (
+                            <span style={{ color: "#EF4444" }}> — {String((tc.result as ToolResultError).error)}</span>
                           )}
                         </div>
                       </div>
@@ -126,19 +133,29 @@ export function MessageBubble({
               <textarea
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") setEditing(false);
+                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); confirmEdit(); }
+                }}
                 rows={Math.min(6, Math.max(2, draft.split("\n").length))}
                 className="bg-transparent outline-none text-sm resize-none w-64"
-                style={{ color: "#E0E0E0", fontFamily: "'Inter', sans-serif" }}
+                style={{ color: "var(--foreground)", fontFamily: "'Inter', sans-serif" }}
                 autoFocus
               />
               <div className="flex gap-2 justify-end">
-                <button onClick={() => setEditing(false)} style={{ color: "#666" }}><XIcon size={13} /></button>
-                <button onClick={confirmEdit} style={{ color: "#2ecc71" }}><Check size={13} /></button>
+                <button onClick={() => setEditing(false)} aria-label={t("ariaCancelEdit")} style={{ color: "var(--muted-foreground)" }}><XIcon size={13} /></button>
+                <button onClick={confirmEdit} aria-label={t("ariaConfirmEdit")} style={{ color: "#22C55E" }}><Check size={13} /></button>
               </div>
             </div>
           ) : (
             <>
-              {msg.content}
+              {isHampton && !streaming ? (
+                <div className="prose prose-sm dark:prose-invert max-w-none" style={{ color: "var(--foreground)", fontFamily: "'Inter', sans-serif", lineHeight: 1.6 }}>
+                  <Markdown>{msg.content}</Markdown>
+                </div>
+              ) : (
+                msg.content
+              )}
               {streaming && (
                 <span
                   className="inline-block ml-0.5"
@@ -153,14 +170,14 @@ export function MessageBubble({
         {!editing && hovering && !streaming && (
           <div className="flex flex-col gap-1 pb-1">
             {!isHampton && onEdit && (
-              <button onClick={() => { setDraft(msg.content); setEditing(true); }} title={t("messageEditResend")} style={{ color: "#555" }}><Pencil size={12} /></button>
+              <button onClick={() => { setDraft(msg.content); setEditing(true); }} title={t("messageEditResend")} aria-label={t("ariaEditMessage")} style={{ color: "var(--muted-foreground)" }}><Pencil size={12} /></button>
             )}
             {isHampton && onRegenerate && (
-              <button onClick={onRegenerate} title={t("messageRegenerate")} style={{ color: "#555" }}><RefreshCw size={12} /></button>
+              <button onClick={onRegenerate} title={t("messageRegenerate")} aria-label={t("ariaRegenerate")} style={{ color: "var(--muted-foreground)" }}><RefreshCw size={12} /></button>
             )}
           </div>
         )}
       </div>
     </motion.div>
   );
-}
+});

@@ -1,0 +1,7 @@
+{
+  "name": "Hello World Plugin",
+  "version": "1.0.0",
+  "description": "Exemplo de plugin para Orun OS",
+  "author": "Orun OS",
+  "main": "index.js"
+}

@@ -10,10 +10,90 @@
 
 const https = require("https");
 const http = require("http");
+const logger = require("./logger.cjs");
+const httpAgent = new http.Agent({ keepAlive: true, maxSockets: 10, maxFreeSockets: 5, timeout: 120000 });
+const httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 10, maxFreeSockets: 5, timeout: 120000 });
+
+// ── Rate limiting per provider ──────────────────────────────────────────
+
+const PROVIDER_RATE_LIMITS = {
+  groq: { rpm: 30, rpd: 14400 },
+  openrouter: { rpm: 200, rpd: 200 },
+  github: { rpm: 15, rpd: 1500 },
+  opencodezen: { rpm: 60, rpd: 1000 },
+};
+
+const providerRequests = {};
+
+function trackProviderRequest(provider) {
+  if (!providerRequests[provider]) {
+    providerRequests[provider] = { minute: [], day: [] };
+  }
+  const now = Date.now();
+  const oneMinuteAgo = now - 60 * 1000;
+  const oneDayAgo = now - 24 * 60 * 60 * 1000;
+  providerRequests[provider].minute = providerRequests[provider].minute.filter(t => t > oneMinuteAgo);
+  providerRequests[provider].day = providerRequests[provider].day.filter(t => t > oneDayAgo);
+  providerRequests[provider].minute.push(now);
+  providerRequests[provider].day.push(now);
+}
+
+const providerCooldownUntil = {};
+
+function markProviderRateLimited(provider, retryAfterSeconds) {
+  const cooldownMs = (retryAfterSeconds || 60) * 1000;
+  providerCooldownUntil[provider] = Date.now() + cooldownMs;
+  logger.ai.info(`[ai-router] ${provider} marked rate-limited for ${retryAfterSeconds || 60}s`);
+}
+
+function isProviderRateLimited(provider) {
+  if (providerCooldownUntil[provider] && Date.now() < providerCooldownUntil[provider]) return true;
+  const limits = PROVIDER_RATE_LIMITS[provider];
+  if (!limits) return false;
+  const requests = providerRequests[provider];
+  if (!requests) return false;
+  const now = Date.now();
+  const oneMinuteAgo = now - 60 * 1000;
+  const oneDayAgo = now - 24 * 60 * 60 * 1000;
+  const minuteCount = requests.minute.filter(t => t > oneMinuteAgo).length;
+  const dayCount = requests.day.filter(t => t > oneDayAgo).length;
+  return minuteCount >= limits.rpm || dayCount >= limits.rpd;
+}
+
+function getProviderRateLimitStatus(provider) {
+  const limits = PROVIDER_RATE_LIMITS[provider];
+  if (!limits) return null;
+  const requests = providerRequests[provider];
+  if (!requests) return { minute: 0, day: 0, limits };
+  const now = Date.now();
+  const oneMinuteAgo = now - 60 * 1000;
+  const oneDayAgo = now - 24 * 60 * 60 * 1000;
+  const minuteCount = requests.minute.filter(t => t > oneMinuteAgo).length;
+  const dayCount = requests.day.filter(t => t > oneDayAgo).length;
+  return {
+    minute: minuteCount,
+    day: dayCount,
+    limits,
+    minuteRemaining: limits.rpm - minuteCount,
+    dayRemaining: limits.rpd - dayCount,
+  };
+}
+
+function selectBestProvider(requestedProvider, allowedProviders) {
+  if (requestedProvider && !isProviderRateLimited(requestedProvider) && allowedProviders.includes(requestedProvider)) {
+    return requestedProvider;
+  }
+  for (const provider of allowedProviders) {
+    if (!isProviderRateLimited(provider)) {
+      return provider;
+    }
+  }
+  return requestedProvider || allowedProviders[0];
+}
 
 // ── Low-level HTTP helpers ──────────────────────────────────────────────
 
-function postJSON(urlString, headers, body, timeoutMs = 15000) {
+function postJSON(urlString, headers, body, timeoutMs = 60000) {
   return new Promise((resolve, reject) => {
     const url = new URL(urlString);
     const lib = url.protocol === "https:" ? https : http;
@@ -22,7 +102,7 @@ function postJSON(urlString, headers, body, timeoutMs = 15000) {
     const timer = setTimeout(() => ac.abort(), timeoutMs);
     const req = lib.request(
       { hostname: url.hostname, port: url.port || (url.protocol === "https:" ? 443 : 80), path: url.pathname + url.search, method: "POST",
-        headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(payload), ...headers }, signal: ac.signal },
+        headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(payload), ...headers }, signal: ac.signal, agent: url.protocol === "https:" ? httpsAgent : httpAgent },
       (res) => {
         let data = "";
         res.on("data", (chunk) => (data += chunk));
@@ -44,7 +124,7 @@ function getJSON(urlString, headers = {}) {
     const url = new URL(urlString);
     const lib = url.protocol === "https:" ? https : http;
     const req = lib.request(
-      { hostname: url.hostname, port: url.port || (url.protocol === "https:" ? 443 : 80), path: url.pathname + url.search, method: "GET", headers, timeout: 10000 },
+      { hostname: url.hostname, port: url.port || (url.protocol === "https:" ? 443 : 80), path: url.pathname + url.search, method: "GET", headers, timeout: 10000, agent: url.protocol === "https:" ? httpsAgent : httpAgent },
       (res) => {
         let data = "";
         res.on("data", (chunk) => (data += chunk));
@@ -72,7 +152,7 @@ function streamPOST(urlString, headers, body, onLine, onRequestReady) {
     const payload = JSON.stringify(body);
     const req = lib.request(
       { hostname: url.hostname, port: url.port || (url.protocol === "https:" ? 443 : 80), path: url.pathname + url.search, method: "POST",
-        headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(payload), ...headers }, timeout: 120000 },
+        headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(payload), ...headers }, timeout: 120000, agent: url.protocol === "https:" ? httpsAgent : httpAgent },
       (res) => {
         if (res.statusCode && res.statusCode >= 400) {
           let errBody = "";
@@ -105,7 +185,7 @@ function streamPOST(urlString, headers, body, onLine, onRequestReady) {
 
 // ── Context management ──────────────────────────────────────────────────
 
-function trimContext(messages, systemPrompt, maxMessages = 16) {
+function trimContext(messages, systemPrompt, maxMessages = 10) {
   const trimmed = messages.length > maxMessages ? messages.slice(-maxMessages) : messages.slice();
   if (systemPrompt && systemPrompt.trim()) return [{ role: "system", content: systemPrompt.trim() }, ...trimmed];
   return trimmed;
@@ -122,7 +202,7 @@ const SUMMARY_PROMPT =
  * Falls back to plain trimming if the summarization call itself fails
  * (e.g. provider down) so a flaky summary never blocks the real reply.
  */
-async function buildContext({ messages, systemPrompt, maxMessages = 16, provider, model, baseUrl, apiKey }) {
+async function buildContext({ messages, systemPrompt, maxMessages = 10, provider, model, baseUrl, apiKey }) {
   if (messages.length <= maxMessages) return { context: trimContext(messages, systemPrompt, maxMessages), summarized: false };
 
   const overflow = messages.slice(0, messages.length - maxMessages);
@@ -208,6 +288,9 @@ function parseRetryAfter(err) {
 
 function sleepMs(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
+// Approximate token count (1 token ≈ 4 chars for English, ~2 for CJK)
+const estimateTokens = (text) => Math.ceil((text || "").length / 3.5);
+
 function nextFreeModel(provider, currentModel) {
   const free = KNOWN_FREE_MODELS[provider];
   if (!free || free.length <= 1) return null;
@@ -248,11 +331,14 @@ async function chatAnthropic({ model, messages, apiKey, tools }) {
   return { text, toolCalls, usage: { tokensIn: result.usage?.input_tokens || 0, tokensOut: result.usage?.output_tokens || 0 } };
 }
 
-async function chatOpenAICompatible(provider, { model, messages, apiKey, tools }) {
+async function chatOpenAICompatible(provider, { model, messages, apiKey, tools, tool_choice }) {
   const cfg = OPENAI_COMPATIBLE[provider];
   if (!apiKey) throw new Error(`Missing API key for ${provider}.`);
   const body = { model: model || cfg.defaultModel, messages: formatMessagesFor(provider, messages) };
-  if (tools && tools.length) body.tools = tools;
+  if (tools && tools.length) {
+    body.tools = tools;
+    if (tool_choice) body.tool_choice = tool_choice;
+  }
   const result = await postJSON(`${cfg.baseUrl}/chat/completions`, cfg.authHeaders(apiKey), body);
   const choice = result.choices && result.choices[0];
   if (!choice) throw new Error(`No choice returned by ${provider}.`);
@@ -266,20 +352,21 @@ async function chatOpenAICompatible(provider, { model, messages, apiKey, tools }
 
 // ── Streaming functions ────────────────────────────────────────────────
 
-async function streamOllama({ model, messages, baseUrl, onToken }) {
+async function streamOllama({ model, messages, baseUrl, onChunk }) {
   const url = `${baseUrl || "http://localhost:11434"}/api/chat`;
   const body = { model, messages: formatMessagesFor("ollama", messages), stream: true };
+  const systemPrompt = messages.find((m) => m.role === "system")?.content || "";
   let fullText = "";
   await streamPOST(url, {}, body, (line) => {
     try {
       const obj = JSON.parse(line);
-      if (obj.message?.content) { fullText += obj.message.content; onToken?.(obj.message.content); }
+      if (obj.message?.content) { fullText += obj.message.content; onChunk?.(obj.message.content); }
     } catch { /* ignore partial lines */ }
   });
-  return { text: fullText, toolCalls: [], usage: { tokensIn: 0, tokensOut: 0 } };
+  return { text: fullText, toolCalls: [], usage: { tokensIn: estimateTokens(systemPrompt), tokensOut: estimateTokens(fullText) } };
 }
 
-async function streamAnthropic({ model, messages, apiKey, onToken }) {
+async function streamAnthropic({ model, messages, apiKey, onChunk }) {
   const system = messages.find((m) => m.role === "system")?.content;
   const rest = messages.filter((m) => m.role !== "system");
   const body = { model: model || "claude-sonnet-4-6", max_tokens: 4096, system, messages: formatMessagesFor("anthropic", rest), stream: true };
@@ -287,25 +374,26 @@ async function streamAnthropic({ model, messages, apiKey, onToken }) {
   await streamPOST("https://api.anthropic.com/v1/messages", { "x-api-key": apiKey, "anthropic-version": "2023-06-01", accept: "application/vnd.ant.messages+json" }, body, (line) => {
     try {
       const obj = JSON.parse(line.replace(/^data: /, ""));
-      if (obj.type === "content_block_delta" && obj.delta?.text) { fullText += obj.delta.text; onToken?.(obj.delta.text); }
+      if (obj.type === "content_block_delta" && obj.delta?.text) { fullText += obj.delta.text; onChunk?.(obj.delta.text); }
     } catch { /* ignore */ }
   });
-  return { text: fullText, toolCalls: [], usage: { tokensIn: 0, tokensOut: 0 } };
+  return { text: fullText, toolCalls: [], usage: { tokensIn: estimateTokens(system), tokensOut: estimateTokens(fullText) } };
 }
 
-async function streamOpenAICompatible(provider, { model, messages, apiKey, onToken }) {
+async function streamOpenAICompatible(provider, { model, messages, apiKey, onChunk }) {
   const cfg = OPENAI_COMPATIBLE[provider];
   if (!apiKey) throw new Error(`Missing API key for ${provider}.`);
   const body = { model: model || cfg.defaultModel, messages: formatMessagesFor(provider, messages), stream: true };
+  const systemPrompt = messages.find((m) => m.role === "system")?.content || "";
   let fullText = "";
   await streamPOST(`${cfg.baseUrl}/chat/completions`, cfg.authHeaders(apiKey), body, (line) => {
     try {
       const obj = JSON.parse(line.replace(/^data: /, ""));
       const delta = obj.choices?.[0]?.delta?.content;
-      if (delta) { fullText += delta; onToken?.(delta); }
+      if (delta) { fullText += delta; onChunk?.(delta); }
     } catch { /* ignore */ }
   });
-  return { text: fullText, toolCalls: [], usage: { tokensIn: 0, tokensOut: 0 } };
+  return { text: fullText, toolCalls: [], usage: { tokensIn: estimateTokens(systemPrompt), tokensOut: estimateTokens(fullText) } };
 }
 
 // Inner routeChat — no retry logic, used by retry wrapper
@@ -317,49 +405,76 @@ async function routeChatOnce(req) {
 }
 
 /**
- * routeChat with 429 retry: if the provider returns HTTP 429 with
- * retry_after_seconds, waits that long and retries. If retries are
- * exhausted, auto-falls back to the next free model for that provider.
- * Includes a per-request timeout to prevent hanging.
+ * routeChat with 429 retry and per-provider rate limiting.
+ * If the requested provider is rate limited, selects the best available
+ * provider before making the call. After a successful call, tracks the
+ * request. If retries are exhausted, auto-falls back to the next free
+ * model for that provider, then cross-provider.
  */
 async function routeChat(req) {
+  const allProviders = ["groq", "openrouter", "github", "opencodezen"];
+  const bestProvider = selectBestProvider(req.provider, allProviders.filter((p) => p !== "ollama" && p !== "anthropic").concat(["ollama", "anthropic"]));
+  const effectiveReq = bestProvider !== req.provider ? { ...req, provider: bestProvider } : req;
+
   let lastErr;
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (let attempt = 0; attempt < 3; attempt++) {
     try {
       const result = await Promise.race([
-        routeChatOnce(req),
-        new Promise((_, reject) => setTimeout(() => reject(new Error("Request timed out after 10s")), 10000)),
+        routeChatOnce(effectiveReq),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Request timed out after 45s")), 45000)),
       ]);
+      trackProviderRequest(effectiveReq.provider);
       return result;
     } catch (err) {
       lastErr = err;
-      if (!err.message?.includes("timed out")) {
+      const isRetryable = err.message?.includes("429") || err.message?.includes("500") || err.message?.includes("502") || err.message?.includes("503") || err.message?.includes("ECONNRESET") || err.message?.includes("ETIMEDOUT");
+      if (err.message?.includes("429")) {
         const retryAfter = parseRetryAfter(err);
-        if (retryAfter && attempt === 0) {
-          const waitSec = Math.min(retryAfter, 5);
-          console.log(`[ai-router] ${req.provider} rate-limited, retrying in ${waitSec}s`);
-          await sleepMs(waitSec * 1000);
-          continue;
-        }
+        markProviderRateLimited(effectiveReq.provider, retryAfter || 60);
+      }
+      if (attempt < 2 && isRetryable) {
+        const delayMs = Math.min(1000 * Math.pow(2, attempt), 5000);
+        logger.ai.info(`[ai-router] ${effectiveReq.provider} retryable error, attempt ${attempt + 1}, backing off ${delayMs}ms`);
+        await sleepMs(delayMs);
+        continue;
       }
       break;
     }
   }
   // Fallback: try the next free model within same provider
-  if (isOpenAICompatible(req.provider) && KNOWN_FREE_MODELS[req.provider]) {
-    const next = nextFreeModel(req.provider, req.model);
-    if (next && next !== req.model) {
-      console.log(`[ai-router] ${req.provider} falling back to ${next}`);
+  if (isOpenAICompatible(effectiveReq.provider) && KNOWN_FREE_MODELS[effectiveReq.provider]) {
+    const next = nextFreeModel(effectiveReq.provider, effectiveReq.model);
+    if (next && next !== effectiveReq.model) {
+      logger.ai.info(`[ai-router] ${effectiveReq.provider} falling back to ${next}`);
       try {
         const result = await Promise.race([
-          routeChatOnce({ ...req, model: next }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error("Request timed out after 10s")), 10000)),
+          routeChatOnce({ ...effectiveReq, model: next }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("Request timed out after 45s")), 45000)),
         ]);
+        trackProviderRequest(effectiveReq.provider);
         return result;
       } catch (fallbackErr) {
         lastErr = fallbackErr;
       }
     }
+  }
+  // Cross-provider fallback (skip rate-limited providers)
+  const crossProviders = allProviders.filter((p) => p !== effectiveReq.provider && !isProviderRateLimited(p));
+  for (const fallbackProvider of crossProviders) {
+    try {
+      const fallbackModels = KNOWN_FREE_MODELS[fallbackProvider] || [];
+      if (fallbackModels.length === 0) continue;
+      logger.ai.info(`[ai-router] cross-provider fallback to ${fallbackProvider}/${fallbackModels[0]}`);
+      const fbResult = await routeChatOnce({
+        ...effectiveReq,
+        provider: fallbackProvider,
+        model: fallbackModels[0],
+        apiKey: "",
+        baseUrl: undefined,
+      });
+      trackProviderRequest(fallbackProvider);
+      return { ...fbResult, provider: fallbackProvider, model: fallbackModels[0] };
+    } catch { /* continue to next provider */ }
   }
   throw lastErr;
 }
@@ -372,26 +487,58 @@ async function streamChatOnce(req) {
 }
 
 async function streamChat(req) {
+  const allProviders = ["groq", "openrouter", "github", "opencodezen"];
+  const bestProvider = selectBestProvider(req.provider, allProviders.filter((p) => p !== "ollama" && p !== "anthropic").concat(["ollama", "anthropic"]));
+  const effectiveReq = bestProvider !== req.provider ? { ...req, provider: bestProvider } : req;
+
   let lastErr;
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      return await streamChatOnce(req);
+      const result = await streamChatOnce(effectiveReq);
+      trackProviderRequest(effectiveReq.provider);
+      return result;
     } catch (err) {
       lastErr = err;
-      const retryAfter = parseRetryAfter(err);
-      if (retryAfter && attempt === 0) {
-        await sleepMs(retryAfter * 1000);
+      const isRetryable = err.message?.includes("429") || err.message?.includes("500") || err.message?.includes("502") || err.message?.includes("503") || err.message?.includes("ECONNRESET") || err.message?.includes("ETIMEDOUT");
+      if (err.message?.includes("429")) {
+        const retryAfter = parseRetryAfter(err);
+        markProviderRateLimited(effectiveReq.provider, retryAfter || 60);
+      }
+      if (attempt < 2 && isRetryable) {
+        const delayMs = Math.min(1000 * Math.pow(2, attempt), 5000);
+        logger.ai.info(`[ai-router] ${effectiveReq.provider} stream retryable error, attempt ${attempt + 1}, backing off ${delayMs}ms`);
+        await sleepMs(delayMs);
         continue;
       }
       break;
     }
   }
-  if (isOpenAICompatible(req.provider) && KNOWN_FREE_MODELS[req.provider]) {
-    const next = nextFreeModel(req.provider, req.model);
-    if (next && next !== req.model) {
-      console.log(`[ai-router] ${req.provider} stream rate-limited on ${req.model}, falling back to ${next}`);
-      return streamChatOnce({ ...req, model: next });
+  if (isOpenAICompatible(effectiveReq.provider) && KNOWN_FREE_MODELS[effectiveReq.provider]) {
+    const next = nextFreeModel(effectiveReq.provider, effectiveReq.model);
+    if (next && next !== effectiveReq.model) {
+      logger.ai.info(`[ai-router] ${effectiveReq.provider} stream rate-limited on ${effectiveReq.model}, falling back to ${next}`);
+      const result = await streamChatOnce({ ...effectiveReq, model: next });
+      trackProviderRequest(effectiveReq.provider);
+      return result;
     }
+  }
+  // Cross-provider fallback (skip rate-limited providers)
+  const crossProviders = allProviders.filter((p) => p !== effectiveReq.provider && !isProviderRateLimited(p));
+  for (const fallbackProvider of crossProviders) {
+    try {
+      const fallbackModels = KNOWN_FREE_MODELS[fallbackProvider] || [];
+      if (fallbackModels.length === 0) continue;
+      logger.ai.info(`[ai-router] stream cross-provider fallback to ${fallbackProvider}/${fallbackModels[0]}`);
+      const fbResult = await streamChatOnce({
+        ...effectiveReq,
+        provider: fallbackProvider,
+        model: fallbackModels[0],
+        apiKey: "",
+        baseUrl: undefined,
+      });
+      trackProviderRequest(fallbackProvider);
+      return { ...fbResult, provider: fallbackProvider, model: fallbackModels[0] };
+    } catch { /* continue to next provider */ }
   }
   throw lastErr;
 }
@@ -436,35 +583,46 @@ const KNOWN_FREE_MODELS = {
   openrouter: [
     "meta-llama/llama-3.3-70b-instruct:free",
     "qwen/qwen3-coder:free",
-    "google/gemma-4-31b:free",
-    "moonshotai/kimi-k2.6:free",
-    "minimax/minimax-m2.7:free",
-    "nvidia/nemotron-3-ultra:free",
+    "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "nvidia/nemotron-3-super-120b-a12b:free",
+    "nvidia/nemotron-3-nano-30b-a3b:free",
+    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+    "nvidia/nemotron-nano-9b-v2:free",
+    "nvidia/nemotron-nano-12b-v2-vl:free",
+    "openai/gpt-oss-20b:free",
+    "tencent/hy3:free",
+    "google/gemma-4-31b-it:free",
+    "google/gemma-4-26b-a4b-it:free",
+    "poolside/laguna-m.1:free",
+    "poolside/laguna-xs-2.1:free",
+    "cohere/north-mini-code:free",
   ],
   groq: [
     "llama-3.3-70b-versatile",
     "llama-3.1-8b-instant",
     "qwen/qwen3-32b",
-    "meta-llama/llama-4-scout-17b-16e-instruct",
-    "deepseek/deepseek-r1-distill-llama-70b",
+    "openai/gpt-oss-120b",
+    "openai/gpt-oss-20b",
+    "allam-2-7b",
+    "groq/compound",
+    "groq/compound-mini",
   ],
   github: [
     "openai/gpt-4o",
     "openai/gpt-4o-mini",
     "openai/gpt-5-nano",
     "meta/llama-3.3-70b-instruct",
-    "mistral-ai/mistral-large-2411",
     "meta/llama-4-scout-17b-16e-instruct",
+    "mistral-ai/mistral-large-2411",
+    "mistral-ai/codestral-2501",
   ],
   opencodezen: [
-    "gpt-5.6-sol",
-    "gpt-5.5",
-    "gpt-5.4-mini",
+    "big-pickle",
     "deepseek-v4-flash-free",
     "mimo-v2.5-free",
-    "hy3-free",
     "nemotron-3-ultra-free",
     "north-mini-code-free",
+    "gpt-5.6-sol",
   ],
 };
 
@@ -501,12 +659,21 @@ const MODEL_CATALOG = {
     { id: "claude-opus-4.8", free: false },
   ],
   openrouter: [
-    { id: "nvidia/nemotron-3-ultra:free", free: true },
-    { id: "qwen/qwen3-coder:free", free: true },
-    { id: "google/gemma-4-31b:free", free: true },
-    { id: "moonshotai/kimi-k2.6:free", free: true },
-    { id: "minimax/minimax-m2.7:free", free: true },
     { id: "meta-llama/llama-3.3-70b-instruct:free", free: true },
+    { id: "qwen/qwen3-coder:free", free: true },
+    { id: "nvidia/nemotron-3-ultra-550b-a55b:free", free: true },
+    { id: "nvidia/nemotron-3-super-120b-a12b:free", free: true },
+    { id: "nvidia/nemotron-3-nano-30b-a3b:free", free: true },
+    { id: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free", free: true },
+    { id: "nvidia/nemotron-nano-9b-v2:free", free: true },
+    { id: "nvidia/nemotron-nano-12b-v2-vl:free", free: true },
+    { id: "openai/gpt-oss-20b:free", free: true },
+    { id: "tencent/hy3:free", free: true },
+    { id: "google/gemma-4-31b-it:free", free: true },
+    { id: "google/gemma-4-26b-a4b-it:free", free: true },
+    { id: "poolside/laguna-m.1:free", free: true },
+    { id: "poolside/laguna-xs-2.1:free", free: true },
+    { id: "cohere/north-mini-code:free", free: true },
     { id: "deepseek/deepseek-v4-flash", free: false },
     { id: "z-ai/glm-5.1", free: false },
     { id: "qwen/qwen3.5-plus", free: false },
@@ -517,16 +684,20 @@ const MODEL_CATALOG = {
     { id: "llama-3.3-70b-versatile", free: true },
     { id: "llama-3.1-8b-instant", free: true },
     { id: "qwen/qwen3-32b", free: true },
-    { id: "meta-llama/llama-4-scout-17b-16e-instruct", free: true },
-    { id: "deepseek/deepseek-r1-distill-llama-70b", free: true },
+    { id: "openai/gpt-oss-120b", free: true },
+    { id: "openai/gpt-oss-20b", free: true },
+    { id: "allam-2-7b", free: true },
+    { id: "groq/compound", free: true },
+    { id: "groq/compound-mini", free: true },
   ],
   github: [
     { id: "openai/gpt-4o", free: true },
     { id: "openai/gpt-4o-mini", free: true },
     { id: "openai/gpt-5-nano", free: true },
     { id: "meta/llama-3.3-70b-instruct", free: true },
-    { id: "mistral-ai/mistral-large-2411", free: true },
     { id: "meta/llama-4-scout-17b-16e-instruct", free: true },
+    { id: "mistral-ai/mistral-large-2411", free: true },
+    { id: "mistral-ai/codestral-2501", free: true },
   ],
   opencodezen: [
     { id: "gpt-5.6-sol", free: true },
@@ -580,7 +751,7 @@ const MODEL_CATALOG = {
     { id: "kimi-k2.7-code", free: false },
     { id: "qwen3.5-plus", free: false },
     { id: "qwen3.6-plus", free: false },
-    { id: "big-pickle", free: false },
+    { id: "big-pickle", free: true },
     { id: "deepseek-v4-flash-free", free: true },
     { id: "mimo-v2.5-free", free: true },
     { id: "hy3-free", free: true },
@@ -597,4 +768,5 @@ module.exports = {
   routeChat, streamChat, chatWithTools, testConnection, trimContext, buildContext,
   listOllamaModels, listCloudModels, KNOWN_FREE_MODELS, getModelCatalog,
   PROVIDERS: Object.keys(OPENAI_COMPATIBLE).concat(["ollama", "anthropic"]),
+  PROVIDER_RATE_LIMITS, getProviderRateLimitStatus,
 };

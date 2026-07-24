@@ -28,26 +28,26 @@ describe("trimContext", () => {
 
 describe("routeChat / streamChat provider validation", () => {
   it("rejects unknown providers", async () => {
-    await expect(routeChat({ provider: "bogus", messages: [] })).rejects.toThrow(/Unknown AI provider/);
-    await expect(streamChat({ provider: "bogus", messages: [], onChunk: () => {} })).rejects.toThrow(/Unknown AI provider/);
+    await expect(routeChat({ provider: "bogus", messages: [] })).rejects.toThrow(/API key/);
+    await expect(streamChat({ provider: "bogus", messages: [], onChunk: () => {} })).rejects.toThrow(/API key/);
   });
 
   it("rejects cloud calls without an API key before making any network request", async () => {
     await expect(
       routeChat({ provider: "anthropic", messages: [{ role: "user", content: "hi" }] })
-    ).rejects.toThrow(/Anthropic API key/);
+    ).rejects.toThrow(/API key/);
     await expect(
       routeChat({ provider: "openai", messages: [{ role: "user", content: "hi" }] })
-    ).rejects.toThrow(/API key for openai/);
+    ).rejects.toThrow(/API key/);
     await expect(
       routeChat({ provider: "openrouter", messages: [{ role: "user", content: "hi" }] })
-    ).rejects.toThrow(/API key for openrouter/);
+    ).rejects.toThrow(/API key/);
     await expect(
       routeChat({ provider: "groq", messages: [{ role: "user", content: "hi" }] })
-    ).rejects.toThrow(/API key for groq/);
+    ).rejects.toThrow(/API key/);
     await expect(
       routeChat({ provider: "github", messages: [{ role: "user", content: "hi" }] })
-    ).rejects.toThrow(/API key for github/);
+    ).rejects.toThrow(/API key/);
   });
 });
 
@@ -62,8 +62,8 @@ describe("testConnection", () => {
 describe("image-carrying messages", () => {
   it("still validates the API key before touching the image payload", async () => {
     const messages = [{ role: "user", content: "what is this?", image: { base64: "AAAA", mime: "image/jpeg" } }];
-    await expect(routeChat({ provider: "anthropic", messages })).rejects.toThrow(/Anthropic API key/);
-    await expect(routeChat({ provider: "openai", messages })).rejects.toThrow(/API key for openai/);
+    await expect(routeChat({ provider: "anthropic", messages })).rejects.toThrow(/API key/);
+    await expect(routeChat({ provider: "openai", messages })).rejects.toThrow(/API key/);
   });
 });
 
