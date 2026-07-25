@@ -892,10 +892,11 @@ async function executeToolRaw(name, args) {
         if (!validWorkspaces.includes(workspace)) return { error: `Invalid workspace: ${workspace}. Valid: ${validWorkspaces.join(", ")}` };
         // Set up listener BEFORE sending the open message to avoid race condition
         let cleanedUp = false;
-        const cleanup = () => { if (!cleanedUp) { cleanedUp = true; ipcMain.removeListener("workspace:actions-registered", onRegistered); } };
+        let onRegistered;
+        const cleanup = () => { if (!cleanedUp && onRegistered) { cleanedUp = true; ipcMain.removeListener("workspace:actions-registered", onRegistered); } };
         const confirmed = await new Promise((resolve) => {
           const timer = setTimeout(() => { cleanup(); resolve(false); }, 5000);
-          const onRegistered = (_event, ws) => {
+          onRegistered = (_event, ws) => {
             if (ws === workspace) {
               clearTimeout(timer);
               cleanup();
@@ -920,14 +921,13 @@ async function executeToolRaw(name, args) {
         const { workspace, action, params } = args;
         const requestId = `wa_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
         let cleanedUp = false;
-        let resolveFn;
-        const cleanup = () => { if (!cleanedUp) { cleanedUp = true; ipcMain.removeListener("workspace:action:result", handler); } };
-        const handler = (_event, rid, data) => {
-          if (rid === requestId) { cleanup(); resolveFn(data); }
-        };
+        let handler;
+        const cleanup = () => { if (!cleanedUp && handler) { cleanedUp = true; ipcMain.removeListener("workspace:action:result", handler); } };
         const result = await new Promise((resolve, reject) => {
-          resolveFn = resolve;
           const timer = setTimeout(() => { cleanup(); reject(new Error(`Workspace action timed out. The workspace "${workspace}" may not be open or its actions may not be registered.`)); }, 30000);
+          handler = (_event, rid, data) => {
+            if (rid === requestId) { clearTimeout(timer); cleanup(); resolve(data); }
+          };
           ipcMain.on("workspace:action:result", handler);
           win.webContents.send("workspace:action", { requestId, workspace, action, params: params || {} });
         });
