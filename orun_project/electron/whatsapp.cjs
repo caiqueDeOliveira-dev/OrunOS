@@ -13,10 +13,11 @@ let currentStatus = "disconnected";
 let listeners = { onStatus: () => {}, onQR: () => {}, onMessage: () => {} };
 let reconnectTimer = null;
 let reconnectAttempts = 0;
-const MAX_RECONNECT_ATTEMPTS = 10;
+const MAX_RECONNECT_ATTEMPTS = 15;
 let knownGroups = []; // [{ jid, name }]
 let userDataPath = "";
 let autoConnectEnabled = true;
+let watchdogTimer = null;
 
 function getStatus() {
   return currentStatus;
@@ -81,6 +82,10 @@ async function connect(userData) {
   if (currentStatus === "connecting" || currentStatus === "connected") return sock;
 
   if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+  if (watchdogTimer) { clearTimeout(watchdogTimer); watchdogTimer = null; }
+
+  // Reset reconnect attempts on manual connect
+  reconnectAttempts = 0;
 
   currentStatus = "connecting";
   listeners.onStatus(currentStatus);
@@ -176,11 +181,11 @@ async function connect(userData) {
       const loggedOut = statusCode === DisconnectReason.loggedOut;
       const msg = lastDisconnect?.error?.message || "unknown";
       logger.wa.info(`[whatsapp] connection closed: statusCode=${statusCode} loggedOut=${loggedOut} msg=${msg}`);
-      currentStatus = "disconnected";
-      listeners.onStatus(currentStatus, { loggedOut });
 
       if (loggedOut) {
         logger.wa.info("[whatsapp] logged out, cleaning auth");
+        currentStatus = "disconnected";
+        listeners.onStatus(currentStatus, { loggedOut });
         try { fs.rmSync(authDir, { recursive: true, force: true }); } catch { /* ignore */ }
         reconnectAttempts = 0;
         return;
@@ -189,13 +194,17 @@ async function connect(userData) {
       reconnectAttempts++;
       if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
         const delay = Math.min(2000 * Math.pow(1.5, reconnectAttempts), 60000);
+        currentStatus = "reconnecting";
+        listeners.onStatus(currentStatus, { attempt: reconnectAttempts, maxAttempts: MAX_RECONNECT_ATTEMPTS, nextRetryMs: delay });
         logger.wa.info(`[whatsapp] reconnecting in ${delay}ms (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
         reconnectTimer = setTimeout(() => connect(userDataPath).catch(() => {}), delay);
       } else {
         logger.wa.info("[whatsapp] max reconnect attempts reached, waiting 120s cooldown");
+        currentStatus = "disconnected";
+        listeners.onStatus(currentStatus, { maxReached: true });
         setTimeout(() => {
           reconnectAttempts = 0;
-          if (autoConnectEnabled) {
+          if (autoConnectEnabled && userDataPath) {
             logger.wa.info("[whatsapp] cooldown expired, retrying auto-connect");
             connect(userDataPath).catch(() => {});
           }
@@ -252,7 +261,7 @@ async function sendMessage(jid, text) {
 
 async function disconnect() {
   if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
-  reconnectAttempts = MAX_RECONNECT_ATTEMPTS;
+  reconnectAttempts = MAX_RECONNECT_ATTEMPTS; // prevent auto-reconnect
   if (sock) {
     try { await sock.logout(); } catch { /* already disconnected */ }
     sock = null;

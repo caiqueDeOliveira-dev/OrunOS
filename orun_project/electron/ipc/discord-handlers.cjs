@@ -75,16 +75,33 @@ function register(ipcMain, ctx) {
       const agentResponseEnabled = await secretStore.get("discord_agent_response");
       if (!agentResponseEnabled?.enabled) return null;
 
-      const aiSettings = ctx.getGlobalAISettings?.() || {};
-      const systemPrompt = buildSystemPrompt("Marketing", null);
+      const resolveAISettings = ctx.resolveAISettings;
+      const aiSettings = resolveAISettings ? resolveAISettings("Marketing") : (ctx.getGlobalAISettings?.() || {});
+      const keys = secretStore.readSecretStore();
+      const apiKey = keys[aiSettings.provider];
+      const agentSystemPrompt = buildSystemPrompt(null, "Marketing");
 
-      const messages = [
-        { role: "system", content: `${systemPrompt}\n\nVocê é um agente de IA respondendo no Discord. Responda de forma concisa e útil. O usuário que enviou a mensagem é: ${message.author.displayName} (${message.author.username}).` },
-        { role: "user", content: message.content },
-      ];
+      const discordSystemPrompt = `${agentSystemPrompt}\n\nVocê é um agente de IA respondendo no Discord. Responda de forma concisa e útil. O usuário que enviou a mensagem é: ${message.author.displayName} (${message.author.username}).`;
 
-      const response = await aiRouter.routeChat(messages, aiSettings);
-      return { text: response };
+      const messages = [{ role: "user", content: message.content }];
+
+      const { context } = await aiRouter.buildContext({
+        messages,
+        systemPrompt: discordSystemPrompt,
+        provider: aiSettings.provider,
+        model: aiSettings.model,
+        baseUrl: aiSettings.baseUrl,
+        apiKey,
+      });
+
+      const response = await aiRouter.routeChat({
+        provider: aiSettings.provider,
+        model: aiSettings.model,
+        baseUrl: aiSettings.baseUrl,
+        apiKey,
+        messages: context,
+      });
+      return { text: response.text || response };
     } catch (err) {
       log.error("[discord] Agent response error:", err.message);
       return null;

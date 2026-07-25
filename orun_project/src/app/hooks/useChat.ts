@@ -177,7 +177,10 @@ export function useChat({ t, onHamptonStateChange, speak, speakIncremental, spea
             onChunk: (delta) => {
               if (firstChunk) {
                 onHamptonStateChange("speaking");
-                setMessages(p => [...p, { id: replyId, role: "hampton", content: "" }]);
+                setMessages(p => {
+                  const exists = p.some(m => m.id === replyId);
+                  return exists ? p : [...p, { id: replyId, role: "hampton", content: "" }];
+                });
                 firstChunk = false;
               }
               streamedText += delta;

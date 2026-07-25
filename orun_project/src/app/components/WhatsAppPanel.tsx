@@ -36,6 +36,7 @@ export function WhatsAppPanel({ onClose }: { onClose: () => void }) {
   const [testingAgent, setTestingAgent] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("config");
   const autoConnectAttempted = useRef(false);
+  const [reconnectInfo, setReconnectInfo] = useState<{ attempt?: number; maxAttempts?: number }>({});
 
   // Automation state
   const [msgStats, setMsgStats] = useState({ dailyMsgCount: 0, dailyMsgLimit: 45, queueLength: 0, date: "" });
@@ -78,10 +79,15 @@ export function WhatsAppPanel({ onClose }: { onClose: () => void }) {
       setStatus(s.status);
       setConnecting(false);
       setError(null);
+      if (s.status === "reconnecting") {
+        setReconnectInfo({ attempt: s.attempt, maxAttempts: s.maxAttempts });
+      } else {
+        setReconnectInfo({});
+      }
       if (s.selfJid) { setSelfJid(s.selfJid); setListenJid((prev) => prev || s.selfJid || ""); }
       if (s.status === "connected") setQr(null);
       if (s.status === "disconnected" && s.loggedOut) {
-        setError("Sessão expirada. Clique Conectar para escanear um novo QR Code.");
+        setError("Sessao expirada. Clique Conectar para escanear um novo QR Code.");
       }
       if (s.groupsRefreshed) {
         window.orun.whatsapp.listGroups().then((g) => { setGroups(g); setLoadingGroups(false); });
@@ -300,6 +306,15 @@ export function WhatsAppPanel({ onClose }: { onClose: () => void }) {
             )}
 
             {status === "connecting" && !qr && !error && <p className="text-[11px] mb-3" style={{ color: "var(--muted-foreground)" }}><Loader2 size={13} className="animate-spin inline mr-1.5" />{t("whatsappConnecting")}</p>}
+
+            {status === "reconnecting" && (
+              <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg" style={{ background: "rgba(251,191,36,0.06)", border: "1px solid rgba(251,191,36,0.2)" }}>
+                <Loader2 size={13} className="animate-spin" style={{ color: "#FBBF24" }} />
+                <span className="text-[11px]" style={{ color: "#FBBF24" }}>
+                  Reconectando{reconnectInfo.attempt ? ` (tentativa ${reconnectInfo.attempt}/${reconnectInfo.maxAttempts})` : ""}...
+                </span>
+              </div>
+            )}
 
             {status === "connected" && (
               <div className="flex items-center gap-2 mb-4 px-3 py-2.5 rounded-lg" style={{ background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.2)" }}>

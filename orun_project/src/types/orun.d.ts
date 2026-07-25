@@ -312,10 +312,14 @@ export interface OrunDesignerRange {
 }
 
 export interface OrunWhatsAppStatus {
-  status: "disconnected" | "connecting" | "qr" | "connected";
+  status: "disconnected" | "connecting" | "reconnecting" | "qr" | "connected";
   selfJid?: string;
   loggedOut?: boolean;
   groupsRefreshed?: boolean;
+  attempt?: number;
+  maxAttempts?: number;
+  nextRetryMs?: number;
+  maxReached?: boolean;
 }
 
 export interface OrunSchedule {

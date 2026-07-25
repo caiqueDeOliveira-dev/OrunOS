@@ -458,24 +458,9 @@ async function routeChat(req) {
       }
     }
   }
-  // Cross-provider fallback (skip rate-limited providers)
-  const crossProviders = allProviders.filter((p) => p !== effectiveReq.provider && !isProviderRateLimited(p));
-  for (const fallbackProvider of crossProviders) {
-    try {
-      const fallbackModels = KNOWN_FREE_MODELS[fallbackProvider] || [];
-      if (fallbackModels.length === 0) continue;
-      logger.ai.info(`[ai-router] cross-provider fallback to ${fallbackProvider}/${fallbackModels[0]}`);
-      const fbResult = await routeChatOnce({
-        ...effectiveReq,
-        provider: fallbackProvider,
-        model: fallbackModels[0],
-        apiKey: "",
-        baseUrl: undefined,
-      });
-      trackProviderRequest(fallbackProvider);
-      return { ...fbResult, provider: fallbackProvider, model: fallbackModels[0] };
-    } catch { /* continue to next provider */ }
-  }
+  // Cross-provider fallback — note: callers should handle their own fallback
+  // with proper API keys. This is a last-resort fallback that only works if
+  // the request already has a valid apiKey that happens to work on another provider.
   throw lastErr;
 }
 
@@ -522,24 +507,9 @@ async function streamChat(req) {
       return result;
     }
   }
-  // Cross-provider fallback (skip rate-limited providers)
-  const crossProviders = allProviders.filter((p) => p !== effectiveReq.provider && !isProviderRateLimited(p));
-  for (const fallbackProvider of crossProviders) {
-    try {
-      const fallbackModels = KNOWN_FREE_MODELS[fallbackProvider] || [];
-      if (fallbackModels.length === 0) continue;
-      logger.ai.info(`[ai-router] stream cross-provider fallback to ${fallbackProvider}/${fallbackModels[0]}`);
-      const fbResult = await streamChatOnce({
-        ...effectiveReq,
-        provider: fallbackProvider,
-        model: fallbackModels[0],
-        apiKey: "",
-        baseUrl: undefined,
-      });
-      trackProviderRequest(fallbackProvider);
-      return { ...fbResult, provider: fallbackProvider, model: fallbackModels[0] };
-    } catch { /* continue to next provider */ }
-  }
+  // Cross-provider fallback — note: callers should handle their own fallback
+  // with proper API keys. This is a last-resort fallback that only works if
+  // the request already has a valid apiKey that happens to work on another provider.
   throw lastErr;
 }
 

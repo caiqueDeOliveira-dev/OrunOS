@@ -113,6 +113,7 @@ const AGENT_RECOMMENDED_MODELS = {
   Finance:    { provider: "groq",        model: "llama-3.3-70b-versatile" },
   Teacher:    { provider: "groq",        model: "qwen/qwen3-32b" },
   Marketing:  { provider: "opencodezen", model: "big-pickle" },
+  "Personal Assistant": { provider: "groq", model: "llama-3.3-70b-versatile" },
   Automation: { provider: "groq",        model: "llama-3.3-70b-versatile" },
   Automotive: { provider: "groq",        model: "llama-3.3-70b-versatile" },
   System:     { provider: "groq",        model: "llama-3.3-70b-versatile" },
@@ -153,6 +154,12 @@ const AGENT_TOOL_PERMISSIONS = {
     "generate_image", "publish_to_social",
     "memory_save", "memory_search", "rag_search",
     "notify", "schedule_task", "trigger_agent", "web_search", "workspace_action",
+  ],
+  "Personal Assistant": [
+    "read_file", "write_file", "list_files",
+    "memory_save", "memory_search", "rag_search",
+    "notify", "schedule_task", "web_search", "web_fetch",
+    "trigger_agent", "workspace_action",
   ],
   Automation: [
     "read_file", "write_file", "edit_file", "list_files", "search_files",
@@ -745,7 +752,7 @@ app.whenReady().then(() => {
 
   // Telegram message handler
   const telegramHandler = createTelegramHandler({
-    db, aiRouter, agentProcessor, buildSystemPrompt, resolveAISettings, log,
+    db, aiRouter, agentProcessor, buildSystemPrompt, resolveAISettings, secretStore, log,
   });
 
   telegram.setListeners({
@@ -766,20 +773,27 @@ app.whenReady().then(() => {
     whatsapp.connect(userDataPathInit).catch((err) => {
       log.warn("[whatsapp] auto-connect failed:", err.message);
     });
-    // Watchdog: if still "connecting" after 45s, force reset
+    // Watchdog: if still "connecting" after 60s, force reset and let it retry
     const watchdog = setInterval(() => {
-      if (whatsapp.getStatus() === "connecting") {
-        log.warn("[whatsapp] still connecting after 45s, forcing disconnect");
-        whatsapp.disconnect().catch(() => {});
+      const status = whatsapp.getStatus();
+      if (status === "connecting") {
+        log.warn("[whatsapp] still connecting after 60s, forcing reconnect cycle");
+        whatsapp.disconnect().then(() => {
+          // Re-attempt after a short delay
+          setTimeout(() => {
+            whatsapp.connect(userDataPathInit).catch(() => {});
+          }, 5000);
+        }).catch(() => {});
         clearInterval(watchdog);
       } else {
         clearInterval(watchdog);
       }
-    }, 45000);
+    }, 60000);
   }
 
   // Auto-connect Discord on startup if token exists
-  const discordToken = secretStore.readSecretStore().discord_token;
+  const discordTokenEntry = secretStore.readSecretStore().discord_bot_token;
+  const discordToken = typeof discordTokenEntry === "string" ? discordTokenEntry : discordTokenEntry?.token;
   if (discordToken) {
     log.info("[discord] token found, auto-connecting...");
     discordBot.connect(discordToken).catch((err) => {

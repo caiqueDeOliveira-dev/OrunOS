@@ -8,6 +8,7 @@ describe("telegram-handler", () => {
   let mockAgentProcessor;
   let mockBuildSystemPrompt;
   let mockResolveAISettings;
+  let mockSecretStore;
   let mockLog;
   let mockTelegram;
 
@@ -19,10 +20,16 @@ describe("telegram-handler", () => {
       }),
       setSetting: vi.fn(),
     };
-    mockAiRouter = { routeChat: vi.fn(async () => ({ text: "AI response" })) };
+    mockAiRouter = {
+      routeChat: vi.fn(async () => ({ text: "AI response" })),
+      buildContext: vi.fn(async ({ messages }) => ({ context: [{ role: "system", content: "System prompt" }, ...messages], summarized: false })),
+    };
     mockAgentProcessor = { processAgentReply: vi.fn((text) => ({ text })) };
     mockBuildSystemPrompt = vi.fn(() => "System prompt");
     mockResolveAISettings = vi.fn(() => ({ provider: "groq", model: "test-model" }));
+    mockSecretStore = {
+      readSecretStore: vi.fn(() => ({ groq: "test-api-key", openrouter: "or-key", github: "gh-key", opencodezen: "oz-key" })),
+    };
     mockLog = { info: vi.fn(), error: vi.fn(), warn: vi.fn() };
     mockTelegram = {
       sendMessage: vi.fn(async () => {}),
@@ -34,6 +41,7 @@ describe("telegram-handler", () => {
       agentProcessor: mockAgentProcessor,
       buildSystemPrompt: mockBuildSystemPrompt,
       resolveAISettings: mockResolveAISettings,
+      secretStore: mockSecretStore,
       log: mockLog,
     });
   });
@@ -64,7 +72,8 @@ describe("telegram-handler", () => {
     });
 
     it("processes message through AI when agent is assigned", async () => {
-      await handler.handleMessage({ chatId: "123", text: "Olá" }, mockTelegram);
+      await handler.handleMessage({ chatId: "123", text: "Ola" }, mockTelegram);
+      expect(mockAiRouter.buildContext).toHaveBeenCalled();
       expect(mockAiRouter.routeChat).toHaveBeenCalled();
       expect(mockTelegram.sendMessage).toHaveBeenCalledWith("123", "AI response");
     });
@@ -85,9 +94,10 @@ describe("telegram-handler", () => {
 
     it("handles image messages for Health agent", async () => {
       await handler.handleMessage({ chatId: "123", text: null, imageFileId: "https://example.com/photo.jpg" }, mockTelegram);
+      expect(mockAiRouter.buildContext).toHaveBeenCalled();
       expect(mockAiRouter.routeChat).toHaveBeenCalled();
-      const messages = mockAiRouter.routeChat.mock.calls[0][0];
-      expect(messages[0].content).toEqual(
+      const callArgs = mockAiRouter.buildContext.mock.calls[0][0];
+      expect(callArgs.messages[0].content).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ type: "text" }),
           expect.objectContaining({ type: "image_url" }),
@@ -128,7 +138,7 @@ describe("telegram-handler", () => {
       await handler.handleMessage({ chatId: "123", text: "/agent InvalidAgent" }, mockTelegram);
       expect(mockTelegram.sendMessage).toHaveBeenCalledWith(
         "123",
-        expect.stringContaining("Agentes disponíveis")
+        expect.stringContaining("Agentes dispon")
       );
     });
 

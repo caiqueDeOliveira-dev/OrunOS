@@ -1,7 +1,7 @@
 // telegram-handler.cjs
 // Routes incoming Telegram messages to the correct agent and processes AI responses.
 
-function createTelegramHandler({ db, aiRouter, agentProcessor, buildSystemPrompt, resolveAISettings, log }) {
+function createTelegramHandler({ db, aiRouter, agentProcessor, buildSystemPrompt, resolveAISettings, secretStore, log }) {
 
   // Map Telegram chat IDs to agent names
   function resolveAgent(chatId) {
@@ -16,9 +16,15 @@ function createTelegramHandler({ db, aiRouter, agentProcessor, buildSystemPrompt
 
     if (!text && !imageFileId) return;
 
+    // Handle slash commands first (before agent check, so /agent works even without assignment)
+    if (text?.startsWith("/")) {
+      const currentAgent = resolveAgent(chatId);
+      const handled = await handleCommand(chatId, text, currentAgent, telegram);
+      if (handled) return;
+    }
+
     const agentName = resolveAgent(chatId);
     if (!agentName) {
-      // No agent assigned to this chat — send help message
       await telegram.sendMessage(chatId,
         "Nenhum agente configurado para este chat. " +
         "Use /agent <nome> para atribuir um agente (ex: /agent Health)."
@@ -26,17 +32,13 @@ function createTelegramHandler({ db, aiRouter, agentProcessor, buildSystemPrompt
       return;
     }
 
-    // Check for slash commands
-    if (text?.startsWith("/")) {
-      const handled = await handleCommand(chatId, text, agentName, telegram);
-      if (handled) return;
-    }
-
     log.info(`[telegram] Processing message from ${from?.firstName || chatId} for agent ${agentName}`);
 
     try {
       const aiSettings = resolveAISettings(agentName);
       const basePrompt = buildSystemPrompt(null, agentName);
+      const keys = secretStore.readSecretStore();
+      const apiKey = keys[aiSettings.provider];
       const messages = [{ role: "user", content: text || "Analyze this image" }];
 
       // Image handling for Health agent
@@ -50,11 +52,21 @@ function createTelegramHandler({ db, aiRouter, agentProcessor, buildSystemPrompt
         };
       }
 
-      const result = await aiRouter.routeChat(messages, {
+      const { context } = await aiRouter.buildContext({
+        messages,
+        systemPrompt: basePrompt,
         provider: aiSettings.provider,
         model: aiSettings.model,
-        systemPrompt: basePrompt,
-        temperature: 0.7,
+        baseUrl: aiSettings.baseUrl,
+        apiKey,
+      });
+
+      const result = await aiRouter.routeChat({
+        provider: aiSettings.provider,
+        model: aiSettings.model,
+        baseUrl: aiSettings.baseUrl,
+        apiKey,
+        messages: context,
       });
 
       const rawReply = result?.text || result || "";
@@ -79,10 +91,10 @@ function createTelegramHandler({ db, aiRouter, agentProcessor, buildSystemPrompt
 
     if (cmd === "/agent" || cmd === "/agente") {
       if (!arg) {
-        await telegram.sendMessage(chatId, `Agente atual: *${currentAgent}*`, ).catch(() => {});
+        await telegram.sendMessage(chatId, currentAgent ? `Agente atual: *${currentAgent}*` : "Nenhum agente definido. Use /agent <nome> para escolher.").catch(() => {});
         return true;
       }
-      const validAgents = ["Hampton", "Health", "Finance", "Developer", "Marketing", "Teacher", "Designer", "Creator"];
+      const validAgents = ["Hampton", "Health", "Finance", "Developer", "Marketing", "Teacher", "Designer", "Creator", "Personal Assistant"];
       const match = validAgents.find(a => a.toLowerCase() === arg.toLowerCase());
       if (!match) {
         await telegram.sendMessage(chatId, `Agentes disponíveis: ${validAgents.join(", ")}`).catch(() => {});
