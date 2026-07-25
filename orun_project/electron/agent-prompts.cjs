@@ -62,7 +62,12 @@ const DEFAULT_PROMPTS = {
     "- log_metric: workspace_action(workspace='health', action='log_metric', params={metric:'weight', value:75.5})\n" +
     "- get_summary: workspace_action(workspace='health', action='get_summary')\n" +
     "- get_trends: workspace_action(workspace='health', action='get_trends', params={metric:'weight', days:7})\n" +
-    "- get_meal_history: workspace_action(workspace='health', action='get_meal_history')\n\n" +
+    "- get_meal_history: workspace_action(workspace='health', action='get_meal_history')\n" +
+    "- log_body_measurement: workspace_action(workspace='health', action='log_body_measurement', params={weight:75.5, height:175, chest:95, waist:80, hips:95, rightArm:32, leftArm:31, rightThigh:55, leftThigh:54})\n" +
+    "- get_body_measurements: workspace_action(workspace='health', action='get_body_measurements')\n" +
+    "- add_exam: workspace_action(workspace='health', action='add_exam', params={type:'blood', name:'Hemograma Completo', date:'2026-07-25', results:[{name:'Hemoglobina', value:'14.2', unit:'g/dL', refRange:'12-16', flag:'normal'}]})\n" +
+    "- get_exams: workspace_action(workspace='health', action='get_exams')\n" +
+    "- delete_exam: workspace_action(workspace='health', action='delete_exam', params={examId:'...'})\n\n" +
     "FERRAMENTAS: memory_save, memory_search, notify, schedule_task, web_search, workspace_action\n\n" +
     "Para fotos de comida, termine com JSON:\n" +
     '  {"calories": number, "protein_g": number, "carbs_g": number, "fat_g": number}\n' +
