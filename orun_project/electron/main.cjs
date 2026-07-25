@@ -127,49 +127,49 @@ const AGENT_TOOL_PERMISSIONS = {
   Developer: [
     "read_file", "write_file", "edit_file", "list_files", "search_files",
     "search_content", "run_command", "web_fetch", "web_search",
-    "memory_save", "memory_search", "rag_search", "trigger_agent", "workspace_action",
+    "memory_save", "memory_search", "rag_search", "trigger_agent", "open_workspace", "workspace_action",
   ],
   Designer: [
     "read_file", "write_file", "list_files", "search_files",
     "generate_image", "web_fetch", "web_search",
-    "memory_save", "memory_search", "rag_search", "trigger_agent", "workspace_action",
+    "memory_save", "memory_search", "rag_search", "trigger_agent", "open_workspace", "workspace_action",
   ],
   Health: [
     "read_file", "write_file", "list_files",
     "memory_save", "memory_search", "rag_search",
-    "notify", "schedule_task", "trigger_agent", "web_search", "workspace_action",
+    "notify", "schedule_task", "trigger_agent", "web_search", "open_workspace", "workspace_action",
   ],
   Finance: [
     "read_file", "write_file", "list_files",
     "memory_save", "memory_search", "rag_search",
-    "notify", "schedule_task", "trigger_agent", "web_search", "workspace_action",
+    "notify", "schedule_task", "trigger_agent", "web_search", "open_workspace", "workspace_action",
   ],
   Teacher: [
     "read_file", "write_file", "list_files",
     "memory_save", "memory_search", "rag_search",
-    "notify", "schedule_task", "trigger_agent", "web_search", "workspace_action",
+    "notify", "schedule_task", "trigger_agent", "web_search", "open_workspace", "workspace_action",
   ],
   Marketing: [
     "read_file", "write_file", "list_files",
     "generate_image", "publish_to_social",
     "memory_save", "memory_search", "rag_search",
-    "notify", "schedule_task", "trigger_agent", "web_search", "workspace_action",
+    "notify", "schedule_task", "trigger_agent", "web_search", "open_workspace", "workspace_action",
   ],
   "Personal Assistant": [
     "read_file", "write_file", "list_files",
     "memory_save", "memory_search", "rag_search",
     "notify", "schedule_task", "web_search", "web_fetch",
-    "trigger_agent", "workspace_action",
+    "trigger_agent", "open_workspace", "workspace_action",
   ],
   Automation: [
     "read_file", "write_file", "edit_file", "list_files", "search_files",
     "search_content", "run_command", "web_fetch", "web_search",
     "memory_save", "memory_search", "rag_search",
-    "notify", "schedule_task", "trigger_agent", "publish_to_social", "workspace_action",
+    "notify", "schedule_task", "trigger_agent", "publish_to_social", "open_workspace", "workspace_action",
   ],
   Automotive: [
     "web_search", "web_fetch", "memory_save", "memory_search", "rag_search",
-    "read_file", "list_files", "notify", "workspace_action",
+    "read_file", "list_files", "notify", "open_workspace", "workspace_action",
   ],
   System: [
     "read_file", "write_file", "edit_file", "list_files", "search_files",
@@ -177,7 +177,7 @@ const AGENT_TOOL_PERMISSIONS = {
     "memory_save", "memory_search", "rag_search",
     "notify", "schedule_task", "trigger_agent",
     "clipboard_read", "clipboard_write", "screenshot",
-    "publish_to_social", "generate_image", "workspace_action",
+    "publish_to_social", "generate_image", "open_workspace", "workspace_action",
     "spotify_play", "spotify_search", "spotify_get_playlists", "spotify_get_now_playing",
   ],
   Hampton: null, // null = all tools (default agent)

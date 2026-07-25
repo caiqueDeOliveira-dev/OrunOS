@@ -55,7 +55,8 @@ const DEFAULT_PROMPTS = {
     "- Crie planos alimentares personalizados e treinos diarios completos\n" +
     "- Periodizacao semanal, adaptacao por nivel (iniciante/intermediario/avancado)\n" +
     "- Registre metricas: peso, pressao, frequencia cardiaca, passos, sono\n\n" +
-    "WORKSPACE AI: Use workspace_action para registrar dados no workspace Health:\n" +
+    "WORKSPACE AI: Use workspace_action para registrar dados no workspace Health.\n" +
+    "PRIMEIRO chame open_workspace(workspace='health') para abrir o workspace, DEPOIS use workspace_action:\n" +
     "- log_meal: workspace_action(workspace='health', action='log_meal', params={name:'Almoco', calories:600, protein:40, carbs:60, fat:20})\n" +
     "- log_workout: workspace_action(workspace='health', action='log_workout', params={exerciseName:'Flexoes'})\n" +
     "- log_metric: workspace_action(workspace='health', action='log_metric', params={metric:'weight', value:75.5})\n" +
@@ -78,7 +79,8 @@ const DEFAULT_PROMPTS = {
     "- Monthly budgets by category with spending alerts\n" +
     "- Financial goals, emergency fund, revenue projections\n" +
     "- Daily/weekly/monthly balance reports with category breakdown\n\n" +
-    "WORKSPACE AI: Use workspace_action para gerenciar o workspace Finance:\n" +
+    "WORKSPACE AI: Use workspace_action para gerenciar o workspace Finance.\n" +
+    "PRIMEIRO chame open_workspace(workspace='finance') para abrir o workspace, DEPOIS use workspace_action:\n" +
     "- add_transaction: workspace_action(workspace='finance', action='add_transaction', params={description:'Almoco', amount:35.90, category:'food', type:'expense'})\n" +
     "- delete_transaction: workspace_action(workspace='finance', action='delete_transaction', params={transactionId:'...'})\n" +
     "- get_summary: workspace_action(workspace='finance', action='get_summary')\n" +
@@ -96,7 +98,8 @@ const DEFAULT_PROMPTS = {
     "- Idiomas: portugues, ingles, espanhol — correcao gramatical com explicacao\n" +
     "- Programacao: logica, OOP, functional, algoritmos\n" +
     "- Tecnicas de estudo: Pomodoro, Spaced Repetition, Active Recall\n\n" +
-    "WORKSPACE AI: Use workspace_action para gerenciar o workspace Teacher:\n" +
+    "WORKSPACE AI: Use workspace_action para gerenciar o workspace Teacher.\n" +
+    "PRIMEIRO chame open_workspace(workspace='teacher') para abrir o workspace, DEPOIS use workspace_action:\n" +
     "- add_quiz_question: workspace_action(workspace='teacher', action='add_quiz_question', params={question:'O que e HTTP?', options:['Protocolo','Linguagem','Banco de Dados','SO'], correctIndex:0})\n" +
     "- get_quiz: workspace_action(workspace='teacher', action='get_quiz')\n" +
     "- export_canvas: workspace_action(workspace='teacher', action='export_canvas')\n" +
@@ -115,7 +118,8 @@ const DEFAULT_PROMPTS = {
     "- Copywriting: headlines persuasivos, hooks virais, CTAs, legendas\n" +
     "- Redes sociais: Instagram (Stories/Reels/Carrosseis), TikTok, X/Twitter, YouTube\n" +
     "- Analise de metrics, benchmarking, relatorios de performance\n\n" +
-    "WORKSPACE AI: Use workspace_action para gerenciar o workspace Marketing:\n" +
+    "WORKSPACE AI: Use workspace_action para gerenciar o workspace Marketing.\n" +
+    "PRIMEIRO chame open_workspace(workspace='marketing') para abrir o workspace, DEPOIS use workspace_action:\n" +
     "- add_campaign: workspace_action(workspace='marketing', action='add_campaign', params={name:'Campanha verao', budget:5000, channel:'instagram', status:'active'})\n" +
     "- pause_campaign: workspace_action(workspace='marketing', action='pause_campaign', params={campaignId:'...'})\n" +
     "- get_campaigns: workspace_action(workspace='marketing', action='get_campaigns')\n" +
@@ -158,7 +162,8 @@ const DEFAULT_PROMPTS = {
     "- WhatsApp routing: route messages to correct agents based on group\n" +
     "- Inter-agent automation (Health->Marketing, Finance->System, etc.)\n" +
     "- External integrations: REST/GraphQL APIs, webhooks, file monitoring, email parsing\n\n" +
-    "WORKSPACE AI: Use workspace_action para controlar o workspace Automation:\n" +
+    "WORKSPACE AI: Use workspace_action para controlar o workspace Automation.\n" +
+    "PRIMEIRO chame open_workspace(workspace='automation-flow') para abrir o workspace, DEPOIS use workspace_action:\n" +
     "- add_node: workspace_action(workspace='automation-flow', action='add_node', params={type:'trigger', label:'Novo Lead', x:100, y:100})\n" +
     "- add_edge: workspace_action(workspace='automation-flow', action='add_edge', params={sourceId:'node1', targetId:'node2', label:'enviar'})\n" +
     "- simulate: workspace_action(workspace='automation-flow', action='simulate')\n" +
@@ -227,7 +232,8 @@ const DEFAULT_PROMPTS = {
     "- CLIPBOARD: read/write clipboard, take screenshots\n" +
     "- ARCHITECTURE: explain Orun OS internals, guide through advanced config\n\n" +
     "WORKSPACE AI ACTIONS (use the workspace_action tool):\n" +
-    "You can control ALL open workspaces in real-time via the workspace_action tool.\n\n" +
+    "PRIMEIRO chame open_workspace(workspace='ID') para abrir o workspace, DEPOIS use workspace_action.\n" +
+    "You can control ALL workspaces in real-time via workspace_action.\n\n" +
     "creator-audio: start_recording, stop_recording, toggle_metronome, tune_voice, tune_to_note, generate_beat, preview_note, normalize, add_reverb, add_delay, pitch_shift, time_stretch, set_eq, set_volume, play, pause, stop, load_audio, analyze, export_audio, get_realtime_data\n" +
     "creator-video: add_clip, delete_clip, split_clip, add_effect, set_transition, set_text, export_video, get_timeline\n" +
     "designer: add_element, delete_element, change_bg, change_canvas_size, duplicate_element, export_design, get_elements, create_template, bring_forward, send_backward\n" +
@@ -282,7 +288,8 @@ const DEFAULT_PROMPTS = {
     "- Design visuals: social posts, thumbnails, album covers\n" +
     "- Analyze audio: BPM detection, frequency spectrum, waveform\n\n" +
     "WORKSPACE AI ACTIONS (use the workspace_action tool):\n" +
-    "When the user asks to CREATE something, ALWAYS use workspace_action to actually create it in the workspace.\n\n" +
+    "PRIMEIRO chame open_workspace(workspace='ID') para abrir o workspace, DEPOIS use workspace_action.\n" +
+    "When the user asks to CREATE something, ALWAYS use open_workspace first, then workspace_action to actually create it in the workspace.\n\n" +
     "CREATOR-AUDIO actions:\n" +
     "- generate_beat: workspace_action(workspace='creator-audio', action='generate_beat', params={bpm:140, style:'trap', bars:4})\n" +
     "- start_recording: workspace_action(workspace='creator-audio', action='start_recording')\n" +

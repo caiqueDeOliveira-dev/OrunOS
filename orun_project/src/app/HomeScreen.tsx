@@ -123,6 +123,15 @@ export function HomeScreen() {
     chat.autoResumeLastConversation();
   }, []);
 
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { workspaceId } = (e as CustomEvent).detail;
+      if (workspaceId) nav.setWorkspaceOpen(workspaceId);
+    };
+    window.addEventListener("workspace:open", handler);
+    return () => window.removeEventListener("workspace:open", handler);
+  }, [nav]);
+
   const isStreaming = hamptonState === "speaking" || hamptonState === "thinking";
   const anyPanelOpen = nav.anyPanelOpen;
   const agents = getAgents(t);

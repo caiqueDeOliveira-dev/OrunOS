@@ -51,13 +51,18 @@ export default function App() {
     });
     initWorkspaceActionListener();
 
-    const unsub = window.orun.voiceOverlay.onShow(() => {
+    const unsubVoice = window.orun.voiceOverlay.onShow(() => {
       setVoiceOverlayVisible(true);
+    });
+
+    const unsubWsOpen = window.orun.workspaceActions.onOpen((workspaceId: string) => {
+      window.dispatchEvent(new CustomEvent("workspace:open", { detail: { workspaceId } }));
     });
 
     return () => {
       destroyWorkspaceActionListener();
-      unsub();
+      unsubVoice();
+      unsubWsOpen();
     };
   }, []);
 

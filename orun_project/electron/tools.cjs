@@ -461,6 +461,24 @@ const TOOL_DEFINITIONS = [
   {
     type: "function",
     function: {
+      name: "open_workspace",
+      description: "Open a workspace panel in the UI. You MUST call this before using workspace_action. The workspace will be mounted and its actions registered.",
+      parameters: {
+        type: "object",
+        properties: {
+          workspace: {
+            type: "string",
+            enum: ["creator-audio", "creator-video", "designer", "automation-flow", "finance", "health", "teacher", "marketing", "system", "developer", "automotive-garage"],
+            description: "Workspace ID to open",
+          },
+        },
+        required: ["workspace"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "spotify_play",
       description: "Control Spotify playback. Play, pause, skip, previous, set volume, seek, shuffle, repeat. Can also play a specific track/playlist/album by URI or search query.",
       parameters: {
@@ -863,6 +881,22 @@ async function executeToolRaw(name, args) {
       const validAgents = ["Health", "Finance", "Developer", "Teacher", "Designer", "Creator", "Marketing", "Automation", "System"];
       if (!validAgents.includes(agent)) return { error: `Invalid agent: ${agent}. Valid agents: ${validAgents.join(", ")}` };
       return { triggered: true, agent, message, timestamp: Date.now() };
+    }
+    case "open_workspace": {
+      try {
+        const { BrowserWindow } = require("electron");
+        const win = BrowserWindow.getAllWindows()[0];
+        if (!win || win.isDestroyed()) return { error: "No active window found" };
+        const { workspace } = args;
+        const validWorkspaces = ["creator-audio", "creator-video", "designer", "automation-flow", "finance", "health", "teacher", "marketing", "system", "developer", "automotive-garage"];
+        if (!validWorkspaces.includes(workspace)) return { error: `Invalid workspace: ${workspace}. Valid: ${validWorkspaces.join(", ")}` };
+        win.webContents.send("workspace:open", workspace);
+        await new Promise((r) => setTimeout(r, 500));
+        log.info(`[open_workspace] ${workspace}`);
+        return { success: true, message: `Workspace "${workspace}" opened` };
+      } catch (e) {
+        return { error: e.message };
+      }
     }
     case "workspace_action": {
       try {

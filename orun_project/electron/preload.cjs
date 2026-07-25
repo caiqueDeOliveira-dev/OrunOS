@@ -324,6 +324,11 @@ contextBridge.exposeInMainWorld("orun", {
     sendResult: (requestId, result) => {
       ipcRenderer.send("workspace:action:result", requestId, result);
     },
+    onOpen: (handler) => {
+      const listener = (_event, workspaceId) => handler(workspaceId);
+      ipcRenderer.on("workspace:open", listener);
+      return () => ipcRenderer.removeListener("workspace:open", listener);
+    },
   },
   voiceOverlay: {
     onShow: (handler) => {
