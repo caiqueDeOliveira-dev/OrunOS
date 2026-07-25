@@ -890,17 +890,21 @@ async function executeToolRaw(name, args) {
         const { workspace } = args;
         const validWorkspaces = ["creator-audio", "creator-video", "designer", "automation-flow", "finance", "health", "teacher", "marketing", "system", "developer", "automotive-garage"];
         if (!validWorkspaces.includes(workspace)) return { error: `Invalid workspace: ${workspace}. Valid: ${validWorkspaces.join(", ")}` };
-        win.webContents.send("workspace:open", workspace);
+        // Set up listener BEFORE sending the open message to avoid race condition
+        let cleanedUp = false;
+        const cleanup = () => { if (!cleanedUp) { cleanedUp = true; ipcMain.removeListener("workspace:actions-registered", onRegistered); } };
         const confirmed = await new Promise((resolve) => {
-          const timeout = setTimeout(() => resolve(false), 5000);
-          const handler = (_event, ws) => {
+          const timer = setTimeout(() => { cleanup(); resolve(false); }, 5000);
+          const onRegistered = (_event, ws) => {
             if (ws === workspace) {
-              clearTimeout(timeout);
-              ipcMain.removeListener("workspace:actions-registered", handler);
+              clearTimeout(timer);
+              cleanup();
               resolve(true);
             }
           };
-          ipcMain.on("workspace:actions-registered", handler);
+          ipcMain.on("workspace:actions-registered", onRegistered);
+          // Now send the open message after listener is ready
+          win.webContents.send("workspace:open", workspace);
         });
         log.info(`[open_workspace] ${workspace} confirmed=${confirmed}`);
         return { success: true, message: `Workspace "${workspace}" opened${confirmed ? " (actions ready)" : " (may still be loading)"}` };
@@ -915,15 +919,15 @@ async function executeToolRaw(name, args) {
         if (!win || win.isDestroyed()) return { error: "No active window found" };
         const { workspace, action, params } = args;
         const requestId = `wa_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        let cleanedUp = false;
+        let resolveFn;
+        const cleanup = () => { if (!cleanedUp) { cleanedUp = true; ipcMain.removeListener("workspace:action:result", handler); } };
+        const handler = (_event, rid, data) => {
+          if (rid === requestId) { cleanup(); resolveFn(data); }
+        };
         const result = await new Promise((resolve, reject) => {
-          const timeout = setTimeout(() => reject(new Error("Workspace action timed out after 30s")), 30000);
-          const handler = (_event, rid, data) => {
-            if (rid === requestId) {
-              clearTimeout(timeout);
-              ipcMain.removeListener("workspace:action:result", handler);
-              resolve(data);
-            }
-          };
+          resolveFn = resolve;
+          const timer = setTimeout(() => { cleanup(); reject(new Error(`Workspace action timed out. The workspace "${workspace}" may not be open or its actions may not be registered.`)); }, 30000);
           ipcMain.on("workspace:action:result", handler);
           win.webContents.send("workspace:action", { requestId, workspace, action, params: params || {} });
         });

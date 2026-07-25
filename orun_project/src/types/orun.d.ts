@@ -533,6 +533,8 @@ interface OrunAPI {
   workspaceActions: {
     onAction: (handler: (request: { requestId: string; workspace: string; action: string; params: Record<string, unknown> }) => void) => () => void;
     sendResult: (requestId: string, result: { success: boolean; data?: unknown; error?: string; message?: string }) => void;
+    onOpen: (handler: (workspaceId: string) => void) => () => void;
+    notifyRegistered: (workspaceId: string) => void;
   };
   sync: {
     status: () => Promise<{ connected: boolean; lastSync?: string; error?: string }>;
