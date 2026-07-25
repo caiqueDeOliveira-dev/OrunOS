@@ -39,19 +39,23 @@ export function unregisterWorkspaceActions(workspaceId: string) {
 
 async function dispatch(request: WorkspaceActionRequest): Promise<WorkspaceActionResult> {
   const { workspace, action, params } = request;
+  console.log(`[workspace-actions] dispatch: ${workspace}/${action}`, Object.keys(registry));
   const wsActions = registry[workspace];
   if (!wsActions) {
+    console.error(`[workspace-actions] Workspace "${workspace}" not in registry. Available: ${Object.keys(registry).join(", ")}`);
     return { success: false, error: `Workspace "${workspace}" is not open or has no registered actions` };
   }
   const handler = wsActions[action];
   if (!handler) {
     const available = Object.keys(wsActions);
+    console.error(`[workspace-actions] Unknown action "${action}" for "${workspace}". Available: ${available.join(", ")}`);
     return { success: false, error: `Unknown action "${action}" for workspace "${workspace}". Available: ${available.join(", ")}` };
   }
   try {
     const result = await handler(params);
     return result;
   } catch (e: any) {
+    console.error(`[workspace-actions] Error in ${workspace}/${action}:`, e.message);
     return { success: false, error: e.message || "Action failed" };
   }
 }

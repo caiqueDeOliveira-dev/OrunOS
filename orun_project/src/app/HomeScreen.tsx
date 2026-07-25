@@ -126,7 +126,15 @@ export function HomeScreen() {
   useEffect(() => {
     const handler = (e: Event) => {
       const { workspaceId } = (e as CustomEvent).detail;
-      if (workspaceId) nav.setWorkspaceOpen(workspaceId);
+      if (!workspaceId) return;
+      const PLUGIN_MAP: Record<string, string> = {
+        health: "Health", finance: "Finance", developer: "Developer",
+        marketing: "Marketing", designer: "Designer", teacher: "Teacher",
+        system: "System", "automation-flow": "Automation",
+        "automotive-garage": "Automotive", "creator-audio": "Creator_Audio",
+        "creator-video": "Creator_Audio",
+      };
+      nav.setWorkspaceOpen(PLUGIN_MAP[workspaceId] || workspaceId);
     };
     window.addEventListener("workspace:open", handler);
     return () => window.removeEventListener("workspace:open", handler);
