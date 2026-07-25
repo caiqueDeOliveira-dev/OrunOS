@@ -6,7 +6,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { createStore } from "../../lib/store";
 import type { WorkspaceProps } from "../../types";
-import { registerHealthActions, unregisterHealthActions } from "./health-actions";
+import { registerHealthActions, unregisterHealthActions, setHealthStoreGetter } from "./health-actions";
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart,
@@ -150,6 +150,7 @@ export function HealthWorkspace({ plugin, activeTab, onTabChange, onSendMessage,
 
   useEffect(() => {
     registerHealthActions();
+    setHealthStoreGetter(() => useHealthStore);
     return () => unregisterHealthActions();
   }, []);
 

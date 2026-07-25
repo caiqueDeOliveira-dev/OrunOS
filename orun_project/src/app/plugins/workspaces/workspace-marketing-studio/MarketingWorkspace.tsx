@@ -6,7 +6,7 @@
 import { useState, useEffect } from "react";
 import { createStore } from "../../lib/store";
 import type { WorkspaceProps } from "../../types";
-import { registerMarketingActions, unregisterMarketingActions } from "./marketing-actions";
+import { registerMarketingActions, unregisterMarketingActions, setMarketingStoreGetter } from "./marketing-actions";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line,
 } from "recharts";
@@ -81,6 +81,7 @@ export function MarketingWorkspace({ plugin, activeTab, onTabChange, onSendMessa
 
   useEffect(() => {
     registerMarketingActions();
+    setMarketingStoreGetter(() => useMarketingStore);
     return () => unregisterMarketingActions();
   }, []);
 

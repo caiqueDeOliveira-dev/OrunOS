@@ -6,7 +6,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { createStore } from "../../lib/store";
 import type { WorkspaceProps } from "../../types";
-import { registerAutomationActions, unregisterAutomationActions, saveFlow, loadFlow, exportFlow, importFlow } from "./automation-actions";
+import { registerAutomationActions, unregisterAutomationActions, setFlowStoreGetter, saveFlow, loadFlow, exportFlow, importFlow } from "./automation-actions";
 
 // ── Types ───────────────────────────────────────────────────────────────
 
@@ -230,6 +230,7 @@ export function AutomationFlow({ plugin, activeTab, onTabChange, onSendMessage, 
 
   useEffect(() => {
     registerAutomationActions();
+    setFlowStoreGetter(() => useFlowStore);
     return () => unregisterAutomationActions();
   }, []);
 

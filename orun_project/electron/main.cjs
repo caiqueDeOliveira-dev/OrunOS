@@ -169,7 +169,7 @@ const AGENT_TOOL_PERMISSIONS = {
   ],
   Automotive: [
     "web_search", "web_fetch", "memory_save", "memory_search", "rag_search",
-    "read_file", "list_files", "notify",
+    "read_file", "list_files", "notify", "workspace_action",
   ],
   System: [
     "read_file", "write_file", "edit_file", "list_files", "search_files",

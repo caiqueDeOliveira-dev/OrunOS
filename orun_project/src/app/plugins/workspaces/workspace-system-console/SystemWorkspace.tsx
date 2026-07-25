@@ -8,7 +8,7 @@ import { useState, useCallback, useRef, useEffect, lazy } from "react";
 import type { WorkspaceProps } from "../../types";
 import { createStore } from "../../lib/store";
 import { createPluginLogger } from "../../lib/logger";
-import { registerSystemActions, unregisterSystemActions } from "./system-actions";
+import { registerSystemActions, unregisterSystemActions, setConsoleStoreGetter } from "./system-actions";
 import { useTranslation } from "../../../../i18n/I18nProvider";
 
 const log = createPluginLogger("system-console");
@@ -158,6 +158,7 @@ export function SystemWorkspace({ plugin, activeTab, onTabChange, onSendMessage,
 
   useEffect(() => {
     registerSystemActions();
+    setConsoleStoreGetter(() => useConsoleStore);
     return () => unregisterSystemActions();
   }, []);
 

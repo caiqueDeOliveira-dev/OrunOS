@@ -5,7 +5,7 @@
 import { useState, useEffect } from "react";
 import { createStore } from "../../lib/store";
 import type { WorkspaceProps } from "../../types";
-import { registerFinanceActions, unregisterFinanceActions } from "./finance-actions";
+import { registerFinanceActions, unregisterFinanceActions, setFinanceStoreGetter } from "./finance-actions";
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area,
 } from "recharts";
@@ -56,6 +56,7 @@ export function FinanceLedger({ plugin, activeTab, onTabChange, onSendMessage, l
 
   useEffect(() => {
     registerFinanceActions();
+    setFinanceStoreGetter(() => useFinanceStore);
     return () => unregisterFinanceActions();
   }, []);
 

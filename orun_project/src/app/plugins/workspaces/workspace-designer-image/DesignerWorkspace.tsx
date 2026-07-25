@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { createStore } from "../../lib/store";
 import type { WorkspaceProps } from "../../types";
-import { registerDesignerActions, unregisterDesignerActions } from "./designer-actions";
+import { registerDesignerActions, unregisterDesignerActions, setDesignerStoreGetter } from "./designer-actions";
 import { useTranslation } from "../../../../i18n/I18nProvider";
 
 // ── Colors ───────────────────────────────────────────────────────────────
@@ -1491,6 +1491,7 @@ export function DesignerWorkspace({ plugin, activeTab, onTabChange, onSendMessag
 
   useEffect(() => {
     registerDesignerActions();
+    setDesignerStoreGetter(() => useDesignerStore);
     return () => unregisterDesignerActions();
   }, []);
 
