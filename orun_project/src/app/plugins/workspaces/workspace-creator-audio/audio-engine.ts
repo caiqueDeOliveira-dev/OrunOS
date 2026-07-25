@@ -79,7 +79,7 @@ const deckState: { A: { playing: boolean; offset: number; start: number }; B: { 
 function getCtx(): AudioContext {
   if (!audioCtx) {
     audioCtx = new AudioContext();
-    audioCtx.resume();
+    audioCtx.resume().catch(() => {});
     // Create chain: source → eqLo → eqMid → eqHi → gain → analyser → destination
     eqLo = audioCtx.createBiquadFilter();
     eqLo.type = "lowshelf";
@@ -490,7 +490,13 @@ const actions = {
     dryGain.gain.value = 1 - wetDry;
     const wetGain = ctx.createGain();
     wetGain.gain.value = wetDry;
-    // Reverb is applied to current playback chain
+    // Disconnect gainNode → analyserNode, insert reverb parallel chain
+    gainNode!.disconnect();
+    gainNode!.connect(dryGain);
+    gainNode!.connect(reverbNode!);
+    reverbNode!.connect(wetGain);
+    dryGain.connect(analyserNode!);
+    wetGain.connect(analyserNode!);
     return { success: true, message: `Reverb added (wet: ${Math.round(wetDry * 100)}%, duration: ${duration}s)` };
   },
 
@@ -851,6 +857,25 @@ export function unregisterCreatorAudioActions() {
   registered = false;
 }
 
+export function cleanupAudioEngine() {
+  if (metronomeInterval) { clearInterval(metronomeInterval); metronomeInterval = null; }
+  if (mediaRecorder && mediaRecorder.state !== "inactive") { mediaRecorder.stop(); mediaRecorder = null; }
+  if (sourceNode) { try { sourceNode.stop(); } catch {} sourceNode = null; }
+  for (const deck of ["A", "B"] as const) {
+    if (deckSources[deck]) { try { deckSources[deck]!.stop(); } catch {} deckSources[deck] = null; }
+  }
+  if (audioCtx && audioCtx.state !== "closed") { audioCtx.close().catch(() => {}); }
+  audioCtx = null;
+  gainNode = null;
+  analyserNode = null;
+  eqHi = null; eqMid = null; eqLo = null;
+  reverbNode = null;
+  delayNode = null; delayGain = null;
+  currentBuffer = null;
+  isPlaying = false;
+  deckBuffers.A = null; deckBuffers.B = null;
+}
+
 export function getAudioEngine() {
   return {
     getCtx,
@@ -867,7 +892,7 @@ export function getAudioEngine() {
     setMasterVolume: (vol: number) => { if (gainNode) gainNode.gain.value = Math.max(0, Math.min(1, vol)); },
     getWaveformData: (numBars?: number) => currentBuffer ? getWaveformData(currentBuffer, numBars || 120) : [],
     setCrossfader: (val: number) => {
-      if (gainNode) gainNode.gain.value = Math.max(0, Math.min(1, gainNode.gain.value));
+      if (gainNode) gainNode.gain.value = Math.max(0, Math.min(1, val));
     },
     // Per-deck methods
     loadAudioForDeck,

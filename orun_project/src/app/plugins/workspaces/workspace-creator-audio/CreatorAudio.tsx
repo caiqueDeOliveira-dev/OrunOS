@@ -2,7 +2,7 @@
 // Split into: DeckPanel, MixerCenter, FXRack, SamplePads, RecordingPanel, TopBar, BottomBar, LowerSection
 import { useEffect } from "react";
 import type { WorkspaceProps } from "../../types";
-import { registerCreatorAudioActions, unregisterCreatorAudioActions, getAudioEngine } from "./audio-engine";
+import { registerCreatorAudioActions, unregisterCreatorAudioActions, cleanupAudioEngine, getAudioEngine } from "./audio-engine";
 import { useDJStore } from "./creator-audio-store";
 import { TopBar } from "./TopBar";
 import { BottomBar } from "./BottomBar";
@@ -14,7 +14,7 @@ import { BG, FONT_LABEL } from "./creator-audio-types";
 export function CreatorAudio({ plugin, activeTab, onTabChange, onSendMessage, lastToolResult }: WorkspaceProps) {
   useEffect(() => {
     registerCreatorAudioActions();
-    return () => unregisterCreatorAudioActions();
+    return () => { unregisterCreatorAudioActions(); cleanupAudioEngine(); };
   }, []);
 
   // Connect audio engine to effects via custom events
