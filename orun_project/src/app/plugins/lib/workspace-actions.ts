@@ -28,6 +28,9 @@ export function registerWorkspaceActions(
   actions: Record<string, ActionHandler>
 ) {
   registry[workspaceId] = { ...registry[workspaceId], ...actions };
+  try {
+    window.orun?.workspaceActions?.notifyRegistered(workspaceId);
+  } catch {}
 }
 
 export function unregisterWorkspaceActions(workspaceId: string) {

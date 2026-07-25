@@ -884,16 +884,26 @@ async function executeToolRaw(name, args) {
     }
     case "open_workspace": {
       try {
-        const { BrowserWindow } = require("electron");
+        const { BrowserWindow, ipcMain } = require("electron");
         const win = BrowserWindow.getAllWindows()[0];
         if (!win || win.isDestroyed()) return { error: "No active window found" };
         const { workspace } = args;
         const validWorkspaces = ["creator-audio", "creator-video", "designer", "automation-flow", "finance", "health", "teacher", "marketing", "system", "developer", "automotive-garage"];
         if (!validWorkspaces.includes(workspace)) return { error: `Invalid workspace: ${workspace}. Valid: ${validWorkspaces.join(", ")}` };
         win.webContents.send("workspace:open", workspace);
-        await new Promise((r) => setTimeout(r, 500));
-        log.info(`[open_workspace] ${workspace}`);
-        return { success: true, message: `Workspace "${workspace}" opened` };
+        const confirmed = await new Promise((resolve) => {
+          const timeout = setTimeout(() => resolve(false), 5000);
+          const handler = (_event, ws) => {
+            if (ws === workspace) {
+              clearTimeout(timeout);
+              ipcMain.removeListener("workspace:actions-registered", handler);
+              resolve(true);
+            }
+          };
+          ipcMain.on("workspace:actions-registered", handler);
+        });
+        log.info(`[open_workspace] ${workspace} confirmed=${confirmed}`);
+        return { success: true, message: `Workspace "${workspace}" opened${confirmed ? " (actions ready)" : " (may still be loading)"}` };
       } catch (e) {
         return { error: e.message };
       }
