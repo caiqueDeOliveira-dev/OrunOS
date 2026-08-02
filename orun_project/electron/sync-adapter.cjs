@@ -15,10 +15,18 @@
 // service_role é lida SOMENTE aqui, no processo principal — nunca no renderer.
 
 let core = null;
+let wsTransport = null;
 try {
   core = require("@orun/core");
 } catch {
   // @orun/core ausente → rodamos apenas com o sync legado (supabase.cjs).
+}
+try {
+  // Node < 22 (Electron main) não tem WebSocket nativo; o SupabaseClient
+  // instancia o RealtimeClient na criação. `ws` fornece o construtor.
+  wsTransport = require("ws").WebSocket;
+} catch {
+  // Sem `ws` instalado → o core usa WebSocket nativo (Node >= 22) ou falha.
 }
 
 const legacySync = require("./supabase.cjs");
@@ -54,7 +62,11 @@ function initEcosystem(secretStore, appVersion) {
     const serviceRoleKey = secrets["orun.supabase.serviceRoleKey"];
     if (!url || !serviceRoleKey) return false;
 
-    const supabase = core.getSupabaseClient({ url, serviceRoleKey });
+    const supabase = core.getSupabaseClient({
+      url,
+      serviceRoleKey,
+      transport: wsTransport ?? undefined,
+    });
 
     deviceId = secrets["orun.device.id"];
     if (!deviceId) {
@@ -68,10 +80,10 @@ function initEcosystem(secretStore, appVersion) {
     });
 
     ecosystemEnabled = true;
-    logger.info(`[ecosystem] Orun-Core ativo — deviceId=${deviceId} versao=${appVersion}`);
+    logger.sync.info(`[ecosystem] Orun-Core ativo — deviceId=${deviceId} versao=${appVersion}`);
     return true;
   } catch (err) {
-    logger.error("[ecosystem] initEcosystem falhou:", err.message);
+    logger.sync.error("[ecosystem] initEcosystem falhou:", err.message);
     return false;
   }
 }
@@ -93,7 +105,7 @@ function startHeartbeat(intervalMs = HEARTBEAT_INTERVAL_MS) {
     try {
       await controller.heartbeat({ nome: "Orun OS (desktop)", versao: appVersion() });
     } catch (err) {
-      logger.warn(`[ecosystem] heartbeat falhou: ${err.message}`);
+      logger.sync.warn(`[ecosystem] heartbeat falhou: ${err.message}`);
     }
   };
 
