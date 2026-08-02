@@ -23,7 +23,7 @@ const socialMedia = require("./social-media.cjs");
 const musicProducer = require("./music-producer.cjs");
 const homeAssistant = require("./home-assistant.cjs");
 const securityAudit = require("./security-audit.cjs");
-const supabaseSync = require("./supabase.cjs");
+const supabaseSync = require("./sync-adapter.cjs");
 const toolsModule = require("./tools.cjs");
 const mcpClient = require("./mcp-client.cjs");
 const pluginSystem = require("./plugin-system.cjs");
@@ -922,6 +922,21 @@ app.whenReady().then(() => {
     log.info("PostgreSQL not configured (.env missing or DATABASE_URL empty) — running local-only");
   }
 
+  // Ecossistema Orun (Orun-Core): heartbeat de dispositivo + controle de
+  // satélites. Requer @orun/core instalado e credenciais Supabase no keychain
+  // (orun.supabase.url + orun.supabase.serviceRoleKey). Se indisponível, o
+  // app segue exatamente como antes — é opcional e não afeta o sync legado.
+  try {
+    if (supabaseSync.initEcosystem(secretStore, app.getVersion())) {
+      supabaseSync.startHeartbeat();
+      log.info("[ecosystem] heartbeat de dispositivo iniciado (30s)");
+    } else {
+      log.info("[ecosystem] Orun-Core inativo — credenciais Supabase não configuradas (opcional)");
+    }
+  } catch (err) {
+    log.warn("[ecosystem] init falhou:", err.message);
+  }
+
   // Auto-sync every N minutes (configurable via SYNC_INTERVAL_MS in .env)
   syncIntervalId = setInterval(() => {
     if (supabaseSync.isConnected()) {
@@ -1123,6 +1138,7 @@ app.on("before-quit", () => {
   if (syncIntervalId) { clearInterval(syncIntervalId); syncIntervalId = null; }
   if (rateLimiterIntervalId) { clearInterval(rateLimiterIntervalId); rateLimiterIntervalId = null; }
   providerHealth.stop();
+  try { supabaseSync.stopHeartbeat(); } catch { /* best effort */ }
 
   // Destroy quick chat window
   if (quickChatWindow && !quickChatWindow.isDestroyed()) { quickChatWindow.destroy(); quickChatWindow = null; }
