@@ -7,6 +7,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { createStore } from "../../lib/store";
 import type { WorkspaceProps } from "../../types";
 import { registerAutomationActions, unregisterAutomationActions, setFlowStoreGetter, saveFlow, loadFlow, exportFlow, importFlow } from "./automation-actions";
+import { usePersonalization, useWorkspaceNotes } from "../../../hooks/usePersonalization";
 
 // ── Types ───────────────────────────────────────────────────────────────
 
@@ -29,10 +30,10 @@ interface FlowEdge {
 
 interface LogEntry {
   id: string;
-  timestamp: string;
-  nodeId: string;
+  timestamp: string | number;
+  nodeId?: string;
   message: string;
-  status: "success" | "error" | "info";
+  status?: "success" | "error" | "info";
 }
 
 interface FlowState {
@@ -185,7 +186,7 @@ function ExecutionLog() {
           <span className="text-[8px] mt-0.5 w-14 shrink-0" style={{ fontFamily: "'JetBrains Mono', monospace", color: "var(--muted-foreground)" }}>
             {log.timestamp}
           </span>
-          <span className="w-1.5 h-1.5 rounded-full mt-1 shrink-0" style={{ background: statusColors[log.status] }} />
+          <span className="w-1.5 h-1.5 rounded-full mt-1 shrink-0" style={{ background: statusColors[log.status ?? ""] }} />
           <span className="text-[10px]" style={{ color: "var(--foreground)" }}>{log.message}</span>
         </div>
       ))}
@@ -196,6 +197,8 @@ function ExecutionLog() {
 // ── Main Workspace ──────────────────────────────────────────────────────
 
 export function AutomationFlow({ plugin, activeTab, onTabChange, onSendMessage, lastToolResult }: WorkspaceProps) {
+  const { userName, avatarInitials, greeting } = usePersonalization();
+  const { notes, updateNotes } = useWorkspaceNotes("Automation");
   const isRunning = useFlowStore((s) => s.isRunning);
   const [showLog, setShowLog] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -273,6 +276,10 @@ export function AutomationFlow({ plugin, activeTab, onTabChange, onSendMessage, 
 
   return (
     <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between px-4 py-1" style={{ borderBottom: "1px solid var(--border)" }}>
+        <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>{greeting}, {userName}</span>
+        <div className="w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold" style={{ background: "#F59E0B", color: "#fff" }}>{avatarInitials}</div>
+      </div>
       {/* Toolbar */}
       <div className="flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: "var(--border)" }}>
         <span className="text-[10px] tracking-wider uppercase" style={{ fontFamily: "'Sora', sans-serif", color: "var(--muted-foreground)" }}>
@@ -352,6 +359,16 @@ export function AutomationFlow({ plugin, activeTab, onTabChange, onSendMessage, 
           <ExecutionLog />
         </div>
       )}
+      <div style={{ padding: "12px", borderRadius: "12px", background: "var(--card)", border: "1px solid var(--border)" }}>
+        <span className="text-xs font-medium mb-2 block" style={{ color: "var(--foreground)" }}>Notas Pessoais</span>
+        <textarea
+          value={notes}
+          onChange={(e) => updateNotes(e.target.value)}
+          className="w-full px-3 py-2 rounded-lg text-[10px] resize-none"
+          style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)", minHeight: "60px" }}
+          placeholder="Suas anotações de automação..."
+        />
+      </div>
     </div>
   );
 }

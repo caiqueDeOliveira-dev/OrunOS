@@ -11,6 +11,7 @@
 const https = require("https");
 const http = require("http");
 const logger = require("./logger.cjs");
+const providerFallback = require("./provider-fallback.cjs");
 const httpAgent = new http.Agent({ keepAlive: true, maxSockets: 10, maxFreeSockets: 5, timeout: 120000 });
 const httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 10, maxFreeSockets: 5, timeout: 120000 });
 
@@ -192,7 +193,7 @@ function trimContext(messages, systemPrompt, maxMessages = 10) {
 }
 
 const SUMMARY_PROMPT =
-  "Summarize the following conversation history in a few short paragraphs, preserving names, decisions, numbers, and any facts needed to continue the conversation naturally. Output only the summary, no preamble. IMPORTANTE: Resuma em português do Brasil (pt-BR).";
+  "Summarize the following conversation history in a few short paragraphs, preserving names, decisions, numbers, and any facts needed to continue the conversation naturally. Output only the summary, no preamble.";
 
 /**
  * Smarter context builder: if the conversation is short, just trims as
@@ -246,10 +247,14 @@ function isOpenAICompatible(provider) {
 
 function formatMessagesFor(provider, messages) {
   return messages.map((m) => {
-    // Preserve tool_call_id and tool_calls for autonomous loop
+    // Preserve tool_call_id, tool_calls, and reasoning_content for the autonomous loop.
+    // DeepSeek (and gateways proxying it, e.g. opencodezen in thinking mode) requires
+    // assistant `reasoning_content` to be echoed back verbatim on subsequent requests,
+    // otherwise it rejects with HTTP 400 "The reasoning_content ... must be passed back".
     const extra = {};
     if (m.tool_call_id) extra.tool_call_id = m.tool_call_id;
     if (m.tool_calls) extra.tool_calls = m.tool_calls;
+    if (m.reasoning_content) extra.reasoning_content = m.reasoning_content;
     if (!m.image) return { role: m.role, content: m.content, ...extra };
     if (provider === "anthropic") {
       return {
@@ -276,15 +281,7 @@ function formatMessagesFor(provider, messages) {
 
 // ── Rate-limit retry helpers ─────────────────────────────────────────────
 
-function parseRetryAfter(err) {
-  try {
-    const msg = err?.message || "";
-    const jsonStart = msg.indexOf("{");
-    if (jsonStart < 0) return null;
-    const obj = JSON.parse(msg.slice(jsonStart));
-    return obj?.error?.metadata?.retry_after_seconds ?? null;
-  } catch { return null; }
-}
+const parseRetryAfter = providerFallback.parseRetryAfter;
 
 function sleepMs(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
@@ -347,7 +344,7 @@ async function chatOpenAICompatible(provider, { model, messages, apiKey, tools, 
     name: tc.function.name,
     arguments: JSON.parse(tc.function.arguments),
   }));
-  return { text: choice.message.content || null, toolCalls, usage: { tokensIn: result.usage?.prompt_tokens || 0, tokensOut: result.usage?.completion_tokens || 0 } };
+  return { text: choice.message.content || null, toolCalls, reasoningContent: choice.message.reasoning_content, usage: { tokensIn: result.usage?.prompt_tokens || 0, tokensOut: result.usage?.completion_tokens || 0 } };
 }
 
 // ── Streaming functions ────────────────────────────────────────────────
@@ -386,14 +383,17 @@ async function streamOpenAICompatible(provider, { model, messages, apiKey, onChu
   const body = { model: model || cfg.defaultModel, messages: formatMessagesFor(provider, messages), stream: true };
   const systemPrompt = messages.find((m) => m.role === "system")?.content || "";
   let fullText = "";
+  let fullReasoning = "";
   await streamPOST(`${cfg.baseUrl}/chat/completions`, cfg.authHeaders(apiKey), body, (line) => {
     try {
       const obj = JSON.parse(line.replace(/^data: /, ""));
       const delta = obj.choices?.[0]?.delta?.content;
       if (delta) { fullText += delta; onChunk?.(delta); }
+      const reasoningDelta = obj.choices?.[0]?.delta?.reasoning_content;
+      if (reasoningDelta) fullReasoning += reasoningDelta;
     } catch { /* ignore */ }
   });
-  return { text: fullText, toolCalls: [], usage: { tokensIn: estimateTokens(systemPrompt), tokensOut: estimateTokens(fullText) } };
+  return { text: fullText, toolCalls: [], reasoningContent: fullReasoning || undefined, usage: { tokensIn: estimateTokens(systemPrompt), tokensOut: estimateTokens(fullText) } };
 }
 
 // Inner routeChat — no retry logic, used by retry wrapper
@@ -412,7 +412,7 @@ async function routeChatOnce(req) {
  * model for that provider, then cross-provider.
  */
 async function routeChat(req) {
-  const allProviders = ["groq", "openrouter", "github", "opencodezen"];
+  const allProviders = ["opencodezen", "groq", "openrouter"];
   const bestProvider = selectBestProvider(req.provider, allProviders.filter((p) => p !== "ollama" && p !== "anthropic").concat(["ollama", "anthropic"]));
   const effectiveReq = bestProvider !== req.provider ? { ...req, provider: bestProvider } : req;
 
@@ -472,7 +472,7 @@ async function streamChatOnce(req) {
 }
 
 async function streamChat(req) {
-  const allProviders = ["groq", "openrouter", "github", "opencodezen"];
+  const allProviders = ["opencodezen", "groq", "openrouter"];
   const bestProvider = selectBestProvider(req.provider, allProviders.filter((p) => p !== "ollama" && p !== "anthropic").concat(["ollama", "anthropic"]));
   const effectiveReq = bestProvider !== req.provider ? { ...req, provider: bestProvider } : req;
 
@@ -549,52 +549,7 @@ async function listCloudModels(provider, apiKey) {
   }
 }
 
-const KNOWN_FREE_MODELS = {
-  openrouter: [
-    "meta-llama/llama-3.3-70b-instruct:free",
-    "qwen/qwen3-coder:free",
-    "nvidia/nemotron-3-ultra-550b-a55b:free",
-    "nvidia/nemotron-3-super-120b-a12b:free",
-    "nvidia/nemotron-3-nano-30b-a3b:free",
-    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
-    "nvidia/nemotron-nano-9b-v2:free",
-    "nvidia/nemotron-nano-12b-v2-vl:free",
-    "openai/gpt-oss-20b:free",
-    "tencent/hy3:free",
-    "google/gemma-4-31b-it:free",
-    "google/gemma-4-26b-a4b-it:free",
-    "poolside/laguna-m.1:free",
-    "poolside/laguna-xs-2.1:free",
-    "cohere/north-mini-code:free",
-  ],
-  groq: [
-    "llama-3.3-70b-versatile",
-    "llama-3.1-8b-instant",
-    "qwen/qwen3-32b",
-    "openai/gpt-oss-120b",
-    "openai/gpt-oss-20b",
-    "allam-2-7b",
-    "groq/compound",
-    "groq/compound-mini",
-  ],
-  github: [
-    "openai/gpt-4o",
-    "openai/gpt-4o-mini",
-    "openai/gpt-5-nano",
-    "meta/llama-3.3-70b-instruct",
-    "meta/llama-4-scout-17b-16e-instruct",
-    "mistral-ai/mistral-large-2411",
-    "mistral-ai/codestral-2501",
-  ],
-  opencodezen: [
-    "big-pickle",
-    "deepseek-v4-flash-free",
-    "mimo-v2.5-free",
-    "nemotron-3-ultra-free",
-    "north-mini-code-free",
-    "gpt-5.6-sol",
-  ],
-};
+const KNOWN_FREE_MODELS = providerFallback.KNOWN_FREE_MODELS;
 
 // Comprehensive model catalog — every model available per provider, with free/paid tag
 const MODEL_CATALOG = {

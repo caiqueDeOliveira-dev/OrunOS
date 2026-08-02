@@ -1,23 +1,41 @@
-// CreatorAudio — Main workspace component (Virtual DJ style)
-// Split into: DeckPanel, MixerCenter, FXRack, SamplePads, RecordingPanel, TopBar, BottomBar, LowerSection
 import { useEffect } from "react";
 import type { WorkspaceProps } from "../../types";
+import { AIFloatingPrompt } from "../../components/AIFloatingPrompt";
 import { registerCreatorAudioActions, unregisterCreatorAudioActions, cleanupAudioEngine, getAudioEngine } from "./audio-engine";
-import { useDJStore } from "./creator-audio-store";
+import { useDJStore, pushAudioUndo } from "./creator-audio-store";
 import { TopBar } from "./TopBar";
 import { BottomBar } from "./BottomBar";
 import { DeckPanel } from "./DeckPanel";
 import { MixerCenter } from "./MixerCenter";
 import { LowerSection } from "./LowerSection";
-import { BG, FONT_LABEL } from "./creator-audio-types";
 
 export function CreatorAudio({ plugin, activeTab, onTabChange, onSendMessage, lastToolResult }: WorkspaceProps) {
+
   useEffect(() => {
     registerCreatorAudioActions();
     return () => { unregisterCreatorAudioActions(); cleanupAudioEngine(); };
   }, []);
 
-  // Connect audio engine to effects via custom events
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === " " && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        useDJStore.setState((s) => ({ isPlaying: !s.isPlaying }));
+      }
+      if (e.key === "r" && !e.ctrlKey && !e.metaKey) {
+        useDJStore.setState((s) => ({ isRecording: !s.isRecording }));
+      }
+      if (e.key === "m" && !e.ctrlKey && !e.metaKey) {
+        const s = useDJStore.getState();
+        useDJStore.setState({ channels: s.channels.map((ch) => ({ ...ch, muted: !ch.muted })) });
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
   useEffect(() => {
     const handleEffect = (e: Event) => {
       const detail = (e as CustomEvent).detail;
@@ -35,7 +53,6 @@ export function CreatorAudio({ plugin, activeTab, onTabChange, onSendMessage, la
     return () => window.removeEventListener("creator-audio:effect", handleEffect);
   }, []);
 
-  // Sync masterVolume to Web Audio engine
   const masterVolume = useDJStore((s) => s.masterVolume);
   useEffect(() => {
     try {
@@ -43,7 +60,6 @@ export function CreatorAudio({ plugin, activeTab, onTabChange, onSendMessage, la
     } catch {}
   }, [masterVolume]);
 
-  // Update deck A when AI generates a beat via workspace_action
   useEffect(() => {
     const handleBufferChanged = () => {
       try {
@@ -72,22 +88,16 @@ export function CreatorAudio({ plugin, activeTab, onTabChange, onSendMessage, la
   }, []);
 
   return (
-    <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", background: BG, overflow: "hidden", fontFamily: FONT_LABEL }}>
-      {/* Top bar */}
+    <div className="flex flex-col w-full h-full overflow-hidden" style={{ background: "var(--background)" }}>
       <TopBar />
-
-      {/* Upper section: Decks + Mixer */}
-      <div style={{ flex: 7, display: "flex", padding: "6px 8px", gap: 6, minHeight: 0 }}>
+      <div className="flex-[7] flex p-1.5 gap-1.5 min-h-0">
         <DeckPanel deck="A" />
         <MixerCenter />
         <DeckPanel deck="B" />
       </div>
-
-      {/* Lower section */}
       <LowerSection />
-
-      {/* Bottom bar */}
       <BottomBar />
+      <AIFloatingPrompt onSendMessage={onSendMessage} label="Perguntar à IA" />
     </div>
   );
 }

@@ -8,12 +8,17 @@ const DesignerWorkspace = lazy(() =>
 
 const plugin: WorkspacePlugin = {
   id: "Designer",
-  name: "Designer Image",
-  version: "1.0.0",
-  description: "Layer-based image editor with canvas, shapes, text, filters, and export",
+  name: "Designer Studio",
+  version: "1.1.0",
+  description: "Canvas para criar artes, Figma para UI/UX design, editor de imagens com filtros, e modelagem 3D com Three.js — Creative Suite completo",
   icon: "Palette",
-  requirements: { minRamMB: 512, estimatedRAMMB: 96, features: [] },
-  tabs: null,
+  requirements: { minRamMB: 1024, estimatedRAMMB: 256, features: ["webgl", "web-audio"] },
+  tabs: [
+    { id: "canvas", label: "Canvas", icon: "Image" },
+    { id: "figma", label: "Figma", icon: "Layout" },
+    { id: "edit", label: "Editar", icon: "Sliders" },
+    { id: "3d", label: "3D", icon: "Box" },
+  ],
   components: { workspace: DesignerWorkspace },
 };
 

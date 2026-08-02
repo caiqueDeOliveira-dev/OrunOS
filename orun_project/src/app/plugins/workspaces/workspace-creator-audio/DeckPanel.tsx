@@ -6,11 +6,17 @@ import { getAudioEngine } from "./audio-engine";
 import { PANEL, ACCENT, GREEN, TEXT_DIM, TEXT_MED, TEXT_BRI, BORDER, FONT_MONO, FONT_LABEL } from "./creator-audio-types";
 
 const HOT_CUE_COLORS = ["#C00018", "#3B82F6", "#22C55E", "#F59E0B", "#8B5CF6", "#06B6D4", "#EC4899", "#F97316"];
+const SECONDS_PER_TURN = 3; // Full spin of the record scrubs 3 seconds of audio
 
 function formatTime(sec: number): string {
   const m = Math.floor(sec / 60);
   const s = Math.floor(sec % 60);
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+function parseTime(t: string): number {
+  const [mm, ss] = t.split(":").map(Number);
+  return (mm || 0) * 60 + (ss || 0);
 }
 
 export function DeckPanel({ deck }: { deck: "A" | "B" }) {
@@ -21,7 +27,14 @@ export function DeckPanel({ deck }: { deck: "A" | "B" }) {
   const hotCues = useDJStore((s) => (deck === "A" ? s.hotCuesA : s.hotCuesB));
   const isPlaying = playingDeck === deck;
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const discRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState(0);
+  const [scrubbing, setScrubbing] = useState(false);
+  const [scrubAngle, setScrubAngle] = useState(0);
+  const lastAngleRef = useRef(0);
+  const scrubTotalAngleRef = useRef(0);
+  const scrubStartPosRef = useRef(0);
+  const scrubWasPlayingRef = useRef(false);
 
   const deckColor = deck === "A" ? ACCENT : "#3B82F6";
 
@@ -66,7 +79,6 @@ export function DeckPanel({ deck }: { deck: "A" | "B" }) {
       const engine = getAudioEngine();
       const ctx = engine.getCtx();
       const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
-      // Store buffer directly in engine (no blob URL / IPC)
       const result = engine.loadBufferForDeck(deck, audioBuffer);
       const key = deck === "A" ? "deckA" : "deckB";
       const dur = audioBuffer.duration;
@@ -127,9 +139,89 @@ export function DeckPanel({ deck }: { deck: "A" | "B" }) {
     useDJStore.setState({ [key]: current });
   }, [deck, position]);
 
+  // ── Vinyl disc drag-to-scrub ─────────────────────────────────────────
+  const getDiscAngle = useCallback((e: React.PointerEvent | React.MouseEvent): number => {
+    const el = discRef.current;
+    if (!el) return 0;
+    const rect = el.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    return Math.atan2(e.clientY - cy, e.clientX - cx) * (180 / Math.PI);
+  }, []);
+
+  const onDiscPointerDown = useCallback((e: React.PointerEvent) => {
+    if (!data.loaded) return;
+    e.preventDefault();
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    const engine = getAudioEngine();
+    const state = engine.getDeckState(deck);
+    const startAngle = getDiscAngle(e);
+    lastAngleRef.current = startAngle;
+    scrubTotalAngleRef.current = 0;
+    scrubStartPosRef.current = state.currentTime;
+    scrubWasPlayingRef.current = state.playing;
+    setScrubbing(true);
+    setScrubAngle(0);
+    if (state.playing) {
+      engine.pauseDeck(deck);
+      useDJStore.setState({ playingDeck: null });
+    }
+  }, [data.loaded, deck, getDiscAngle]);
+
+  const onDiscPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!scrubbing) return;
+    e.preventDefault();
+    const newAngle = getDiscAngle(e);
+    let step = newAngle - lastAngleRef.current;
+    if (step > 180) step -= 360;
+    if (step < -180) step += 360;
+    lastAngleRef.current = newAngle;
+    scrubTotalAngleRef.current += step;
+    setScrubAngle(scrubTotalAngleRef.current);
+    try {
+      const engine = getAudioEngine();
+      const target = scrubStartPosRef.current + (scrubTotalAngleRef.current / 360) * SECONDS_PER_TURN;
+      const res = engine.seekDeck(deck, target);
+      if (res.success) {
+        setPosition(res.currentTime);
+        const key = deck === "A" ? "deckA" : "deckB";
+        useDJStore.setState({ [key]: { ...useDJStore.getState()[key], current: formatTime(res.currentTime) } });
+      }
+    } catch {}
+  }, [scrubbing, deck, getDiscAngle]);
+
+  const endDiscScrub = useCallback(() => {
+    if (!scrubbing) return;
+    setScrubbing(false);
+    setScrubAngle(0);
+    if (scrubWasPlayingRef.current) {
+      try {
+        const engine = getAudioEngine();
+        const bpm = useDJStore.getState()[deck === "A" ? "deckA" : "deckB"].bpm;
+        engine.playDeck(deck, bpm / 128);
+        useDJStore.setState({ playingDeck: deck });
+      } catch {}
+    }
+  }, [scrubbing, deck]);
+
+  const onDiscPointerUp = useCallback(() => endDiscScrub(), [endDiscScrub]);
+  const onDiscPointerCancel = useCallback(() => endDiscScrub(), [endDiscScrub]);
+
   const bars = 100;
   const waveformData = data.waveformData;
   const hasRealWaveform = waveformData.length > 0;
+
+  const totalSec = parseTime(data.total) || 1;
+  const curSec = parseTime(data.current);
+  const progress = Math.max(0, Math.min(1, curSec / totalSec));
+  const discSize = 132;
+  const ringR = discSize / 2 - 4;
+  const ringC = 2 * Math.PI * ringR;
+  const discAnimation = isPlaying
+    ? "vinylSpin 2.4s linear infinite"
+    : data.loaded
+      ? "vinylCoast 9s linear infinite"
+      : "none";
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", borderRadius: 10, background: "linear-gradient(180deg, #131722 0%, #0B0E14 100%)", border: `1px solid ${deckColor}35`, boxShadow: `0 0 20px ${deckColor}10`, padding: "10px 12px", overflow: "hidden", minHeight: 0, position: "relative" }}>
@@ -138,14 +230,23 @@ export function DeckPanel({ deck }: { deck: "A" | "B" }) {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
+        @keyframes vinylCoast {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes glowPulse {
+          0%, 100% { opacity: 0.35; }
+          50% { opacity: 0.8; }
+        }
       `}</style>
       <input ref={fileInputRef} type="file" accept="audio/*" style={{ display: "none" }} onChange={handleImport as any} />
 
       {/* Top Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 11, color: deckColor, fontFamily: FONT_LABEL, letterSpacing: 2, textTransform: "uppercase", fontWeight: 800, textShadow: `0 0 10px ${deckColor}60` }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: deckColor, fontFamily: FONT_LABEL, letterSpacing: 2, textTransform: "uppercase", fontWeight: 800, textShadow: `0 0 10px ${deckColor}60` }}>
             DECK {deck}
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: isPlaying ? GREEN : "rgba(255,255,255,0.15)", boxShadow: isPlaying ? `0 0 8px ${GREEN}` : "none", animation: isPlaying ? "glowPulse 1.2s ease-in-out infinite" : "none" }} />
           </span>
           <span style={{ fontSize: 11, color: "#fff", background: `${deckColor}25`, border: `1px solid ${deckColor}50`, padding: "1px 6px", borderRadius: 4, fontFamily: FONT_MONO, fontWeight: 700 }}>
             {data.key || "1A"}
@@ -161,30 +262,65 @@ export function DeckPanel({ deck }: { deck: "A" | "B" }) {
       </div>
 
       {/* Main Deck Center: Animated Vinyl Turntable + Track Info */}
-      <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 8, background: "rgba(0,0,0,0.35)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 8, padding: "8px 10px" }}>
-        {/* Animated Vinyl Disc */}
-        <div style={{ position: "relative", width: 100, height: 100, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 6, background: "rgba(0,0,0,0.35)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 8, padding: "10px" }}>
+        {/* Interactive Animated Vinyl Disc */}
+        <div
+          ref={discRef}
+          onPointerDown={onDiscPointerDown}
+          onPointerMove={onDiscPointerMove}
+          onPointerUp={onDiscPointerUp}
+          onPointerCancel={onDiscPointerCancel}
+          title={data.loaded ? "Gire o disco: para frente avança, para trás volta a música" : "Carregue um áudio para girar o disco"}
+          style={{ position: "relative", width: discSize, height: discSize, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", cursor: data.loaded ? (scrubbing ? "grabbing" : "grab") : "default", touchAction: "none", userSelect: "none", WebkitUserSelect: "none" }}
+        >
           {/* Metallic Platter Outer Rim */}
-          <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "conic-gradient(#333 0deg, #1a1a1a 90deg, #444 180deg, #1a1a1a 270deg, #333 360deg)", border: `2px solid ${deckColor}40`, boxShadow: isPlaying ? `0 0 15px ${deckColor}40` : "0 4px 12px rgba(0,0,0,0.8)" }} />
+          <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "conic-gradient(#3a3f4a 0deg, #1a1a1a 90deg, #4a4f5a 180deg, #1a1a1a 270deg, #3a3f4a 360deg)", border: `2px solid ${deckColor}50`, boxShadow: isPlaying ? `0 0 22px ${deckColor}55` : scrubbing ? `0 0 18px ${deckColor}40` : "0 6px 16px rgba(0,0,0,0.85)" }} />
+          {/* Progress Ring */}
+          <svg width={discSize} height={discSize} style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)", pointerEvents: "none", zIndex: 3 }}>
+            <circle cx={discSize / 2} cy={discSize / 2} r={ringR} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={3} />
+            <circle
+              cx={discSize / 2} cy={discSize / 2} r={ringR} fill="none"
+              stroke={deckColor} strokeWidth={3} strokeLinecap="round"
+              strokeDasharray={ringC} strokeDashoffset={ringC * (1 - progress)}
+              style={{ filter: `drop-shadow(0 0 4px ${deckColor})`, transition: "stroke-dashoffset 0.1s linear" }}
+            />
+          </svg>
           {/* Spinning Record */}
-          <div style={{ position: "absolute", inset: 3, borderRadius: "50%", background: "radial-gradient(circle, #222 0%, #111 25%, #050505 45%, #181818 50%, #080808 70%, #000 100%)", animation: isPlaying ? "vinylSpin 2.4s linear infinite" : "none", boxShadow: "inset 0 0 8px rgba(255,255,255,0.15)" }}>
+          <div style={{
+            position: "absolute", inset: 5, borderRadius: "50%",
+            background: "radial-gradient(circle, #23262e 0%, #14161c 25%, #0a0b0f 45%, #1c1e26 50%, #0d0e13 70%, #000 100%)",
+            animation: scrubbing ? "none" : discAnimation,
+            transform: scrubbing ? `rotate(${scrubAngle}deg)` : "none",
+            boxShadow: "inset 0 0 10px rgba(255,255,255,0.12)",
+            willChange: "transform",
+          }}>
             {/* Vinyl Micro Grooves Ring */}
-            <div style={{ position: "absolute", inset: 8, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.07)" }} />
-            <div style={{ position: "absolute", inset: 16, borderRadius: "50%", border: "1px dashed rgba(255,255,255,0.05)" }} />
-            <div style={{ position: "absolute", inset: 24, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.06)" }} />
+            <div style={{ position: "absolute", inset: 10, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.08)" }} />
+            <div style={{ position: "absolute", inset: 18, borderRadius: "50%", border: "1px dashed rgba(255,255,255,0.06)" }} />
+            <div style={{ position: "absolute", inset: 26, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.07)" }} />
+            <div style={{ position: "absolute", inset: 34, borderRadius: "50%", border: "1px dashed rgba(255,255,255,0.05)" }} />
+            {/* Vinyl sheen reflection */}
+            <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "linear-gradient(135deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0) 40%)", pointerEvents: "none" }} />
             {/* Center Sticker Label */}
-            <div style={{ position: "absolute", inset: 26, borderRadius: "50%", background: `radial-gradient(circle, ${deckColor} 0%, ${deckColor}dd 60%, #111 100%)`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", border: "2px solid #000", color: "#fff", textShadow: "0 1px 2px rgba(0,0,0,0.8)" }}>
-              <span style={{ fontSize: 9, fontWeight: 900, fontFamily: FONT_LABEL, letterSpacing: 1 }}>{deck}</span>
-              <span style={{ fontSize: 6, opacity: 0.8, fontFamily: FONT_MONO }}>2026</span>
+            <div style={{
+              position: "absolute", inset: 34, borderRadius: "50%",
+              background: `radial-gradient(circle, ${deckColor} 0%, ${deckColor}dd 55%, #111 100%)`,
+              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+              border: "2px solid #000", color: "#fff", textShadow: "0 1px 2px rgba(0,0,0,0.8)", overflow: "hidden",
+            }}>
+              <span style={{ fontSize: 10, fontWeight: 900, fontFamily: FONT_LABEL, letterSpacing: 1 }}>{deck}</span>
+              <span style={{ fontSize: 6, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", padding: "0 4px", opacity: 0.9, fontFamily: FONT_MONO }}>
+                {data.loaded ? (data.track || "LOADED") : "EMPTY"}
+              </span>
             </div>
             {/* Spindle Hole */}
-            <div style={{ position: "absolute", top: "50%", left: "50%", width: 6, height: 6, borderRadius: "50%", background: "#e5e7eb", transform: "translate(-50%, -50%)", border: "1px solid #000", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.8)" }} />
+            <div style={{ position: "absolute", top: "50%", left: "50%", width: 6, height: 6, borderRadius: "50%", background: "#e5e7eb", transform: "translate(-50%, -50%)", border: "1px solid #000", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.8)", zIndex: 2 }} />
           </div>
           {/* Tonearm Arm & Needle */}
-          <div style={{ position: "absolute", top: -2, right: -4, width: 36, height: 44, pointerEvents: "none", zIndex: 5, transform: isPlaying ? "rotate(18deg)" : "rotate(0deg)", transformOrigin: "top right", transition: "transform 0.4s ease-in-out" }}>
-            <div style={{ position: "absolute", top: 0, right: 0, width: 10, height: 10, borderRadius: "50%", background: "#444", border: "1px solid #777" }} />
-            <div style={{ position: "absolute", top: 6, right: 4, width: 2, height: 32, background: "linear-gradient(to bottom, #888, #ccc)", transform: "rotate(-20deg)", transformOrigin: "top right" }} />
-            <div style={{ position: "absolute", bottom: 2, left: 4, width: 6, height: 8, background: deckColor, borderRadius: 1, boxShadow: `0 0 4px ${deckColor}` }} />
+          <div style={{ position: "absolute", top: -2, right: -6, width: 42, height: 50, pointerEvents: "none", zIndex: 5, transform: isPlaying ? "rotate(20deg)" : "rotate(0deg)", transformOrigin: "top right", transition: "transform 0.4s ease-in-out" }}>
+            <div style={{ position: "absolute", top: 0, right: 0, width: 11, height: 11, borderRadius: "50%", background: "#4a4f5a", border: "1px solid #8890a0", boxShadow: "0 0 6px rgba(0,0,0,0.8)" }} />
+            <div style={{ position: "absolute", top: 7, right: 5, width: 2, height: 36, background: "linear-gradient(to bottom, #8890a0, #d7dbe4)", transform: "rotate(-20deg)", transformOrigin: "top right" }} />
+            <div style={{ position: "absolute", bottom: 2, left: 4, width: 6, height: 9, background: deckColor, borderRadius: 1, boxShadow: `0 0 6px ${deckColor}` }} />
           </div>
         </div>
 
@@ -202,6 +338,11 @@ export function DeckPanel({ deck }: { deck: "A" | "B" }) {
             </span>
             <span style={{ fontSize: 10, color: TEXT_DIM, fontFamily: FONT_MONO }}>/ {data.total}</span>
           </div>
+          {data.loaded && (
+            <div style={{ fontSize: 8, color: scrubbing ? deckColor : TEXT_DIM, fontFamily: FONT_LABEL, letterSpacing: 0.5 }}>
+              {scrubbing ? (scrubAngle < 0 ? "↩ VOLTANDO A MÚSICA" : "↪ AVANÇANDO") : "Gire o disco: → avança · ← volta"}
+            </div>
+          )}
         </div>
       </div>
 
@@ -233,11 +374,7 @@ export function DeckPanel({ deck }: { deck: "A" | "B" }) {
       <div style={{ width: "100%", height: 4, background: "rgba(255,255,255,0.08)", borderRadius: 2, overflow: "hidden", marginBottom: 6 }}>
         <div
           style={{
-            width: `${(() => {
-              const cur = parseInt(data.current.split(":")[0]) * 60 + parseInt(data.current.split(":")[1]);
-              const tot = parseInt(data.total.split(":")[0]) * 60 + parseInt(data.total.split(":")[1]) || 1;
-              return (cur / tot) * 100;
-            })()}%`,
+            width: `${progress * 100}%`,
             height: "100%",
             background: deckColor,
             borderRadius: 2,

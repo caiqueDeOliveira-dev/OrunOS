@@ -229,6 +229,15 @@ function buildUserPrompt(agentName, db) {
         `7. Responda em português do Brasil`;
     }
 
+    case "System":
+      return "Execute uma verificacao rapida de saude do sistema:\n" +
+      "1. Verifique o uso de CPU e memoria com Get-Process\n" +
+      "2. Verifique o espaco em disco com Get-PSDrive\n" +
+      "3. Verifique se ha atualizacoes pendentes do Windows\n" +
+      "4. Verifique o status do Windows Defender\n" +
+      "5. Se encontrar qualquer problema, notifique o usuario com sugestoes de resolucao\n" +
+      "6. Responda em portugues do Brasil";
+
     default: {
       const defaults = {
         Finance: "Analise os gastos de hoje e dê uma dica financeira breve.",

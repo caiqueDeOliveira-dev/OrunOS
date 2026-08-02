@@ -101,46 +101,66 @@ const actions = {
   },
 
   async get_processes() {
-    const mockProcesses = [
-      { pid: 1, name: "orun-main", cpu: 2.1, memory: 128, status: "running" },
-      { pid: 423, name: "electron", cpu: 5.4, memory: 512, status: "running" },
-      { pid: 1089, name: "node", cpu: 1.8, memory: 86, status: "running" },
-      { pid: 2341, name: "vite-dev", cpu: 3.2, memory: 256, status: "running" },
-      { pid: 3892, name: "typescript", cpu: 0.8, memory: 192, status: "idle" },
-      { pid: 4521, name: "postgres", cpu: 1.5, memory: 340, status: "running" },
-      { pid: 5102, name: "redis", cpu: 0.3, memory: 64, status: "running" },
-    ];
-
-    return {
-      success: true,
-      data: {
-        processes: mockProcesses,
-        count: mockProcesses.length,
-      },
-    };
+    const command = `Get-Process | Select-Object Id, ProcessName, CPU, WorkingSet64, Status | ConvertTo-Json`;
+    try {
+      const result = await (window as any).orun.system.executeCommand(command, { timeout: 10000 });
+      if (result.success && result.stdout) {
+        let processes = JSON.parse(result.stdout);
+        if (!Array.isArray(processes)) processes = [processes];
+        const mapped = processes.slice(0, 50).map((p: any) => ({
+          pid: p.Id,
+          name: p.ProcessName,
+          cpu: p.CPU ? Math.round(parseFloat(p.CPU) * 100) / 100 : 0,
+          memory: Math.round((p.WorkingSet64 || 0) / 1024 / 1024),
+          status: (p.Status || "running").toLowerCase(),
+        }));
+        return { success: true, data: { processes: mapped, count: mapped.length } };
+      }
+    } catch {}
+    return { success: true, data: { processes: [], count: 0 } };
   },
 
   async get_resources() {
-    const store = getConsoleState();
-    const state = store.getState();
+    async function ps(command: string) {
+      try {
+        const r = await (window as any).orun.system.executeCommand(command, { timeout: 10000 });
+        return r.success ? r.stdout.trim() : null;
+      } catch { return null; }
+    }
 
-    const nav = navigator;
-    const deviceRAM = (nav as any).deviceMemory;
+    const [cpuLine, ramLine, diskLine, cpuCount] = await Promise.all([
+      ps(`Get-CimInstance Win32_Processor | Select-Object -ExpandProperty LoadPercentage`),
+      ps(`$os = Get-CimInstance Win32_OperatingSystem; $os.TotalVisibleMemorySize / 1MB; $os.FreePhysicalMemory / 1MB`),
+      ps(`Get-PSDrive C | Select-Object @{N='Pct';E={[math]::Round(($_.Used + 1) / ($_.Used + $_.Free + 1) * 100, 1)}} | Select-Object -ExpandProperty Pct`),
+      ps(`(Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors`),
+    ]);
 
-    const cpuUsage = typeof state.cpuUsage === "number" ? state.cpuUsage : 0;
-    const ramUsage = typeof state.ramUsage === "number" ? state.ramUsage : 0;
-    const diskUsage = typeof state.diskUsage === "number" ? state.diskUsage : 0;
+    const cpuUsage = cpuLine ? parseFloat(cpuLine) || 0 : 0;
+    const cores = cpuCount ? parseInt(cpuCount) || navigator.hardwareConcurrency || 8 : navigator.hardwareConcurrency || 8;
+
+    let ramTotalGb = 0;
+    let ramFreeGb = 0;
+    if (ramLine) {
+      const parts = ramLine.split('\n').filter(Boolean);
+      if (parts.length >= 2) {
+        ramTotalGb = parseFloat(parts[0]) || 0;
+        ramFreeGb = parseFloat(parts[1]) || 0;
+      }
+    }
+    const ramUsage = ramTotalGb > 0 ? Math.round((1 - ramFreeGb / ramTotalGb) * 1000) / 10 : 0;
+
+    const diskUsage = diskLine ? parseFloat(diskLine) || 0 : 0;
 
     return {
       success: true,
       data: {
-        cpu: { usage: Math.round(cpuUsage * 10) / 10, cores: navigator.hardwareConcurrency || 8 },
+        cpu: { usage: cpuUsage, cores },
         ram: {
-          usage: Math.round(ramUsage * 10) / 10,
-          total: deviceRAM ? `${deviceRAM}GB` : "unknown",
-          estimatedFree: deviceRAM ? `${Math.round(deviceRAM * (1 - ramUsage / 100) * 10) / 10}GB` : "~2.4GB",
+          usage: ramUsage,
+          total: ramTotalGb > 0 ? `${ramTotalGb.toFixed(1)}GB` : "unknown",
+          estimatedFree: ramFreeGb > 0 ? `${ramFreeGb.toFixed(1)}GB` : "unknown",
         },
-        disk: { usage: Math.round(diskUsage * 10) / 10 },
+        disk: { usage: diskUsage },
       },
     };
   },

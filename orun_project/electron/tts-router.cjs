@@ -198,19 +198,66 @@ async function f5ttsSynthesize(baseUrl, _voiceId, text) {
   return { buffer, mime: contentType || "audio/wav" };
 }
 
+// ── Edge TTS (free Microsoft Edge neural voices — no API key) ────────────
+// Goes through the local edge_tts_server.py (port 5003), which wraps the
+// edge-tts package. The voices below mirror edge_tts_server.ALL_VOICES.
+
+const EDGE_VOICES = [
+  "pt-BR-FranciscaNeural", "pt-BR-AntonioNeural", "pt-BR-ThalitaNeural",
+  "pt-BR-BrendaNeural", "pt-BR-ElzaNeural", "pt-BR-GiovannaNeural",
+  "pt-BR-HeloisaNeural", "pt-BR-LeilaNeural", "pt-BR-LeticiaNeural",
+  "pt-BR-YaraNeural", "pt-BR-DonatoNeural", "pt-BR-FabioNeural",
+  "pt-BR-HumbertoNeural", "pt-BR-MuriloNeural", "pt-BR-RicardoNeural",
+  "pt-BR-ValerioNeural",
+  "en-US-AriaNeural", "en-US-GuyNeural", "en-US-JennyNeural",
+  "en-US-AndrewNeural", "en-US-EmmaNeural", "en-GB-SoniaNeural",
+];
+
+function edgeVoices() {
+  return EDGE_VOICES.map((id) => ({ id, name: id, previewUrl: null }));
+}
+
+async function edgeSynthesize(baseUrl, voiceId, text) {
+  const { buffer, contentType } = await req("POST", `${baseUrl || "http://localhost:5003"}/api/tts`, { "Content-Type": "application/json" }, {
+    text, voice: voiceId || "pt-BR-FranciscaNeural",
+  });
+  return { buffer, mime: contentType || "audio/mpeg" };
+}
+
+// ── Local: Kokoro (kokoro_server.py — neural, pt-BR, no key) ────────────
+// Goes through kokoro_server.py (port 5004), which wraps the "kokoro"
+// package (Kokoro-82M). Voices are fixed per language; pt-BR = pf_dora / pm_alex.
+
+async function kokoroVoices(baseUrl) {
+  const result = await getJSON(`${baseUrl || "http://localhost:5004"}/voices`, {});
+  const names = result.voices || [];
+  const pt = names.filter((v) => v.startsWith("p"));
+  const rest = names.filter((v) => !v.startsWith("p"));
+  return [...pt, ...rest].map((id) => ({ id, name: id, previewUrl: null }));
+}
+
+async function kokoroSynthesize(baseUrl, voiceId, text) {
+  const { buffer, contentType } = await req("POST", `${baseUrl || "http://localhost:5004"}/api/tts`, { "Content-Type": "application/json" }, {
+    text, voice: voiceId || "pf_dora", speed: 1.0,
+  });
+  return { buffer, mime: contentType || "audio/wav" };
+}
+
 // ── Public API ────────────────────────────────────────────────────────────
 
-const ENGINES = ["elevenlabs", "google", "azure", "xtts", "piper", "bark", "f5tts"];
+const ENGINES = ["elevenlabs", "google", "azure", "edge", "xtts", "piper", "bark", "f5tts", "kokoro"];
 
 async function listVoices(engine, cfg) {
   switch (engine) {
     case "elevenlabs": return elevenlabsVoices(cfg.apiKey);
     case "google": return googleVoices(cfg.apiKey);
     case "azure": return azureVoices(cfg.apiKey, cfg.region);
+    case "edge": return edgeVoices();
     case "xtts": return xttsVoices(cfg.baseUrl);
     case "piper": return []; // no listing endpoint — model is picked by server config
     case "bark": return barkVoices();
     case "f5tts": return f5ttsVoices();
+    case "kokoro": return kokoroVoices(cfg.baseUrl);
     default: throw new Error(`Unknown TTS engine: ${engine}`);
   }
 }
@@ -221,10 +268,12 @@ async function synthesize(engine, cfg, voiceId, text) {
     case "elevenlabs": return elevenlabsSynthesize(cfg.apiKey, voiceId, text);
     case "google": return googleSynthesize(cfg.apiKey, voiceId, text);
     case "azure": return azureSynthesize(cfg.apiKey, cfg.region, voiceId, text);
+    case "edge": return edgeSynthesize(cfg.baseUrl, voiceId, text);
     case "xtts": return xttsSynthesize(cfg.baseUrl, voiceId, text);
     case "piper": return piperSynthesize(cfg.baseUrl, voiceId, text);
     case "bark": return barkSynthesize(cfg.baseUrl, voiceId, text);
     case "f5tts": return f5ttsSynthesize(cfg.baseUrl, voiceId, text);
+    case "kokoro": return kokoroSynthesize(cfg.baseUrl, voiceId, text);
     default: throw new Error(`Unknown TTS engine: ${engine}`);
   }
 }

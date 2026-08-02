@@ -27,7 +27,7 @@ interface WeeklyWeight {
   goals?: { target?: number; start?: number };
 }
 
-const AGENT_IDS = ["Nutritionist", "Personal Trainer", "Personal Assistant", "Health", "Social Media"] as const;
+const AGENT_IDS = ["Nutritionist", "Personal Trainer", "Personal Assistant", "Health", "Marketing"] as const;
 
 function getAgents(t: (key: string) => string) {
   return [
@@ -35,7 +35,7 @@ function getAgents(t: (key: string) => string) {
     { id: "Personal Trainer", label: t("schedulesPersonalTrainer"), icon: Dumbbell, color: "#e67e22", desc: t("schedulesPersonalTrainerDesc") },
     { id: "Personal Assistant", label: t("schedulesPersonalAssistant"), icon: User, color: "#3498db", desc: t("schedulesPersonalAssistantDesc") },
     { id: "Health", label: t("schedulesHealth"), icon: Activity, color: "#e74c3c", desc: t("schedulesHealthDesc") },
-    { id: "Social Media", label: t("schedulesSocialMedia"), icon: Share2, color: "#9b59b6", desc: t("schedulesSocialMediaAgentDesc") },
+    { id: "Marketing", label: t("schedulesMarketing"), icon: Share2, color: "#9b59b6", desc: t("schedulesSocialMediaAgentDesc") },
   ];
 }
 
@@ -203,16 +203,16 @@ export function SchedulesPanel({ onClose }: { onClose: () => void }) {
             {t("schedulesSocialMediaDesc")}
           </p>
           <div className="flex items-center gap-2 mb-2">
-            <input type="checkbox" checked={schedules["Social Media"]?.enabled || false}
-              onChange={(e) => toggleAgent("Social Media", e.target.checked)}
+            <input type="checkbox" checked={schedules["Marketing"]?.enabled || false}
+              onChange={(e) => toggleAgent("Marketing", e.target.checked)}
               className="accent-[#9b59b6]" />
             <span className="text-xs" style={{ color: "var(--foreground)" }}>{t("schedulesAutoEnable")}</span>
           </div>
-          {schedules["Social Media"]?.enabled && (
+          {schedules["Marketing"]?.enabled && (
             <div className="flex items-center gap-2 mt-2">
               <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>{t("schedulesStart")}</span>
-              <input type="time" value={schedules["Social Media"]?.time || "09:00"}
-                onChange={(e) => setTime("Social Media", e.target.value)}
+              <input type="time" value={schedules["Marketing"]?.time || "09:00"}
+                onChange={(e) => setTime("Marketing", e.target.value)}
                 className="px-2 py-1 rounded-md text-xs outline-none"
                 style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)", width: 90 }} />
               <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>{t("schedulesHourly")}</span>
@@ -223,7 +223,7 @@ export function SchedulesPanel({ onClose }: { onClose: () => void }) {
         {/* Agent Schedules */}
         <p className="text-[10px] tracking-wider uppercase mb-3" style={{ color: "var(--muted-foreground)" }}>{t("schedulesOtherAgents")}</p>
         <div className="space-y-2">
-          {agents.filter((a) => a.id !== "Social Media").map((agent) => {
+          {agents.filter((a) => a.id !== "Marketing").map((agent) => {
             const cfg = schedules[agent.id] || { enabled: false, time: "07:00" };
             const Icon = agent.icon;
             return (

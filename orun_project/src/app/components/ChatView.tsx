@@ -1,7 +1,9 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useCallback } from "react";
 import { motion } from "motion/react";
+import { FileDown } from "lucide-react";
 import { useTranslation } from "../../i18n/I18nProvider";
 import { MessageBubble } from "./MessageBubble";
+import { downloadMarkdown, messagesToMarkdown } from "../services/exportChat";
 import type { HamptonState, Message } from "../types";
 
 interface ChatViewProps {
@@ -36,6 +38,10 @@ export function ChatView({
   const { t } = useTranslation();
   const bottomRef = useRef<HTMLDivElement>(null);
   const lastMessage = messages[messages.length - 1];
+
+  const handleExportMarkdown = useCallback(() => {
+    downloadMarkdown(messagesToMarkdown(messages));
+  }, [messages]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -72,9 +78,15 @@ export function ChatView({
           </button>
         )}
 
-        <button onClick={onStartNewChat} className="ml-auto text-[9px] tracking-widest uppercase px-3 py-1 rounded-full border transition-colors" style={{ fontFamily: "'Sora', sans-serif", color: "var(--muted-foreground)", borderColor: "var(--border)" }}>
-          {t("homeNewConversation")}
-        </button>
+        <div className="ml-auto flex items-center gap-2">
+          <button onClick={handleExportMarkdown} title={t("chat_export_md")} className="flex items-center gap-1 text-[9px] tracking-widest uppercase px-3 py-1 rounded-full border transition-colors" style={{ fontFamily: "'Sora', sans-serif", color: "var(--muted-foreground)", borderColor: "var(--border)" }}>
+            <FileDown size={12} />
+            {t("chat_export_md")}
+          </button>
+          <button onClick={onStartNewChat} className="text-[9px] tracking-widest uppercase px-3 py-1 rounded-full border transition-colors" style={{ fontFamily: "'Sora', sans-serif", color: "var(--muted-foreground)", borderColor: "var(--border)" }}>
+            {t("homeNewConversation")}
+          </button>
+        </div>
       </div>
 
       {/* Messages */}

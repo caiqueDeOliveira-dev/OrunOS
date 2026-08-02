@@ -143,6 +143,12 @@ const AGENT_PLUGIN_MAP: Record<string, string> = {
   Teacher: "Teacher",
   Automation: "Automation",
   Automotive: "Automotive",
+  Juridico: "Juridico",
+  AssistenteTecnico: "AssistenteTecnico",
+  Suporte: "Suporte",
+  "Personal Assistant": "PersonalAssistant",
+  "Home IA": "HomeIA",
+  "Cyber Security": "CyberSecurity",
 };
 
 /** Get the workspace plugin ID for a given agent name. Returns undefined if no workspace exists. */

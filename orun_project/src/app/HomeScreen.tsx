@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback, Suspense, lazy } from "react";
-import { AnimatePresence } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
+import { Focus } from "lucide-react";
 import { useTranslation } from "../i18n/I18nProvider";
 import { AgentsPanel } from "./components/AgentsPanel";
 import { Sidebar } from "./components/Sidebar";
@@ -15,14 +16,18 @@ import { useTTS } from "./hooks/useTTS";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useVoiceSettings } from "./hooks/useVoiceSettings";
 import { AgentCardSkeleton } from "./components/Skeleton";
-import { AvatarHome } from "./components/AvatarHome";
 import { ChatView } from "./components/ChatView";
 import { WorkspaceView } from "./components/WorkspaceView";
 import { PluginSettings } from "./plugins/PluginSettings";
 import { ProfilePanel } from "./components/ProfilePanel";
 import { TelegramPanel } from "./components/TelegramPanel";
 import { OfflineBanner } from "./components/OfflineBanner";
+import { useToast } from "./components/Toast";
+import { checkEasterEgg, getAll as getAllEggs } from "./services/easterEggs";
+import { unlock as unlockAchievement, progress as progressAchievement } from "./services/achievements";
+import type { AttachedImage } from "./components/ChatInput";
 import { hasPlugin, getWorkspacePluginId } from "./plugins/PluginRegistry";
+import { AutoBackup } from "./services/autoBackup";
 
 const WORKSPACE_PLUGINS = [
   () => import("./plugins/workspaces/workspace-system-console"),
@@ -34,7 +39,13 @@ const WORKSPACE_PLUGINS = [
   () => import("./plugins/workspaces/workspace-developer-ide"),
   () => import("./plugins/workspaces/workspace-designer-image"),
   () => import("./plugins/workspaces/workspace-creator-audio"),
+  () => import("./plugins/workspaces/workspace-creator-video"),
   () => import("./plugins/workspaces/workspace-automotive-garage"),
+  () => import("./plugins/workspaces/workspace-juridico"),
+  () => import("./plugins/workspaces/workspace-assistente-tecnico"),
+  () => import("./plugins/workspaces/workspace-personal-assistant"),
+  () => import("./plugins/workspaces/workspace-home-ia"),
+  () => import("./plugins/workspaces/workspace-cyber-security"),
 ];
 
 const HamptonAvatar = lazy(() => import("./components/HamptonAvatar").then(m => ({ default: m.HamptonAvatar })));
@@ -56,6 +67,14 @@ const MemoryPanel = lazy(() => import("./components/MemoryPanel").then(m => ({ d
 const CommandPalette = lazy(() => import("./components/CommandPalette").then(m => ({ default: m.CommandPalette })));
 const ExportPanel = lazy(() => import("./components/ExportPanel").then(m => ({ default: m.ExportPanel })));
 const AgentPage = lazy(() => import("./components/AgentPage").then(m => ({ default: m.AgentPage })));
+const SuportePanel = lazy(() => import("./components/SuportePanel").then(m => ({ default: m.SuportePanel })));
+const KeyboardShortcutsModal = lazy(() => import("./components/KeyboardShortcutsModal").then(m => ({ default: m.KeyboardShortcutsModal })));
+const ChangelogModal = lazy(() => import("./components/ChangelogModal").then(m => ({ default: m.ChangelogModal })));
+const AchievementsPanel = lazy(() => import("./components/AchievementsPanel").then(m => ({ default: m.AchievementsPanel })));
+const ActivityLog = lazy(() => import("./components/ActivityLog").then(m => ({ default: m.ActivityLog })));
+const EmailPanel = lazy(() => import("./components/EmailPanel").then(m => ({ default: m.EmailPanel })));
+const CalendarPanel = lazy(() => import("./components/CalendarPanel").then(m => ({ default: m.CalendarPanel })));
+const PWAUpdatePrompt = lazy(() => import("./components/PWAUpdatePrompt").then(m => ({ default: m.PWAUpdatePrompt })));
 
 export function HomeScreen() {
   const { t } = useTranslation();
@@ -64,9 +83,18 @@ export function HomeScreen() {
   const [pluginSettingsOpen, setPluginSettingsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [telegramOpen, setTelegramOpen] = useState(false);
+  const [suporteOpen, setSuporteOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [changelogOpen, setChangelogOpen] = useState(false);
+  const [achievementsOpen, setAchievementsOpen] = useState(false);
   const [loadingAgents, setLoadingAgents] = useState(true);
+  const [focusMode, setFocusMode] = useState(false);
+  const focusCountRef = useRef(0);
   const [voiceVolume, setVoiceVolume] = useState(0);
   const [voicePartial, setVoicePartial] = useState("");
+  const [konamiSpinning, setKonamiSpinning] = useState(false);
+  const [matrixMode, setMatrixMode] = useState(false);
+  const [activityBadge, setActivityBadge] = useState(0);
 
   useEffect(() => {
     const timer = setTimeout(() => setLoadingAgents(false), 300);
@@ -75,6 +103,7 @@ export function HomeScreen() {
 
   useEffect(() => {
     WORKSPACE_PLUGINS.forEach((load) => load().catch(() => {}));
+    AutoBackup.init(60);
   }, []);
 
   const spokenUpToRef = useRef(0);
@@ -97,6 +126,63 @@ export function HomeScreen() {
     chat.startNewChat();
   }, [chat]);
 
+  const toast = useToast();
+  const konamiBufferRef = useRef<string[]>([]);
+  const KONAMI_SEQUENCE = ["ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft", "ArrowRight", "b", "a"];
+
+  const handleEasterEgg = useCallback((eggId: string) => {
+    switch (eggId) {
+      case "coffee":
+        console.log("☕ Here's your coffee!");
+        toast.show("☕ Here's your coffee!", "info");
+        break;
+      case "hal":
+        console.log("I'm sorry, Dave. I'm afraid I can't do that.");
+        toast.show("🖥️ I'm sorry, Dave. I'm afraid I can't do that.", "info");
+        break;
+      case "42":
+        console.log("The answer to life, the universe and everything is 42.");
+        toast.show("🔢 The answer to life, the universe and everything is 42.", "info");
+        break;
+      case "matrix":
+        toast.show("💊 Welcome to the real world.", "info");
+        setMatrixMode(true);
+        setTimeout(() => setMatrixMode(false), 2000);
+        break;
+      case "konami":
+        break;
+    }
+    const eggs = getAllEggs();
+    if (eggs.length > 0 && eggs.every(e => e.discovered)) {
+      unlockAchievement("all_eggs");
+    }
+  }, [toast]);
+
+  const msgCountRef = useRef(0);
+  const usedAgentsRef = useRef<Set<string>>(new Set());
+
+  const handleSelectAgent = useCallback((name: string) => {
+    chat.openAgentChat(name);
+    usedAgentsRef.current.add(name);
+    const agents = getAgents(t);
+    if (agents.every(a => usedAgentsRef.current.has(a.name))) {
+      unlockAchievement("all_agents");
+    }
+  }, [chat.openAgentChat, t]);
+
+  const handleSendWithEggs = useCallback((text: string, image?: AttachedImage) => {
+    const eggId = checkEasterEgg(text);
+    if (eggId) handleEasterEgg(eggId);
+    chat.handleSend(text, image);
+    msgCountRef.current += 1;
+    const count = msgCountRef.current;
+    if (count === 1) unlockAchievement("first_message");
+    else if (count === 10) unlockAchievement("ten_messages");
+    else if (count === 100) unlockAchievement("hundred_messages");
+    progressAchievement("ten_messages", (count / 10) * 100);
+    progressAchievement("hundred_messages", (count / 100) * 100);
+  }, [chat.handleSend, handleEasterEgg]);
+
   const voice = useVoice({
     onTranscript: (text) => chat.handleSend(text),
     onStateChange: (state) => setHamptonState(state),
@@ -113,6 +199,36 @@ export function HomeScreen() {
   });
 
   useKeyboardShortcuts({ nav, setCommandPaletteOpen, setProfileOpen, setTelegramOpen });
+
+  useEffect(() => {
+    if (!isElectron || !window.orun.activity?.onNewEntry) return;
+    const unsub = window.orun.activity.onNewEntry(() => {
+      if (!nav.activityOpen) setActivityBadge((p) => p + 1);
+    });
+    return unsub;
+  }, [nav.activityOpen]);
+
+  useEffect(() => {
+    if (nav.activityOpen) setActivityBadge(0);
+  }, [nav.activityOpen]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      konamiBufferRef.current.push(e.key);
+      if (konamiBufferRef.current.length > KONAMI_SEQUENCE.length) {
+        konamiBufferRef.current.shift();
+      }
+      if (konamiBufferRef.current.length === KONAMI_SEQUENCE.length &&
+          konamiBufferRef.current.every((k, i) => k === KONAMI_SEQUENCE[i])) {
+        konamiBufferRef.current = [];
+        setKonamiSpinning(true);
+        setTimeout(() => setKonamiSpinning(false), 2000);
+        unlockAchievement("konami");
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   useEffect(() => () => chat.cleanup(), [chat.cleanup]);
 
@@ -133,6 +249,12 @@ export function HomeScreen() {
         system: "System", "automation-flow": "Automation",
         "automotive-garage": "Automotive", "creator-audio": "Creator_Audio",
         "creator-video": "Creator_Audio",
+        "personal-assistant": "PersonalAssistant",
+        "juridico": "Juridico",
+        "assistente-tecnico": "AssistenteTecnico",
+        "suporte": "Suporte",
+        "home-ia": "HomeIA",
+        "cyber-security": "CyberSecurity",
       };
       nav.setWorkspaceOpen(PLUGIN_MAP[workspaceId] || workspaceId);
     };
@@ -159,19 +281,26 @@ export function HomeScreen() {
   }, [nav, chat]);
 
   return (
-    <div className="fixed inset-0 flex pt-8" style={{ background: "var(--background)" }}>
+    <div className="fixed inset-0 flex pt-8" style={{ background: "var(--background)", ...(matrixMode ? { filter: "invert(1) hue-rotate(180deg)", transition: "filter 0.5s ease" } : { transition: "filter 0.5s ease" }) }}>
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-[var(--primary)] focus:text-[var(--primary-foreground)] focus:rounded">
         {t("skipToContent")}
       </a>
 
-      <Sidebar
-        activeNav={nav.activeNav}
-        onNavClick={nav.handleNavClick}
-        onSettingsClick={() => nav.setSettingsOpen(true)}
-        onHistoryClick={() => { nav.setHistoryOpen(p => !p); nav.setAgentsOpen(false); }}
-        onPluginsClick={() => setPluginSettingsOpen(true)}
-        onProfileClick={() => setProfileOpen(true)}
-      />
+      {!focusMode && (
+        <Sidebar
+          activeNav={nav.activeNav}
+          onNavClick={nav.handleNavClick}
+          onSettingsClick={() => nav.setSettingsOpen(p => !p)}
+          onHistoryClick={() => { nav.setHistoryOpen(p => !p); nav.setAgentsOpen(false); }}
+          onPluginsClick={() => setPluginSettingsOpen(p => !p)}
+          onProfileClick={() => setProfileOpen(p => !p)}
+          onAchievementsClick={() => setAchievementsOpen(p => !p)}
+          onActivityClick={() => { nav.setActivityOpen(p => !p); nav.setActiveNav("activity"); }}
+          onEmailClick={() => { nav.setEmailOpen(p => !p); nav.setActiveNav("email"); }}
+          onCalendarClick={() => { nav.setCalendarOpen(p => !p); nav.setActiveNav("calendar"); }}
+          badgeCounts={{ activity: activityBadge }}
+        />
+      )}
 
       {/* ── Panel overlays ─────────────────────────────────────────── */}
       <Suspense fallback={null}>
@@ -184,12 +313,12 @@ export function HomeScreen() {
                 </div>
               </div>
             ) : (
-              <AgentsPanel onClose={() => { nav.setAgentsOpen(false); nav.setActiveNav("home"); }} onSelectAgent={(name) => { nav.setAgentsOpen(false); chat.openAgentChat(name); }} onOpenAgentPage={(name) => { nav.setAgentsOpen(false); nav.setAgentPage(name); }} onViewData={(name) => { nav.setAgentsOpen(false); nav.setAgentDataOpen(name); }} />
+              <AgentsPanel onClose={() => { nav.setAgentsOpen(false); nav.setActiveNav("home"); }} onSelectAgent={(name) => { nav.setAgentsOpen(false); handleSelectAgent(name); }} onOpenAgentPage={(name) => { nav.setAgentsOpen(false); nav.setAgentPage(name); }} onViewData={(name) => { nav.setAgentsOpen(false); nav.setAgentDataOpen(name); }} />
             )
           )}
           {nav.historyOpen && <ConversationList activeId={chat.conversationId} onClose={() => nav.setHistoryOpen(false)} onSelect={(id) => { chat.openConversation(id); nav.setHistoryOpen(false); }} onNew={() => { startNewChat(); nav.setHistoryOpen(false); }} />}
           {nav.settingsOpen && !nav.agentModelsOpen && !nav.usageOpen && (
-            <SettingsPanel onClose={() => nav.setSettingsOpen(false)} onOpenAgentModels={() => { nav.setSettingsOpen(false); nav.setAgentModelsOpen(true); }} onOpenUsage={() => { nav.setSettingsOpen(false); nav.setUsageOpen(true); }} onOpenWhatsApp={() => { nav.setSettingsOpen(false); nav.setWhatsappOpen(true); }} onOpenTelegram={() => { nav.setSettingsOpen(false); setTelegramOpen(true); }} />
+            <SettingsPanel onClose={() => nav.setSettingsOpen(false)} onOpenAgentModels={() => { nav.setSettingsOpen(false); nav.setAgentModelsOpen(true); }} onOpenUsage={() => { nav.setSettingsOpen(false); nav.setUsageOpen(true); }} onOpenWhatsApp={() => { nav.setSettingsOpen(false); nav.setWhatsappOpen(true); }} onOpenTelegram={() => { nav.setSettingsOpen(false); setTelegramOpen(true); }} onOpenSuporte={() => { nav.setSettingsOpen(false); setSuporteOpen(true); }} onOpenAchievements={() => { nav.setSettingsOpen(false); setAchievementsOpen(true); }} />
           )}
           {nav.agentModelsOpen && <AgentModelsPanel onClose={() => nav.setAgentModelsOpen(false)} onBack={() => { nav.setAgentModelsOpen(false); nav.setSettingsOpen(true); }} />}
           {nav.usageOpen && <UsagePanel onClose={() => nav.setUsageOpen(false)} onBack={() => { nav.setUsageOpen(false); nav.setSettingsOpen(true); }} />}
@@ -202,22 +331,60 @@ export function HomeScreen() {
           {nav.projectsOpen && <ProjectsPanel onClose={() => { nav.setProjectsOpen(false); nav.setActiveNav("home"); }} />}
           {nav.filesOpen && <FilesPanel onClose={() => { nav.setFilesOpen(false); nav.setActiveNav("home"); }} />}
           {nav.memoryOpen && <MemoryPanel onClose={() => { nav.setMemoryOpen(false); nav.setActiveNav("home"); }} />}
-          {nav.socialMediaOpen && <SocialMediaPanel onClose={() => { nav.setSocialMediaOpen(false); nav.setActiveNav("home"); }} onSelectAgent={(name) => { nav.setSocialMediaOpen(false); nav.setActiveNav("home"); chat.openAgentChat(name); }} />}
+          {nav.socialMediaOpen && <SocialMediaPanel onClose={() => { nav.setSocialMediaOpen(false); nav.setActiveNav("home"); }} onSelectAgent={(name) => { nav.setSocialMediaOpen(false); nav.setActiveNav("home"); handleSelectAgent(name); }} />}
           {nav.exportImportOpen && <ExportPanel onClose={() => nav.setExportImportOpen(false)} />}
+          {nav.activityOpen && <ActivityLog onClose={() => { nav.setActivityOpen(false); nav.setActiveNav("home"); }} />}
+          {nav.emailOpen && <EmailPanel onClose={() => { nav.setEmailOpen(false); nav.setActiveNav("home"); }} />}
+          {nav.calendarOpen && <CalendarPanel onClose={() => { nav.setCalendarOpen(false); nav.setActiveNav("home"); }} />}
           {pluginSettingsOpen && <PluginSettings onClose={() => setPluginSettingsOpen(false)} />}
           {profileOpen && <ProfilePanel onClose={() => setProfileOpen(false)} />}
           {telegramOpen && <TelegramPanel onClose={() => setTelegramOpen(false)} />}
           {nav.agentPage && (
-            <AgentPage agent={nav.agentPage} onClose={() => nav.setAgentPage(null)} onStartChat={(name) => { nav.setAgentPage(null); chat.openAgentChat(name); }} onOpenWorkspace={(name) => { nav.setAgentPage(null); chat.openAgentChat(name); nav.setWorkspaceOpen(name); }} />
+            <AgentPage agent={nav.agentPage} onClose={() => nav.setAgentPage(null)} onStartChat={(name) => { nav.setAgentPage(null); handleSelectAgent(name); }} onOpenWorkspace={(name) => { nav.setAgentPage(null); chat.openAgentChat(name); nav.setWorkspaceOpen(name); }} />
           )}
+          {shortcutsOpen && <KeyboardShortcutsModal onClose={() => setShortcutsOpen(false)} />}
+          {changelogOpen && <ChangelogModal onClose={() => setChangelogOpen(false)} />}
+          {suporteOpen && <SuportePanel onClose={() => setSuporteOpen(false)} />}
+          {achievementsOpen && <AchievementsPanel onClose={() => setAchievementsOpen(false)} />}
         </AnimatePresence>
       </Suspense>
 
-      {anyPanelOpen && <div className="fixed inset-0 z-20" onClick={() => { nav.setAgentsOpen(false); nav.setHistoryOpen(false); nav.setActiveNav("home"); }} />}
+      {anyPanelOpen && <div className="fixed inset-0 z-20" onClick={() => { nav.closeAll(); nav.setActiveNav("home"); setPluginSettingsOpen(false); setProfileOpen(false); setAchievementsOpen(false); setTelegramOpen(false); setSuporteOpen(false); setShortcutsOpen(false); setChangelogOpen(false); }} />}
 
       {/* ── Main content ──────────────────────────────────────────── */}
-      <div id="main-content" className="flex-1 flex flex-col ml-16 overflow-hidden">
-        <StatusBar onOpenModelPicker={() => nav.setModelPickerOpen(true)} hamptonState={hamptonState} />
+      <div id="main-content" className={`flex-1 flex flex-col ${focusMode ? '' : 'ml-16'} overflow-hidden relative`}>
+        {focusMode ? (
+          <div className="flex items-center justify-end px-6 py-3 border-b" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
+            <button
+              onClick={() => setFocusMode(false)}
+              className="flex items-center gap-1.5 px-2 py-1 rounded-md transition-colors hover:bg-[var(--accent)]"
+              style={{ color: "var(--muted-foreground)" }}
+              title={t("focus_mode_exit")}
+              aria-label={t("focus_mode_exit")}
+            >
+              <Focus size={14} />
+              <span className="text-xs">{t("focus_mode_exit")}</span>
+            </button>
+          </div>
+        ) : (
+          <StatusBar onOpenModelPicker={() => nav.setModelPickerOpen(true)} hamptonState={hamptonState} />
+        )}
+        {!focusMode && (
+          <button
+            onClick={() => {
+              setFocusMode(true);
+              focusCountRef.current += 1;
+              progressAchievement("focus_mode", (focusCountRef.current / 5) * 100);
+              if (focusCountRef.current >= 5) unlockAchievement("focus_mode");
+            }}
+            className="absolute top-3 right-4 z-50 p-1.5 rounded-md transition-colors hover:bg-[var(--accent)]"
+            style={{ color: "var(--muted-foreground)" }}
+            title={t("focus_mode")}
+            aria-label={t("focus_mode")}
+          >
+            <Focus size={14} />
+          </button>
+        )}
         <OfflineBanner />
 
         {workspacePluginId && hasPlugin(workspacePluginId) ? (
@@ -232,10 +399,14 @@ export function HomeScreen() {
             onClose={() => { nav.setWorkspaceOpen(null); nav.setActiveNav("home"); }}
           />
         ) : (
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 flex flex-col overflow-hidden pb-12">
             <AnimatePresence mode="wait">
               {!chat.chatMode ? (
-                <AvatarHome hamptonState={hamptonState} />
+                <motion.div className="flex-1 flex items-center justify-center" animate={konamiSpinning ? { rotate: 360, scale: [1, 1.15, 1] } : {}} transition={{ duration: 0.8 }}>
+                  <Suspense fallback={null}>
+                    <HamptonAvatar state={hamptonState} />
+                  </Suspense>
+                </motion.div>
               ) : (
                 <ChatView
                   messages={chat.messages}
@@ -260,7 +431,7 @@ export function HomeScreen() {
               state={hamptonState}
             />
             <ChatInput
-              onSend={chat.handleSend}
+              onSend={handleSendWithEggs}
               onMicClick={voice.toggleRecording}
               listening={hamptonState === "listening"}
               volume={voiceVolume}
@@ -278,10 +449,14 @@ export function HomeScreen() {
           else if (id === "projects") nav.setProjectsOpen(true);
           else if (id === "settings") nav.setSettingsOpen(true);
           else if (id === "history") nav.setHistoryOpen(true);
-        }} onAgentSelect={(name) => chat.openAgentChat(name)} onNewChat={startNewChat} />
+        }} onAgentSelect={(name) => handleSelectAgent(name)} onNewChat={startNewChat} />
       </Suspense>
 
       {nav.exportImportOpen && <div className="fixed inset-0 z-20" onClick={() => nav.setExportImportOpen(false)} />}
+
+      <Suspense fallback={null}>
+        <PWAUpdatePrompt />
+      </Suspense>
 
       {/* CRT scan line + vignette overlays */}
       <div className="fixed inset-0 pointer-events-none z-[9990]" style={{ background: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.025) 2px, rgba(0,0,0,0.025) 4px)" }} />

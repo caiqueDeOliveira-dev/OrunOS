@@ -12,7 +12,7 @@
 const http = require("http");
 const https = require("https");
 
-const ENGINES = ["browser", "whisper"];
+const ENGINES = ["browser", "whisper", "groq"];
 
 function req(method, urlStr, headers, body) {
   return new Promise((resolve, reject) => {
@@ -125,4 +125,48 @@ async function testWhisperConnection(baseUrl) {
   }
 }
 
-module.exports = { ENGINES, transcribeWhisper, testWhisperConnection };
+/**
+ * Transcribe audio using Groq's Whisper endpoint (distil-whisper-large-v3).
+ * Fast (~1s for pt-BR) and accurate; used as a cloud fallback when the local
+ * faster-whisper server is unavailable.
+ * @param {string} apiKey - Groq API key (gsk-...)
+ * @param {Buffer} audioBuffer - raw audio data
+ * @param {string} mimeType - e.g. "audio/webm"
+ * @param {string} language - e.g. "pt", "en"
+ * @param {string} model - Groq model id
+ * @returns {Promise<{ text: string, language?: string, duration?: number, model: string }>}
+ */
+async function transcribeGroq(apiKey, audioBuffer, mimeType = "audio/webm", language = "pt", model = "distil-whisper-large-v3") {
+  if (!apiKey) throw new Error("Missing Groq API key.");
+  const boundary = `----OrunGroqSTT${Date.now()}`;
+  const ext = mimeType.includes("webm") ? "webm" : mimeType.includes("wav") ? "wav" : mimeType.includes("mp4") ? "mp4" : "ogg";
+  const filename = `audio.${ext}`;
+
+  const parts = [];
+  parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${filename}"\r\nContent-Type: ${mimeType}\r\n\r\n`);
+  const fileHeader = Buffer.from(parts.join(""));
+  const fileFooter = Buffer.from(
+    `\r\n--${boundary}\r\nContent-Disposition: form-data; name="model"\r\n\r\n${model}\r\n` +
+    `--${boundary}\r\nContent-Disposition: form-data; name="language"\r\n\r\n${language}\r\n` +
+    `--${boundary}\r\nContent-Disposition: form-data; name="response_format"\r\n\r\njson\r\n` +
+    `--${boundary}--\r\n`
+  );
+
+  const body = Buffer.concat([fileHeader, audioBuffer, fileFooter]);
+  const buffer = await req("POST", "https://api.groq.com/openai/v1/audio/transcriptions", {
+    Authorization: `Bearer ${apiKey}`,
+    "Content-Type": `multipart/form-data; boundary=${boundary}`,
+    "Content-Length": body.length,
+  }, body);
+
+  const parsed = JSON.parse(buffer.toString("utf8"));
+  if (parsed.error) throw new Error(`Groq STT error: ${parsed.error.message || JSON.stringify(parsed.error)}`);
+  return {
+    text: parsed.text || "",
+    language: parsed.language || language,
+    duration: parsed.duration,
+    model: parsed.model || model,
+  };
+}
+
+module.exports = { ENGINES, transcribeWhisper, transcribeGroq, testWhisperConnection };

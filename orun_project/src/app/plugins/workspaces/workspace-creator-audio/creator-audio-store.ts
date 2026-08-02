@@ -2,7 +2,7 @@
 import { createStore } from "../../lib/store";
 import {
   CHANNEL_COLORS, CHANNEL_NAMES, SAMPLE_NAMES, EFFECT_COLORS,
-  type DJState, type Channel,
+  type DJState,
 } from "./creator-audio-types";
 
 export const useDJStore = createStore<DJState>({
@@ -49,4 +49,37 @@ export const useDJStore = createStore<DJState>({
   cuePointB: null,
   tapTimes: [],
   playingDeck: null,
+  undoStack: [],
+  redoStack: [],
 });
+
+// Undo/Redo helpers for Creator Audio
+export function pushAudioUndo() {
+  const s = useDJStore.getState();
+  useDJStore.setState({
+    undoStack: [...s.undoStack.slice(-49), s.channels],
+    redoStack: [],
+  });
+}
+
+export function audioUndo() {
+  const s = useDJStore.getState();
+  if (s.undoStack.length === 0) return;
+  const prev = s.undoStack[s.undoStack.length - 1];
+  useDJStore.setState({
+    undoStack: s.undoStack.slice(0, -1),
+    redoStack: [...s.redoStack, s.channels],
+    channels: prev,
+  });
+}
+
+export function audioRedo() {
+  const s = useDJStore.getState();
+  if (s.redoStack.length === 0) return;
+  const next = s.redoStack[s.redoStack.length - 1];
+  useDJStore.setState({
+    redoStack: s.redoStack.slice(0, -1),
+    undoStack: [...s.undoStack, s.channels],
+    channels: next,
+  });
+}

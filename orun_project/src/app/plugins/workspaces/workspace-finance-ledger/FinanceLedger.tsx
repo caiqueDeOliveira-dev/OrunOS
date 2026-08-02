@@ -3,6 +3,8 @@
 // Finance workspace — expense tracking, budgets, category breakdowns, and investment cards.
 
 import { useState, useEffect } from "react";
+import { usePersonalization, useWorkspaceNotes } from "../../../hooks/usePersonalization";
+import { AIFloatingPrompt } from "../../components/AIFloatingPrompt";
 import { createStore } from "../../lib/store";
 import type { WorkspaceProps } from "../../types";
 import { registerFinanceActions, unregisterFinanceActions, setFinanceStoreGetter } from "./finance-actions";
@@ -50,6 +52,8 @@ const CATEGORY_COLORS: Record<string, string> = {
 // ── Main Workspace ──────────────────────────────────────────────────────
 
 export function FinanceLedger({ plugin, activeTab, onTabChange, onSendMessage, lastToolResult }: WorkspaceProps) {
+  const { userName, avatarInitials, greeting } = usePersonalization();
+  const { notes, updateNotes } = useWorkspaceNotes("Finance");
   const transactions = useFinanceStore((s) => s.transactions);
   const budgets = useFinanceStore((s) => s.budgets);
   const [activeView, setActiveView] = useState<"overview" | "transactions" | "investments">("overview");
@@ -84,6 +88,10 @@ export function FinanceLedger({ plugin, activeTab, onTabChange, onSendMessage, l
 
   return (
     <div className="flex flex-col h-full overflow-y-auto scrollbar-hide">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-medium" style={{ fontFamily: "'Sora', sans-serif", color: "var(--foreground)" }}>{greeting}, {userName}</span>
+            <div className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold" style={{ background: "#22C55E", color: "#fff" }}>{avatarInitials}</div>
+          </div>
       {/* View Tabs */}
       <div className="flex items-center gap-1 px-4 py-2 border-b" style={{ borderColor: "var(--border)" }}>
         {(["overview", "transactions", "investments"] as const).map((view) => (
@@ -232,6 +240,17 @@ export function FinanceLedger({ plugin, activeTab, onTabChange, onSendMessage, l
           ))}
         </div>
       )}
+          <div style={{ padding: "12px", borderRadius: "12px", background: "var(--card)", border: "1px solid var(--border)" }}>
+            <span className="text-xs font-medium mb-2 block" style={{ color: "var(--foreground)" }}>Notas Pessoais</span>
+            <textarea
+              value={notes}
+              onChange={(e) => updateNotes(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg text-[10px] resize-none"
+              style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)", minHeight: "60px" }}
+              placeholder="Suas anotações financeiras..."
+            />
+          </div>
+          <AIFloatingPrompt onSendMessage={onSendMessage} label="Perguntar à IA" />
     </div>
   );
 }

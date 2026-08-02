@@ -2,7 +2,7 @@
 import { useState, useCallback } from "react";
 import { useTranslation } from "../../../../i18n/I18nProvider";
 import { useVideoStore, pushUndo } from "./video-store";
-import { TRACK_CONFIG, MONO, SANS, btnBase, formatTC, IEye, IEyeOff, ILock, IZoomIn, IZoomOut } from "./video-types";
+import { TRACK_CONFIG, MONO, SANS, ACCENT, STRIP, BORDER, btnBase, formatTC, IEye, IEyeOff, ILock, IZoomIn, IZoomOut } from "./video-types";
 
 const TRACK_HEADER_W = 140;
 const TRACK_H = 32;
@@ -17,6 +17,11 @@ export function TimelineEditor() {
   const zoomLevel = useVideoStore((s) => s.zoomLevel);
   const selectedClipId = useVideoStore((s) => s.selectedClipId);
 
+  const keyframes = useVideoStore((s) => s.keyframes);
+  const speed = useVideoStore((s) => s.speed);
+  const snapEnabled = useVideoStore((s) => s.snapEnabled);
+  const snapPoints = useVideoStore((s) => s.snapPoints);
+
   const FRAME_W = 3 * zoomLevel;
   const contentWidth = totalFrames * FRAME_W;
 
@@ -27,10 +32,15 @@ export function TimelineEditor() {
     (e: React.MouseEvent<HTMLDivElement>) => {
       const rect = e.currentTarget.getBoundingClientRect();
       const x = e.clientX - rect.left + e.currentTarget.scrollLeft - TRACK_HEADER_W;
-      const frame = Math.max(0, Math.min(Math.round(x / FRAME_W), totalFrames));
+      let frame = Math.max(0, Math.min(Math.round(x / FRAME_W), totalFrames));
+      // Snap to nearest snap point
+      if (snapEnabled && snapPoints.length > 0) {
+        const snapped = snapPoints.reduce((best, sp) => Math.abs(sp - frame) < Math.abs(best - frame) ? sp : best, snapPoints[0]);
+        if (Math.abs(snapped - frame) <= 5) frame = snapped;
+      }
       useVideoStore.setState({ currentTimeFrame: frame });
     },
-    [FRAME_W, totalFrames]
+    [FRAME_W, totalFrames, snapEnabled, snapPoints]
   );
 
   const toggleVis = (i: number) => setTrackVisibility((v) => { const n = [...v]; n[i] = !n[i]; return n; });
@@ -101,7 +111,17 @@ export function TimelineEditor() {
             ))}
           </div>
 
-          {/* Clips area */}
+            {/* Snap lines */}
+            {snapEnabled && snapPoints.map((sp) => (
+              <div key={`snap-${sp}`} className="absolute top-0 bottom-0 pointer-events-none" style={{ left: sp * FRAME_W, width: 1, background: "rgba(212,160,23,0.3)", zIndex: 15 }} />
+            ))}
+            {/* Keyframe markers */}
+            {keyframes.map((kf, i) => (
+              <div key={`kf-${i}`} className="absolute pointer-events-none" style={{ left: kf.frame * FRAME_W - 3, top: -RULER_H, zIndex: 25 }}>
+                <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#D4A017", border: "1px solid #FFF" }} />
+              </div>
+            ))}
+            {/* Clips area */}
           <div className="relative flex-1" onClick={handleTimelineClick} style={{ minWidth: contentWidth }}>
             {TRACK_CONFIG.map((track, trackIdx) => {
               const trackClips = clips.filter((c) => c.trackIndex === trackIdx);
@@ -168,6 +188,10 @@ export function TimelineEditor() {
                           }
                         }}
                       >
+                        {/* Speed badge */}
+                        {speed !== 1 && isSelected && (
+                          <div style={{ position: "absolute", top: 1, right: 2, fontSize: 7, fontFamily: MONO, color: "#D4A017", fontWeight: 700, zIndex: 2 }}>{speed}x</div>
+                        )}
                         {isAudio && (
                           <svg width="100%" height="100%" style={{ position: "absolute", top: 0, left: 0, opacity: 0.3 }}>
                             {Array.from({ length: Math.max(10, Math.floor(clip.durationFrames / 10)) }, (_, i) => {
@@ -205,10 +229,20 @@ export function TimelineEditor() {
       </div>
 
       {/* Bottom zoom bar */}
-      <div className="flex items-center justify-end px-2 shrink-0" style={{ height: 22, background: "var(--card, #161B22)", borderTop: "1px solid var(--border, #21262D)", gap: 4 }}>
-        <button onClick={() => useVideoStore.setState((s) => ({ zoomLevel: Math.max(0.25, s.zoomLevel - 0.25) }))} style={{ ...btnBase, width: 18, height: 16, background: "#21262D", border: "1px solid #30363D" }}><IZoomOut /></button>
-        <button onClick={() => useVideoStore.setState((s) => ({ zoomLevel: Math.min(4, s.zoomLevel + 0.25) }))} style={{ ...btnBase, width: 18, height: 16, background: "#21262D", border: "1px solid #30363D" }}><IZoomIn /></button>
-        <span style={{ fontSize: 8, fontFamily: MONO, color: "#484F58", minWidth: 28, textAlign: "center" }}>{Math.round(zoomLevel * 100)}%</span>
+      <div className="flex items-center justify-between px-2 shrink-0" style={{ height: 22, background: "var(--card, #161B22)", borderTop: "1px solid var(--border, #21262D)", gap: 4 }}>
+        <div className="flex items-center gap-2">
+          <span style={{ fontSize: 7, fontFamily: MONO, color: "#484F58" }}>FPS: {fps}</span>
+          <span style={{ fontSize: 7, fontFamily: MONO, color: speed !== 1 ? "#D4A017" : "#484F58" }}>SPEED: {speed}x</span>
+          <button onClick={() => useVideoStore.setState((s) => ({ snapEnabled: !s.snapEnabled }))}
+            style={{ ...btnBase, width: 16, height: 14, background: snapEnabled ? `${ACCENT}30` : "transparent", border: snapEnabled ? `1px solid ${ACCENT}` : "1px solid transparent", fontSize: 7, fontFamily: MONO, color: snapEnabled ? ACCENT : "#484F58" }}>
+            ⚡
+          </button>
+        </div>
+        <div className="flex items-center gap-1">
+          <button onClick={() => useVideoStore.setState((s) => ({ zoomLevel: Math.max(0.25, s.zoomLevel - 0.25) }))} style={{ ...btnBase, width: 18, height: 16, background: "#21262D", border: "1px solid #30363D" }}><IZoomOut /></button>
+          <button onClick={() => useVideoStore.setState((s) => ({ zoomLevel: Math.min(4, s.zoomLevel + 0.25) }))} style={{ ...btnBase, width: 18, height: 16, background: "#21262D", border: "1px solid #30363D" }}><IZoomIn /></button>
+          <span style={{ fontSize: 8, fontFamily: MONO, color: "#484F58", minWidth: 28, textAlign: "center" }}>{Math.round(zoomLevel * 100)}%</span>
+        </div>
       </div>
     </div>
   );

@@ -19,3 +19,19 @@ calculadora.py
 test_ipc_exact.py
 test-automations.cjs
 test-results/
+
+# Segredos / dados locais (nunca commitar)
+*.enc.json
+db.key*
+keys*.json
+*.sqlite
+*.sqlite3
+*.sqlite3-journal
+*.db-journal
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/

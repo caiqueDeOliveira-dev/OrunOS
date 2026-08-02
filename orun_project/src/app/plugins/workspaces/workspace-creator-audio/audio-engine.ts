@@ -323,6 +323,40 @@ function writeString(view: DataView, offset: number, str: string) {
   }
 }
 
+// ── Music Producer bridge helpers ───────────────────────────────────────
+
+async function bufferToBase64Wav(buffer: AudioBuffer): Promise<string> {
+  const blob = exportWav(buffer);
+  const arrayBuffer = await blob.arrayBuffer();
+  const bytes = new Uint8Array(arrayBuffer);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+
+async function base64ToAudioBuffer(base64: string): Promise<AudioBuffer> {
+  const ctx = getCtx();
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return ctx.decodeAudioData(bytes.buffer);
+}
+
+async function loadUrlIntoCurrentBuffer(url: string): Promise<boolean> {
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) return false;
+    const arrayBuffer = await resp.arrayBuffer();
+    const ctx = getCtx();
+    currentBuffer = await ctx.decodeAudioData(arrayBuffer);
+    pauseOffset = 0;
+    try { window.dispatchEvent(new CustomEvent("creator-audio:buffer-changed")); } catch {}
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // ── Per-deck Audio Functions ────────────────────────────────────────────
 
 export async function loadAudioForDeck(deck: "A" | "B", filePath: string) {
@@ -383,6 +417,22 @@ export function stopDeck(deck: "A" | "B") {
   deckState[deck].playing = false;
   deckState[deck].offset = 0;
   return { success: true };
+}
+
+export function seekDeck(deck: "A" | "B", seconds: number):
+  | { success: true; currentTime: number; duration: number }
+  | { success: false; error: string } {
+  const buffer = deckBuffers[deck];
+  if (!buffer) return { success: false, error: `No audio loaded in deck ${deck}` };
+  const clamped = Math.max(0, Math.min(buffer.duration - 0.05, seconds));
+  if (deckSources[deck]) {
+    try { deckSources[deck]!.stop(); } catch {}
+    deckSources[deck]!.disconnect();
+    deckSources[deck] = null;
+  }
+  deckState[deck].offset = clamped;
+  deckState[deck].playing = false;
+  return { success: true, currentTime: clamped, duration: buffer.duration };
 }
 
 export function getDeckState(deck: "A" | "B") {
@@ -822,6 +872,121 @@ const actions = {
     };
   },
 
+  // ── Music Producer actions (FFmpeg + Wondera.AI via IPC) ───────────────
+
+  generate_music: async (params: Record<string, unknown>) => {
+    const prompt = (params.prompt as string) || (params.genre as string);
+    if (!prompt) return { success: false, error: "prompt or genre is required" };
+    const result = await window.orun.musicProducer.generateMusic({
+      prompt,
+      genre: (params.genre as string) || undefined,
+      durationSec: (params.duration as number) || 30,
+    });
+    if (!result.ok) return { success: false, error: result.error || "Music generation failed" };
+    let loaded = false;
+    if (result.audioUrl) loaded = await loadUrlIntoCurrentBuffer(result.audioUrl);
+    return {
+      success: true,
+      message: loaded ? `Generated and loaded: ${prompt}` : `Generated: ${prompt}`,
+      data: { audioUrl: result.audioUrl, duration: result.duration, genre: result.genre, loaded },
+    };
+  },
+
+  master_track: async (params: Record<string, unknown>) => {
+    if (!currentBuffer) return { success: false, error: "No audio loaded" };
+    const audioBase64 = await bufferToBase64Wav(currentBuffer);
+    const result = await window.orun.musicProducer.master({
+      audioBase64,
+      mimeType: (params.mime_type as string) || "audio/wav",
+      targetLufs: (params.target_lufs as number) || -14,
+      profile: (params.profile as string) || "balanced",
+    });
+    if (!result.ok) return { success: false, error: result.error || "Mastering failed" };
+    if (result.audioBase64) {
+      currentBuffer = await base64ToAudioBuffer(result.audioBase64);
+      pauseOffset = 0;
+      try { window.dispatchEvent(new CustomEvent("creator-audio:buffer-changed")); } catch {}
+    }
+    return { success: true, message: `Mastered (target: ${(params.target_lufs as number) || -14} LUFS, profile: ${(params.profile as string) || "balanced"})` };
+  },
+
+  separate_stems: async (params: Record<string, unknown>) => {
+    if (!currentBuffer) return { success: false, error: "No audio loaded" };
+    const audioBase64 = await bufferToBase64Wav(currentBuffer);
+    const result = await window.orun.musicProducer.separateStems({ audioBase64 });
+    if (!result.ok) return { success: false, error: result.error || "Stem separation failed" };
+    return {
+      success: true,
+      message: "Stems separated",
+      data: { vocals: result.vocals, drums: result.drums, bass: result.bass, other: result.other },
+    };
+  },
+
+  autotone: async (params: Record<string, unknown>) => {
+    if (!currentBuffer) return { success: false, error: "No audio loaded" };
+    const audioBase64 = await bufferToBase64Wav(currentBuffer);
+    const result = await window.orun.musicProducer.autotone({
+      audioBase64,
+      scale: (params.scale as string) || "chromatic",
+      strength: (params.strength as number) || 0.8,
+    });
+    if (!result.ok) return { success: false, error: result.error || "Autotone failed" };
+    if (result.audioBase64) {
+      currentBuffer = await base64ToAudioBuffer(result.audioBase64);
+      pauseOffset = 0;
+      try { window.dispatchEvent(new CustomEvent("creator-audio:buffer-changed")); } catch {}
+    }
+    return { success: true, message: `Autotone applied (scale: ${(params.scale as string) || "chromatic"}, strength: ${(params.strength as number) || 0.8})` };
+  },
+
+  mix_tracks: async (params: Record<string, unknown>) => {
+    const tracks = params.tracks as Array<{ audioBase64?: string; volume?: number; file_path?: string }> | undefined;
+    if (!tracks || tracks.length === 0) return { success: false, error: "tracks (array of { audioBase64, volume }) is required" };
+    const prepared: Array<{ audioBase64: string; volume?: number }> = [];
+    for (const t of tracks) {
+      if (t.audioBase64) {
+        prepared.push({ audioBase64: t.audioBase64, volume: t.volume });
+      } else if (currentBuffer) {
+        prepared.push({ audioBase64: await bufferToBase64Wav(currentBuffer), volume: t.volume });
+      }
+    }
+    if (prepared.length === 0) return { success: false, error: "No usable tracks provided" };
+    const result = await window.orun.musicProducer.mix({ tracks: prepared });
+    if (!result.ok) return { success: false, error: result.error || "Mix failed" };
+    if (result.audioBase64) {
+      currentBuffer = await base64ToAudioBuffer(result.audioBase64);
+      pauseOffset = 0;
+      try { window.dispatchEvent(new CustomEvent("creator-audio:buffer-changed")); } catch {}
+    }
+    return { success: true, message: `Mixed ${prepared.length} track(s)`, data: { duration: result.duration, mime: result.mime } };
+  },
+
+  apply_gain: async (params: Record<string, unknown>) => {
+    if (!currentBuffer) return { success: false, error: "No audio loaded" };
+    const audioBase64 = await bufferToBase64Wav(currentBuffer);
+    const result = await window.orun.musicProducer.applyGain({
+      audioBase64,
+      gain: (params.gain as number) || 1.0,
+    });
+    if (!result.ok) return { success: false, error: result.error || "Gain failed" };
+    if (result.audioBase64) {
+      currentBuffer = await base64ToAudioBuffer(result.audioBase64);
+      pauseOffset = 0;
+      try { window.dispatchEvent(new CustomEvent("creator-audio:buffer-changed")); } catch {}
+    }
+    return { success: true, message: `Gain applied (${(params.gain as number) || 1.0}x)` };
+  },
+
+  list_music_models: async () => {
+    const models = await window.orun.musicProducer.wonderaModels();
+    return { success: true, data: models };
+  },
+
+  list_autotone_presets: async () => {
+    const presets = await window.orun.musicProducer.autotonePresets();
+    return { success: true, data: presets };
+  },
+
   // ── Preview a note (play sine wave at note frequency) ──────────────────
   preview_note: (params: Record<string, unknown>) => {
     const ctx = getCtx();
@@ -900,6 +1065,7 @@ export function getAudioEngine() {
     playDeck,
     pauseDeck,
     stopDeck,
+    seekDeck,
     getDeckState,
     getDeckWaveformData,
   };

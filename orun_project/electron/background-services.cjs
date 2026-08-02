@@ -7,12 +7,20 @@ const net = require("net");
 
 function createBackgroundServices({ app, db, log, mainWindow }) {
   const { spawn } = require("child_process");
+  const { randomBytes } = require("crypto");
   const pythonCmd = process.platform === "win32" ? "python" : "python3";
 
   // ── Wake Word Service ──────────────────────────────────────────────
   let wakeWordProcess = null;
   let wakeWordServer = null;
   const WAKE_PORT = 8081;
+  const WAKE_TOKEN = randomBytes(16).toString("hex"); // Auth token for TCP messages
+  // Dependency check cache: prevents the blocking python --version / import
+  // probes from re-running on every startWakeWordService() call (the renderer
+  // can call start() frequently). Only refreshed on explicit restart/test.
+  let wakeDepsCheckedAt = 0;
+  let wakeDepsOk = false;
+  const WAKE_DEPS_RECHECK_MS = 60 * 1000;
 
   function showOverlayFromWake() {
     if (!mainWindow || mainWindow.isDestroyed()) return;
@@ -34,26 +42,32 @@ function createBackgroundServices({ app, db, log, mainWindow }) {
       return;
     }
 
-    // Verify Python is available
-    try {
-      const { execSync } = require("child_process");
-      const pyVersion = execSync(`${pythonCmd} --version`, { timeout: 5000, stdio: "pipe" }).toString().trim();
-      log.info(`[wake] Python found: ${pyVersion}`);
-    } catch (err) {
-      log.error("[wake] Python not found or not working:", err.message);
-      log.error("[wake] Make sure Python is installed and in your PATH");
-      return;
-    }
-
-    // Verify dependencies
-    try {
-      const { execSync } = require("child_process");
-      execSync(`${pythonCmd} -c "import sounddevice, numpy, requests"`, { timeout: 10000, stdio: "pipe" });
-      log.info("[wake] Required Python packages: OK");
-    } catch (err) {
-      log.error("[wake] Missing Python packages:", err.message);
-      log.error("[wake] Install with: pip install sounddevice numpy requests");
-      return;
+    // Verify Python is available (cached — only once per recheck window)
+    const now = Date.now();
+    if (now - wakeDepsCheckedAt < WAKE_DEPS_RECHECK_MS) {
+      if (!wakeDepsOk) return; // Already failed recently — avoid blocking probes
+    } else {
+      wakeDepsCheckedAt = now;
+      try {
+        const { execSync } = require("child_process");
+        const pyVersion = execSync(`${pythonCmd} --version`, { timeout: 5000, stdio: "pipe" }).toString().trim();
+        log.info(`[wake] Python found: ${pyVersion}`);
+        try {
+          execSync(`${pythonCmd} -c "import sounddevice, numpy, requests"`, { timeout: 10000, stdio: "pipe" });
+          log.info("[wake] Required Python packages: OK");
+          wakeDepsOk = true;
+        } catch (err) {
+          log.error("[wake] Missing Python packages:", err.message);
+          log.error("[wake] Install with: pip install sounddevice numpy requests");
+          wakeDepsOk = false;
+          return;
+        }
+      } catch (err) {
+        log.error("[wake] Python not found or not working:", err.message);
+        log.error("[wake] Make sure Python is installed and in your PATH");
+        wakeDepsOk = false;
+        return;
+      }
     }
 
     if (!wakeWordServer) {
@@ -63,6 +77,11 @@ function createBackgroundServices({ app, db, log, mainWindow }) {
         socket.on("end", () => {
           try {
             const msg = JSON.parse(data);
+            // Validate auth token
+            if (msg.token !== WAKE_TOKEN) {
+              log.warn("[wake] Unauthorized wake attempt (invalid token)");
+              return;
+            }
             if (msg.type === "wake") {
               log.info("[wake] Wake word detected via TCP");
               showOverlayFromWake();
@@ -80,7 +99,7 @@ function createBackgroundServices({ app, db, log, mainWindow }) {
     }
 
     const sttUrl = db.getSetting("stt", {})?.baseUrl || "http://localhost:8080";
-    wakeWordProcess = spawn(pythonCmd, [scriptPath, "--port", String(WAKE_PORT), "--stt-url", sttUrl, "--verbose"], {
+    wakeWordProcess = spawn(pythonCmd, [scriptPath, "--port", String(WAKE_PORT), "--stt-url", sttUrl, "--token", WAKE_TOKEN, "--verbose"], {
       stdio: ["ignore", "pipe", "pipe"],
       detached: false,
     });
@@ -119,12 +138,47 @@ function createBackgroundServices({ app, db, log, mainWindow }) {
   function stopWakeWordService() {
     if (wakeWordProcess) { killWithTimeout(wakeWordProcess, "wake"); wakeWordProcess = null; }
     if (wakeWordServer) { wakeWordServer.close(); wakeWordServer = null; }
+    wakeDepsCheckedAt = 0;
+    wakeDepsOk = false;
     log.info("[wake] Background wake word service stopped");
   }
 
   // ── Piper TTS Server ───────────────────────────────────────────────
   let piperProcess = null;
   const PIPER_PORT = 5002;
+
+  // ── Edge TTS Server (free neural voices fallback) ───────────────────
+  let edgeProcess = null;
+  const EDGE_PORT = 5003;
+
+  function startEdgeTtsServer() {
+    if (edgeProcess) return;
+    const scriptPath = path.join(__dirname, "..", "edge_tts_server.py");
+    if (!fs.existsSync(scriptPath)) return;
+
+    edgeProcess = spawn(pythonCmd, [scriptPath, "--port", String(EDGE_PORT)], {
+      stdio: ["ignore", "pipe", "pipe"],
+      detached: false,
+    });
+    edgeProcess.on("error", (err) => {
+      log.error("[edge] Failed to start:", err.message);
+      edgeProcess = null;
+    });
+    edgeProcess.stdout?.on("data", (buf) => {
+      const line = buf.toString().trim();
+      if (line) log.info("[edge]", line);
+    });
+    edgeProcess.stderr?.on("data", (buf) => {
+      const line = buf.toString().trim();
+      if (line) log.warn("[edge:err]", line);
+    });
+    edgeProcess.on("exit", () => { edgeProcess = null; });
+    log.info("[edge] Edge TTS server starting on port", EDGE_PORT);
+  }
+
+  function stopEdgeTtsServer() {
+    if (edgeProcess) { killWithTimeout(edgeProcess, "edge"); edgeProcess = null; }
+  }
 
   function startPiperServer() {
     if (piperProcess) return;
@@ -164,7 +218,13 @@ function createBackgroundServices({ app, db, log, mainWindow }) {
     const scriptPath = path.join(__dirname, "..", "stt_server.py");
     if (!fs.existsSync(scriptPath)) return;
 
-    sttProcess = spawn(pythonCmd, [scriptPath, "--port", String(STT_PORT)], {
+    const sttCfg = db.getSetting("stt", {}) || {};
+    const args = ["--port", String(STT_PORT)];
+    if (sttCfg.model) args.push("--model", sttCfg.model);
+    if (sttCfg.device) args.push("--device", sttCfg.device);
+    if (sttCfg.computeType) args.push("--compute-type", sttCfg.computeType);
+
+    sttProcess = spawn(pythonCmd, [scriptPath, ...args], {
       stdio: ["ignore", "pipe", "pipe"],
       detached: false,
     });
@@ -181,11 +241,44 @@ function createBackgroundServices({ app, db, log, mainWindow }) {
       if (line) log.warn("[stt:err]", line);
     });
     sttProcess.on("exit", () => { sttProcess = null; });
-    log.info("[stt] Whisper STT server starting on port", STT_PORT);
+    log.info(`[stt] Whisper STT server starting on port ${STT_PORT} (model=${sttCfg.model || "small"}, device=${sttCfg.device || "cpu"})`);
   }
 
   function stopSttServer() {
     if (sttProcess) { killWithTimeout(sttProcess, "stt"); sttProcess = null; }
+  }
+
+  // ── Kokoro TTS Server (neural, pt-BR) ──────────────────────────────
+  let kokoroProcess = null;
+  const KOKORO_PORT = 5004;
+
+  function startKokoroServer() {
+    if (kokoroProcess) return;
+    const scriptPath = path.join(__dirname, "..", "kokoro_server.py");
+    if (!fs.existsSync(scriptPath)) return;
+
+    kokoroProcess = spawn(pythonCmd, [scriptPath, "--port", String(KOKORO_PORT)], {
+      stdio: ["ignore", "pipe", "pipe"],
+      detached: false,
+    });
+    kokoroProcess.on("error", (err) => {
+      log.error("[kokoro] Failed to start:", err.message);
+      kokoroProcess = null;
+    });
+    kokoroProcess.stdout?.on("data", (buf) => {
+      const line = buf.toString().trim();
+      if (line) log.info("[kokoro]", line);
+    });
+    kokoroProcess.stderr?.on("data", (buf) => {
+      const line = buf.toString().trim();
+      if (line) log.warn("[kokoro:err]", line);
+    });
+    kokoroProcess.on("exit", () => { kokoroProcess = null; });
+    log.info("[kokoro] Kokoro TTS server starting on port", KOKORO_PORT);
+  }
+
+  function stopKokoroServer() {
+    if (kokoroProcess) { killWithTimeout(kokoroProcess, "kokoro"); kokoroProcess = null; }
   }
 
   // ── Register IPC handlers ──────────────────────────────────────────
@@ -229,11 +322,15 @@ function createBackgroundServices({ app, db, log, mainWindow }) {
       if (db.getSetting("backgroundListening", false)) startWakeWordService();
       startPiperServer();
       startSttServer();
+      startEdgeTtsServer();
+      startKokoroServer();
     },
     stop: () => {
       stopWakeWordService();
       stopPiperServer();
       stopSttServer();
+      stopEdgeTtsServer();
+      stopKokoroServer();
     },
   };
 }

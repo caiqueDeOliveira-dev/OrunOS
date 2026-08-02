@@ -41,6 +41,8 @@ function register(ipcMain, ctx) {
     try { return await socialMedia.testPlatforms(db); }
     catch (err) { log.error("[social-media:test] failed:", err.message); return {}; }
   });
+  ipcMain.handle("social-media:get-buffer-config", () => socialMedia.getBufferConfig(db));
+  ipcMain.handle("social-media:set-buffer-config", (_event, cfg) => { socialMedia.setBufferConfig(db, cfg); return true; });
 
   // Text-to-speech
   ipcMain.handle("tts:list-voices", async (_event, engine) => {
@@ -58,9 +60,11 @@ function register(ipcMain, ctx) {
     const secrets = secretStore.readSecretStore();
     const engineCfg = db.getSetting("ttsEngineConfig", {})["piper"] || {};
 
-    // ── Fallback chain: primary engine → local engines ──────────────
-    const FALLBACK_CHAIN = ["piper", "bark"];
-    const isCloud = ["elevenlabs", "google", "azure"].includes(engine);
+    // ── Fallback chain: primary engine → edge (free neural) → local ─────
+    // When a cloud engine (e.g. ElevenLabs) runs out of quota, fall back to
+    // Edge TTS (free Microsoft neural voices, no key), then Piper, then Bark.
+    const FALLBACK_CHAIN = ["edge", "piper", "bark"];
+    const isCloud = ["elevenlabs", "google", "azure", "edge"].includes(engine);
 
     async function trySynthesize(eng, vid, txt) {
       const cfg = eng === engine
@@ -123,6 +127,22 @@ function register(ipcMain, ctx) {
       return { text: "", error: err.message };
     }
   });
+  // Groq cloud STT fallback (distil-whisper-large-v3) — usa a chave Groq já
+  // configurada nas chaves de IA, sem expor a chave ao renderer.
+  ipcMain.handle("stt:transcribe-groq", async (_event, { audioBase64, mimeType, language, model }) => {
+    try {
+      const keys = secretStore.readSecretStore();
+      const apiKey = keys.groq;
+      if (!apiKey) return { text: "", error: "No Groq API key configured" };
+      const audioBuffer = Buffer.from(audioBase64, "base64");
+      const result = await sttRouter.transcribeGroq(apiKey, audioBuffer, mimeType || "audio/webm", language || "pt", model || undefined);
+      log.info(`[stt:transcribe-groq] ok: "${result.text?.slice(0, 80)}" model=${result.model}`);
+      return result;
+    } catch (err) {
+      log.error(`[stt:transcribe-groq] FAILED:`, err.message);
+      return { text: "", error: err.message };
+    }
+  });
 
   // Video Editor
   ipcMain.handle("videoeditor:get-projects", (_event, date) => db.getDailyVideoProjects(date));
@@ -144,12 +164,47 @@ function register(ipcMain, ctx) {
   ipcMain.handle("image3d:tripo-models", () => image3d.TRIPO_MODELS);
   ipcMain.handle("image3d:generate-image", async (_event, opts) => {
     const keys = secretStore.readSecretStore();
+    const falKey = keys.fal;
+    const fooocusUrl =
+      (typeof db.getSetting === "function" && db.getSetting("fooocusBaseUrl", "")) ||
+      image3d.DEFAULT_FOOOCUS_URL;
+
+    // 1) Fooocus local (gratuito, sem chave) primeiro.
     try {
-      const result = await image3d.generateImage(opts, keys.fal);
+      const result = await image3d.generateFooocusImage(
+        {
+          prompt: opts.prompt,
+          negative_prompt: opts.negativePrompt || "",
+          imageSize: opts.imageSize || "landscape_16_9",
+          numImages: opts.numImages || 1,
+        },
+        fooocusUrl
+      );
       return { ok: true, ...result };
-    } catch (err) {
-      log.error("[image3d:generate-image] failed:", err.message);
-      return { ok: false, error: err.message };
+    } catch (fooocusErr) {
+      // 2) Fallback: Fal.ai (precisa de chave).
+      if (!falKey) {
+        return {
+          ok: false,
+          error:
+            `Fooocus local indisponível (${fooocusErr.message || fooocusErr}). ` +
+            `Inicie o Fooocus (${fooocusUrl}) ou adicione a chave Fal.ai em Settings → API Keys.`,
+        };
+      }
+      try {
+        const result = await image3d.generateImage(opts, falKey);
+        return { ok: true, ...result, fallback: "fal" };
+      } catch (err) {
+        log.error("[image3d:generate-image] failed:", err.message);
+        const msg = (err.message || "").toLowerCase();
+        if (msg.includes("403") || msg.includes("forbidden")) {
+          return { ok: false, error: "Fal.ai access forbidden. Sua chave pode estar inválida, expirada ou sem créditos. Verifique em https://fal.ai/dashboard" };
+        }
+        if (msg.includes("401") || msg.includes("unauthorized")) {
+          return { ok: false, error: "Fal.ai API key inválida. Verifique sua chave em Settings → API Keys." };
+        }
+        return { ok: false, error: `Fooocus: ${fooocusErr.message || fooocusErr} | Fal.ai: ${err.message}` };
+      }
     }
   });
   ipcMain.handle("image3d:generate-3d", async (_event, opts) => {
@@ -163,6 +218,7 @@ function register(ipcMain, ctx) {
     }
   });
   ipcMain.handle("image3d:comfyui-test", async (_event, baseUrl) => image3d.testComfyUIConnection(baseUrl));
+  ipcMain.handle("image3d:fooocus-test", async (_event, baseUrl) => image3d.testFooocusConnection(baseUrl));
   ipcMain.handle("image3d:comfyui-submit", async (_event, opts) => {
     try {
       const result = await image3d.submitComfyUIWorkflow(opts);
@@ -231,6 +287,15 @@ function register(ipcMain, ctx) {
       return { ok: true, ...result };
     } catch (err) {
       log.error("[musicproducer:mix] failed:", err.message);
+      return { ok: false, error: err.message };
+    }
+  });
+  ipcMain.handle("musicproducer:apply-gain", async (_event, opts) => {
+    try {
+      const result = await musicProducer.applyGain(opts);
+      return { ok: true, ...result };
+    } catch (err) {
+      log.error("[musicproducer:apply-gain] failed:", err.message);
       return { ok: false, error: err.message };
     }
   });

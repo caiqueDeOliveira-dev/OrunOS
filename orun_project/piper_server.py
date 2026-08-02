@@ -202,9 +202,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Orun OS Piper TTS Server")
     parser.add_argument("--port", type=int, default=5002, help="Server port (default: 5002)")
     parser.add_argument("--model", type=str, default=DEFAULT_MODEL, help=f"Voice model (default: {DEFAULT_MODEL})")
+    parser.add_argument(
+        "--host", type=str, default="127.0.0.1",
+        help="Bind address (default: 127.0.0.1 — use 0.0.0.0 somente para acesso via rede)",
+    )
     args = parser.parse_args()
 
     load_model(args.model)
-    print(f"[piper] Server running on http://localhost:{args.port}")
+    print(f"[piper] Server running on http://{args.host}:{args.port}")
     print(f"[piper] API: POST http://localhost:{args.port}/api/tts")
-    app.run(host="0.0.0.0", port=args.port, debug=False)
+    app.run(host=args.host, port=args.port, debug=False)

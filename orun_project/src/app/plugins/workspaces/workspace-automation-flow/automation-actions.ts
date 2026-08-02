@@ -1,13 +1,15 @@
 import { registerWorkspaceActions, unregisterWorkspaceActions } from "../../lib/workspace-actions";
+import { getPluginSettings, setPluginSettings } from "../../PluginRegistry";
 
 const WORKSPACE_ID = "automation-flow";
 
 let registered = false;
 
-interface FlowNode { id: string; type: string; label: string; icon: string; x: number; y: number; status?: string; }
+interface FlowNode { id: string; type: "trigger" | "condition" | "action"; label: string; icon: string; x: number; y: number; status?: "idle" | "running" | "done" | "error"; }
 interface FlowEdge { id: string; from: string; to: string; label?: string; }
-interface FlowLog { id: string; message: string; timestamp: string | number; nodeId?: string; status?: "success" | "error"; }
+interface FlowLog { id: string; message: string; timestamp: string | number; nodeId?: string; status?: "success" | "error" | "info"; }
 interface FlowState {
+  [key: string]: unknown;
   nodes: FlowNode[];
   edges: FlowEdge[];
   logs: FlowLog[];
@@ -44,14 +46,14 @@ const actions = {
     const x = typeof params.x === "number" ? params.x : 100 + Math.random() * 200;
     const y = typeof params.y === "number" ? params.y : 60 + Math.random() * 150;
 
-    const newNode = {
+    const newNode: FlowNode = {
       id: nextNodeId(),
-      type,
+      type: (type as FlowNode["type"]),
       label,
       icon: NODE_ICONS[type] || "⚡",
       x,
       y,
-      status: "idle" as const,
+      status: "idle",
     };
 
     const store = getFlowState();
@@ -174,17 +176,21 @@ const actions = {
     const store = getFlowState();
     const state = store.getState();
     const data = { nodes: state.nodes, edges: state.edges };
-    localStorage.setItem(`orun-automation-flow-${flowId}`, JSON.stringify(data));
+    const settings = getPluginSettings("automation-flow");
+    const flows = (settings.flows as Record<string, unknown>) || {};
+    flows[flowId] = data;
+    setPluginSettings("automation-flow", { flows });
     return { success: true, message: `Flow saved (${state.nodes.length} nodes, ${state.edges.length} edges)` };
   },
 
   async load_flow(params: Record<string, unknown>) {
     const flowId = String(params.flowId || "default");
-    const raw = localStorage.getItem(`orun-automation-flow-${flowId}`);
-    if (!raw) return { success: false, error: `No saved flow found for "${flowId}"` };
-    const data = JSON.parse(raw);
+    const settings = getPluginSettings("automation-flow");
+    const flows = (settings.flows as Record<string, { nodes: unknown[]; edges: unknown[] }>) || {};
+    const data = flows[flowId];
+    if (!data) return { success: false, error: `No saved flow found for "${flowId}"` };
     const store = getFlowState();
-    store.setState({ nodes: data.nodes || [], edges: data.edges || [] });
+    store.setState({ nodes: (data.nodes || []) as FlowNode[], edges: (data.edges || []) as FlowEdge[] });
     return { success: true, data, message: `Flow loaded (${(data.nodes || []).length} nodes, ${(data.edges || []).length} edges)` };
   },
 
@@ -218,16 +224,20 @@ export async function saveFlow(flowId = "default") {
   const store = getFlowState();
   const state = store.getState();
   const data = { nodes: state.nodes, edges: state.edges };
-  localStorage.setItem(`orun-automation-flow-${flowId}`, JSON.stringify(data));
+  const settings = getPluginSettings("automation-flow");
+  const flows = (settings.flows as Record<string, unknown>) || {};
+  flows[flowId] = data;
+  setPluginSettings("automation-flow", { flows });
   return { success: true, message: `Flow saved (${state.nodes.length} nodes, ${state.edges.length} edges)` };
 }
 
 export async function loadFlow(flowId = "default") {
-  const raw = localStorage.getItem(`orun-automation-flow-${flowId}`);
-  if (!raw) return { success: false, error: `No saved flow found for "${flowId}"` };
-  const data = JSON.parse(raw);
+  const settings = getPluginSettings("automation-flow");
+  const flows = (settings.flows as Record<string, { nodes: unknown[]; edges: unknown[] }>) || {};
+  const data = flows[flowId];
+  if (!data) return { success: false, error: `No saved flow found for "${flowId}"` };
   const store = getFlowState();
-  store.setState({ nodes: data.nodes || [], edges: data.edges || [] });
+  store.setState({ nodes: (data.nodes || []) as FlowNode[], edges: (data.edges || []) as FlowEdge[] });
   return { success: true, data, message: `Flow loaded (${(data.nodes || []).length} nodes, ${(data.edges || []).length} edges)` };
 }
 

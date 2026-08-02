@@ -157,10 +157,11 @@ export const MessageBubble = React.memo(function MessageBubble({
                 msg.content
               )}
               {streaming && (
-                <span
-                  className="inline-block ml-0.5"
-                  style={{ width: 6, height: 12, background: "#C00018", verticalAlign: "-2px", animation: "orunStatePulse 0.8s ease-in-out infinite" }}
-                />
+                <span className="inline-flex items-center gap-[3px] ml-1" style={{ verticalAlign: "-2px" }}>
+                  <span className="rounded-full" style={{ width: 5, height: 5, background: "#C00018", animation: "typingDot 1.2s ease-in-out infinite", animationDelay: "0s" }} />
+                  <span className="rounded-full" style={{ width: 5, height: 5, background: "#C00018", animation: "typingDot 1.2s ease-in-out infinite", animationDelay: "0.2s" }} />
+                  <span className="rounded-full" style={{ width: 5, height: 5, background: "#C00018", animation: "typingDot 1.2s ease-in-out infinite", animationDelay: "0.4s" }} />
+                </span>
               )}
             </>
           )}

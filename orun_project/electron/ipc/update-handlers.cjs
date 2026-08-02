@@ -1,10 +1,7 @@
-// electron/ipc/update-handlers.cjs
-// App update and window control handlers.
-
 const log = require("electron-log");
+const { checkForUpdates, getUpdateStatus } = require("../auto-updater.cjs");
 
 function register(ipcMain, ctx) {
-  // Window controls (frameless window) — use ctx.mainWindow getter, not destructuring
   ipcMain.handle("window:minimize", () => { ctx.mainWindow?.minimize(); return true; });
   ipcMain.handle("window:maximize", () => {
     if (ctx.mainWindow?.isMaximized()) ctx.mainWindow.unmaximize();
@@ -14,25 +11,12 @@ function register(ipcMain, ctx) {
   ipcMain.handle("window:close", () => { ctx.mainWindow?.close(); return true; });
   ipcMain.handle("window:isMaximized", () => ctx.mainWindow?.isMaximized() || false);
 
-  // Manual "check for updates" button in Settings
-  ipcMain.handle("app:check-for-updates", async (event) => {
+  ipcMain.handle("app:check-for-updates", async () => {
     if (ctx.isDev) return { ok: false, error: "Updates are only checked in packaged builds." };
-    try {
-      const { autoUpdater } = require("electron-updater");
-      autoUpdater.logger = log;
-      const send = (status, extra = {}) => { if (!event.sender.isDestroyed()) event.sender.send("app:update-status", { status, ...extra }); };
-      autoUpdater.once("update-available", (info) => send("available", { version: info.version }));
-      autoUpdater.once("update-not-available", () => send("not-available"));
-      autoUpdater.once("error", (err) => send("error", { message: err.message }));
-      autoUpdater.once("download-progress", (p) => send("downloading", { percent: Math.round(p.percent) }));
-      autoUpdater.once("update-downloaded", (info) => send("downloaded", { version: info.version }));
-      await autoUpdater.checkForUpdates();
-      return { ok: true };
-    } catch (err) {
-      log.warn("[app:check-for-updates] failed:", err.message);
-      return { ok: false, error: err.message };
-    }
+    checkForUpdates();
+    return { ok: true };
   });
+
   ipcMain.handle("app:install-update", () => {
     try {
       const { autoUpdater } = require("electron-updater");
@@ -43,6 +27,8 @@ function register(ipcMain, ctx) {
       return false;
     }
   });
+
+  ipcMain.handle("app:get-update-status", () => getUpdateStatus());
 }
 
 module.exports = { register };

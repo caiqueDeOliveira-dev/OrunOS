@@ -63,6 +63,12 @@ type TranslationKeys = {
   agentLearningLanguages: string;
   agentMarketingSocial: string;
   agentImageCamera: string;
+  agentJuridico: string;
+  agentAssistenteTecnico: string;
+  agentSuporte: string;
+  agentPersonalAssistant: string;
+  agentHomeIA: string;
+  agentCyberSecurity: string;
   agentSpeechAudio: string;
   agentKnowledgeMemory: string;
   agentOSConfig: string;
@@ -536,6 +542,32 @@ type TranslationKeys = {
   skeletonLoadingMessages: string;
   skeletonLoadingAgents: string;
   skeletonLoadingSettings: string;
+
+  // Dashboard Widgets
+  dashboard_clock: string;
+  dashboard_system: string;
+  dashboard_cpu: string;
+  dashboard_memory: string;
+  dashboard_uptime: string;
+
+  // Ambient Sounds
+  sounds_ambient: string;
+  sounds_rain: string;
+  sounds_forest: string;
+  sounds_ocean: string;
+  sounds_cafe: string;
+  sounds_fire: string;
+  sounds_white_noise: string;
+  sounds_volume: string;
+
+  // Update
+  update_available: string;
+
+  // Achievements
+  achievements_title: string;
+  achievements_desc: string;
+  achievements_unlocked: string;
+  achievements_progress: string;
 
   // Agent Health
   agent_health_description: string;
@@ -1190,6 +1222,108 @@ type TranslationKeys = {
   settingsDiscordAutoResponseDesc: string;
   settingsDiscordBotTokenHelp: string;
   settingsDiscordBotTokenHelpDesc: string;
+
+  // Suporte (Support Agent)
+  suporte_title: string;
+  suporte_settings_desc: string;
+  suporte_tab_errors: string;
+  suporte_tab_suggestions: string;
+  suporte_resolved: string;
+  suporte_implemented: string;
+  suporte_btn_clear: string;
+  suporte_btn_export: string;
+  suporte_empty_errors: string;
+  suporte_stack_trace: string;
+  suporte_label_resolution: string;
+  suporte_action_mark_resolved: string;
+  suporte_empty_suggestions: string;
+  suporte_action_mark_implemented: string;
+
+  // Agent Suporte page data
+  agent_suporte_description: string;
+  agent_suporte_tagline: string;
+  agent_suporte_quick_action_ver_erros_label: string;
+  agent_suporte_quick_action_ver_erros_prompt: string;
+  agent_suporte_quick_action_diagnosticar_label: string;
+  agent_suporte_quick_action_diagnosticar_prompt: string;
+  agent_suporte_quick_action_relatar_bug_label: string;
+  agent_suporte_quick_action_relatar_bug_prompt: string;
+  agent_suporte_quick_action_sugerir_melhoria_label: string;
+  agent_suporte_quick_action_sugerir_melhoria_prompt: string;
+  agent_suporte_quick_action_exportar_dados_label: string;
+  agent_suporte_quick_action_exportar_dados_prompt: string;
+  agent_suporte_quick_action_central_ajuda_label: string;
+  agent_suporte_quick_action_central_ajuda_prompt: string;
+  agent_suporte_stat_erros: string;
+  agent_suporte_stat_registros: string;
+  agent_suporte_stat_corrigidos: string;
+  agent_suporte_stat_melhorias: string;
+
+  // Agent Personal Assistant page data
+  agent_personal_assistant_description: string;
+  agent_personal_assistant_tagline: string;
+  agent_personal_assistant_quick_action_daily_summary_label: string;
+  agent_personal_assistant_quick_action_daily_summary_prompt: string;
+  agent_personal_assistant_quick_action_create_reminder_label: string;
+  agent_personal_assistant_quick_action_create_reminder_prompt: string;
+  agent_personal_assistant_quick_action_web_search_label: string;
+  agent_personal_assistant_quick_action_web_search_prompt: string;
+  agent_personal_assistant_quick_action_agenda_label: string;
+  agent_personal_assistant_quick_action_agenda_prompt: string;
+  agent_personal_assistant_quick_action_save_memory_label: string;
+  agent_personal_assistant_quick_action_save_memory_prompt: string;
+  agent_personal_assistant_quick_action_recall_label: string;
+  agent_personal_assistant_quick_action_recall_prompt: string;
+  agent_personal_assistant_stat_tasks: string;
+  agent_personal_assistant_stat_reminders: string;
+  agent_personal_assistant_stat_memories: string;
+  agent_personal_assistant_stat_whatsapp_groups: string;
+
+  // Agent Home IA page data
+  agent_home_ia_description: string;
+  agent_home_ia_tagline: string;
+  agent_home_ia_quick_action_ligar_luzes_label: string;
+  agent_home_ia_quick_action_ligar_luzes_prompt: string;
+  agent_home_ia_quick_action_cenas_label: string;
+  agent_home_ia_quick_action_cenas_prompt: string;
+  agent_home_ia_quick_action_automacoes_label: string;
+  agent_home_ia_quick_action_automacoes_prompt: string;
+  agent_home_ia_quick_action_status_casa_label: string;
+  agent_home_ia_quick_action_status_casa_prompt: string;
+  agent_home_ia_quick_action_temperatura_label: string;
+  agent_home_ia_quick_action_temperatura_prompt: string;
+  agent_home_ia_quick_action_portas_label: string;
+  agent_home_ia_quick_action_portas_prompt: string;
+  agent_home_ia_stat_dispositivos: string;
+  agent_home_ia_stat_luzes_acesas: string;
+  agent_home_ia_stat_fechaduras: string;
+  agent_home_ia_stat_automacoes: string;
+
+  // Agent Cyber Security page data
+  agent_cyber_security_description: string;
+  agent_cyber_security_tagline: string;
+  agent_cyber_security_quick_action_novo_scan_label: string;
+  agent_cyber_security_quick_action_novo_scan_prompt: string;
+  agent_cyber_security_quick_action_relatorio_label: string;
+  agent_cyber_security_quick_action_relatorio_prompt: string;
+  agent_cyber_security_quick_action_credenciais_label: string;
+  agent_cyber_security_quick_action_credenciais_prompt: string;
+  agent_cyber_security_quick_action_portas_label: string;
+  agent_cyber_security_quick_action_portas_prompt: string;
+  agent_cyber_security_quick_action_mitigar_label: string;
+  agent_cyber_security_quick_action_mitigar_prompt: string;
+  agent_cyber_security_quick_action_exportar_label: string;
+  agent_cyber_security_quick_action_exportar_prompt: string;
+  agent_cyber_security_stat_score: string;
+  agent_cyber_security_stat_criticos: string;
+  agent_cyber_security_stat_alto_risco: string;
+  agent_cyber_security_stat_mitigados: string;
+
+  // Evidence translations
+  evidence_total: string;
+  evidence_photos: string;
+  evidence_videos: string;
+  evidence_documents: string;
 };
 
 export const translations: Record<Language, TranslationKeys> = {
@@ -1230,6 +1364,12 @@ export const translations: Record<Language, TranslationKeys> = {
     agentAutomotive: "Automotivo",
     agentSocialMedia: "Redes Sociais",
     agentImageCamera: "IA de Imagem & Câmera",
+    agentJuridico: "Jurídico",
+    agentAssistenteTecnico: "Assistente Técnico",
+    agentSuporte: "Suporte",
+    agentPersonalAssistant: "Assistente Pessoal",
+    agentHomeIA: "Casa Inteligente",
+    agentCyberSecurity: "Segurança Cibernética",
     agentSpeechAudio: "Fala & Áudio",
     agentKnowledgeMemory: "Conhecimento & Memória",
     agentOSConfig: "SO & Configuração",
@@ -2362,6 +2502,132 @@ export const translations: Record<Language, TranslationKeys> = {
     settingsDiscordAutoResponseDesc: "Marketing agent responde mensagens do Discord",
     settingsDiscordBotTokenHelp: "Criar bot em discord.com/developers",
     settingsDiscordBotTokenHelpDesc: "Copie o token do bot e cole abaixo",
+    // Achievements
+    achievements_title: "Conquistas",
+    achievements_desc: "Conquistas do sistema",
+    achievements_unlocked: "{unlocked}/{total} desbloqueadas ({percentage}%)",
+    achievements_progress: "Progresso",
+    // Dashboard Widgets
+    dashboard_clock: "Relógio",
+    dashboard_system: "Sistema",
+    dashboard_cpu: "CPU",
+    dashboard_memory: "Memória",
+    dashboard_uptime: "Ativo",
+
+    // Ambient Sounds
+    sounds_ambient: "Sons Ambiente",
+    sounds_rain: "Chuva",
+    sounds_forest: "Floresta",
+    sounds_ocean: "Oceano",
+    sounds_cafe: "Café",
+    sounds_fire: "Fogueira",
+    sounds_white_noise: "Ruído Branco",
+    sounds_volume: "Volume",
+
+    // Suporte
+    suporte_title: "Suporte Técnico",
+    suporte_settings_desc: "Gerenciar erros, bugs e sugestões do sistema",
+    suporte_tab_errors: "Erros",
+    suporte_tab_suggestions: "Sugestões",
+    suporte_resolved: "resolvidos",
+    suporte_implemented: "implementadas",
+    suporte_btn_clear: "Limpar tudo",
+    suporte_btn_export: "Exportar JSON",
+    suporte_empty_errors: "Nenhum erro registrado. O sistema está saudável!",
+    suporte_stack_trace: "Ver stack trace",
+    suporte_label_resolution: "Resolução:",
+    suporte_action_mark_resolved: "Marcar como resolvido",
+    suporte_empty_suggestions: "Nenhuma sugestão ainda. Compartilhe suas ideias!",
+    suporte_action_mark_implemented: "Marcar como implementada",
+
+    // Agent Suporte page data
+    agent_suporte_description: "Suporte Técnico do Sistema",
+    agent_suporte_tagline: "Suporte inteligente para erros, bugs e melhorias do sistema",
+    agent_suporte_quick_action_ver_erros_label: "Ver Erros",
+    agent_suporte_quick_action_ver_erros_prompt: "Mostre os erros recentes do sistema",
+    agent_suporte_quick_action_diagnosticar_label: "Diagnosticar Sistema",
+    agent_suporte_quick_action_diagnosticar_prompt: "Faça um diagnostico completo do sistema",
+    agent_suporte_quick_action_relatar_bug_label: "Relatar Bug",
+    agent_suporte_quick_action_relatar_bug_prompt: "Quero relatar um bug que encontrei no sistema",
+    agent_suporte_quick_action_sugerir_melhoria_label: "Sugerir Melhoria",
+    agent_suporte_quick_action_sugerir_melhoria_prompt: "Quero sugerir uma melhoria para o sistema",
+    agent_suporte_quick_action_exportar_dados_label: "Exportar Dados",
+    agent_suporte_quick_action_exportar_dados_prompt: "Exporte todos os dados de erros e sugestões salvos",
+    agent_suporte_quick_action_central_ajuda_label: "Central de Ajuda",
+    agent_suporte_quick_action_central_ajuda_prompt: "Preciso de ajuda com um problema no sistema",
+    agent_suporte_stat_erros: "Erros",
+    agent_suporte_stat_registros: "Registros",
+    agent_suporte_stat_corrigidos: "Corrigidos",
+    agent_suporte_stat_melhorias: "Melhorias",
+
+    // Agent Personal Assistant page data
+    agent_personal_assistant_description: "Assistente Pessoal Inteligente",
+    agent_personal_assistant_tagline: "Seu assistente pessoal via WhatsApp — agende, lembre, pesquise e organize",
+    agent_personal_assistant_quick_action_daily_summary_label: "Resumo Diário",
+    agent_personal_assistant_quick_action_daily_summary_prompt: "Faça um resumo do meu dia",
+    agent_personal_assistant_quick_action_create_reminder_label: "Criar Lembrete",
+    agent_personal_assistant_quick_action_create_reminder_prompt: "Crie um lembrete para mim",
+    agent_personal_assistant_quick_action_web_search_label: "Pesquisar",
+    agent_personal_assistant_quick_action_web_search_prompt: "Pesquise na web sobre",
+    agent_personal_assistant_quick_action_agenda_label: "Agenda",
+    agent_personal_assistant_quick_action_agenda_prompt: "Mostre minha agenda de hoje",
+    agent_personal_assistant_quick_action_save_memory_label: "Memória",
+    agent_personal_assistant_quick_action_save_memory_prompt: "Salve esta informação na memória",
+    agent_personal_assistant_quick_action_recall_label: "Lembrar",
+    agent_personal_assistant_quick_action_recall_prompt: "O que você já me disse sobre",
+    agent_personal_assistant_stat_tasks: "Tarefas",
+    agent_personal_assistant_stat_reminders: "Lembretes",
+    agent_personal_assistant_stat_memories: "Memórias",
+    agent_personal_assistant_stat_whatsapp_groups: "Grupos WA",
+
+    // Agent Home IA
+    agent_home_ia_description: "Casa Inteligente",
+    agent_home_ia_tagline: "Controle sua casa por voz — dispositivos, automações e cenas em um só lugar",
+    agent_home_ia_quick_action_ligar_luzes_label: "Ligar Luzes",
+    agent_home_ia_quick_action_ligar_luzes_prompt: "Ligue as luzes da sala",
+    agent_home_ia_quick_action_cenas_label: "Cenas",
+    agent_home_ia_quick_action_cenas_prompt: "Ative o modo cinema",
+    agent_home_ia_quick_action_automacoes_label: "Automações",
+    agent_home_ia_quick_action_automacoes_prompt: "Execute a automação boa noite",
+    agent_home_ia_quick_action_status_casa_label: "Status da Casa",
+    agent_home_ia_quick_action_status_casa_prompt: "Qual o status da casa agora?",
+    agent_home_ia_quick_action_temperatura_label: "Temperatura",
+    agent_home_ia_quick_action_temperatura_prompt: "Ajuste o ar-condicionado para 22 graus",
+    agent_home_ia_quick_action_portas_label: "Portas",
+    agent_home_ia_quick_action_portas_prompt: "Tranque as portas e arme o alarme",
+    agent_home_ia_stat_dispositivos: "Dispositivos",
+    agent_home_ia_stat_luzes_acesas: "Luzes Acesas",
+    agent_home_ia_stat_fechaduras: "Fechaduras",
+    agent_home_ia_stat_automacoes: "Automações",
+
+    // Agent Cyber Security
+    agent_cyber_security_description: "Auditoria de Segurança",
+    agent_cyber_security_tagline: "Audite, proteja e blinde o seu sistema contra ameaças",
+    agent_cyber_security_quick_action_novo_scan_label: "Novo Scan",
+    agent_cyber_security_quick_action_novo_scan_prompt: "Execute um novo scan de segurança completo",
+    agent_cyber_security_quick_action_relatorio_label: "Relatório",
+    agent_cyber_security_quick_action_relatorio_prompt: "Mostre o último relatório de segurança",
+    agent_cyber_security_quick_action_credenciais_label: "Credenciais",
+    agent_cyber_security_quick_action_credenciais_prompt: "Verifique se há credenciais expostas",
+    agent_cyber_security_quick_action_portas_label: "Portas",
+    agent_cyber_security_quick_action_portas_prompt: "Liste portas abertas no sistema",
+    agent_cyber_security_quick_action_mitigar_label: "Mitigar",
+    agent_cyber_security_quick_action_mitigar_prompt: "Sugira ações para melhorar a segurança",
+    agent_cyber_security_quick_action_exportar_label: "Exportar",
+    agent_cyber_security_quick_action_exportar_prompt: "Exporte o relatório de segurança",
+    agent_cyber_security_stat_score: "Score",
+    agent_cyber_security_stat_criticos: "Críticos",
+    agent_cyber_security_stat_alto_risco: "Alto Risco",
+    agent_cyber_security_stat_mitigados: "Mitigados",
+
+    // Update
+    update_available: "Atualização disponível",
+
+    // Evidence
+    evidence_total: "Total de Evidências",
+    evidence_photos: "Fotos",
+    evidence_videos: "Vídeos",
+    evidence_documents: "Documentos",
   },
 
   en: {
@@ -2401,6 +2667,12 @@ export const translations: Record<Language, TranslationKeys> = {
     agentAutomotive: "Automotive",
     agentSocialMedia: "Social Media",
     agentImageCamera: "Image AI & Camera",
+    agentJuridico: "Juridical",
+    agentAssistenteTecnico: "Technical Assistant",
+    agentSuporte: "Support",
+    agentPersonalAssistant: "Personal Assistant",
+    agentHomeIA: "Smart Home",
+    agentCyberSecurity: "Cyber Security",
     agentSpeechAudio: "Speech & Audio",
     agentKnowledgeMemory: "Knowledge & Memory",
     agentOSConfig: "OS & Configuration",
@@ -3532,6 +3804,132 @@ export const translations: Record<Language, TranslationKeys> = {
     settingsDiscordAutoResponseDesc: "Marketing agent responds to Discord messages",
     settingsDiscordBotTokenHelp: "Create bot at discord.com/developers",
     settingsDiscordBotTokenHelpDesc: "Copy bot token and paste below",
+    // Achievements
+    achievements_title: "Achievements",
+    achievements_desc: "System achievements",
+    achievements_unlocked: "{unlocked}/{total} unlocked ({percentage}%)",
+    achievements_progress: "Progress",
+    // Dashboard Widgets
+    dashboard_clock: "Clock",
+    dashboard_system: "System",
+    dashboard_cpu: "CPU",
+    dashboard_memory: "Memory",
+    dashboard_uptime: "Uptime",
+
+    // Ambient Sounds
+    sounds_ambient: "Ambient Sounds",
+    sounds_rain: "Rain",
+    sounds_forest: "Forest",
+    sounds_ocean: "Ocean",
+    sounds_cafe: "Café",
+    sounds_fire: "Bonfire",
+    sounds_white_noise: "White Noise",
+    sounds_volume: "Volume",
+
+    // Suporte
+    suporte_title: "Technical Support",
+    suporte_settings_desc: "Manage system errors, bugs and suggestions",
+    suporte_tab_errors: "Errors",
+    suporte_tab_suggestions: "Suggestions",
+    suporte_resolved: "resolved",
+    suporte_implemented: "implemented",
+    suporte_btn_clear: "Clear All",
+    suporte_btn_export: "Export JSON",
+    suporte_empty_errors: "No errors registered. System is healthy!",
+    suporte_stack_trace: "View stack trace",
+    suporte_label_resolution: "Resolution:",
+    suporte_action_mark_resolved: "Mark as resolved",
+    suporte_empty_suggestions: "No suggestions yet. Share your ideas!",
+    suporte_action_mark_implemented: "Mark as implemented",
+
+    // Agent Suporte page data
+    agent_suporte_description: "System Technical Support",
+    agent_suporte_tagline: "Smart support for errors, bugs and system improvements",
+    agent_suporte_quick_action_ver_erros_label: "View Errors",
+    agent_suporte_quick_action_ver_erros_prompt: "Show recent system errors",
+    agent_suporte_quick_action_diagnosticar_label: "Diagnose System",
+    agent_suporte_quick_action_diagnosticar_prompt: "Run a full system diagnostic",
+    agent_suporte_quick_action_relatar_bug_label: "Report Bug",
+    agent_suporte_quick_action_relatar_bug_prompt: "I want to report a bug I found in the system",
+    agent_suporte_quick_action_sugerir_melhoria_label: "Suggest Improvement",
+    agent_suporte_quick_action_sugerir_melhoria_prompt: "I want to suggest a system improvement",
+    agent_suporte_quick_action_exportar_dados_label: "Export Data",
+    agent_suporte_quick_action_exportar_dados_prompt: "Export all saved error and suggestion data",
+    agent_suporte_quick_action_central_ajuda_label: "Help Center",
+    agent_suporte_quick_action_central_ajuda_prompt: "I need help with a system problem",
+    agent_suporte_stat_erros: "Errors",
+    agent_suporte_stat_registros: "Records",
+    agent_suporte_stat_corrigidos: "Fixed",
+    agent_suporte_stat_melhorias: "Improvements",
+
+    // Agent Personal Assistant page data
+    agent_personal_assistant_description: "Smart Personal Assistant",
+    agent_personal_assistant_tagline: "Your personal assistant via WhatsApp — schedule, remind, search and organize",
+    agent_personal_assistant_quick_action_daily_summary_label: "Daily Summary",
+    agent_personal_assistant_quick_action_daily_summary_prompt: "Summarize my day",
+    agent_personal_assistant_quick_action_create_reminder_label: "Create Reminder",
+    agent_personal_assistant_quick_action_create_reminder_prompt: "Create a reminder for me",
+    agent_personal_assistant_quick_action_web_search_label: "Search",
+    agent_personal_assistant_quick_action_web_search_prompt: "Search the web for",
+    agent_personal_assistant_quick_action_agenda_label: "Agenda",
+    agent_personal_assistant_quick_action_agenda_prompt: "Show my agenda for today",
+    agent_personal_assistant_quick_action_save_memory_label: "Memory",
+    agent_personal_assistant_quick_action_save_memory_prompt: "Save this info to memory",
+    agent_personal_assistant_quick_action_recall_label: "Recall",
+    agent_personal_assistant_quick_action_recall_prompt: "What have you told me about",
+    agent_personal_assistant_stat_tasks: "Tasks",
+    agent_personal_assistant_stat_reminders: "Reminders",
+    agent_personal_assistant_stat_memories: "Memories",
+    agent_personal_assistant_stat_whatsapp_groups: "WA Groups",
+
+    // Agent Home IA
+    agent_home_ia_description: "Smart Home",
+    agent_home_ia_tagline: "Control your home by voice — devices, automations and scenes in one place",
+    agent_home_ia_quick_action_ligar_luzes_label: "Lights On",
+    agent_home_ia_quick_action_ligar_luzes_prompt: "Turn on the living room lights",
+    agent_home_ia_quick_action_cenas_label: "Scenes",
+    agent_home_ia_quick_action_cenas_prompt: "Activate movie mode",
+    agent_home_ia_quick_action_automacoes_label: "Automations",
+    agent_home_ia_quick_action_automacoes_prompt: "Run the goodnight automation",
+    agent_home_ia_quick_action_status_casa_label: "House Status",
+    agent_home_ia_quick_action_status_casa_prompt: "What is the house status right now?",
+    agent_home_ia_quick_action_temperatura_label: "Temperature",
+    agent_home_ia_quick_action_temperatura_prompt: "Set the air conditioning to 22 degrees",
+    agent_home_ia_quick_action_portas_label: "Doors",
+    agent_home_ia_quick_action_portas_prompt: "Lock the doors and arm the alarm",
+    agent_home_ia_stat_dispositivos: "Devices",
+    agent_home_ia_stat_luzes_acesas: "Lights On",
+    agent_home_ia_stat_fechaduras: "Locks",
+    agent_home_ia_stat_automacoes: "Automations",
+
+    // Agent Cyber Security
+    agent_cyber_security_description: "Security Audit",
+    agent_cyber_security_tagline: "Audit, protect and harden your system against threats",
+    agent_cyber_security_quick_action_novo_scan_label: "New Scan",
+    agent_cyber_security_quick_action_novo_scan_prompt: "Run a full security scan",
+    agent_cyber_security_quick_action_relatorio_label: "Report",
+    agent_cyber_security_quick_action_relatorio_prompt: "Show the latest security report",
+    agent_cyber_security_quick_action_credenciais_label: "Credentials",
+    agent_cyber_security_quick_action_credenciais_prompt: "Check for exposed credentials",
+    agent_cyber_security_quick_action_portas_label: "Ports",
+    agent_cyber_security_quick_action_portas_prompt: "List open ports on the system",
+    agent_cyber_security_quick_action_mitigar_label: "Mitigate",
+    agent_cyber_security_quick_action_mitigar_prompt: "Suggest actions to improve security",
+    agent_cyber_security_quick_action_exportar_label: "Export",
+    agent_cyber_security_quick_action_exportar_prompt: "Export the security report",
+    agent_cyber_security_stat_score: "Score",
+    agent_cyber_security_stat_criticos: "Critical",
+    agent_cyber_security_stat_alto_risco: "High Risk",
+    agent_cyber_security_stat_mitigados: "Mitigated",
+
+    // Update
+    update_available: "Update available",
+
+    // Evidence
+    evidence_total: "Total Evidence",
+    evidence_photos: "Photos",
+    evidence_videos: "Videos",
+    evidence_documents: "Documents",
   },
 
   es: {
@@ -3571,6 +3969,12 @@ export const translations: Record<Language, TranslationKeys> = {
     agentAutomotive: "Automotriz",
     agentSocialMedia: "Redes Sociales",
     agentImageCamera: "IA de Imagen y Cámara",
+    agentJuridico: "Jurídico",
+    agentAssistenteTecnico: "Asistente Técnico",
+    agentSuporte: "Soporte",
+    agentPersonalAssistant: "Asistente Personal",
+    agentHomeIA: "Hogar Inteligente",
+    agentCyberSecurity: "Ciberseguridad",
     agentSpeechAudio: "Habla y Audio",
     agentKnowledgeMemory: "Conocimiento y Memoria",
     agentOSConfig: "SO y Configuración",
@@ -4703,6 +5107,132 @@ export const translations: Record<Language, TranslationKeys> = {
     settingsDiscordAutoResponseDesc: "Marketing agent responde mensajes de Discord",
     settingsDiscordBotTokenHelp: "Crear bot en discord.com/developers",
     settingsDiscordBotTokenHelpDesc: "Copia el token del bot y pega abajo",
+    // Achievements
+    achievements_title: "Logros",
+    achievements_desc: "Logros del sistema",
+    achievements_unlocked: "{unlocked}/{total} desbloqueados ({percentage}%)",
+    achievements_progress: "Progreso",
+    // Dashboard Widgets
+    dashboard_clock: "Reloj",
+    dashboard_system: "Sistema",
+    dashboard_cpu: "CPU",
+    dashboard_memory: "Memoria",
+    dashboard_uptime: "Activo",
+
+    // Ambient Sounds
+    sounds_ambient: "Sonidos Ambiente",
+    sounds_rain: "Lluvia",
+    sounds_forest: "Bosque",
+    sounds_ocean: "Océano",
+    sounds_cafe: "Café",
+    sounds_fire: "Hoguera",
+    sounds_white_noise: "Ruido Blanco",
+    sounds_volume: "Volumen",
+
+    // Suporte
+    suporte_title: "Soporte Técnico",
+    suporte_settings_desc: "Gestionar errores, bugs y sugerencias del sistema",
+    suporte_tab_errors: "Errores",
+    suporte_tab_suggestions: "Sugerencias",
+    suporte_resolved: "resueltos",
+    suporte_implemented: "implementadas",
+    suporte_btn_clear: "Limpiar Todo",
+    suporte_btn_export: "Exportar JSON",
+    suporte_empty_errors: "Sin errores registrados. ¡El sistema está saludable!",
+    suporte_stack_trace: "Ver stack trace",
+    suporte_label_resolution: "Resolución:",
+    suporte_action_mark_resolved: "Marcar como resuelto",
+    suporte_empty_suggestions: "Sin sugerencias aún. ¡Comparte tus ideas!",
+    suporte_action_mark_implemented: "Marcar como implementada",
+
+    // Agent Suporte page data
+    agent_suporte_description: "Soporte Técnico del Sistema",
+    agent_suporte_tagline: "Soporte inteligente para errores, bugs y mejoras del sistema",
+    agent_suporte_quick_action_ver_erros_label: "Ver Errores",
+    agent_suporte_quick_action_ver_erros_prompt: "Muestre los errores recientes del sistema",
+    agent_suporte_quick_action_diagnosticar_label: "Diagnosticar Sistema",
+    agent_suporte_quick_action_diagnosticar_prompt: "Haga un diagnóstico completo del sistema",
+    agent_suporte_quick_action_relatar_bug_label: "Reportar Bug",
+    agent_suporte_quick_action_relatar_bug_prompt: "Quiero reportar un bug que encontré en el sistema",
+    agent_suporte_quick_action_sugerir_melhoria_label: "Sugerir Mejora",
+    agent_suporte_quick_action_sugerir_melhoria_prompt: "Quiero sugerir una mejora para el sistema",
+    agent_suporte_quick_action_exportar_dados_label: "Exportar Datos",
+    agent_suporte_quick_action_exportar_dados_prompt: "Exporte todos los datos de errores y sugerencias guardados",
+    agent_suporte_quick_action_central_ajuda_label: "Centro de Ayuda",
+    agent_suporte_quick_action_central_ajuda_prompt: "Necesito ayuda con un problema del sistema",
+    agent_suporte_stat_erros: "Errores",
+    agent_suporte_stat_registros: "Registros",
+    agent_suporte_stat_corrigidos: "Corregidos",
+    agent_suporte_stat_melhorias: "Mejoras",
+
+    // Agent Personal Assistant page data
+    agent_personal_assistant_description: "Asistente Personal Inteligente",
+    agent_personal_assistant_tagline: "Tu asistente personal vía WhatsApp — agenda, recuerda, busca y organiza",
+    agent_personal_assistant_quick_action_daily_summary_label: "Resumen Diario",
+    agent_personal_assistant_quick_action_daily_summary_prompt: "Haz un resumen de mi día",
+    agent_personal_assistant_quick_action_create_reminder_label: "Crear Recordatorio",
+    agent_personal_assistant_quick_action_create_reminder_prompt: "Crea un recordatorio para mí",
+    agent_personal_assistant_quick_action_web_search_label: "Buscar",
+    agent_personal_assistant_quick_action_web_search_prompt: "Busca en la web sobre",
+    agent_personal_assistant_quick_action_agenda_label: "Agenda",
+    agent_personal_assistant_quick_action_agenda_prompt: "Muestra mi agenda de hoy",
+    agent_personal_assistant_quick_action_save_memory_label: "Memoria",
+    agent_personal_assistant_quick_action_save_memory_prompt: "Guarda esta información en la memoria",
+    agent_personal_assistant_quick_action_recall_label: "Recordar",
+    agent_personal_assistant_quick_action_recall_prompt: "Qué me has dicho sobre",
+    agent_personal_assistant_stat_tasks: "Tareas",
+    agent_personal_assistant_stat_reminders: "Recordatorios",
+    agent_personal_assistant_stat_memories: "Memorias",
+    agent_personal_assistant_stat_whatsapp_groups: "Grupos WA",
+
+    // Agent Home IA
+    agent_home_ia_description: "Hogar Inteligente",
+    agent_home_ia_tagline: "Controla tu casa por voz — dispositivos, automatizaciones y escenas en un solo lugar",
+    agent_home_ia_quick_action_ligar_luzes_label: "Encender Luces",
+    agent_home_ia_quick_action_ligar_luzes_prompt: "Enciende las luces de la sala",
+    agent_home_ia_quick_action_cenas_label: "Escenas",
+    agent_home_ia_quick_action_cenas_prompt: "Activa el modo cine",
+    agent_home_ia_quick_action_automacoes_label: "Automatizaciones",
+    agent_home_ia_quick_action_automacoes_prompt: "Ejecuta la automatización buenas noches",
+    agent_home_ia_quick_action_status_casa_label: "Estado de la Casa",
+    agent_home_ia_quick_action_status_casa_prompt: "¿Cuál es el estado de la casa ahora?",
+    agent_home_ia_quick_action_temperatura_label: "Temperatura",
+    agent_home_ia_quick_action_temperatura_prompt: "Ajusta el aire acondicionado a 22 grados",
+    agent_home_ia_quick_action_portas_label: "Puertas",
+    agent_home_ia_quick_action_portas_prompt: "Bloquea las puertas y activa la alarma",
+    agent_home_ia_stat_dispositivos: "Dispositivos",
+    agent_home_ia_stat_luzes_acesas: "Luces Encendidas",
+    agent_home_ia_stat_fechaduras: "Cerraduras",
+    agent_home_ia_stat_automacoes: "Automatizaciones",
+
+    // Agent Cyber Security
+    agent_cyber_security_description: "Auditoría de Seguridad",
+    agent_cyber_security_tagline: "Audita, protege y refuerza tu sistema contra amenazas",
+    agent_cyber_security_quick_action_novo_scan_label: "Nuevo Scan",
+    agent_cyber_security_quick_action_novo_scan_prompt: "Ejecuta un nuevo scan de seguridad completo",
+    agent_cyber_security_quick_action_relatorio_label: "Informe",
+    agent_cyber_security_quick_action_relatorio_prompt: "Muestra el último informe de seguridad",
+    agent_cyber_security_quick_action_credenciais_label: "Credenciales",
+    agent_cyber_security_quick_action_credenciais_prompt: "Verifica si hay credenciales expuestas",
+    agent_cyber_security_quick_action_portas_label: "Puertos",
+    agent_cyber_security_quick_action_portas_prompt: "Lista los puertos abiertos en el sistema",
+    agent_cyber_security_quick_action_mitigar_label: "Mitigar",
+    agent_cyber_security_quick_action_mitigar_prompt: "Sugiere acciones para mejorar la seguridad",
+    agent_cyber_security_quick_action_exportar_label: "Exportar",
+    agent_cyber_security_quick_action_exportar_prompt: "Exporta el informe de seguridad",
+    agent_cyber_security_stat_score: "Puntuación",
+    agent_cyber_security_stat_criticos: "Críticos",
+    agent_cyber_security_stat_alto_risco: "Alto Riesgo",
+    agent_cyber_security_stat_mitigados: "Mitigados",
+
+    // Update
+    update_available: "Actualización disponible",
+
+    // Evidence
+    evidence_total: "Total de Evidencias",
+    evidence_photos: "Fotos",
+    evidence_videos: "Videos",
+    evidence_documents: "Documentos",
   },
 
   fr: {
@@ -4742,6 +5272,12 @@ export const translations: Record<Language, TranslationKeys> = {
     agentAutomotive: "Automobile",
     agentSocialMedia: "Réseaux Sociaux",
     agentImageCamera: "IA d'Image & Caméra",
+    agentJuridico: "Juridique",
+    agentAssistenteTecnico: "Assistant Technique",
+    agentSuporte: "Support",
+    agentPersonalAssistant: "Assistant Personnel",
+    agentHomeIA: "Maison Intelligente",
+    agentCyberSecurity: "Cybersécurité",
     agentSpeechAudio: "Parole & Audio",
     agentKnowledgeMemory: "Connaissance & Mémoire",
     agentOSConfig: "OS & Configuration",
@@ -5860,6 +6396,12 @@ export const translations: Record<Language, TranslationKeys> = {
     settingsSpotifyNoDevice: "Aucun appareil trouvé",
     settingsSpotifyAuthHelp: "Créer l'app sur developer.spotify.com",
     settingsSpotifyAuthHelpDesc: "Redirect URI : http://127.0.0.1:9222/callback",
+    // Achievements
+    achievements_title: "Succès",
+    achievements_desc: "Succès du système",
+    achievements_unlocked: "{unlocked}/{total} débloqués ({percentage}%)",
+    achievements_progress: "Progrès",
+
     // Discord integration
     settingsDiscordSection: "Bot Discord",
     settingsDiscordToken: "Token du Bot",
@@ -5874,5 +6416,126 @@ export const translations: Record<Language, TranslationKeys> = {
     settingsDiscordAutoResponseDesc: "L'agent Marketing répond aux messages Discord",
     settingsDiscordBotTokenHelp: "Créer le bot sur discord.com/developers",
     settingsDiscordBotTokenHelpDesc: "Copiez le token du bot et collez-le ci-dessous",
+    // Dashboard Widgets
+    dashboard_clock: "Horloge",
+    dashboard_system: "Système",
+    dashboard_cpu: "CPU",
+    dashboard_memory: "Mémoire",
+    dashboard_uptime: "Actif",
+
+    // Ambient Sounds
+    sounds_ambient: "Sons d'Ambiance",
+    sounds_rain: "Pluie",
+    sounds_forest: "Forêt",
+    sounds_ocean: "Océan",
+    sounds_cafe: "Café",
+    sounds_fire: "Feu de Camp",
+    sounds_white_noise: "Bruit Blanc",
+    sounds_volume: "Volume",
+
+    // Suporte
+    suporte_title: "Support Technique",
+    suporte_settings_desc: "Gérer les erreurs, bugs et suggestions du système",
+    suporte_tab_errors: "Erreurs",
+    suporte_tab_suggestions: "Suggestions",
+    suporte_resolved: "résolus",
+    suporte_implemented: "implémentées",
+    suporte_btn_clear: "Tout Effacer",
+    suporte_btn_export: "Exporter JSON",
+    suporte_empty_errors: "Aucune erreur enregistrée. Le système est sain !",
+    suporte_stack_trace: "Voir la trace",
+    suporte_label_resolution: "Résolution :",
+    suporte_action_mark_resolved: "Marquer comme résolu",
+    suporte_empty_suggestions: "Pas encore de suggestions. Partagez vos idées !",
+    suporte_action_mark_implemented: "Marquer comme implémentée",
+
+    // Agent Suporte page data
+    agent_suporte_description: "Support Technique du Système",
+    agent_suporte_tagline: "Support intelligent pour les erreurs, bugs et améliorations du système",
+    agent_suporte_quick_action_ver_erros_label: "Voir Erreurs",
+    agent_suporte_quick_action_ver_erros_prompt: "Affichez les erreurs récentes du système",
+    agent_suporte_quick_action_diagnosticar_label: "Diagnostiquer Système",
+    agent_suporte_quick_action_diagnosticar_prompt: "Effectuez un diagnostic complet du système",
+    agent_suporte_quick_action_relatar_bug_label: "Signaler Bug",
+    agent_suporte_quick_action_relatar_bug_prompt: "Je veux signaler un bug que j'ai trouvé dans le système",
+    agent_suporte_quick_action_sugerir_melhoria_label: "Suggérer Amélioration",
+    agent_suporte_quick_action_sugerir_melhoria_prompt: "Je veux suggérer une amélioration du système",
+    agent_suporte_quick_action_exportar_dados_label: "Exporter Données",
+    agent_suporte_quick_action_exportar_dados_prompt: "Exportez toutes les données d'erreurs et suggestions sauvegardées",
+    agent_suporte_quick_action_central_ajuda_label: "Centre d'Aide",
+    agent_suporte_quick_action_central_ajuda_prompt: "J'ai besoin d'aide avec un problème système",
+    agent_suporte_stat_erros: "Erreurs",
+    agent_suporte_stat_registros: "Registres",
+    agent_suporte_stat_corrigidos: "Corrigés",
+    agent_suporte_stat_melhorias: "Améliorations",
+
+    // Agent Personal Assistant page data
+    agent_personal_assistant_description: "Assistant Personnel Intelligent",
+    agent_personal_assistant_tagline: "Votre assistant personnel via WhatsApp — planifiez, rappelez, cherchez et organisez",
+    agent_personal_assistant_quick_action_daily_summary_label: "Résumé Quotidien",
+    agent_personal_assistant_quick_action_daily_summary_prompt: "Faites un résumé de ma journée",
+    agent_personal_assistant_quick_action_create_reminder_label: "Créer Rappel",
+    agent_personal_assistant_quick_action_create_reminder_prompt: "Créez un rappel pour moi",
+    agent_personal_assistant_quick_action_web_search_label: "Rechercher",
+    agent_personal_assistant_quick_action_web_search_prompt: "Cherchez sur le web",
+    agent_personal_assistant_quick_action_agenda_label: "Agenda",
+    agent_personal_assistant_quick_action_agenda_prompt: "Montrez mon agenda d'aujourd'hui",
+    agent_personal_assistant_quick_action_save_memory_label: "Mémoire",
+    agent_personal_assistant_quick_action_save_memory_prompt: "Sauvegardez cette info en mémoire",
+    agent_personal_assistant_quick_action_recall_label: "Rappeler",
+    agent_personal_assistant_quick_action_recall_prompt: "Que m'avez-vous dit à propos de",
+    agent_personal_assistant_stat_tasks: "Tâches",
+    agent_personal_assistant_stat_reminders: "Rappels",
+    agent_personal_assistant_stat_memories: "Mémoires",
+    agent_personal_assistant_stat_whatsapp_groups: "Groupes WA",
+
+    // Agent Home IA
+    agent_home_ia_description: "Maison Intelligente",
+    agent_home_ia_tagline: "Contrôlez votre maison par la voix — appareils, automatisations et scènes en un seul endroit",
+    agent_home_ia_quick_action_ligar_luzes_label: "Allumer les Lumières",
+    agent_home_ia_quick_action_ligar_luzes_prompt: "Allume les lumières du salon",
+    agent_home_ia_quick_action_cenas_label: "Scènes",
+    agent_home_ia_quick_action_cenas_prompt: "Active le mode cinéma",
+    agent_home_ia_quick_action_automacoes_label: "Automatisations",
+    agent_home_ia_quick_action_automacoes_prompt: "Exécute l'automatisation bonne nuit",
+    agent_home_ia_quick_action_status_casa_label: "État de la Maison",
+    agent_home_ia_quick_action_status_casa_prompt: "Quel est l'état de la maison actuellement ?",
+    agent_home_ia_quick_action_temperatura_label: "Température",
+    agent_home_ia_quick_action_temperatura_prompt: "Règle la climatisation à 22 degrés",
+    agent_home_ia_quick_action_portas_label: "Portes",
+    agent_home_ia_quick_action_portas_prompt: "Verrouille les portes et arme l'alarme",
+    agent_home_ia_stat_dispositivos: "Appareils",
+    agent_home_ia_stat_luzes_acesas: "Lumières Allumées",
+    agent_home_ia_stat_fechaduras: "Serrures",
+    agent_home_ia_stat_automacoes: "Automatisations",
+
+    // Agent Cyber Security
+    agent_cyber_security_description: "Audit de Sécurité",
+    agent_cyber_security_tagline: "Auditez, protégez et renforcez votre système contre les menaces",
+    agent_cyber_security_quick_action_novo_scan_label: "Nouveau Scan",
+    agent_cyber_security_quick_action_novo_scan_prompt: "Exécute un nouveau scan de sécurité complet",
+    agent_cyber_security_quick_action_relatorio_label: "Rapport",
+    agent_cyber_security_quick_action_relatorio_prompt: "Montre le dernier rapport de sécurité",
+    agent_cyber_security_quick_action_credenciais_label: "Identifiants",
+    agent_cyber_security_quick_action_credenciais_prompt: "Vérifie s'il y a des identifiants exposés",
+    agent_cyber_security_quick_action_portas_label: "Ports",
+    agent_cyber_security_quick_action_portas_prompt: "Liste les ports ouverts sur le système",
+    agent_cyber_security_quick_action_mitigar_label: "Atténuer",
+    agent_cyber_security_quick_action_mitigar_prompt: "Suggère des actions pour améliorer la sécurité",
+    agent_cyber_security_quick_action_exportar_label: "Exporter",
+    agent_cyber_security_quick_action_exportar_prompt: "Exporte le rapport de sécurité",
+    agent_cyber_security_stat_score: "Score",
+    agent_cyber_security_stat_criticos: "Critiques",
+    agent_cyber_security_stat_alto_risco: "Risque Élevé",
+    agent_cyber_security_stat_mitigados: "Atténués",
+
+    // Update
+    update_available: "Mise à jour disponible",
+
+    // Evidence
+    evidence_total: "Total des Preuves",
+    evidence_photos: "Photos",
+    evidence_videos: "Vidéos",
+    evidence_documents: "Documents",
   },
 };

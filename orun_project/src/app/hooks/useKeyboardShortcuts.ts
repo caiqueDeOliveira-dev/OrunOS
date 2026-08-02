@@ -38,6 +38,9 @@ export function useKeyboardShortcuts({ nav, setCommandPaletteOpen, setProfileOpe
         if (n.socialMediaOpen) { n.setSocialMediaOpen(false); return; }
         if (n.memoryOpen) { n.setMemoryOpen(false); return; }
         if (n.exportImportOpen) { n.setExportImportOpen(false); return; }
+        if (n.activityOpen) { n.setActivityOpen(false); return; }
+        if (n.emailOpen) { n.setEmailOpen(false); return; }
+        if (n.calendarOpen) { n.setCalendarOpen(false); return; }
         if (n.agentPage) { n.setAgentPage(null); return; }
         if (n.modelPickerOpen) { n.setModelPickerOpen(false); return; }
         if (n.agentDataOpen) { n.setAgentDataOpen(null); return; }
@@ -51,6 +54,9 @@ export function useKeyboardShortcuts({ nav, setCommandPaletteOpen, setProfileOpe
       if (e.ctrlKey && e.shiftKey && e.key === "A") { e.preventDefault(); navRef.current.setAutomationOpen(true); return; }
       if (e.ctrlKey && e.shiftKey && e.key === "S") { e.preventDefault(); navRef.current.setSettingsOpen(true); return; }
       if (e.ctrlKey && e.shiftKey && e.key === "P") { e.preventDefault(); profileRef.current?.(true); return; }
+      if (e.ctrlKey && e.shiftKey && e.key === "E") { e.preventDefault(); navRef.current.setEmailOpen(p => !p); navRef.current.setActiveNav("email"); return; }
+      if (e.ctrlKey && e.shiftKey && e.key === "C") { e.preventDefault(); navRef.current.setCalendarOpen(p => !p); navRef.current.setActiveNav("calendar"); return; }
+      if (e.ctrlKey && e.shiftKey && e.key === "L") { e.preventDefault(); navRef.current.setActivityOpen(p => !p); navRef.current.setActiveNav("activity"); return; }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);

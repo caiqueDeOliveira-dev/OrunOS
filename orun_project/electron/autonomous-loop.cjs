@@ -62,8 +62,9 @@ async function autonomousLoop({ messages, agentId, sender, requestId, cancelledR
   let lastToolText = "";
   let retryWithoutTool = false;
 
-  const fallbackProviders = ["groq", "openrouter", "github", "opencodezen"];
+  const fallbackProviders = ["opencodezen", "groq", "openrouter"];
   const triedProviders = new Set([settings.provider]);
+  const retriedProvider = new Set();
   let currentProvider = settings.provider;
   let currentModel = settings.model;
   let currentBaseUrl = settings.baseUrl;
@@ -100,10 +101,17 @@ async function autonomousLoop({ messages, agentId, sender, requestId, cancelledR
           messages: context,
           tools: [...agentTools, ...mcpClient.getAllTools(), ...pluginSystem.getPluginTools()],
         }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error("Autonomous iteration timed out")), 60000)),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Autonomous iteration timed out")), 120000)),
       ]);
     } catch (err) {
       log.error(`[autonomous] chat failed on ${currentProvider}:`, err.message);
+      // Retry transient errors (timeout/429/5xx/network) once on the same provider before switching
+      const isTransient = /timed out|timeout|429|5\d\d|fetch failed|ECONNRESET|ETIMEDOUT|socket hang up/i.test(err.message || "");
+      if (isTransient && !retriedProvider.has(currentProvider)) {
+        retriedProvider.add(currentProvider);
+        log.info(`[autonomous] retrying ${currentProvider} after transient error`);
+        continue;
+      }
       let switched = false;
       for (const fp of fallbackProviders) {
         if (triedProviders.has(fp)) continue;
@@ -137,7 +145,7 @@ async function autonomousLoop({ messages, agentId, sender, requestId, cancelledR
 
       if (claimedAction && !retryWithoutTool) {
         log.info(`[autonomous] model claimed action without tool call, retrying with forced tool_choice`);
-        context.push({ role: "assistant", content: result.text || null });
+        context.push({ role: "assistant", content: result.text || null, ...(result.reasoningContent ? { reasoning_content: result.reasoningContent } : {}) });
         context.push({
           role: "user",
           content: "You MUST use the write_file (or edit_file) tool to actually create/edit the file. Do NOT describe what you would do — actually call the tool now.",
@@ -173,7 +181,7 @@ async function autonomousLoop({ messages, agentId, sender, requestId, cancelledR
           ? await mcpClient.callTool(tc.name, tc.arguments)
           : isPluginTool
           ? await pluginSystem.executePluginTool(tc.name, tc.arguments)
-          : await toolsModule.executeTool(tc.name, tc.arguments);
+          : await toolsModule.executeTool(tc.name, tc.arguments, agentId);
       } catch (err) {
         toolResult = { error: err.message };
       }
@@ -185,6 +193,7 @@ async function autonomousLoop({ messages, agentId, sender, requestId, cancelledR
       context.push({
         role: "assistant",
         content: result.text || null,
+        ...(result.reasoningContent ? { reasoning_content: result.reasoningContent } : {}),
         tool_calls: [{ id: tc.id, type: "function", function: { name: tc.name, arguments: JSON.stringify(tc.arguments) } }],
       });
       context.push({

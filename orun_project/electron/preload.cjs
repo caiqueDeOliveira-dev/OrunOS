@@ -136,6 +136,8 @@ contextBridge.exposeInMainWorld("orun", {
   socialMedia: {
     getConfig: () => ipcRenderer.invoke("social-media:get-config"),
     setConfig: (cfg) => ipcRenderer.invoke("social-media:set-config", cfg),
+    getBufferConfig: () => ipcRenderer.invoke("social-media:get-buffer-config"),
+    setBufferConfig: (cfg) => ipcRenderer.invoke("social-media:set-buffer-config", cfg),
     publish: (opts) => ipcRenderer.invoke("social-media:publish", opts),
     publishMulti: (opts) => ipcRenderer.invoke("social-media:publish-multi", opts),
     test: () => ipcRenderer.invoke("social-media:test"),
@@ -151,6 +153,36 @@ contextBridge.exposeInMainWorld("orun", {
       const handler = (_e, status) => callback(status);
       ipcRenderer.on("app:update-status", handler);
       return () => ipcRenderer.removeListener("app:update-status", handler);
+    },
+    onUpdateChecking: (callback) => {
+      const handler = () => callback();
+      ipcRenderer.on("update:checking", handler);
+      return () => ipcRenderer.removeListener("update:checking", handler);
+    },
+    onUpdateAvailable: (callback) => {
+      const handler = (_e, data) => callback(data);
+      ipcRenderer.on("update:available", handler);
+      return () => ipcRenderer.removeListener("update:available", handler);
+    },
+    onUpdateNotAvailable: (callback) => {
+      const handler = () => callback();
+      ipcRenderer.on("update:not-available", handler);
+      return () => ipcRenderer.removeListener("update:not-available", handler);
+    },
+    onUpdateProgress: (callback) => {
+      const handler = (_e, data) => callback(data);
+      ipcRenderer.on("update:progress", handler);
+      return () => ipcRenderer.removeListener("update:progress", handler);
+    },
+    onUpdateDownloaded: (callback) => {
+      const handler = (_e, data) => callback(data);
+      ipcRenderer.on("update:downloaded", handler);
+      return () => ipcRenderer.removeListener("update:downloaded", handler);
+    },
+    onUpdateError: (callback) => {
+      const handler = (_e, data) => callback(data);
+      ipcRenderer.on("update:error", handler);
+      return () => ipcRenderer.removeListener("update:error", handler);
     },
     onNotify: (callback) => {
       const handler = (_e, data) => callback(data);
@@ -176,6 +208,7 @@ contextBridge.exposeInMainWorld("orun", {
     engines: () => ipcRenderer.invoke("stt:engines"),
     testConnection: (baseUrl) => ipcRenderer.invoke("stt:test-connection", baseUrl),
     transcribe: (args) => ipcRenderer.invoke("stt:transcribe", args),
+    transcribeGroq: (args) => ipcRenderer.invoke("stt:transcribe-groq", args),
   },
   nutrition: {
     getDaily: (date) => ipcRenderer.invoke("nutrition:get-daily", date),
@@ -220,6 +253,8 @@ contextBridge.exposeInMainWorld("orun", {
     comfyuiTest: (baseUrl) => ipcRenderer.invoke("image3d:comfyui-test", baseUrl),
     comfyuiSubmit: (opts) => ipcRenderer.invoke("image3d:comfyui-submit", opts),
     comfyuiResults: (promptId, baseUrl) => ipcRenderer.invoke("image3d:comfyui-results", promptId, baseUrl),
+    fooocusTest: (baseUrl) => ipcRenderer.invoke("image3d:fooocus-test", baseUrl),
+    fooocusDefaultUrl: "http://127.0.0.1:7865",
   },
   musicProducer: {
     getProjects: (date) => ipcRenderer.invoke("musicproducer:get-projects", date),
@@ -231,6 +266,34 @@ contextBridge.exposeInMainWorld("orun", {
     separateStems: (opts) => ipcRenderer.invoke("musicproducer:separate-stems", opts),
     autotone: (opts) => ipcRenderer.invoke("musicproducer:autotone", opts),
     mix: (opts) => ipcRenderer.invoke("musicproducer:mix", opts),
+    applyGain: (opts) => ipcRenderer.invoke("musicproducer:apply-gain", opts),
+  },
+  homeAssistant: {
+    getConfig: () => ipcRenderer.invoke("homeassistant:get-config"),
+    setConfig: (cfg) => ipcRenderer.invoke("homeassistant:set-config", cfg),
+    getDevices: () => ipcRenderer.invoke("homeassistant:get-devices"),
+    getRooms: () => ipcRenderer.invoke("homeassistant:get-rooms"),
+    getStates: () => ipcRenderer.invoke("homeassistant:get-states"),
+    getDeviceState: (deviceId) => ipcRenderer.invoke("homeassistant:get-device-state", deviceId),
+    callService: (deviceId, service, params) => ipcRenderer.invoke("homeassistant:call-service", deviceId, service, params),
+    getAutomations: () => ipcRenderer.invoke("homeassistant:get-automations"),
+    runAutomation: (automationId) => ipcRenderer.invoke("homeassistant:run-automation", automationId),
+    createAutomation: (params) => ipcRenderer.invoke("homeassistant:create-automation", params),
+    deleteAutomation: (automationId) => ipcRenderer.invoke("homeassistant:delete-automation", automationId),
+    toggleAutomation: (automationId) => ipcRenderer.invoke("homeassistant:toggle-automation", automationId),
+    getScenes: () => ipcRenderer.invoke("homeassistant:get-scenes"),
+    activateScene: (sceneId) => ipcRenderer.invoke("homeassistant:activate-scene", sceneId),
+    getStatus: () => ipcRenderer.invoke("homeassistant:get-status"),
+  },
+  security: {
+    runAudit: () => ipcRenderer.invoke("security:run-audit"),
+    getReport: () => ipcRenderer.invoke("security:get-report"),
+    fixFinding: (findingId) => ipcRenderer.invoke("security:fix-finding", findingId),
+    exportReport: () => ipcRenderer.invoke("security:export-report"),
+  },
+  backup: {
+    list: () => ipcRenderer.invoke("backup:list"),
+    restore: (backupPath) => ipcRenderer.invoke("backup:restore", backupPath),
   },
   whatsapp: {
     connect: () => ipcRenderer.invoke("whatsapp:connect"),
@@ -340,12 +403,45 @@ contextBridge.exposeInMainWorld("orun", {
       return () => ipcRenderer.removeListener("voice-overlay:show", listener);
     },
   },
+  quickChat: {
+    hide: () => ipcRenderer.invoke("quick-chat:hide"),
+    isVisible: () => ipcRenderer.invoke("quick-chat:is-visible"),
+    sendMessage: (text) => ipcRenderer.invoke("quick-chat:send-message", text),
+    onShow: (handler) => {
+      const listener = () => handler();
+      ipcRenderer.on("quick-chat:show", listener);
+      return () => ipcRenderer.removeListener("quick-chat:show", listener);
+    },
+    onResponse: (handler) => {
+      const listener = (_e, text) => handler(text);
+      ipcRenderer.on("quick-chat:response", listener);
+      return () => ipcRenderer.removeListener("quick-chat:response", listener);
+    },
+    onError: (handler) => {
+      const listener = (_e, msg) => handler(msg);
+      ipcRenderer.on("quick-chat:error", listener);
+      return () => ipcRenderer.removeListener("quick-chat:error", listener);
+    },
+    onHide: (handler) => {
+      const listener = () => handler();
+      ipcRenderer.on("quick-chat:hide", listener);
+      return () => ipcRenderer.removeListener("quick-chat:hide", listener);
+    },
+  },
   wakeListener: {
     start: () => ipcRenderer.invoke("app:start-wake-listener"),
     stop: () => ipcRenderer.invoke("app:stop-wake-listener"),
     status: () => ipcRenderer.invoke("app:wake-listener-status"),
     restart: () => ipcRenderer.invoke("app:restart-wake-listener"),
     test: () => ipcRenderer.invoke("app:test-wake-word"),
+  },
+  webhook: {
+    status: () => ipcRenderer.invoke("webhook:status"),
+    onEvent: (handler) => {
+      const listener = (_e, event) => handler(event);
+      ipcRenderer.on("webhook:event", listener);
+      return () => ipcRenderer.removeListener("webhook:event", listener);
+    },
   },
   shell: {
     openExternal: (url) => ipcRenderer.invoke("shell:open-external", url),
@@ -404,6 +500,23 @@ contextBridge.exposeInMainWorld("orun", {
       return () => ipcRenderer.removeListener("discord:status-update", handler);
     },
   },
+  activity: {
+    list: (opts) => ipcRenderer.invoke("activity:list", opts),
+    telemetry: () => ipcRenderer.invoke("activity:telemetry"),
+    usageRange: (start, end) => ipcRenderer.invoke("activity:usage-range", start, end),
+    clear: () => ipcRenderer.invoke("activity:clear"),
+    onNewEntry: (handler) => {
+      const listener = (_e, entry) => handler(entry);
+      ipcRenderer.on("activity:new-entry", listener);
+      return () => ipcRenderer.removeListener("activity:new-entry", listener);
+    },
+  },
+  fileSystem: {
+    saveFile: (payload) => ipcRenderer.invoke("evidence:save-file", payload),
+    getFolderPath: (subfolder) => ipcRenderer.invoke("evidence:get-folder", subfolder),
+    createFolder: (folderPath) => ipcRenderer.invoke("evidence:create-folder", folderPath),
+    listFiles: (folderPath) => ipcRenderer.invoke("evidence:list-files", folderPath),
+  },
   telegram: {
     getToken: () => ipcRenderer.invoke("telegram:get-token"),
     setToken: (token) => ipcRenderer.invoke("telegram:set-token", token),
@@ -420,9 +533,53 @@ contextBridge.exposeInMainWorld("orun", {
       return () => ipcRenderer.removeListener("telegram:status-update", handler);
     },
   },
+  google: {
+    getCredentials: () => ipcRenderer.invoke("google:get-credentials"),
+    setCredentials: (clientId, clientSecret) => ipcRenderer.invoke("google:set-credentials", clientId, clientSecret),
+    getAuthUrl: () => ipcRenderer.invoke("google:get-auth-url"),
+    startCallbackServer: () => ipcRenderer.invoke("google:start-callback-server"),
+    stopCallbackServer: () => ipcRenderer.invoke("google:stop-callback-server"),
+    saveTokens: (tokens) => ipcRenderer.invoke("google:save-tokens", tokens),
+    loadTokens: () => ipcRenderer.invoke("google:load-tokens"),
+    isConnected: () => ipcRenderer.invoke("google:is-connected"),
+    disconnect: () => ipcRenderer.invoke("google:disconnect"),
+  },
+  gmail: {
+    listMessages: (opts) => ipcRenderer.invoke("gmail:list-messages", opts),
+    getMessage: (id) => ipcRenderer.invoke("gmail:get-message", id),
+    send: (to, subject, body, threadId) => ipcRenderer.invoke("gmail:send", to, subject, body, threadId),
+    reply: (messageId, body) => ipcRenderer.invoke("gmail:reply", messageId, body),
+    markRead: (messageId) => ipcRenderer.invoke("gmail:mark-read", messageId),
+  },
+  emailService: {
+    start: () => ipcRenderer.invoke("email-service:start"),
+    stop: () => ipcRenderer.invoke("email-service:stop"),
+    status: () => ipcRenderer.invoke("email-service:status"),
+    analyze: (emailId) => ipcRenderer.invoke("email-service:analyze", emailId),
+  },
+  calendar: {
+    listEvents: (opts) => ipcRenderer.invoke("calendar:list-events", opts),
+    createEvent: (data) => ipcRenderer.invoke("calendar:create-event", data),
+    updateEvent: (id, updates) => ipcRenderer.invoke("calendar:update-event", id, updates),
+    deleteEvent: (id) => ipcRenderer.invoke("calendar:delete-event", id),
+    listCalendars: () => ipcRenderer.invoke("calendar:list-calendars"),
+  },
 });
 
 // Forward developer:file-written IPC to CustomEvent for DeveloperIDE
 ipcRenderer.on("developer:file-written", () => {
   try { window.dispatchEvent(new CustomEvent("developer:file-written")); } catch {}
+});
+
+// Forward renderer errors/unhandled rejections to the main process logger
+window.addEventListener("error", (e) => {
+  try {
+    ipcRenderer.send("renderer:error", `Uncaught error: ${e.message} (${e.filename}:${e.lineno}:${e.colno})`);
+  } catch { /* ignore */ }
+});
+window.addEventListener("unhandledrejection", (e) => {
+  try {
+    const reason = e.reason && (e.reason.stack || e.reason.message || String(e.reason));
+    ipcRenderer.send("renderer:error", `Unhandled rejection: ${reason}`);
+  } catch { /* ignore */ }
 });

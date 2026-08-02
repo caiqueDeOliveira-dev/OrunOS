@@ -11,6 +11,22 @@ export interface VideoClip {
   waveformData?: number[];
 }
 
+export interface Keyframe {
+  frame: number;
+  property: "posX" | "posY" | "scale" | "rotation" | "opacity";
+  value: number;
+  easeIn: boolean;
+  easeOut: boolean;
+}
+
+export interface AIGenerationState {
+  prompt: string;
+  type: "text-to-video" | "image-to-video" | "style-transfer" | "background-removal" | "upscale" | "auto-captions" | "text-animation";
+  status: "idle" | "generating" | "done" | "error";
+  progress: number;
+  result?: string;
+}
+
 export interface VideoState {
   [key: string]: unknown;
   clips: VideoClip[];
@@ -29,6 +45,7 @@ export interface VideoState {
   fadeIn: number;
   fadeOut: number;
   speed: number;
+  speedRange: { min: number; max: number };
   blendMode: string;
   tool: string;
   snapEnabled: boolean;
@@ -47,6 +64,10 @@ export interface VideoState {
   textColor: string;
   selectedEffect: string | null;
   selectedTransition: string | null;
+  keyframes: Keyframe[];
+  aiState: AIGenerationState;
+  snapPoints: number[];
+  markers: { frame: number; label: string; color: string }[];
 }
 
 export const FPS = 30;
@@ -91,6 +112,10 @@ export const TRANSITIONS = [
   { label: "Glitch", arrow: "\u26A1" },
 ];
 
+export const ACCENT = "var(--accent, #C00018)";
+export const STRIP = "var(--secondary, #161D2A)";
+export const BORDER = "var(--border)";
+export const TEXT_DIM = "var(--muted-foreground)";
 export const MONO = "'JetBrains Mono', monospace";
 export const SANS = "'Sora', sans-serif";
 
@@ -100,7 +125,7 @@ export const btnBase: React.CSSProperties = {
   justifyContent: "center",
   background: "transparent",
   border: "none",
-  color: "#8B949E",
+  color: "var(--muted-foreground, #8B949E)",
   cursor: "pointer",
   borderRadius: 3,
   transition: "all 0.12s",
@@ -110,19 +135,19 @@ export const inputStyle: React.CSSProperties = {
   width: "100%",
   height: 22,
   background: "var(--secondary, #0D1117)",
-  border: "1px solid #30363D",
+  border: "1px solid var(--border, #30363D)",
   borderRadius: 3,
   padding: "0 5px",
   fontSize: 10,
   fontFamily: MONO,
-  color: "#C9D1D9",
+  color: "var(--foreground, #C9D1D9)",
   outline: "none",
   boxSizing: "border-box",
 };
 
 export const labelStyle: React.CSSProperties = {
   fontSize: 9,
-  color: "#8B949E",
+  color: "var(--muted-foreground, #8B949E)",
   fontFamily: SANS,
   marginBottom: 2,
   display: "block",

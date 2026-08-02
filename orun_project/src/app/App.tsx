@@ -13,9 +13,12 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ChatSkeleton } from "./components/Skeleton";
 import Onboarding from "./components/Onboarding";
 import { VoiceOverlay } from "./components/VoiceOverlay";
+import { QuickChat } from "./components/QuickChat";
 import { initWorkspaceActionListener, destroyWorkspaceActionListener } from "./plugins/lib/workspace-actions";
 import { isElectron } from "./constants";
 import type { Phase } from "./types";
+
+const QUICK_CHAT_HASH = "#/quick-chat";
 
 function TTSFallbackListener() {
   const { show: toast } = useToast();
@@ -33,6 +36,16 @@ function TTSFallbackListener() {
 }
 
 export default function App() {
+  const isQuickChat = typeof window !== "undefined" && window.location.hash === QUICK_CHAT_HASH;
+
+  if (isQuickChat) {
+    return (
+      <ThemeProvider>
+        <QuickChat />
+      </ThemeProvider>
+    );
+  }
+
   const [phase, setPhase] = useState<Phase>("splash");
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [voiceOverlayVisible, setVoiceOverlayVisible] = useState(false);

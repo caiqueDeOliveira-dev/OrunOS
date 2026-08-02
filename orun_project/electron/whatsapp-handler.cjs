@@ -33,7 +33,7 @@ async function handleWhatsAppMessage({ jid, text, imageBase64, fromMe }, ctx) {
       }
       if (matched === "Nutritionist" || matched === "Health" || matched === "Personal Trainer") return "Health";
       if (matched === "Social Media" || matched === "Marketing") return "Marketing";
-      if (matched === "Personal Assistant") return undefined;
+      if (matched === "Personal Assistant") return matched; // process normally
       return matched;
     }
     if (cfg.listenJid && jid === cfg.listenJid) return imageBase64 ? "Health" : undefined;

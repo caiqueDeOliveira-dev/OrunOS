@@ -49,7 +49,14 @@ function register(ipcMain, ctx) {
     return { ok: true, rules };
   });
 
-  // MCP Server management
+  // MCP Server management (persisted so servers survive app restarts)
+  const MCP_SETTINGS_KEY = "mcpServers";
+  const persistMcpServers = (servers) => db.setSetting(MCP_SETTINGS_KEY, servers);
+  const listPersistedMcpServers = () => {
+    const list = db.getSetting(MCP_SETTINGS_KEY, []);
+    return Array.isArray(list) ? list : [];
+  };
+
   ipcMain.handle("mcp:list-servers", () => mcpClient.listServers());
   ipcMain.handle("mcp:add-server", async (_, { name, command, args, env }) => {
     try {
@@ -61,6 +68,9 @@ function register(ipcMain, ctx) {
       if (args && !Array.isArray(args)) return { ok: false, error: "Args must be an array" };
       if (env && typeof env !== "object") return { ok: false, error: "Env must be an object" };
       const tools = await mcpClient.addServer(name, command, args || [], env || {});
+      const saved = listPersistedMcpServers().filter((s) => s && s.name !== name);
+      saved.push({ name, command, args: args || [], env: env || {} });
+      persistMcpServers(saved);
       return { ok: true, tools: tools.length };
     } catch (e) {
       return { ok: false, error: e.message };
@@ -68,6 +78,7 @@ function register(ipcMain, ctx) {
   });
   ipcMain.handle("mcp:remove-server", (_, name) => {
     mcpClient.removeServer(name);
+    persistMcpServers(listPersistedMcpServers().filter((s) => s && s.name !== name));
     return { ok: true };
   });
   ipcMain.handle("mcp:list-tools", () => mcpClient.getAllTools().map((t) => ({ name: t.name, description: t.description })));

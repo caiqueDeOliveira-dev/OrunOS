@@ -104,6 +104,9 @@ export function usePanelNavigation(onNewChat?: () => void) {
   const setMemoryOpen = useCallback(makePanelSetter("memory"), []);
   const setSocialMediaOpen = useCallback(makePanelSetter("socialMedia"), []);
   const setExportImportOpen = useCallback(makePanelSetter("exportImport"), []);
+  const setActivityOpen = useCallback(makePanelSetter("activity"), []);
+  const setEmailOpen = useCallback(makePanelSetter("email"), []);
+  const setCalendarOpen = useCallback(makePanelSetter("calendar"), []);
 
   // ── Non-panel setters ────────────────────────────────────────────────────
 
@@ -187,6 +190,9 @@ export function usePanelNavigation(onNewChat?: () => void) {
   const memoryOpen = state.currentPanel === "memory";
   const socialMediaOpen = state.currentPanel === "socialMedia";
   const exportImportOpen = state.currentPanel === "exportImport";
+  const activityOpen = state.currentPanel === "activity";
+  const emailOpen = state.currentPanel === "email";
+  const calendarOpen = state.currentPanel === "calendar";
   const anyPanelOpen = state.currentPanel !== null || state.agentDataOpen !== null || state.agentPage !== null;
 
   return {
@@ -195,14 +201,14 @@ export function usePanelNavigation(onNewChat?: () => void) {
     automationOpen, schedulesOpen, voicesOpen, modelPickerOpen, whatsappOpen,
     agentDataOpen: state.agentDataOpen, agentPage: state.agentPage,
     projectsOpen, filesOpen, memoryOpen, socialMediaOpen,
-    exportImportOpen, activeNav: state.activeNav, anyPanelOpen,
+    exportImportOpen, activityOpen, emailOpen, calendarOpen, activeNav: state.activeNav, anyPanelOpen,
     workspaceOpen: state.workspaceOpen,
     // Setters
     setAgentsOpen, setHistoryOpen, setSettingsOpen, setAgentModelsOpen,
     setUsageOpen, setAutomationOpen, setSchedulesOpen, setVoicesOpen,
     setModelPickerOpen, setWhatsappOpen, setAgentDataOpen, setAgentPage,
     setProjectsOpen, setFilesOpen, setMemoryOpen, setSocialMediaOpen,
-    setExportImportOpen, setActiveNav, setWorkspaceOpen,
+    setExportImportOpen, setActivityOpen, setEmailOpen, setCalendarOpen, setActiveNav, setWorkspaceOpen,
     // Actions
     handleNavClick, closeAll, togglePanel, showPanel, hidePanel,
   };

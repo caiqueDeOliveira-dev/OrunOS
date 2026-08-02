@@ -1,26 +1,12 @@
 import { registerWorkspaceActions, unregisterWorkspaceActions } from "../../lib/workspace-actions";
+import { useHealthStore, addMeal, addBodyMeasurement, addExam, deleteExam, updateMetric } from "./health-store";
 
 const WORKSPACE_ID = "health";
-
 let registered = false;
 
 let getStore: (() => any) | null = null;
 export function setHealthStoreGetter(getter: () => any) { getStore = getter; }
 export function getHealthStore() { return getStore ? getStore() : null; }
-
-function getHealthState() {
-  if (!getStore) throw new Error("Health store not initialized");
-  return getStore();
-}
-
-let mealIdCounter = 0;
-function nextMealId() { return `hm_${Date.now()}_${++mealIdCounter}`; }
-
-let bodyMeasurementIdCounter = 0;
-function nextBodyMeasurementId() { return `bm_${Date.now()}_${++bodyMeasurementIdCounter}`; }
-
-let examIdCounter = 0;
-function nextExamId() { return `ex_${Date.now()}_${++examIdCounter}`; }
 
 const actions = {
   async log_meal(params: Record<string, unknown>) {
@@ -34,84 +20,63 @@ const actions = {
 
     const now = new Date();
     const time = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
+    const meal = addMeal({ time, description: name, calories, protein, carbs, fat });
 
-    const newMeal = {
-      id: nextMealId(),
-      time,
-      description: name,
-      calories,
-      protein,
-      carbs,
-      fat,
-    };
-
-    const store = getHealthState();
-    store.setState((s: any) => ({ meals: [...s.meals, newMeal] }));
-
-    return { success: true, data: newMeal, message: `Logged meal "${name}" (${calories} kcal)` };
+    return { success: true, data: meal, message: `Refeição registrada: "${name}" (${calories} kcal)` };
   },
 
   async log_workout(params: Record<string, unknown>) {
     const exerciseName = String(params.exerciseName || "");
+    const duration = typeof params.duration === "number" ? params.duration : 30;
     if (!exerciseName) return { success: false, error: "exerciseName is required" };
 
-    const store = getHealthState();
-    const state = store.getState();
-    const calorieMetric = state.metrics.find((m: any) => m.id === "calories");
-
+    const burned = Math.round(duration * 10);
+    const state = useHealthStore.getState();
+    const calorieMetric = state.metrics.find((m) => m.id === "calories");
     if (calorieMetric) {
-      store.setState((s: any) => ({
-        metrics: s.metrics.map((m: any) =>
-          m.id === "calories"
-            ? { ...m, value: m.value + 300 }
-            : m
-        ),
-      }));
+      updateMetric("calories", calorieMetric.value + burned);
     }
 
-    return { success: true, message: `Workout logged: "${exerciseName}" (+300 kcal burned)` };
+    return { success: true, message: `Treino registrado: "${exerciseName}" (${burned} kcal queimados em ${duration}min)` };
   },
 
   async log_metric(params: Record<string, unknown>) {
     const metric = String(params.metric || "");
     const value = typeof params.value === "number" ? params.value : 0;
+    if (!metric) return { success: false, error: "metric name is required" };
 
-    if (!metric) return { success: false, error: "metric name is required" }
-
-    const store = getHealthState();
-    const state = store.getState();
-    const metricObj = state.metrics.find((m: any) => m.id === metric || m.name.toLowerCase() === metric.toLowerCase());
+    const state = useHealthStore.getState();
+    const metricObj = state.metrics.find((m) => m.id === metric || m.name.toLowerCase() === metric.toLowerCase());
 
     if (!metricObj) {
-      const available = state.metrics.map((m: any) => m.id).join(", ");
-      return { success: false, error: `Metric "${metric}" not found. Available: ${available}` };
+      const newMetric = {
+        id: metric.toLowerCase().replace(/\s+/g, "_"),
+        name: metric.charAt(0).toUpperCase() + metric.slice(1),
+        value,
+        unit: "",
+        target: value,
+        icon: "📊",
+        color: "#3B82F6",
+      };
+      useHealthStore.setState({ metrics: [...state.metrics, newMetric] });
+      return { success: true, data: newMetric, message: `Métrica criada: "${newMetric.name}" = ${value}` };
     }
 
-    store.setState((s: any) => ({
-      metrics: s.metrics.map((m: any) =>
-        m.id === metricObj.id ? { ...m, value } : m
-      ),
-    }));
-
-    return { success: true, data: { id: metricObj.id, value }, message: `Updated ${metricObj.name} to ${value} ${metricObj.unit}` };
+    updateMetric(metricObj.id, value);
+    return { success: true, data: { id: metricObj.id, value }, message: `Atualizado ${metricObj.name} para ${value} ${metricObj.unit}` };
   },
 
   async get_summary() {
-    const store = getHealthState();
-    const state = store.getState();
-
-    const totalCalories = state.meals.reduce((s: number, m: any) => s + m.calories, 0);
-    const totalProtein = state.meals.reduce((s: number, m: any) => s + m.protein, 0);
-    const totalCarbs = state.meals.reduce((s: number, m: any) => s + m.carbs, 0);
-    const totalFat = state.meals.reduce((s: number, m: any) => s + m.fat, 0);
+    const state = useHealthStore.getState();
+    const totalCalories = state.meals.reduce((s, m) => s + m.calories, 0);
+    const totalProtein = state.meals.reduce((s, m) => s + m.protein, 0);
+    const totalCarbs = state.meals.reduce((s, m) => s + m.carbs, 0);
+    const totalFat = state.meals.reduce((s, m) => s + m.fat, 0);
 
     const metricsSummary: Record<string, any> = {};
     for (const m of state.metrics) {
       metricsSummary[m.id] = {
-        name: m.name,
-        value: m.value,
-        unit: m.unit,
-        target: m.target,
+        name: m.name, value: m.value, unit: m.unit, target: m.target,
         progress: Math.round((m.value / m.target) * 100),
       };
     }
@@ -120,13 +85,7 @@ const actions = {
       success: true,
       data: {
         metrics: metricsSummary,
-        meals: {
-          count: state.meals.length,
-          totalCalories,
-          totalProtein,
-          totalCarbs,
-          totalFat,
-        },
+        meals: { count: state.meals.length, totalCalories, totalProtein, totalCarbs, totalFat },
         entries: state.meals,
       },
     };
@@ -136,11 +95,9 @@ const actions = {
     const metricId = String(params.metric || "weight");
     const days = typeof params.days === "number" ? params.days : 7;
 
-    const store = getHealthState();
-    const state = store.getState();
-    const metric = state.metrics.find((m: any) => m.id === metricId || m.name.toLowerCase() === metricId.toLowerCase());
-
-    if (!metric) return { success: false, error: `Metric "${metricId}" not found` };
+    const state = useHealthStore.getState();
+    const metric = state.metrics.find((m) => m.id === metricId || m.name.toLowerCase() === metricId.toLowerCase());
+    if (!metric) return { success: false, error: `Métrica "${metricId}" não encontrada` };
 
     const trendData = [];
     const now = new Date();
@@ -150,10 +107,7 @@ const actions = {
       date.setDate(date.getDate() - i);
       const variance = (Math.random() - 0.5) * metric.value * 0.1;
       baseValue = Math.max(0, baseValue + variance);
-      trendData.push({
-        date: date.toISOString().split("T")[0],
-        value: Math.round(baseValue * 10) / 10,
-      });
+      trendData.push({ date: date.toISOString().split("T")[0], value: Math.round(baseValue * 10) / 10 });
     }
     trendData[trendData.length - 1].value = metric.value;
 
@@ -162,20 +116,19 @@ const actions = {
       data: {
         metric: { id: metric.id, name: metric.name, unit: metric.unit, target: metric.target },
         trend: trendData,
-        avg: Math.round((trendData.reduce((s: number, d: any) => s + d.value, 0) / trendData.length) * 10) / 10,
-        min: Math.min(...trendData.map((d: any) => d.value)),
-        max: Math.max(...trendData.map((d: any) => d.value)),
+        avg: Math.round((trendData.reduce((s, d) => s + d.value, 0) / trendData.length) * 10) / 10,
+        min: Math.min(...trendData.map((d) => d.value)),
+        max: Math.max(...trendData.map((d) => d.value)),
       },
     };
   },
 
   async get_meal_history() {
-    const store = getHealthState();
-    const state = store.getState();
-    const totalCalories = state.meals.reduce((s: number, m: any) => s + m.calories, 0);
-    const totalProtein = state.meals.reduce((s: number, m: any) => s + m.protein, 0);
-    const totalCarbs = state.meals.reduce((s: number, m: any) => s + m.carbs, 0);
-    const totalFat = state.meals.reduce((s: number, m: any) => s + m.fat, 0);
+    const state = useHealthStore.getState();
+    const totalCalories = state.meals.reduce((s, m) => s + m.calories, 0);
+    const totalProtein = state.meals.reduce((s, m) => s + m.protein, 0);
+    const totalCarbs = state.meals.reduce((s, m) => s + m.carbs, 0);
+    const totalFat = state.meals.reduce((s, m) => s + m.fat, 0);
 
     return {
       success: true,
@@ -191,8 +144,6 @@ const actions = {
     };
   },
 
-  // ── Body Measurements ────────────────────────────────────────────────
-
   async log_body_measurement(params: Record<string, unknown>) {
     const weight = typeof params.weight === "number" ? params.weight : undefined;
     const height = typeof params.height === "number" ? params.height : undefined;
@@ -205,51 +156,23 @@ const actions = {
     const leftThigh = typeof params.leftThigh === "number" ? params.leftThigh : undefined;
 
     const hasAny = [weight, height, chest, waist, hips, rightArm, leftArm, rightThigh, leftThigh].some((v) => v !== undefined);
-    if (!hasAny) return { success: false, error: "At least one measurement value is required" };
+    if (!hasAny) return { success: false, error: "Pelo menos um valor de medição é obrigatório" };
 
-    const newEntry = {
-      id: nextBodyMeasurementId(),
+    const entry = addBodyMeasurement({
       date: new Date().toISOString().split("T")[0],
-      ...(weight !== undefined && { weight }),
-      ...(height !== undefined && { height }),
-      ...(chest !== undefined && { chest }),
-      ...(waist !== undefined && { waist }),
-      ...(hips !== undefined && { hips }),
-      ...(rightArm !== undefined && { rightArm }),
-      ...(leftArm !== undefined && { leftArm }),
-      ...(rightThigh !== undefined && { rightThigh }),
-      ...(leftThigh !== undefined && { leftThigh }),
-    };
+      weight, height, chest, waist, hips, rightArm, leftArm, rightThigh, leftThigh,
+    });
 
-    const store = getHealthState();
-    store.setState((s: any) => ({
-      bodyMeasurements: [...s.bodyMeasurements, newEntry],
-    }));
-
-    const parts = [];
+    const parts: string[] = [];
     if (weight !== undefined) parts.push(`${weight}kg`);
-    if (chest !== undefined) parts.push(`chest=${chest}cm`);
-    if (waist !== undefined) parts.push(`waist=${waist}cm`);
-    if (hips !== undefined) parts.push(`hips=${hips}cm`);
-
-    return { success: true, data: newEntry, message: `Body measurement logged (${parts.join(", ") || "saved"})` };
+    return { success: true, data: entry, message: `Medição registrada (${parts.join(", ") || "salva"})` };
   },
 
   async get_body_measurements() {
-    const store = getHealthState();
-    const state = store.getState();
-    const sorted = [...state.bodyMeasurements].sort((a: any, b: any) => b.date.localeCompare(a.date));
-    return {
-      success: true,
-      data: {
-        count: sorted.length,
-        latest: sorted[0] || null,
-        history: sorted,
-      },
-    };
+    const state = useHealthStore.getState();
+    const sorted = [...state.bodyMeasurements].sort((a, b) => b.date.localeCompare(a.date));
+    return { success: true, data: { count: sorted.length, latest: sorted[0] || null, history: sorted } };
   },
-
-  // ── Exams ────────────────────────────────────────────────────────────
 
   async add_exam(params: Record<string, unknown>) {
     const type = String(params.type || "other") as "blood" | "urine" | "other";
@@ -268,50 +191,26 @@ const actions = {
       flag: r.flag ? (r.flag as "normal" | "high" | "low") : undefined,
     })).filter((r) => r.name);
 
-    const newExam = {
-      id: nextExamId(),
-      type,
-      name,
-      date,
-      results,
-      notes,
-    };
-
-    const store = getHealthState();
-    store.setState((s: any) => ({
-      exams: [...s.exams, newExam],
-    }));
-
-    return { success: true, data: newExam, message: `Exam "${name}" added (${type}, ${date})` };
+    const exam = addExam({ type, name, date, results, notes });
+    return { success: true, data: exam, message: `Exame "${name}" adicionado (${type}, ${date})` };
   },
 
   async get_exams() {
-    const store = getHealthState();
-    const state = store.getState();
-    const sorted = [...state.exams].sort((a: any, b: any) => b.date.localeCompare(a.date));
-    return {
-      success: true,
-      data: {
-        count: sorted.length,
-        exams: sorted,
-      },
-    };
+    const state = useHealthStore.getState();
+    const sorted = [...state.exams].sort((a, b) => b.date.localeCompare(a.date));
+    return { success: true, data: { count: sorted.length, exams: sorted } };
   },
 
   async delete_exam(params: Record<string, unknown>) {
     const examId = String(params.examId || "");
     if (!examId) return { success: false, error: "examId is required" };
 
-    const store = getHealthState();
-    const state = store.getState();
-    const found = state.exams.find((e: any) => e.id === examId);
-    if (!found) return { success: false, error: `Exam "${examId}" not found` };
+    const state = useHealthStore.getState();
+    const found = state.exams.find((e) => e.id === examId);
+    if (!found) return { success: false, error: `Exame "${examId}" não encontrado` };
 
-    store.setState((s: any) => ({
-      exams: s.exams.filter((e: any) => e.id !== examId),
-    }));
-
-    return { success: true, message: `Exam "${found.name}" deleted` };
+    deleteExam(examId);
+    return { success: true, message: `Exame "${found.name}" excluído` };
   },
 };
 

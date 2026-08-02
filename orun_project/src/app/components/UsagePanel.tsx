@@ -16,10 +16,12 @@ const PROVIDER_LABELS: Record<string, string> = {
   elevenlabs: "ElevenLabs",
   google: "Google Cloud TTS",
   azure: "Azure Speech",
+  edge: "Edge TTS",
   xtts: "XTTS v2",
   piper: "Piper",
   bark: "Bark",
   f5tts: "F5-TTS",
+  kokoro: "Kokoro",
 };
 
 export function UsagePanel({ onClose, onBack }: { onClose: () => void; onBack: () => void }) {

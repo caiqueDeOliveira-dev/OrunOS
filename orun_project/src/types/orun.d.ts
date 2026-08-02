@@ -149,7 +149,7 @@ export interface OrunSocialMediaPlatformTest {
   error?: string;
 }
 
-export type OrunTTSEngine = "elevenlabs" | "google" | "azure" | "xtts" | "piper" | "bark" | "f5tts";
+export type OrunTTSEngine = "elevenlabs" | "google" | "azure" | "edge" | "xtts" | "piper" | "bark" | "f5tts" | "kokoro";
 
 export interface OrunVoice {
   id: string;
@@ -278,6 +278,74 @@ export interface OrunMusicProject {
   created_at: number;
 }
 
+// Home IA types
+export type OrunHomeDeviceType = "light" | "switch" | "climate" | "lock" | "cover" | "sensor" | "binary_sensor" | "camera" | "media_player";
+
+export interface OrunHomeDevice {
+  id: string;
+  name: string;
+  type: OrunHomeDeviceType;
+  icon: string;
+  state: boolean;
+  value: string | number;
+  brightness?: number;
+  temperature?: number;
+  locked?: boolean;
+  room?: string;
+}
+
+export interface OrunHomeAutomation {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  enabled: boolean;
+  lastRun: string | null;
+  steps: { deviceId: string; action: string; brightness?: number }[];
+}
+
+export interface OrunHomeConfig {
+  mode: "simulated" | "real";
+  host: string;
+  token: string;
+  name: string;
+  connected: boolean;
+  simulated: boolean;
+  error?: string;
+}
+
+// Cyber Security types
+export type OrunSecuritySeverity = "critical" | "high" | "medium" | "low" | "info";
+
+export interface OrunSecurityFinding {
+  id: string;
+  title: string;
+  severity: OrunSecuritySeverity;
+  category: string;
+  description: string;
+  recommendation: string;
+  file?: string;
+  status: "open" | "mitigated";
+}
+
+export interface OrunSecurityReport {
+  score: number;
+  grade: "A" | "B" | "C" | "D" | "F";
+  ranAt: string;
+  summary: {
+    total: number;
+    open: number;
+    mitigated: number;
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+    info: number;
+    categories: string[];
+  };
+  findings: OrunSecurityFinding[];
+}
+
 // Range query types
 export interface OrunFinanceRange {
   entries: OrunFinanceEntry[];
@@ -385,6 +453,8 @@ interface OrunAPI {
   socialMedia: {
     getConfig: () => Promise<Record<OrunSocialMediaPlatform, OrunSocialMediaWebhook | undefined>>;
     setConfig: (cfg: Record<OrunSocialMediaPlatform, OrunSocialMediaWebhook | undefined>) => Promise<boolean>;
+    getBufferConfig: () => Promise<{ token?: string; channels?: Record<string, string> }>;
+    setBufferConfig: (cfg: { token?: string; channels?: Record<string, string> }) => Promise<boolean>;
     publish: (opts: OrunSocialMediaPublishOpts) => Promise<OrunSocialMediaPublishResult>;
     publishMulti: (opts: { platforms: OrunSocialMediaPlatform[]; text: string; hook?: string; hashtags?: string[]; imageUrl?: string; videoUrl?: string; format?: string }) => Promise<OrunSocialMediaPublishResult[]>;
     test: () => Promise<Record<string, OrunSocialMediaPlatformTest>>;
@@ -397,6 +467,12 @@ interface OrunAPI {
     checkForUpdates: () => Promise<{ ok: boolean; error?: string }>;
     installUpdate: () => Promise<boolean>;
     onUpdateStatus: (callback: (status: OrunUpdateStatus) => void) => () => void;
+    onUpdateChecking: (callback: () => void) => () => void;
+    onUpdateAvailable: (callback: (data: { version: string; releaseDate?: string }) => void) => () => void;
+    onUpdateNotAvailable: (callback: () => void) => () => void;
+    onUpdateProgress: (callback: (data: { percent: number }) => void) => () => void;
+    onUpdateDownloaded: (callback: (data: { version: string }) => void) => () => void;
+    onUpdateError: (callback: (data: { message: string }) => void) => () => void;
     onNotify: (callback: (data: { title: string; body: string }) => void) => () => void;
   };
   window: {
@@ -453,17 +529,43 @@ interface OrunAPI {
     comfyuiTest: (baseUrl?: string) => Promise<{ ok: boolean; version?: string; error?: string }>;
     comfyuiSubmit: (opts: { workflowJson: any; baseUrl?: string }) => Promise<{ ok: boolean; promptId?: string; error?: string }>;
     comfyuiResults: (promptId: string, baseUrl?: string) => Promise<{ ok: boolean; images?: Array<{ filename: string; url: string }>; error?: string }>;
+    fooocusTest: (baseUrl?: string) => Promise<{ ok: boolean; version?: string; error?: string }>;
+    fooocusDefaultUrl: string;
   };
   musicProducer: {
     getProjects: (date?: string) => Promise<OrunMusicProject[]>;
     getRange: (startDate: string, endDate: string) => Promise<OrunCreatorRange>;
     wonderaModels: () => Promise<Array<{ id: string; name: string; description: string }>>;
     autotonePresets: () => Promise<Array<{ id: string; name: string }>>;
-    generateMusic: (opts: { prompt: string; genre?: string; durationSec?: number }) => Promise<{ ok: boolean; audioUrl?: string; duration?: number; error?: string }>;
+    generateMusic: (opts: { prompt: string; genre?: string; durationSec?: number }) => Promise<{ ok: boolean; audioUrl?: string; duration?: number; genre?: string; error?: string }>;
     master: (opts: { audioBase64: string; mimeType?: string; targetLufs?: number; profile?: string }) => Promise<{ ok: boolean; audioBase64?: string; mime?: string; error?: string }>;
     separateStems: (opts: { audioBase64: string }) => Promise<{ ok: boolean; vocals?: string; drums?: string; bass?: string; other?: string; error?: string }>;
     autotone: (opts: { audioBase64: string; sampleRate?: number; scale?: string; strength?: number }) => Promise<{ ok: boolean; audioBase64?: string; error?: string }>;
     mix: (opts: { tracks: Array<{ audioBase64: string; volume?: number }>; sampleRate?: number; bitDepth?: number; channels?: number }) => Promise<{ ok: boolean; audioBase64?: string; mime?: string; duration?: number; error?: string }>;
+    applyGain: (opts: { audioBase64: string; gain?: number }) => Promise<{ ok: boolean; audioBase64?: string; mime?: string; error?: string }>;
+  };
+  homeAssistant: {
+    getConfig: () => Promise<OrunHomeConfig>;
+    setConfig: (cfg: Partial<OrunHomeConfig>) => Promise<OrunHomeConfig>;
+    getDevices: () => Promise<Array<OrunHomeDevice>>;
+    getRooms: () => Promise<Array<{ id: string; name: string; icon: string; devices: OrunHomeDevice[] }>>;
+    getStates: () => Promise<{ mode: string; states: unknown[] }>;
+    getDeviceState: (deviceId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+    callService: (deviceId: string, service: string, params?: Record<string, unknown>) => Promise<{ success: boolean; data?: any; error?: string }>;
+    getAutomations: () => Promise<Array<OrunHomeAutomation>>;
+    runAutomation: (automationId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+    createAutomation: (params: { name: string; description?: string; steps?: unknown[] }) => Promise<{ success: boolean; data?: any; error?: string }>;
+    deleteAutomation: (automationId: string) => Promise<{ success: boolean; error?: string }>;
+    toggleAutomation: (automationId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+    getScenes: () => Promise<Array<{ id: string; name: string; icon: string; description: string }>>;
+    activateScene: (sceneId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+    getStatus: () => Promise<any>;
+  };
+  security: {
+    runAudit: () => Promise<OrunSecurityReport>;
+    getReport: () => Promise<OrunSecurityReport | null>;
+    fixFinding: (findingId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+    exportReport: () => Promise<{ ok: boolean; report?: string; error?: string }>;
   };
   whatsapp: {
     connect: () => Promise<{ ok: boolean; error?: string }>;
@@ -511,6 +613,7 @@ interface OrunAPI {
     engines: () => Promise<string[]>;
     testConnection: (baseUrl: string) => Promise<{ ok: boolean; error?: string }>;
     transcribe: (args: { baseUrl: string; audioBase64: string; mimeType: string; language: string }) => Promise<{ text: string }>;
+    transcribeGroq: (args: { audioBase64: string; mimeType: string; language: string; model?: string }) => Promise<{ text: string; error?: string; language?: string }>;
   };
   automation: {
     listRules: () => Promise<AutomationRule[]>;
@@ -556,12 +659,25 @@ interface OrunAPI {
   voiceOverlay: {
     onShow: (handler: () => void) => () => void;
   };
+  quickChat: {
+    hide: () => Promise<boolean>;
+    isVisible: () => Promise<boolean>;
+    sendMessage: (text: string) => Promise<boolean>;
+    onShow: (handler: () => void) => () => void;
+    onResponse: (handler: (text: string) => void) => () => void;
+    onError: (handler: (msg: string) => void) => () => void;
+    onHide: (handler: () => void) => () => void;
+  };
   wakeListener: {
     start: () => Promise<boolean>;
     stop: () => Promise<boolean>;
     status: () => Promise<{ running: boolean }>;
     restart: () => Promise<boolean>;
     test: () => Promise<{ python: boolean; packages: boolean; tcpPort: boolean }>;
+  };
+  webhook: {
+    status: () => Promise<{ running: boolean; port: number; secret: string }>;
+    onEvent: (handler: (event: { method: string; url: string; headers: Record<string, string>; body: unknown; timestamp: number; source: string }) => void) => () => void;
   };
   spotify: {
     getCredentials: () => Promise<{ clientId: string; clientSecret: string }>;
@@ -612,6 +728,23 @@ interface OrunAPI {
     getAgentResponse: () => Promise<boolean>;
     onStatusUpdate: (callback: (status: string) => void) => () => void;
   };
+  activity: {
+    list: (opts?: { count?: number; agentId?: string; action?: string }) => Promise<Array<{ timestamp: number; agentId: string; action: string; details: string; result: string }>>;
+    telemetry: () => Promise<{ counters: Record<string, number>; metrics: Record<string, { count: number; min: number; max: number; avg: number; p50: number; p95: number; p99: number }>; recentTraces: Array<{ name: string; durationMs: number; ts: number }> }>;
+    usageRange: (start: string, end: string) => Promise<Array<{ provider: string; date: string; requests: number; tokens_in: number; tokens_out: number }>>;
+    clear: () => Promise<boolean>;
+    onNewEntry: (handler: (entry: { timestamp: number; agentId: string; action: string; details: string; result: string }) => void) => () => void;
+  };
+  fileSystem: {
+    saveFile: (payload: { fileName: string; base64: string; subfolder?: string }) => Promise<{ ok: boolean; filePath?: string; error?: string }>;
+    getFolderPath: (subfolder?: string) => Promise<string>;
+    createFolder: (folderPath: string) => Promise<{ ok: boolean; error?: string }>;
+    listFiles: (folderPath: string) => Promise<{ name: string; path: string; size: number; isFile: boolean }[]>;
+  };
+  backup: {
+    list: () => Promise<Array<{ name: string; path: string; size: number; date: string }>>;
+    restore: (backupPath: string) => Promise<{ ok: boolean; data?: string; error?: string }>;
+  };
   telegram: {
     getToken: () => Promise<string>;
     setToken: (token: string) => Promise<{ ok: boolean }>;
@@ -627,6 +760,62 @@ interface OrunAPI {
   usage: {
     getRange: (startDate: string, endDate: string) => Promise<OrunUsageRow[]>;
   };
+  google: {
+    getCredentials: () => Promise<{ clientId: string; clientSecret: string }>;
+    setCredentials: (clientId: string, clientSecret: string) => Promise<{ ok: boolean }>;
+    getAuthUrl: () => Promise<{ url: string; state: string } | { url: null; error: string }>;
+    startCallbackServer: () => Promise<{ ok: boolean; error?: string }>;
+    stopCallbackServer: () => Promise<{ ok: boolean }>;
+    saveTokens: (tokens: any) => Promise<{ ok: boolean }>;
+    loadTokens: () => Promise<{ ok: boolean; connected: boolean }>;
+    isConnected: () => Promise<boolean>;
+    disconnect: () => Promise<{ ok: boolean }>;
+  };
+  gmail: {
+    listMessages: (opts?: { maxResults?: number; query?: string }) => Promise<Array<{ id: string; threadId: string }>>;
+    getMessage: (id: string) => Promise<OrunGmailMessage | null>;
+    send: (to: string, subject: string, body: string, threadId?: string) => Promise<any>;
+    reply: (messageId: string, body: string) => Promise<any>;
+    markRead: (messageId: string) => Promise<{ ok: boolean; error?: string }>;
+  };
+  emailService: {
+    start: () => Promise<{ ok: boolean }>;
+    stop: () => Promise<{ ok: boolean }>;
+    status: () => Promise<{ polling: boolean; connected: boolean }>;
+    analyze: (emailId: string) => Promise<{ action: string; summary: string; agent: string; draftReply?: string } | { error: string }>;
+  };
+  calendar: {
+    listEvents: (opts?: { maxResults?: number; timeMin?: string; timeMax?: string }) => Promise<Array<OrunCalendarEvent>>;
+    createEvent: (data: { summary: string; description?: string; startTime: string; endTime: string; timeZone?: string }) => Promise<OrunCalendarEvent>;
+    updateEvent: (id: string, updates: Partial<OrunCalendarEvent>) => Promise<OrunCalendarEvent>;
+    deleteEvent: (id: string) => Promise<{ ok: boolean; error?: string }>;
+    listCalendars: () => Promise<Array<{ id: string; summary: string; primary?: boolean }>>;
+  };
+}
+
+interface OrunGmailMessage {
+  id: string;
+  threadId: string;
+  from: string;
+  to: string;
+  subject: string;
+  date: string;
+  snippet: string;
+  body: string;
+  labelIds: string[];
+  internalDate: number;
+}
+
+interface OrunCalendarEvent {
+  id: string;
+  summary: string;
+  description?: string;
+  start: { dateTime: string; date?: string; timeZone?: string };
+  end: { dateTime: string; date?: string; timeZone?: string };
+  created?: string;
+  updated?: string;
+  location?: string;
+  status?: string;
 }
 
 interface OrunSpotifyPlayback {

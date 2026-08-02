@@ -12,6 +12,27 @@ const http = require("http");
 const log = require("electron-log");
 const logger = require("./logger.cjs");
 const { getErrorMessage } = require("./error-messages.cjs");
+const auditLog = require("./audit-log.cjs");
+
+// ── Rate limiter (simple in-memory) ────────────────────────────────────
+const agentRateLimiter = {
+  _calls: {},
+  checkToolRate(agentId) {
+    const now = Date.now();
+    const window = 60000;
+    const maxCalls = 60;
+    const calls = this._calls[agentId] || [];
+    const recent = calls.filter((t) => now - t < window);
+    if (recent.length >= maxCalls) {
+      return { allowed: false, reason: `Rate limit: ${maxCalls} calls per ${window / 1000}s exceeded` };
+    }
+    return { allowed: true };
+  },
+  recordToolCall(agentId) {
+    if (!this._calls[agentId]) this._calls[agentId] = [];
+    this._calls[agentId].push(Date.now());
+  },
+};
 
 // ── Timeout ─────────────────────────────────────────────────────────────
 const TOOL_TIMEOUT = 30000; // 30 seconds
@@ -30,10 +51,35 @@ function withTimeout(promise, ms, label) {
 }
 
 // ── Security: blocked commands ──────────────────────────────────────────
-const BLOCKED_COMMANDS = /\b(rm\s+(-\w*\s+)*(\/|~)|rmdir\s+\/[sq]|del\s+\/[sfq]|format\s+[a-z]:|mkfs\.|dd\s+of=|:(){ :\|:& };:|reg\s+delete|sc\s+delete|net\s+user|powershell\s+(-\w*\s+)*(-enc|-encodedcommand|IEX|Invoke-Expression|Invoke-WebRequest|DownloadString|DownloadFile|Net\.WebClient)|cmd\s+\/[ce]\s+.*\|.*(\s*bash|\s*sh|\s*powershell)|curl.*\|.*(\s*sh|\s*bash)|wget.*\|.*(\s*sh|\s*bash)|takeown|icacls.*\/grant|bcdedit|diskpart|taskkill\s+\/f|Stop-Process|Get-Process.*\|\s*(Kill|Stop)|certutil\s+-decode|reagentc|dism\s+\/)/i;
+// Individual patterns (split for ReDoS safety)
+const BLOCKED_PATTERNS = [
+  /\brm\s+(-\w*\s+)*(\/|~)/i,
+  /\brmdir\s+\/[sq]/i,
+  /\bdel\s+\/[sfq]/i,
+  /\bformat\s+[a-z]:/i,
+  /\bmkfs\./i,
+ /\bdd\s+of=/i,
+  /\breg\s+delete/i,
+  /\bsc\s+delete/i,
+  /\bnet\s+user/i,
+  /\bpowershell\s+(-\w*\s+)*(-enc|-encodedcommand|IEX|Invoke-Expression|Invoke-WebRequest|DownloadString|DownloadFile|Net\.WebClient)/i,
+  /\bcmd\s+\/[ce]\s+.*\|.*(\s*bash|\s*sh|\s*powershell)/i,
+  /\bcurl.*\|.*(\s*sh|\s*bash)/i,
+  /\bwget.*\|.*(\s*sh|\s*bash)/i,
+  /\btakeown/i,
+  /\bicacls.*\/grant/i,
+  /\bbcdedit/i,
+  /\bdiskpart/i,
+  /\btaskkill\s+\/f/i,
+  /\bStop-Process/i,
+  /\bGet-Process.*\|\s*(Kill|Stop)/i,
+  /\bcertutil\s+-decode/i,
+  /\breagentc/i,
+  /\bdism\s+\//i,
+];
 
 function isCommandSafe(command) {
-  return !BLOCKED_COMMANDS.test(command);
+  return !BLOCKED_PATTERNS.some((re) => re.test(command));
 }
 
 function escapeShellArg(arg) {
@@ -69,24 +115,27 @@ function isPathAllowed(filePath) {
   } catch { return false; }
 }
 
-let memoryDir = null;
 let ctx = null; // { db, socialMedia }
 
 function init(userDataPath, context) {
-  memoryDir = path.join(userDataPath, "memories");
-  if (!fs.existsSync(memoryDir)) fs.mkdirSync(memoryDir, { recursive: true });
   ctx = context || null;
+  auditLog.init(userDataPath);
 }
 
-function loadMemories() {
-  if (!memoryDir) return [];
-  try { return JSON.parse(fs.readFileSync(path.join(memoryDir, "memories.json"), "utf8")); }
-  catch { return []; }
+/** Base dir for relative paths in file tools — the developer workspace. */
+function getWorkspaceDir() {
+  try {
+    if (ctx && ctx.db && typeof ctx.db.getSetting === "function") {
+      const ws = ctx.db.getSetting("developerWorkspace", "");
+      if (typeof ws === "string" && ws.trim()) return ws.trim();
+    }
+  } catch {}
+  return process.cwd();
 }
 
-function saveMemories(memories) {
-  if (!memoryDir) return;
-  fs.writeFileSync(path.join(memoryDir, "memories.json"), JSON.stringify(memories, null, 2));
+function resolveAgentPath(p) {
+  if (!p) return getWorkspaceDir();
+  return path.isAbsolute(p) ? p : path.join(getWorkspaceDir(), p);
 }
 
 // ── HTTP helpers ────────────────────────────────────────────────────────
@@ -443,15 +492,15 @@ const TOOL_DEFINITIONS = [
         properties: {
           workspace: {
             type: "string",
-            description: "Workspace ID: creator-audio, creator-video, designer, automation-flow, finance, health, teacher, marketing, system, developer, automotive-garage",
+            description: "Workspace ID: creator-audio, creator-video, designer, automation-flow, finance, health, teacher, marketing, system, developer, automotive-garage, home-ia, cyber-security",
           },
           action: {
             type: "string",
-            description: "Action to execute. creator-audio: start_recording, stop_recording, toggle_metronome, tune_voice, tune_to_note, generate_beat, preview_note, normalize, add_reverb, add_delay, pitch_shift, time_stretch, set_eq, set_volume, play, pause, stop, load_audio, analyze, export_audio, get_realtime_data. creator-video: add_clip, delete_clip, split_clip, add_effect, set_transition, set_text, export_video, get_timeline. designer: add_element, delete_element, change_bg, change_canvas_size, duplicate_element, export_design, get_elements, create_template, bring_forward, send_backward. automation-flow: add_node, delete_node, add_edge, delete_edge, simulate, get_flow, save_flow, load_flow, export_flow, import_flow. finance: add_transaction, delete_transaction, get_summary, get_transactions. health: log_meal, log_workout, log_metric, get_summary, get_trends, get_meal_history, log_body_measurement, get_body_measurements, add_exam, get_exams, delete_exam. teacher: add_quiz_question, get_quiz, clear_canvas, export_canvas, start_quiz, get_quiz_status, stop_quiz. marketing: add_campaign, pause_campaign, resume_campaign, get_campaigns, create_post, get_posts. system: execute_command, get_processes, get_resources. developer: read_file, write_file, list_files, execute_command. automotive-garage: add_vehicle, add_service_record, add_expense, get_fleet_summary, get_service_history, get_expenses",
+            description: "Action to execute. creator-audio: start_recording, stop_recording, toggle_metronome, tune_voice, tune_to_note, generate_beat, preview_note, normalize, add_reverb, add_delay, pitch_shift, time_stretch, set_eq, set_volume, play, pause, stop, load_audio, analyze, export_audio, get_realtime_data, generate_music, master_track, separate_stems, autotone, mix_tracks, apply_gain, list_music_models, list_autotone_presets. creator-video: add_clip, delete_clip, split_clip, add_effect, set_transition, set_text, export_video, get_timeline. designer: add_element, delete_element, change_bg, change_canvas_size, duplicate_element, export_design, get_elements, create_template, bring_forward, send_backward. automation-flow: add_node, delete_node, add_edge, delete_edge, simulate, get_flow, save_flow, load_flow, export_flow, import_flow. finance: add_transaction, delete_transaction, get_summary, get_transactions. health: log_meal, log_workout, log_metric, get_summary, get_trends, get_meal_history, log_body_measurement, get_body_measurements, add_exam, get_exams, delete_exam. teacher: add_quiz_question, get_quiz, clear_canvas, export_canvas, start_quiz, get_quiz_status, stop_quiz. marketing: add_campaign, pause_campaign, resume_campaign, get_campaigns, create_post, get_posts. system: execute_command, get_processes, get_resources. developer: read_file, write_file, list_files, execute_command. automotive-garage: add_vehicle, add_service_record, add_expense, get_fleet_summary, get_service_history, get_expenses. home-ia: list_devices, get_home_status, get_device_state, toggle_device, set_brightness, set_temperature, lock_door, run_automation, list_automations, create_automation, toggle_automation, list_scenes, activate_scene, send_voice_message. cyber-security: run_scan, get_report, list_findings, fix_finding, export_report, get_summary",
           },
           params: {
             type: "object",
-            description: "Action parameters. Varies per action. Examples: { note:'C4' } for tune_to_note; { bpm:120, beats_per_bar:4 } for toggle_metronome; { bpm:140, style:'trap', bars:4 } for generate_beat; { template:'resume' } for create_template; { elementId:'elm_xxx' } for bring_forward/send_backward; { flowId:'default' } for save_flow/load_flow; { title:'Promoção', body:'50% OFF', channel:'Instagram' } for create_post; { metric:'weight', days:7 } for get_trends",
+            description: "Action parameters. Varies per action. Examples: { note:'C4' } for tune_to_note; { bpm:120, beats_per_bar:4 } for toggle_metronome; { bpm:140, style:'trap', bars:4 } for generate_beat; { template:'resume' } for create_template; { elementId:'elm_xxx' } for bring_forward/send_backward; { flowId:'default' } for save_flow/load_flow; { title:'Promoção', body:'50% OFF', channel:'Instagram' } for create_post; { metric:'weight', days:7 } for get_trends; { prompt:'beat trap', genre:'trap', duration:30 } for generate_music; { target_lufs:-14, profile:'balanced' } for master_track; { scale:'chromatic', strength:0.8 } for autotone; { tracks:[{audioBase64:'...',volume:1.0}] } for mix_tracks; { gain:1.5 } for apply_gain",
           },
         },
         required: ["workspace", "action"],
@@ -468,7 +517,7 @@ const TOOL_DEFINITIONS = [
         properties: {
           workspace: {
             type: "string",
-            enum: ["creator-audio", "creator-video", "designer", "automation-flow", "finance", "health", "teacher", "marketing", "system", "developer", "automotive-garage"],
+            enum: ["creator-audio", "creator-video", "designer", "automation-flow", "finance", "health", "teacher", "marketing", "system", "developer", "automotive-garage", "juridico", "assistente-tecnico", "personal-assistant", "suporte", "home-ia", "cyber-security"],
             description: "Workspace ID to open",
           },
         },
@@ -537,9 +586,10 @@ const TOOL_DEFINITIONS = [
 // ── Tool implementations ────────────────────────────────────────────────
 
 function readFile(args) {
-  if (!isPathAllowed(args.path)) return { error: "Access denied: path outside allowed workspace" };
+  const filePath = resolveAgentPath(args.path);
+  if (!isPathAllowed(filePath)) return { error: "Access denied: path outside allowed workspace" };
   try {
-    const content = fs.readFileSync(args.path, "utf8");
+    const content = fs.readFileSync(filePath, "utf8");
     if (args.start_line != null || args.end_line != null) {
       const lines = content.split("\n");
       const start = args.start_line || 0;
@@ -556,9 +606,9 @@ function readFile(args) {
 function writeFile(args) {
   let filePath = args.path;
   if (!filePath) return { error: "path is required" };
-  // Resolve relative paths against process.cwd() (project root)
+  // Resolve relative paths against the developer workspace
   if (!path.isAbsolute(filePath)) {
-    filePath = path.join(process.cwd(), filePath);
+    filePath = path.join(getWorkspaceDir(), filePath);
   }
   if (!isPathAllowed(filePath)) return { error: "Access denied: path outside allowed workspace" };
   try {
@@ -579,12 +629,13 @@ function writeFile(args) {
 }
 
 function editFile(args) {
-  if (!isPathAllowed(args.path)) return { error: "Access denied: path outside allowed workspace" };
+  const filePath = resolveAgentPath(args.path);
+  if (!isPathAllowed(filePath)) return { error: "Access denied: path outside allowed workspace" };
   try {
-    let content = fs.readFileSync(args.path, "utf8");
+    let content = fs.readFileSync(filePath, "utf8");
     if (!content.includes(args.search)) return { error: "Search text not found in file" };
     content = content.split(args.search).join(args.replace);
-    fs.writeFileSync(args.path, content, "utf8");
+    fs.writeFileSync(filePath, content, "utf8");
     return { success: true };
   } catch (err) {
     return { error: err.message };
@@ -592,9 +643,9 @@ function editFile(args) {
 }
 
 function listFiles(args) {
-  if (!isPathAllowed(args.path || ".")) return { error: "Access denied: path outside allowed roots" };
+  const dir = resolveAgentPath(args.path);
+  if (!isPathAllowed(dir)) return { error: "Access denied: path outside allowed roots" };
   try {
-    const dir = args.path || ".";
     if (args.recursive) {
       const results = [];
       function walk(d, prefix) {
@@ -619,16 +670,15 @@ function listFiles(args) {
 }
 
 function searchFiles(args) {
-  if (!isPathAllowed(args.path || ".")) return { error: "Access denied: path outside allowed roots" };
+  const base = resolveAgentPath(args.path);
+  if (!isPathAllowed(base)) return { error: "Access denied: path outside allowed roots" };
   try {
-    const base = args.path || ".";
     const { globSync } = require("glob");
     const matches = globSync(args.pattern, { cwd: base, absolute: false, nodir: false }).slice(0, 200);
     return { matches };
   } catch {
     // Fallback: recursive fs walk (cross-platform, no shell dependency)
     try {
-      const base = path.resolve(args.path || ".");
       const pattern = args.pattern || "*";
       const matches = [];
       function walk(dir, depth) {
@@ -652,14 +702,53 @@ function searchFiles(args) {
 }
 
 function searchContent(args) {
-  if (!isPathAllowed(args.path || ".")) return { error: "Access denied: path outside allowed roots" };
+  const base = resolveAgentPath(args.path);
+  if (!isPathAllowed(base)) return { error: "Access denied: path outside allowed roots" };
   try {
-    const base = args.path || ".";
     const include = args.include ? ["-g", args.include] : [];
     const out = execFileSync("rg", ["-n", "--no-heading", "-e", args.pattern, ...include, base], { encoding: "utf8", timeout: 15000, windowsHide: true });
     return { matches: out.trim() };
   } catch (err) {
     if (err.status === 1) return { matches: "No matches found" };
+    if (err.code === "ENOENT") {
+      return searchContentFallback(args);
+    }
+    return { error: err.message };
+  }
+}
+
+function searchContentFallback(args) {
+  try {
+    const base = resolveAgentPath(args.path);
+    const pattern = args.pattern || "";
+    const matches = [];
+    const include = args.include || null;
+    function walk(dir, depth) {
+      if (depth > 10 || matches.length >= 500) return;
+      let entries;
+      try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+      for (const entry of entries) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          walk(full, depth + 1);
+        } else if (entry.isFile()) {
+          if (include && !entry.name.includes(include.replace(/^\.?\*?/, "").replace(/\*$/, ""))) continue;
+          try {
+            const content = fs.readFileSync(full, "utf8").slice(0, 10000);
+            const lines = content.split("\n");
+            for (let i = 0; i < lines.length; i++) {
+              if (lines[i].toLowerCase().includes(pattern.toLowerCase())) {
+                matches.push(`${path.relative(base, full)}:${i + 1}:${lines[i].slice(0, 200).trim()}`);
+              }
+            }
+          } catch { continue; }
+        }
+      }
+    }
+    walk(base, 0);
+    const output = matches.slice(0, 200).join("\n");
+    return { matches: output || "No matches found" };
+  } catch (err) {
     return { error: err.message };
   }
 }
@@ -677,7 +766,7 @@ function runCommand(args) {
     const output = execSync(fullCommand, {
       encoding: "utf8",
       timeout: args.timeout || 30000,
-      cwd: args.cwd || undefined,
+      cwd: args.cwd || getWorkspaceDir(),
       maxBuffer: 1024 * 1024,
       windowsHide: true,
       shell: true,
@@ -696,39 +785,6 @@ async function webFetch(args) {
   } catch (err) {
     return { error: err.message };
   }
-}
-
-function memorySave(args) {
-  const memories = loadMemories();
-  const id = `mem_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  memories.push({ id, key: args.key, content: args.content, tags: args.tags || [], created_at: Date.now() });
-  saveMemories(memories);
-  return { success: true, id };
-}
-
-function memorySearch(args) {
-  const memories = loadMemories();
-  const q = args.query.toLowerCase();
-  let results = memories.filter((m) => m.key.toLowerCase().includes(q) || m.content.toLowerCase().includes(q));
-  if (args.tags?.length) {
-    results = results.filter((m) => args.tags.some((t) => m.tags.includes(t)));
-  }
-  return { results: results.slice(0, 20).map((m) => ({ id: m.id, key: m.key, content: m.content, tags: m.tags, created_at: m.created_at })) };
-}
-
-function notifyUser(args) {
-  // Log only — responses stay inside the app, no OS notifications.
-  logger.tools.info(`[notify] ${args.title}: ${args.body}`);
-  return { success: true };
-}
-
-function scheduleTask(args) {
-  // Log only — responses stay inside the app, no OS notifications.
-  const delayMs = (args.delay_seconds || 60) * 1000;
-  setTimeout(() => {
-    logger.tools.info(`[schedule_task] ${args.title}: ${args.message}`);
-  }, Math.min(delayMs, 86400000));
-  return { success: true, fires_in_seconds: Math.min(args.delay_seconds || 60, 86400) };
 }
 
 async function publishToSocial(args) {
@@ -755,24 +811,119 @@ async function generateImage(args) {
   if (!ctx?.image3d) {
     return { error: "Image generation module not initialized. Restart Orun OS." };
   }
-  if (!ctx?.readSecretStore) {
-    return { error: "Secret store not available." };
-  }
-  const keys = ctx.readSecretStore();
+  const keys = ctx.readSecretStore ? ctx.readSecretStore() : {};
   const falKey = keys.fal;
-  if (!falKey) {
-    return { error: "Fal.ai API key not configured. Go to Settings → API Keys and add your Fal.ai key." };
-  }
+  const fooocusUrl =
+    (ctx?.db?.getSetting && ctx.db.getSetting("fooocusBaseUrl", "")) ||
+    ctx.image3d.DEFAULT_FOOOCUS_URL;
+
+  // 1) Fooocus local (gratuito, sem chave) primeiro.
   try {
-    const result = await ctx.image3d.generateImage({
-      prompt: args.prompt,
-      model: args.model || "fal-ai/flux/schnell",
-      imageSize: args.imageSize || "landscape_16_9",
-    }, falKey);
+    const result = await ctx.image3d.generateFooocusImage(
+      {
+        prompt: args.prompt,
+        negative_prompt: args.negativePrompt || "",
+        imageSize: args.imageSize || "landscape_16_9",
+        numImages: args.numImages || 1,
+      },
+      fooocusUrl
+    );
     return { ok: true, imageUrl: result.images?.[0]?.url || null, images: result.images, model: result.model };
-  } catch (err) {
-    return { error: err.message || String(err) };
+  } catch (fooocusErr) {
+    // 2) Fallback: Fal.ai (precisa de chave).
+    if (!falKey) {
+      return {
+        error:
+          `Fooocus local indisponível (${fooocusErr.message || fooocusErr}). ` +
+          `Inicie o Fooocus (http://127.0.0.1:7865) ou adicione a chave Fal.ai em Settings → API Keys.`,
+      };
+    }
+    try {
+      const result = await ctx.image3d.generateImage({
+        prompt: args.prompt,
+        model: args.model || "fal-ai/flux/schnell",
+        imageSize: args.imageSize || "landscape_16_9",
+      }, falKey);
+      return {
+        ok: true,
+        imageUrl: result.images?.[0]?.url || null,
+        images: result.images,
+        model: result.model,
+        fallback: "fal",
+      };
+    } catch (falErr) {
+      return {
+        error: `Fooocus: ${fooocusErr.message || fooocusErr} | Fal.ai: ${falErr.message || falErr}`,
+      };
+    }
   }
+}
+
+// ── Audit log integration ──────────────────────────────────────────────
+
+const SENSITIVE_TOOL_ACTIONS = {
+  write_file: ["write_file"],
+  edit_file: ["write_file"],
+  run_command: ["execute_command"],
+  web_fetch: ["network_request"],
+  web_search: ["network_request"],
+  publish_to_social: ["network_request"],
+  generate_image: ["api_key_access", "network_request"],
+};
+
+function buildAuditDetails(name, args) {
+  switch (name) {
+    case "run_command":
+      return { command: (args.command || "").slice(0, 200) };
+    case "write_file":
+    case "edit_file":
+      return { path: args.path };
+    case "web_fetch":
+      return { url: (args.url || "").slice(0, 200) };
+    case "web_search":
+      return { query: (args.query || "").slice(0, 200) };
+    case "publish_to_social":
+      return { platform: args.platform, text: (args.text || "").slice(0, 100) };
+    case "generate_image":
+      return { prompt: (args.prompt || "").slice(0, 100), model: args.model || "default" };
+    default:
+      return {};
+  }
+}
+
+// ── Agent workspace scoping ─────────────────────────────────────────────
+// Agents may only open/act on their own workspace, so a legal agent cannot
+// write into the developer IDE workspace (or vice-versa) via workspace_action.
+
+const AGENT_WORKSPACE_SCOPE = {
+  Juridico: ["juridico"],
+  AssistenteTecnico: ["assistente-tecnico"],
+  Suporte: ["suporte"],
+  "Personal Assistant": ["personal-assistant"],
+  Developer: ["developer"],
+  Automation: ["automation-flow"],
+  Automotive: ["automotive-garage"],
+  Creator: ["creator-audio", "creator-video"],
+  Designer: ["designer"],
+  Finance: ["finance"],
+  Health: ["health"],
+  Teacher: ["teacher"],
+  Marketing: ["marketing"],
+  System: ["system"],
+  "Home IA": ["home-ia"],
+  "Cyber Security": ["cyber-security"],
+};
+
+function checkWorkspaceScope(agentId, name, args) {
+  if (!agentId) return null;
+  if (name !== "open_workspace" && name !== "workspace_action") return null;
+  const allowed = AGENT_WORKSPACE_SCOPE[agentId];
+  if (!allowed) return null;
+  const ws = args && args.workspace;
+  if (ws && !allowed.includes(ws)) {
+    return `Agent "${agentId}" can only use workspace(s): ${allowed.join(", ")} (requested "${ws}")`;
+  }
+  return null;
 }
 
 // ── Dispatcher ──────────────────────────────────────────────────────────
@@ -878,7 +1029,7 @@ async function executeToolRaw(name, args) {
     }
     case "trigger_agent": {
       const { agent, message } = args;
-      const validAgents = ["Health", "Finance", "Developer", "Teacher", "Designer", "Creator", "Marketing", "Automation", "System"];
+      const validAgents = ["Health", "Finance", "Developer", "Teacher", "Designer", "Creator", "Marketing", "Automation", "System", "Home IA", "Cyber Security"];
       if (!validAgents.includes(agent)) return { error: `Invalid agent: ${agent}. Valid agents: ${validAgents.join(", ")}` };
       return { triggered: true, agent, message, timestamp: Date.now() };
     }
@@ -888,7 +1039,7 @@ async function executeToolRaw(name, args) {
         const win = BrowserWindow.getAllWindows()[0];
         if (!win || win.isDestroyed()) return { error: "No active window found" };
         const { workspace } = args;
-        const validWorkspaces = ["creator-audio", "creator-video", "designer", "automation-flow", "finance", "health", "teacher", "marketing", "system", "developer", "automotive-garage"];
+        const validWorkspaces = ["creator-audio", "creator-video", "designer", "automation-flow", "finance", "health", "teacher", "marketing", "system", "developer", "automotive-garage", "juridico", "assistente-tecnico", "personal-assistant", "suporte", "home-ia", "cyber-security"];
         if (!validWorkspaces.includes(workspace)) return { error: `Invalid workspace: ${workspace}. Valid: ${validWorkspaces.join(", ")}` };
         // Set up listener BEFORE sending the open message to avoid race condition
         let cleanedUp = false;
@@ -967,14 +1118,61 @@ async function executeToolRaw(name, args) {
   }
 }
 
-async function executeTool(name, args) {
+async function executeTool(name, args, agentId) {
+  if (agentId) {
+    const rateCheck = agentRateLimiter.checkToolRate(agentId);
+    if (!rateCheck.allowed) {
+      logger.tools.warn(`[RATE LIMIT] agent=${agentId} tool=${name}: ${rateCheck.reason}`);
+      return { error: rateCheck.reason };
+    }
+  }
+
+  const actions = SENSITIVE_TOOL_ACTIONS[name];
+  if (actions) {
+    const details = buildAuditDetails(name, args);
+    for (const action of actions) {
+      auditLog.logAction(agentId || "system", action, details, "allowed");
+    }
+  }
+
+  const scopeBlock = checkWorkspaceScope(agentId, name, args);
+  if (scopeBlock) {
+    logger.tools.warn(`[SCOPE] agent=${agentId} tool=${name} blocked: ${scopeBlock}`);
+    if (actions) {
+      const details = buildAuditDetails(name, args);
+      for (const action of actions) {
+        auditLog.logAction(agentId || "system", action, details, "blocked");
+      }
+    }
+    return { error: scopeBlock };
+  }
+
   try {
-    return await withTimeout(executeToolRaw(name, args), TOOL_TIMEOUT, `tool:${name}`);
+    const result = await withTimeout(executeToolRaw(name, args), TOOL_TIMEOUT, `tool:${name}`);
+    if (agentId) agentRateLimiter.recordToolCall(agentId);
+
+    if (actions) {
+      const details = buildAuditDetails(name, args);
+      const resultStatus = result && result.error ? "blocked" : "allowed";
+      for (const action of actions) {
+        auditLog.logAction(agentId || "system", action, details, resultStatus);
+      }
+    }
+
+    return result;
   } catch (err) {
     const userMessage = getErrorMessage(err);
     logger.tools.error(`[TOOL ERROR] ${name}:`, err.message);
+
+    if (actions) {
+      const details = { error: err.message };
+      for (const action of actions) {
+        auditLog.logAction(agentId || "system", action, details, "blocked");
+      }
+    }
+
     return { error: userMessage };
   }
 }
 
-module.exports = { init, setAllowedRoots, TOOL_DEFINITIONS, executeTool, isCommandSafe };
+module.exports = { init, setAllowedRoots, TOOL_DEFINITIONS, executeTool, isCommandSafe, isCommandArgsSafe, isPathAllowed, agentRateLimiter, AGENT_WORKSPACE_SCOPE };

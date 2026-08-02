@@ -10,6 +10,7 @@ import { createStore } from "../../lib/store";
 import { createPluginLogger } from "../../lib/logger";
 import { registerSystemActions, unregisterSystemActions, setConsoleStoreGetter } from "./system-actions";
 import { useTranslation } from "../../../../i18n/I18nProvider";
+import { usePersonalization, useWorkspaceNotes } from "../../../hooks/usePersonalization";
 
 const log = createPluginLogger("system-console");
 
@@ -137,6 +138,8 @@ function ResourceBar({ label, value, color }: { label: string; value: number; co
 
 export function SystemWorkspace({ plugin, activeTab, onTabChange, onSendMessage, lastToolResult }: WorkspaceProps) {
   const { t } = useTranslation();
+  const { userName, avatarInitials, greeting } = usePersonalization();
+  const { notes, updateNotes } = useWorkspaceNotes("System");
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -252,6 +255,12 @@ export function SystemWorkspace({ plugin, activeTab, onTabChange, onSendMessage,
 
   return (
     <div className="flex flex-col h-full">
+      {/* Greeting Header */}
+      <div className="flex items-center justify-between px-4 py-1" style={{ borderBottom: "1px solid var(--border)" }}>
+        <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>{greeting}, {userName}</span>
+        <div className="w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold" style={{ background: "#6B7280", color: "#fff" }}>{avatarInitials}</div>
+      </div>
+
       {/* Resource Monitor Bar */}
       <div className="px-4 py-2.5 border-b flex flex-col gap-1" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
         <ResourceBar label={t("system_console_resource_cpu")} value={cpuUsage} color="#C00018" />
@@ -288,6 +297,18 @@ export function SystemWorkspace({ plugin, activeTab, onTabChange, onSendMessage,
           autoComplete="off"
         />
       </form>
+
+      {/* Notes */}
+      <div style={{ padding: "12px", borderRadius: "12px", background: "var(--card)", border: "1px solid var(--border)" }}>
+        <span className="text-xs font-medium mb-2 block" style={{ color: "var(--foreground)" }}>Notas Pessoais</span>
+        <textarea
+          value={notes}
+          onChange={(e) => updateNotes(e.target.value)}
+          className="w-full px-3 py-2 rounded-lg text-[10px] resize-none"
+          style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)", minHeight: "60px" }}
+          placeholder="Suas anotações do sistema..."
+        />
+      </div>
     </div>
   );
 }

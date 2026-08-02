@@ -2,9 +2,10 @@ import { Suspense, useCallback, useState } from "react";
 import { X } from "lucide-react";
 import { useTranslation } from "../../i18n/I18nProvider";
 import { getPlugin, getPluginActiveTab, setPluginActiveTab } from "../plugins/PluginRegistry";
-import { PluginErrorBoundary } from "../plugins/PluginErrorBoundary";
+import { WorkspaceErrorBoundary } from "./WorkspaceErrorBoundary";
 import type { HamptonState, Message } from "../types";
 import { ChatInput } from "./ChatInput";
+import { useTheme } from "../contexts/ThemeContext";
 
 interface WorkspaceViewProps {
   workspacePluginId: string;
@@ -28,6 +29,8 @@ export function WorkspaceView({
   onClose,
 }: WorkspaceViewProps) {
   const { t } = useTranslation();
+  const { getEffectiveTheme } = useTheme();
+  const effectiveTheme = getEffectiveTheme(workspacePluginId);
   const plugin = getPlugin(workspacePluginId);
   const [workspaceTab, setWorkspaceTab] = useState<string | null>(() => workspacePluginId ? getPluginActiveTab(workspacePluginId) : null);
 
@@ -39,7 +42,7 @@ export function WorkspaceView({
   if (!plugin) return null;
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden relative">
+    <div className="flex-1 flex flex-col overflow-hidden relative" data-theme={effectiveTheme}>
       {/* Workspace Header */}
       <div className="shrink-0 flex items-center justify-between px-4 py-2 border-b" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
         <div className="flex items-center gap-3">
@@ -81,7 +84,7 @@ export function WorkspaceView({
 
       {/* Workspace fills all space */}
       <div className="flex-1 overflow-hidden">
-        <PluginErrorBoundary pluginId={workspacePluginId}>
+        <WorkspaceErrorBoundary>
           <Suspense fallback={
             <div className="flex items-center justify-center h-full" style={{ background: "var(--background)" }}>
               <div className="flex flex-col items-center gap-3">
@@ -97,7 +100,7 @@ export function WorkspaceView({
               return <WC plugin={plugin} activeTab={workspaceTab} onTabChange={handleTabChange} onSendMessage={onSendMessage} lastToolResult={null} />;
             })()}
           </Suspense>
-        </PluginErrorBoundary>
+        </WorkspaceErrorBoundary>
       </div>
 
       {/* Minimal chat bar at bottom */}

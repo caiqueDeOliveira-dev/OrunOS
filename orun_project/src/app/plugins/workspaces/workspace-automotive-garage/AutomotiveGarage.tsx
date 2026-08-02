@@ -4,6 +4,9 @@ import { Car, Wrench, DollarSign, FileText, Plus, Trash2, Gauge, Shield, X, Chev
 import { registerAutomotiveActions, unregisterAutomotiveActions, setAutomotiveStoreGetter } from "./automotive-actions";
 import type { WorkspaceProps } from "../../types";
 import { useTranslation } from "../../../../i18n/I18nProvider";
+import { usePersonalization, useWorkspaceNotes } from "../../../hooks/usePersonalization";
+import { useConfirmDialog } from "../../../hooks/useConfirmDialog";
+import { AIFloatingPrompt } from "../../components/AIFloatingPrompt";
 
 interface Vehicle {
   id: string;
@@ -137,9 +140,13 @@ function Select({ value, onChange, options }: { value: string; onChange: (v: str
 }
 
 export function AutomotiveGarage({ onSendMessage }: WorkspaceProps) {
+  const { userName, avatarInitials, greeting } = usePersonalization();
+  const { notes, updateNotes } = useWorkspaceNotes("Automotive");
+  const { confirm, dialogElement } = useConfirmDialog();
   const { t } = useTranslation();
   const state = store();
-  const [view, setView] = useState<"overview" | "vehicles" | "services" | "expenses">("overview");
+  const [view, setView] = useState<"overview" | "vehicles" | "services" | "expenses" | "debits" | "parts">("overview");
+  const [partsQuery, setPartsQuery] = useState("");
   const [showAddVehicle, setShowAddVehicle] = useState(false);
   const [showAddService, setShowAddService] = useState(false);
   const [showAddExpense, setShowAddExpense] = useState(false);
@@ -147,7 +154,6 @@ export function AutomotiveGarage({ onSendMessage }: WorkspaceProps) {
 
   const SERVICE_TYPES = getServiceTypes(t);
   const EXPENSE_CATEGORIES = getExpenseCategories(t);
-
   // Form states
   const [vName, setVName] = useState("");
   const [vYear, setVYear] = useState("");
@@ -246,15 +252,26 @@ export function AutomotiveGarage({ onSendMessage }: WorkspaceProps) {
   const filteredServices = selectedVehicle ? state.serviceRecords.filter(r => r.vehicleId === selectedVehicle) : state.serviceRecords;
   const filteredExpenses = selectedVehicle ? state.expenses.filter(e => e.vehicleId === selectedVehicle) : state.expenses;
 
+    const debitsItems = [
+    { label: "IPVA", url: "https://www.ipva.fazenda.sp.gov.br", desc: "Consultar débitos de IPVA" },
+    { label: "Multas", url: "https://www.detran.sp.gov.br", desc: "Consultar multas ativas" },
+    { label: "Licenciamento", url: "https://www.detran.sp.gov.br", desc: "Verificar licenciamento" },
+    { label: "Consulta Nacional", url: "https://portalservicos.denatran.serpro.gov.br", desc: "Portal do DENATRAN" },
+    { label: "Gringo", url: "https://www.gringo.com.br", desc: "App completo de débitos" },
+  ];
+
   const navItems = [
     { id: "overview" as const, label: t("automotive_nav_overview"), icon: Gauge },
     { id: "vehicles" as const, label: t("automotive_nav_vehicles"), icon: Car },
     { id: "services" as const, label: t("automotive_nav_services"), icon: Wrench },
     { id: "expenses" as const, label: t("automotive_nav_expenses"), icon: DollarSign },
+    { id: "debits" as const, label: "Débitos", icon: Shield },
+    { id: "parts" as const, label: "Peças", icon: FileText },
   ];
 
   return (
     <div className="h-full flex flex-col" style={{ background: "var(--background)" }}>
+      {dialogElement}
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
         <div className="flex items-center gap-3">
@@ -299,6 +316,11 @@ export function AutomotiveGarage({ onSendMessage }: WorkspaceProps) {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
+
+          <div className="flex items-center justify-between px-4 py-1">
+            <span className="text-xs font-medium" style={{ fontFamily: "'Sora', sans-serif", color: "var(--foreground)" }}>{greeting}, {userName}</span>
+            <div className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold" style={{ background: "#EF4444", color: "#fff" }}>{avatarInitials}</div>
+          </div>
 
           {/* OVERVIEW */}
           {view === "overview" && (
@@ -414,7 +436,13 @@ export function AutomotiveGarage({ onSendMessage }: WorkspaceProps) {
                             <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>{v.year} · {v.model}</p>
                           </div>
                         </div>
-                        <button onClick={() => store.setState(s => ({ vehicles: s.vehicles.filter(veh => veh.id !== v.id) }))}
+                        <button onClick={() => confirm({
+                          title: "Excluir Veículo",
+                          message: `Tem certeza que deseja excluir "${v.name}" (${v.year})? Esta ação não pode ser desfeita.`,
+                          confirmLabel: "Excluir",
+                          variant: "danger",
+                          onConfirm: () => store.setState(s => ({ vehicles: s.vehicles.filter(veh => veh.id !== v.id) })),
+                        })}
                           className="p-1 rounded" style={{ color: "var(--muted-foreground)" }}><Trash2 size={12} /></button>
                       </div>
                       <div className="flex flex-wrap gap-2 text-[10px]" style={{ color: "var(--muted-foreground)" }}>
@@ -497,6 +525,134 @@ export function AutomotiveGarage({ onSendMessage }: WorkspaceProps) {
               )}
             </div>
           )}
+
+          {/* DEBITOS */}
+          {view === "debits" && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-xs font-semibold mb-1" style={{ fontFamily: "'Sora', sans-serif", color: "var(--foreground)" }}>Consultar Débitos</h3>
+                <p className="text-[10px] mb-4" style={{ color: "var(--muted-foreground)" }}>Selecione seu estado para acessar o Detran ou use os links diretos abaixo</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 mb-4">
+                {["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT","PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"].map(uf => (
+                  <button key={uf} onClick={() => window.open(`https://www.detran.${uf.toLowerCase()}.gov.br`, "_blank")}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] border transition-all hover:scale-[1.02]"
+                    style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--foreground)" }}>
+                    <Shield size={12} style={{ color: "#3B82F6" }} />
+                    Detran {uf}
+                  </button>
+                ))}
+              </div>
+
+              <div className="space-y-2">
+                <h4 className="text-[11px] font-semibold" style={{ color: "var(--foreground)" }}>Links Rápidos</h4>
+                {debitsItems.map((item, i) => (
+                  <button key={i} onClick={() => window.open(item.url, "_blank")}
+                    className="w-full flex items-center gap-3 p-3 rounded-lg border transition-all hover:scale-[1.01] text-left"
+                    style={{ background: "var(--card)", borderColor: "var(--border)" }}>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "#EF444415" }}>
+                      <Shield size={14} color="#EF4444" />
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-medium" style={{ color: "var(--foreground)" }}>{item.label}</p>
+                      <p className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>{item.desc}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <div className="rounded-xl border p-4" style={{ background: "var(--card)", borderColor: "var(--border)" }}>
+                <h4 className="text-[11px] font-semibold mb-2" style={{ color: "var(--foreground)" }}>Apps Recomendados</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { name: "Gringo", desc: "App completo: IPVA, multas, licenciamento", url: "https://www.gringo.com.br" },
+                    { name: "CDT", desc: "Carteira Digital de Trânsito (oficial)", url: "https://portalservicos.denatran.serpro.gov.br" },
+                  ].map((app, i) => (
+                    <button key={i} onClick={() => window.open(app.url, "_blank")}
+                      className="flex flex-col gap-1 p-3 rounded-lg border text-left transition-all hover:scale-[1.02]"
+                      style={{ background: "var(--secondary)", borderColor: "var(--border)" }}>
+                      <span className="text-[11px] font-semibold" style={{ color: "var(--foreground)" }}>{app.name}</span>
+                      <span className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>{app.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* PECAS */}
+          {view === "parts" && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-xs font-semibold mb-1" style={{ fontFamily: "'Sora', sans-serif", color: "var(--foreground)" }}>Buscar Peças</h3>
+                <p className="text-[10px] mb-4" style={{ color: "var(--muted-foreground)" }}>Pesquise peças para seu veículo nos principais marketplaces</p>
+              </div>
+
+              <div className="flex gap-2 mb-4">
+                <input
+                  value={partsQuery}
+                  onChange={e => setPartsQuery(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter" && partsQuery.trim()) window.open(`https://lista.mercadolivre.com.br/${encodeURIComponent(partsQuery.trim())}`, "_blank"); }}
+                  placeholder="Ex: pastilhas de freio gol 2020"
+                  className="flex-1 px-4 py-2.5 rounded-lg text-[12px] outline-none"
+                  style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+                />
+                <button onClick={() => { if (partsQuery.trim()) window.open(`https://lista.mercadolivre.com.br/${encodeURIComponent(partsQuery.trim())}`, "_blank"); }}
+                  className="px-4 py-2 rounded-lg text-[11px] font-medium"
+                  style={{ background: "var(--primary)", color: "var(--primary-foreground)" }}>
+                  Buscar
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <h4 className="text-[11px] font-semibold" style={{ color: "var(--foreground)" }}>Onde Comprar</h4>
+                {[
+                  { name: "Mercado Livre", url: "https://lista.mercadolivre.com.br", icon: "🛒", color: "#FFE600", desc: "Maior marketplace da América Latina" },
+                  { name: "Shopee", url: "https://shopee.com.br", icon: "🛍️", color: "#EE4D2D", desc: "Preços competitivos e frete grátis" },
+                  { name: "OLX Peças", url: "https://www.olx.com.br/autos-e-pecas/pecas-e-acessorios", icon: "🔧", color: "#6B0E8A", desc: "Anúncios de peças usadas e novas" },
+                  { name: "Google Shopping", url: "https://www.google.com/search?tbm=shop", icon: "🔍", color: "#4285F4", desc: "Compare preços em várias lojas" },
+                  { name: "AutoParts", url: "https://www.autoparts.com.br", icon: "🚗", color: "#C00018", desc: "Loja especializada em peças automotivas" },
+                  { name: "Nakata", url: "https://www.nakata.com.br", icon: "⚙️", color: "#0047AB", desc: "Suspensão e direção" },
+                ].map((site, i) => (
+                  <button key={i} onClick={() => window.open(`${site.url}?q=${encodeURIComponent(partsQuery || "pecas automotivas")}`, "_blank")}
+                    className="w-full flex items-center gap-3 p-3 rounded-lg border transition-all hover:scale-[1.01] text-left"
+                    style={{ background: "var(--card)", borderColor: "var(--border)" }}>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm" style={{ background: `${site.color}20` }}>
+                      <span>{site.icon}</span>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-[11px] font-medium" style={{ color: "var(--foreground)" }}>{site.name}</p>
+                      <p className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>{site.desc}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {partsQuery.trim() && (
+                <div className="rounded-xl border p-4" style={{ background: "var(--card)", borderColor: "var(--border)" }}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <FileText size={14} style={{ color: "#3B82F6" }} />
+                    <span className="text-[11px] font-medium" style={{ color: "var(--foreground)" }}>Dica de busca</span>
+                  </div>
+                  <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+                    Para melhores resultados, inclua o modelo e ano do veículo. Ex: "pastilhas de freio Gol 2020 dianteira"
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div style={{ padding: "12px", borderRadius: "12px", background: "var(--card)", border: "1px solid var(--border)" }}>
+            <span className="text-xs font-medium mb-2 block" style={{ color: "var(--foreground)" }}>Notas Pessoais</span>
+            <textarea
+              value={notes}
+              onChange={(e) => updateNotes(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg text-[10px] resize-none"
+              style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)", minHeight: "60px" }}
+              placeholder="Suas anotações da oficina..."
+            />
+          </div>
         </div>
       </div>
 
@@ -592,6 +748,7 @@ export function AutomotiveGarage({ onSendMessage }: WorkspaceProps) {
           <p className="text-[12px] text-center py-4" style={{ color: "var(--muted-foreground)" }}>{t("automotive_add_vehicle_first")}</p>
         )}
       </Modal>
+      <AIFloatingPrompt onSendMessage={onSendMessage} label="Perguntar à IA" />
     </div>
   );
 }

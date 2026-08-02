@@ -6,6 +6,7 @@
 
 const path = require("path");
 const fs = require("fs");
+const ffmpegUtils = require("./ffmpeg-utils.cjs");
 
 // ── Wondera.AI ─────────────────────────────────────────────────────────
 
@@ -213,48 +214,65 @@ async function mixTracks({ tracks, sampleRate = 44100, bitDepth = 16, channels =
   if (!tracks || tracks.length === 0) throw new Error("No tracks to mix");
   if (tracks.length === 1) return { audioBase64: tracks[0].audioBase64, mime: "audio/wav", duration: 0 };
 
-  // Decode all tracks
+  // Prefer FFmpeg: handles arbitrary codecs, resampling and per-track gain
+  if (ffmpegUtils.isFfmpegAvailable()) {
+    return ffmpegUtils.mixTracks({ tracks, sampleRate, channels });
+  }
+
+  // Decode all tracks (node-wav returns { sampleRate, channelData } with Float32Array channels)
   const decodedTracks = tracks.map((t) => {
     const buf = Buffer.from(t.audioBase64, "base64");
+    const volume = t.volume ?? 1.0;
     if (wav) {
-      const decoded = wav.decode(buf);
-      return { samples: decoded.samples, sampleRate: decoded.sampleRate, channels: decoded.channelData.length, volume: t.volume ?? 1.0 };
+      try {
+        const decoded = wav.decode(buf);
+        const chan = decoded.channelData[0] || new Float32Array(0);
+        return { samples: chan, volume };
+      } catch {
+        return { samples: toFloatSamples(buf), volume };
+      }
     }
-    // Fallback: treat as raw PCM
-    return { samples: buf, sampleRate, channels, volume: t.volume ?? 1.0 };
+    // Fallback: treat as raw PCM16
+    return { samples: toFloatSamples(buf), volume };
   });
 
   // Find the longest track
   const maxSamples = Math.max(...decodedTracks.map((t) => t.samples.length));
 
-  // Mix: sum all tracks sample-by-sample
-  const mixed = Buffer.alloc(maxSamples);
-  for (let i = 0; i < maxSamples; i++) {
-    let sum = 0;
-    for (const track of decodedTracks) {
-      if (i < track.samples.length) {
-        const sample = track.samples.readInt16LE ? track.samples.readInt16LE(i) : (track.samples[i] || 0);
-        sum += Math.round(sample * track.volume);
-      }
+  // Mix: sum all tracks sample-by-sample in float space
+  const mixed = new Float32Array(maxSamples);
+  for (const track of decodedTracks) {
+    for (let i = 0; i < track.samples.length; i++) {
+      mixed[i] += (track.samples[i] || 0) * track.volume;
     }
-    // Clamp to 16-bit range
-    const clamped = Math.max(-32768, Math.min(32767, sum));
-    mixed.writeInt16LE(clamped, i);
   }
 
-  // Encode back to WAV
   if (wav) {
-    const encoded = wav.encode([mixed], { sampleRate, bitDepth, channels });
+    const encoded = wav.encode([mixed], { sampleRate, bitDepth });
     return { audioBase64: encoded.toString("base64"), mime: "audio/wav", duration: maxSamples / sampleRate };
   }
 
-  return { audioBase64: mixed.toString("base64"), mime: "audio/pcm", duration: maxSamples / sampleRate };
+  const pcm = Buffer.alloc(maxSamples * 2);
+  for (let i = 0; i < maxSamples; i++) {
+    pcm.writeInt16LE(Math.max(-32768, Math.min(32767, Math.round(mixed[i] * 32768))), i * 2);
+  }
+  return { audioBase64: pcm.toString("base64"), mime: "audio/pcm", duration: maxSamples / sampleRate };
+}
+
+function toFloatSamples(buf) {
+  const numSamples = Math.floor(buf.length / 2);
+  const out = new Float32Array(numSamples);
+  for (let i = 0; i < numSamples; i++) out[i] = buf.readInt16LE(i * 2) / 32768;
+  return out;
 }
 
 /**
  * Apply volume/gain to an audio track.
  */
 async function applyGain({ audioBase64, gain = 1.0 }) {
+  if (ffmpegUtils.isFfmpegAvailable()) {
+    return ffmpegUtils.applyGain({ audioBase64, gain });
+  }
   const buf = Buffer.from(audioBase64, "base64");
   const output = Buffer.alloc(buf.length);
   const numSamples = Math.floor(buf.length / 2);

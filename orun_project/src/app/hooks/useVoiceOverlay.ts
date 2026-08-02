@@ -1,6 +1,7 @@
 import { useRef, useCallback, useEffect, useState } from "react";
 import { VoiceActivityDetector, type VADEvent } from "../voice/vad";
 import { attachNoiseSuppression } from "../voice/noise-suppression";
+import { getActiveAgentStore } from "../utils/activeAgent";
 import type { OrunTTSEngine } from "../../types/orun";
 
 type OverlayState = "idle" | "listening" | "thinking" | "speaking";
@@ -159,8 +160,9 @@ export function useVoiceOverlay({ onStateChange, onVolume }: UseVoiceOverlayOpti
         return;
       }
 
-      // AI chat — pass agentId so the correct agent handles it
-      const aiResponse = await window.orun.ai.chat([{ role: "user", content: transcript }]);
+      // AI chat — route to the active agent (voice overlay sits outside HomeScreen)
+      const agentId = getActiveAgentStore() || undefined;
+      const aiResponse = await window.orun.ai.chat([{ role: "user", content: transcript }], agentId);
 
       // TTS
       if (aiResponse?.trim()) {

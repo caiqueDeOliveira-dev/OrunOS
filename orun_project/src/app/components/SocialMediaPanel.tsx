@@ -54,6 +54,7 @@ export function SocialMediaPanel({ onClose, onSelectAgent }: Props) {
   const [publishing, setPublishing] = useState(false);
   const [publishResult, setPublishResult] = useState<string | null>(null);
   const [mediaUrl, setMediaUrl] = useState("");
+  const [bufferConfig, setBufferConfigState] = useState<{ token?: string; channels?: Record<string, string> }>({});
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -66,11 +67,19 @@ export function SocialMediaPanel({ onClose, onSelectAgent }: Props) {
     window.orun.socialMedia.getConfig().then((cfg) => {
       if (cfg) setWebhookConfig(cfg as Record<string, WebhookConfig>);
     });
+    window.orun.socialMedia.getBufferConfig().then((cfg) => {
+      if (cfg) setBufferConfigState(cfg);
+    });
   }, []);
 
   const saveWebhookConfig = async () => {
     if (!isElectron) return;
     await window.orun.socialMedia.setConfig(webhookConfig as Record<string, WebhookConfig | undefined>);
+  };
+
+  const saveBufferConfig = async () => {
+    if (!isElectron) return;
+    await window.orun.socialMedia.setBufferConfig(bufferConfig);
   };
 
   const generate = async () => {
@@ -88,7 +97,7 @@ export function SocialMediaPanel({ onClose, onSelectAgent }: Props) {
       `Inclua: gancho, script/texto completo, dicas visuais, 15-20 hashtags, CTA, melhor horário. ` +
       `Responda em português do Brasil.`;
 
-    onSelectAgent("Social Media");
+    onSelectAgent("Marketing");
     setResult(`Prompt enviado para o agente Social Media:\n\n${prompt}\n\nO agente vai gerar o conteúdo completo. Veja na conversa principal.`);
     setGenerating(false);
   };
@@ -189,38 +198,85 @@ export function SocialMediaPanel({ onClose, onSelectAgent }: Props) {
           {t("socialMediaCreateViral")}
         </p>
 
-        {/* Webhook Settings */}
+        {/* Settings */}
         {showSettings && (
-          <div className="mb-4 p-3 rounded-lg" style={{ background: "var(--secondary)", border: "1px solid var(--border)" }}>
-            <span className="text-[10px] uppercase tracking-wider block mb-2" style={{ color: "#9b59b6" }}>
-              {t("socialMediaWebhooksN8n")}
-            </span>
-            <p className="text-[9px] mb-3" style={{ color: "var(--muted-foreground)" }}>
-              {t("socialMediaConfigureWebhooks")}
-            </p>
-            {(["instagram", "tiktok", "twitter"] as const).map((p) => (
-              <div key={p} className="mb-2">
-                <label className="block text-[9px] uppercase tracking-wider mb-1" style={{ color: "var(--muted-foreground)" }}>{p}</label>
-                <input
-                  value={webhookConfig[p]?.webhookUrl || ""}
-                  onChange={(e) => setWebhookConfig((prev) => ({
-                    ...prev,
-                    [p]: { ...prev[p], webhookUrl: e.target.value },
-                  }))}
-                  placeholder={`https://seu-n8n.com/webhook/social-${p}`}
-                  className="w-full px-2 py-1.5 rounded text-[10px] outline-none"
-                  style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }}
-                />
-              </div>
-            ))}
-            <button
-              onClick={async () => { await saveWebhookConfig(); setShowSettings(false); }}
-              className="w-full mt-2 py-1.5 rounded text-[10px]"
-              style={{ background: "#9b59b6", color: "var(--foreground)" }}
-            >
-              {t("socialMediaSaveWebhooks")}
-            </button>
-          </div>
+          <>
+            {/* n8n Webhooks */}
+            <div className="mb-4 p-3 rounded-lg" style={{ background: "var(--secondary)", border: "1px solid var(--border)" }}>
+              <span className="text-[10px] uppercase tracking-wider block mb-2" style={{ color: "#9b59b6" }}>
+                {t("socialMediaWebhooksN8n")}
+              </span>
+              <p className="text-[9px] mb-3" style={{ color: "var(--muted-foreground)" }}>
+                {t("socialMediaConfigureWebhooks")}
+              </p>
+              {(["instagram", "tiktok", "twitter"] as const).map((p) => (
+                <div key={p} className="mb-2">
+                  <label className="block text-[9px] uppercase tracking-wider mb-1" style={{ color: "var(--muted-foreground)" }}>{p}</label>
+                  <input
+                    value={webhookConfig[p]?.webhookUrl || ""}
+                    onChange={(e) => setWebhookConfig((prev) => ({
+                      ...prev,
+                      [p]: { ...prev[p], webhookUrl: e.target.value },
+                    }))}
+                    placeholder={`https://seu-n8n.com/webhook/social-${p}`}
+                    className="w-full px-2 py-1.5 rounded text-[10px] outline-none"
+                    style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+                  />
+                </div>
+              ))}
+              <button
+                onClick={async () => { await saveWebhookConfig(); setShowSettings(false); }}
+                className="w-full mt-2 py-1.5 rounded text-[10px]"
+                style={{ background: "#9b59b6", color: "var(--foreground)" }}
+              >
+                {t("socialMediaSaveWebhooks")}
+              </button>
+            </div>
+
+            {/* Buffer API */}
+            <div className="mb-4 p-3 rounded-lg" style={{ background: "var(--secondary)", border: "1px solid var(--border)" }}>
+              <span className="text-[10px] uppercase tracking-wider block mb-2" style={{ color: "#2ecc71" }}>
+                Buffer API
+              </span>
+              <p className="text-[9px] mb-3" style={{ color: "var(--muted-foreground)" }}>
+                Configure o token da API do Buffer para publicar diretamente (sem n8n).
+              </p>
+              <label className="block text-[9px] uppercase tracking-wider mb-1" style={{ color: "var(--muted-foreground)" }}>
+                Token
+              </label>
+              <input
+                value={bufferConfig.token || ""}
+                onChange={(e) => setBufferConfigState((prev) => ({ ...prev, token: e.target.value }))}
+                placeholder="kQrYXf0l5eMzGhubupK7dLgIXy1kEggK5Z0Awu_7RyR"
+                className="w-full px-2 py-1.5 rounded text-[10px] outline-none mb-2"
+                style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+              />
+              <label className="block text-[9px] uppercase tracking-wider mb-1" style={{ color: "var(--muted-foreground)" }}>
+                Channel IDs (opcional — json: {`{"twitter":"...","instagram":"...","tiktok":"..."}`})
+              </label>
+              <input
+                value={bufferConfig.channels ? JSON.stringify(bufferConfig.channels) : ""}
+                onChange={(e) => {
+                  try {
+                    const parsed = JSON.parse(e.target.value);
+                    setBufferConfigState((prev) => ({ ...prev, channels: parsed }));
+                  } catch {
+                    // invalid json — ignore
+                  }
+                }}
+                placeholder='{"twitter":"6a563379...","instagram":"6a563364...","tiktok":"6a56339f..."}'
+                className="w-full px-2 py-1.5 rounded text-[10px] outline-none mb-2"
+                style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+              />
+              <button
+                onClick={async () => { await saveBufferConfig(); setShowSettings(false); }}
+                className="w-full mt-2 py-1.5 rounded text-[10px]"
+                style={{ background: "#2ecc71", color: "#000" }}
+              >
+                Salvar Buffer API
+              </button>
+            </div>
+          </>
         )}
 
         {/* Platform Selection */}

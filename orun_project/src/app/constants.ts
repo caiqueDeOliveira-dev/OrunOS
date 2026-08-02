@@ -1,6 +1,7 @@
 import {
   Home, Users, FolderOpen, Sparkles, Brain, Zap, Files, Settings,
   Code, Music, Video, Globe, Heart, DollarSign, BookOpen, Share2, Megaphone, Car,
+  Scale, Wrench, LifeBuoy, MessageSquare, Shield, House,
 } from "lucide-react";
 import type { translations } from "../i18n/translations";
 
@@ -34,6 +35,12 @@ export function getAgents(t: T) {
     { name: "Automation", role: t("agentAutomationBots"), icon: Zap },
     { name: "Automotive", role: t("agentAutomotive"), icon: Car },
     { name: "System", role: t("agentOSConfig"), icon: Settings },
+    { name: "Juridico", role: t("agentJuridico"), icon: Scale },
+    { name: "AssistenteTecnico", role: t("agentAssistenteTecnico"), icon: Wrench },
+    { name: "Suporte", role: t("agentSuporte"), icon: LifeBuoy },
+    { name: "Personal Assistant", role: t("agentPersonalAssistant"), icon: MessageSquare },
+    { name: "Home IA", role: t("agentHomeIA"), icon: House },
+    { name: "Cyber Security", role: t("agentCyberSecurity"), icon: Shield },
   ];
 }
 

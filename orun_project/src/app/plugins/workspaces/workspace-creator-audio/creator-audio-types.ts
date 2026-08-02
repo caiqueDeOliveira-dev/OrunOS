@@ -46,7 +46,7 @@ export interface DJState {
   deckB: { track: string; artist: string; current: string; total: string; pitch: number; position: number; key: string; bpm: number; loaded: boolean; waveformData: number[] };
   effects: EffectSlot[];
   samples: SamplePad[];
-  lowerTab: "efeitos" | "samples" | "gravacao";
+  lowerTab: "efeitos" | "samples" | "gravacao" | "vocal" | "sequencer";
   cueMix: number;
   headphoneVolume: number;
   hotCuesA: (number | null)[];
@@ -55,6 +55,8 @@ export interface DJState {
   cuePointB: number | null;
   tapTimes: number[];
   playingDeck: "A" | "B" | null;
+  undoStack: Channel[][];
+  redoStack: Channel[][];
 }
 
 export const CHANNEL_COLORS = ["#C00018", "#3B82F6", "#22C55E", "#F59E0B"];
@@ -77,16 +79,16 @@ export const CATEGORY_COLORS: Record<SamplePad["category"], string> = {
 
 export const EFFECT_COLORS = ["#C00018", "#3B82F6", "#22C55E", "#F59E0B", "#8B5CF6", "#06B6D4"];
 
-// Style constants
-export const BG = "var(--background, #0A0E17)";
-export const PANEL = "var(--card, #121722)";
+// Style constants (kept for backward compat — prefer CSS vars + ws-* classes in new code)
+export const BG = "var(--background)";
+export const PANEL = "var(--card)";
 export const STRIP = "var(--secondary, #161D2A)";
-export const ACCENT = "#C00018";
+export const ACCENT = "var(--accent, #C00018)";
 export const GREEN = "#22C55E";
-export const TEXT_DIM = "var(--muted-foreground, rgba(255,255,255,0.3))";
-export const TEXT_MED = "var(--muted-foreground, rgba(255,255,255,0.5))";
-export const TEXT_BRI = "var(--foreground, rgba(255,255,255,0.8))";
-export const BORDER = "var(--border, rgba(255,255,255,0.06))";
-export const BORDER_MED = "var(--border, rgba(255,255,255,0.1))";
+export const TEXT_DIM = "var(--muted-foreground)";
+export const TEXT_MED = "var(--muted-foreground)";
+export const TEXT_BRI = "var(--foreground)";
+export const BORDER = "var(--border)";
+export const BORDER_MED = "var(--border)";
 export const FONT_MONO = "'JetBrains Mono', monospace";
 export const FONT_LABEL = "'Sora', sans-serif";

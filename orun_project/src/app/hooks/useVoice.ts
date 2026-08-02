@@ -288,6 +288,38 @@ export function useVoice({
       }
     }
 
+    // Cloud fallback: Groq distil-whisper (rápido, pt-BR) quando o servidor local falhou
+    if (window.orun?.stt?.transcribeGroq) {
+      try {
+        const blobMimeType = audioBlob.type || "audio/webm";
+        const arrayBuffer = await audioBlob.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuffer);
+        let binary = "";
+        const chunkSize = 8192;
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+          binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunkSize)));
+        }
+        const audioBase64 = btoa(binary);
+        console.log("[voice] Groq STT fallback (distil-whisper), audioSize=", audioBase64.length);
+        const result = await window.orun.stt.transcribeGroq({
+          audioBase64,
+          mimeType: blobMimeType,
+          language: cfg?.language || "pt",
+        });
+        if (result?.text?.trim() && !result.error) {
+          onTranscript(result.text.trim());
+          if (configRef.current.saveHistory) {
+            const rec = await saveRecording(audioBlob, result.text, duration, result.language);
+            setLastRecording(rec);
+          }
+          return;
+        }
+        if (result?.error) console.warn("[voice] Groq STT:", result.error);
+      } catch (err) {
+        console.warn("[voice] Groq STT failed:", err);
+      }
+    }
+
     // Use browser STT partial results if available
     if (fullText.trim()) {
       onTranscript(fullText.trim());
@@ -421,9 +453,24 @@ export function useVoice({
     else startRecording();
   }, [isRecording, startRecording, stopRecording]);
 
-  // ── Wake word detection (Web Speech API only works in browser, not Electron) ──
+  // ── Wake word detection ──────────────────────────────────────────
+  // In Electron, uses the Python wake word service (background-services.cjs).
+  // In browser, uses the Web Speech API.
+  const isElectronEnv = typeof window !== "undefined" && !!(window as any).orun;
+
+  // Keep a stable ref to startRecording so the wake effect does NOT re-run on
+  // every render (startRecording's identity changes when its callback deps do).
+  // Without this, the Electron wake listener IPC would be spammed on every
+  // render, blocking the main process with repeated python probes.
+  const startRecordingRef = useRef(startRecording);
+  startRecordingRef.current = startRecording;
+
   useEffect(() => {
-    if (!wakeWordEnabled || (typeof window !== "undefined" && !!(window as any).orun)) {
+    if (!wakeWordEnabled) {
+      // Stop both Electron and browser wake word systems
+      if (isElectronEnv && (window as any).orun?.wakeListener) {
+        (window as any).orun.wakeListener.stop();
+      }
       if (wakeRecognitionRef.current) {
         wakeRecognitionRef.current.onend = null;
         wakeRecognitionRef.current.stop();
@@ -433,6 +480,21 @@ export function useVoice({
       return;
     }
 
+    // ── Electron: start Python wake word service ───────────────────
+    if (isElectronEnv) {
+      (window as any).orun.wakeListener.start();
+      (window as any).orun.wakeListener.status().then((s: any) => {
+        setIsWakeListening(s?.running ?? false);
+      });
+      // Wake detection is handled by the Python service (wake_word_service.py)
+      // which sends a "voice-overlay:show" IPC event when wake word is detected
+      return () => {
+        // Don't stop the wake listener here - it persists across component unmounts
+        // User controls it via Settings > Background Listening
+      };
+    }
+
+    // ── Browser: use Web Speech API ────────────────────────────────
     const SpeechRecognitionConstructor =
       (window as unknown as { SpeechRecognition?: new () => SpeechRecognitionInstance; webkitSpeechRecognition?: new () => SpeechRecognitionInstance }).SpeechRecognition ||
       (window as unknown as { webkitSpeechRecognition?: new () => SpeechRecognitionInstance }).webkitSpeechRecognition;
@@ -472,7 +534,7 @@ export function useVoice({
           ) {
             recognition.stop();
             setIsWakeListening(false);
-            startRecording();
+            startRecordingRef.current();
           }
         }
       }
@@ -513,7 +575,7 @@ export function useVoice({
       wakeRecognitionRef.current = null;
       setIsWakeListening(false);
     };
-  }, [wakeWordEnabled, wakeWord, startRecording]);
+  }, [wakeWordEnabled, wakeWord]);
 
   // ── Conversational mode: auto-mic after AI finishes speaking ────
   const prevHamptonState = useRef<"idle" | "listening" | "thinking" | "speaking">("idle");

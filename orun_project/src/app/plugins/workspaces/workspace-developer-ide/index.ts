@@ -8,11 +8,11 @@ const DeveloperIDE = lazy(() =>
 
 const plugin: WorkspacePlugin = {
   id: "Developer",
-  name: "Developer IDE",
-  version: "1.0.0",
-  description: "Code editor with file explorer, terminal, and output panel",
-  icon: "Code2",
-  requirements: { minRamMB: 512, estimatedRAMMB: 80, features: [] },
+  name: "Developer",
+  version: "1.1.0",
+  description: "Professional IDE com explorer, editor, terminal, busca, git, análise de segurança — Senior Cybersecurity Engineering Workspace",
+  icon: "Shield",
+  requirements: { minRamMB: 512, estimatedRAMMB: 128, features: [] },
   tabs: null,
   components: { workspace: DeveloperIDE },
 };

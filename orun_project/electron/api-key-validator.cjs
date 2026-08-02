@@ -9,6 +9,7 @@ const PROVIDER_ENDPOINTS = {
   openrouter: { url: "https://openrouter.ai/api/v1/models", method: "GET" },
   github: { url: "https://models.inference.ai.azure.com", method: "GET" },
   opencodezen: { url: "https://api.opencodezen.com/v1/models", method: "GET" },
+  fal: { url: "https://fal.ai/v1/models", method: "GET" },
 };
 
 function validateApiKey(provider, key) {
@@ -35,6 +36,8 @@ function validateApiKey(provider, key) {
         headers["Authorization"] = `Bearer ${key}`;
       } else if (provider.toLowerCase() === "opencodezen") {
         headers["Authorization"] = `Bearer ${key}`;
+      } else if (provider.toLowerCase() === "fal") {
+        headers["Authorization"] = `Key ${key}`;
       }
 
       const req = mod.request(

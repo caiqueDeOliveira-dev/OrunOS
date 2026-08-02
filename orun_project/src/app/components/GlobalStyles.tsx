@@ -54,6 +54,10 @@ export function GlobalStyles() {
         0%, 100% { transform: scale(1); opacity: 0.6; }
         50% { transform: scale(1.15); opacity: 1; }
       }
+      @keyframes typingDot {
+        0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+        40% { transform: translateY(-6px); opacity: 1; }
+      }
     `}</style>
   );
 }

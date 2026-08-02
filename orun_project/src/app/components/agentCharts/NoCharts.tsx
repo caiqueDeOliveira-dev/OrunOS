@@ -1,11 +1,10 @@
 export function NoCharts({ agent, accent }: { agent: string; accent: string }) {
   return (
-    <div className="rounded-xl p-6 text-center" style={{ background: "rgba(255,255,255,0.5)", border: `1px solid ${accent}20`, backdropFilter: "blur(10px)" }}>
-      <div className="text-[11px]" style={{ color: "#718096" }}>
-        {agent === "Automation" && "Configure workflows e automacoes pelo chat."}
-        {agent === "System" && "Configure o sistema pelo chat ou painel de Configuracoes."}
-        {agent === "Hampton" && "Converse diretamente com a inteligencia central."}
-      </div>
+    <div className="flex flex-col items-center justify-center h-full" style={{ color: "var(--muted-foreground)" }}>
+      {agent === "System" && "Configure o sistema pelo chat ou painel de Configuracoes."}
+      {agent === "Automation" && "Configure automacoes pelo chat ou painel de Automacao."}
+      {agent === "Hampton" && "Converse com Hampton pelo chat."}
+      {agent === "Personal Assistant" && "Converse com seu assistente pessoal pelo chat ou WhatsApp."}
     </div>
   );
 }

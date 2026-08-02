@@ -9,10 +9,12 @@ const ENGINE_INFO: Record<OrunTTSEngine, { label: string; kind: "cloud" | "local
   elevenlabs: { label: "ElevenLabs", kind: "cloud", needsKey: true },
   google: { label: "Google Cloud TTS", kind: "cloud", needsKey: true },
   azure: { label: "Azure Cognitive Services", kind: "cloud", needsKey: true, needsRegion: true },
+  edge: { label: "Edge TTS", kind: "cloud", needsKey: false, note: "Free Microsoft neural voices — no key, no tokens" },
   xtts: { label: "XTTS v2", kind: "local", needsKey: false, needsBaseUrl: true, note: "Needs xtts-api-server running locally" },
   piper: { label: "Piper", kind: "local", needsKey: false, needsBaseUrl: true, note: "No voice list — server picks the model" },
   bark: { label: "Bark", kind: "local", needsKey: false, needsBaseUrl: true, note: "Fixed preset voices, needs a local Bark server" },
   f5tts: { label: "F5-TTS", kind: "local", needsKey: false, needsBaseUrl: true, note: "Reference-audio cloning, not named voices" },
+  kokoro: { label: "Kokoro", kind: "local", needsKey: false, needsBaseUrl: true, note: "Neural TTS local (Kokoro-82M) com vozes pt-BR — melhor que Piper" },
 };
 
 export function VoicesPicker({ onClose }: { onClose: () => void }) {

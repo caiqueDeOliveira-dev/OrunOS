@@ -18,6 +18,59 @@ function nextClipId() {
 }
 
 const actions = {
+  async generate_video_with_ai(params: Record<string, unknown>) {
+    const prompt = String(params.prompt || "");
+    const type = String(params.type || "text-to-video");
+    if (!prompt) return { success: false, error: "Prompt is required" };
+
+    const store = getVideoState();
+    store.setState({ aiState: { prompt, type: type as any, status: "generating", progress: 0 } });
+
+    for (let i = 0; i <= 100; i += 5) {
+      await new Promise((r) => setTimeout(r, 100));
+      const s = store.getState();
+      if (s.aiState.status !== "generating") break;
+      store.setState({ aiState: { ...s.aiState, progress: i } });
+    }
+
+    const finalState = store.getState().aiState;
+    if (finalState.status === "generating") {
+      store.setState({
+        aiState: { ...finalState, status: "done", progress: 100, result: `Generated video from prompt: "${prompt}"` },
+        clips: [...store.getState().clips, {
+          id: `ai_${Date.now()}`, trackIndex: 0, name: `AI: ${prompt.slice(0, 30)}`, color: "#C00018",
+          startFrame: store.getState().currentTimeFrame, durationFrames: 150, type: "video" as const,
+        }],
+      });
+    }
+    return { success: true, message: `AI generation complete for: "${prompt}"` };
+  },
+
+  async set_speed(params: Record<string, unknown>) {
+    const speed = Number(params.speed);
+    if (isNaN(speed)) return { success: false, error: "speed must be a number" };
+    const store = getVideoState();
+    const range = store.getState().speedRange;
+    store.setState({ speed: Math.max(range.min, Math.min(range.max, speed)) });
+    return { success: true, message: `Speed set to ${speed}x` };
+  },
+
+  async add_text_animation(params: Record<string, unknown>) {
+    const text = String(params.text || "Animated Text");
+    const animation = String(params.animation || "fade");
+    if (!text) return { success: false, error: "text is required" };
+
+    const store = getVideoState();
+    const state = store.getState();
+    const startFrame = state.currentTimeFrame;
+    const newClip = {
+      id: `txt_anim_${Date.now()}`, trackIndex: 3, name: `📝 ${text}`, color: "#D4A017",
+      startFrame, durationFrames: 150, type: "text" as const,
+    };
+    store.setState({ clips: [...state.clips, newClip], aiState: { ...state.aiState, result: `Added text animation: "${text}" (${animation})` } });
+    return { success: true, data: newClip, message: `Text animation "${text}" added` };
+  },
+
   async add_clip(params: Record<string, unknown>) {
     const name = String(params.name || "New Clip");
     const type = (params.type as string) || "video";

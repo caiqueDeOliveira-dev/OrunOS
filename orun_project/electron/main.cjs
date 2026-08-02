@@ -21,6 +21,8 @@ const videoEditor = require("./video-editor.cjs");
 const image3d = require("./image-3d.cjs");
 const socialMedia = require("./social-media.cjs");
 const musicProducer = require("./music-producer.cjs");
+const homeAssistant = require("./home-assistant.cjs");
+const securityAudit = require("./security-audit.cjs");
 const supabaseSync = require("./supabase.cjs");
 const toolsModule = require("./tools.cjs");
 const mcpClient = require("./mcp-client.cjs");
@@ -29,6 +31,7 @@ const rag = require("./rag.cjs");
 const secretStore = require("./secret-store.cjs");
 const agentProcessor = require("./agent-processor.cjs");
 const { responseCache } = require("./response-cache.cjs");
+const { initAutoUpdater } = require("./auto-updater.cjs");
 const logger = require("./logger.cjs");
 const providerHealth = require("./provider-health.cjs");
 const { telemetry } = require("./telemetry.cjs");
@@ -42,6 +45,9 @@ const { DiscordBot } = require("./discord-bot.cjs");
 const telegram = require("./telegram.cjs");
 const { createTelegramHandler } = require("./telegram-handler.cjs");
 const { createTelegramAutomation } = require("./telegram-automation.cjs");
+const { registerFileSystemHandlers } = require("./file-system-handlers.cjs");
+const { startWebhookReceiver, stopWebhookReceiver, setEventHandler } = require("./webhook-receiver.cjs");
+const auditLog = require("./audit-log.cjs");
 
 // ── Spotify & Discord instances ──────────────────────────────────────────────
 const spotify = new SpotifyClient();
@@ -106,7 +112,7 @@ const DEFAULT_AI_SETTINGS = {
 // The UI shows "(Recomendado)" next to these.
 const AGENT_RECOMMENDED_MODELS = {
   Hampton:    { provider: "groq",        model: "llama-3.3-70b-versatile" },
-  Developer:  { provider: "groq",        model: "qwen/qwen3-32b" },
+  Developer:  { provider: "opencodezen", model: "big-pickle" },
   Designer:   { provider: "opencodezen", model: "big-pickle" },
   Creator:    { provider: "groq",        model: "llama-3.3-70b-versatile" },
   Health:     { provider: "groq",        model: "llama-3.3-70b-versatile" },
@@ -114,8 +120,11 @@ const AGENT_RECOMMENDED_MODELS = {
   Teacher:    { provider: "groq",        model: "qwen/qwen3-32b" },
   Marketing:  { provider: "opencodezen", model: "big-pickle" },
   "Personal Assistant": { provider: "groq", model: "llama-3.3-70b-versatile" },
+  "Home IA":       { provider: "groq",        model: "llama-3.3-70b-versatile" },
+  "Cyber Security": { provider: "opencodezen", model: "big-pickle" },
   Automation: { provider: "groq",        model: "llama-3.3-70b-versatile" },
   Automotive: { provider: "groq",        model: "llama-3.3-70b-versatile" },
+  Juridico:   { provider: "opencodezen", model: "big-pickle" },
   System:     { provider: "groq",        model: "llama-3.3-70b-versatile" },
 };
 
@@ -171,14 +180,32 @@ const AGENT_TOOL_PERMISSIONS = {
     "web_search", "web_fetch", "memory_save", "memory_search", "rag_search",
     "read_file", "list_files", "notify", "open_workspace", "workspace_action",
   ],
+  Juridico: [
+    "read_file", "list_files",
+    "memory_save", "memory_search", "rag_search",
+    "notify", "schedule_task", "trigger_agent", "web_search", "web_fetch", "open_workspace", "workspace_action",
+  ],
   System: [
     "read_file", "write_file", "edit_file", "list_files", "search_files",
     "search_content", "run_command", "web_fetch", "web_search",
     "memory_save", "memory_search", "rag_search",
     "notify", "schedule_task", "trigger_agent",
     "clipboard_read", "clipboard_write", "screenshot",
-    "publish_to_social", "generate_image", "open_workspace", "workspace_action",
+    "open_workspace", "workspace_action",
     "spotify_play", "spotify_search", "spotify_get_playlists", "spotify_get_now_playing",
+  ],
+  "Home IA": [
+    "read_file", "list_files",
+    "memory_save", "memory_search", "rag_search",
+    "notify", "schedule_task", "trigger_agent", "web_search",
+    "open_workspace", "workspace_action",
+  ],
+  "Cyber Security": [
+    "read_file", "write_file", "list_files", "search_files",
+    "search_content", "run_command", "web_fetch", "web_search",
+    "memory_save", "memory_search", "rag_search",
+    "notify", "schedule_task", "trigger_agent",
+    "open_workspace", "workspace_action",
   ],
   Hampton: null, // null = all tools (default agent)
 };
@@ -186,9 +213,19 @@ const AGENT_TOOL_PERMISSIONS = {
 function getToolsForAgent(agentId) {
   const allowed = AGENT_TOOL_PERMISSIONS[agentId];
   if (!allowed) return toolsModule.TOOL_DEFINITIONS; // null = all tools
-  return toolsModule.TOOL_DEFINITIONS.filter((t) => allowed.includes(t.function.name));
+  const scope = toolsModule.AGENT_WORKSPACE_SCOPE?.[agentId];
+  return toolsModule.TOOL_DEFINITIONS.filter((t) => allowed.includes(t.function.name)).map((t) => {
+    if (scope && (t.function.name === "open_workspace" || t.function.name === "workspace_action")) {
+      return {
+        ...t,
+        function: { ...t.function, description: `${t.function.description} Only use the workspace(s) you own: ${scope.join(", ")}.` },
+      };
+    }
+    return t;
+  });
 }
 let mainWindow;
+let quickChatWindow = null;
 let tray = null;
 let isQuitting = false;
 let bgServices = null;
@@ -246,18 +283,6 @@ function createWindow() {
 
   if (savedBounds?.isMaximized) mainWindow.maximize();
 
-  // ── Render-process crash handler ────────────────────────────────────
-  mainWindow.webContents.on("render-process-gone", (_event, details) => {
-    log.error("[crash] Renderer process gone:", details.reason, details.exitCode);
-    if (details.reason === "crashed") {
-      mainWindow?.reload();
-    }
-  });
-
-  mainWindow.webContents.on("did-fail-load", (_event, errorCode, errorDescription) => {
-    log.error("[load] Page failed to load:", errorCode, errorDescription);
-  });
-
   // ── Deep link handling (orun-os://) ────────────────────────────────
   if (process.platform === "win32" && process.argv.length > 1) {
     const deepLink = process.argv.find(a => a.startsWith("orun-os://"));
@@ -272,13 +297,21 @@ function createWindow() {
   // ── Online/Offline detection ───────────────────────────────────────
   const { session } = require("electron");
   const fontSources = "fonts.googleapis.com fonts.gstatic.com";
-  const cspDev = `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; font-src 'self' data: ${fontSources}; connect-src 'self' blob: http://localhost:* ws://localhost:* https:; media-src 'self' blob: data:; worker-src 'self' blob:; frame-src 'none'; object-src 'none'`;
-  const cspProd = `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; font-src 'self' data: ${fontSources}; connect-src 'self' blob: http://localhost:* ws://localhost:* https:; media-src 'self' blob: data:; worker-src 'self' blob:; frame-src 'none'; object-src 'none'`;
+  const baseCsp = `default-src 'self'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'`;
+  const scriptCsp = `script-src 'self' 'unsafe-inline' 'unsafe-eval'`;
+  const styleCsp = `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`;
+  const imgCsp = `img-src 'self' data: blob: https:; font-src 'self' data: ${fontSources}`;
+  const connectCsp = `connect-src 'self' blob: http://localhost:* ws://localhost:* https:`;
+  const mediaCsp = `media-src 'self' blob: data:; worker-src 'self' blob:; frame-src 'none'; object-src 'none'`;
+  const cspFinal = `${baseCsp}; ${isDev ? scriptCsp : `script-src 'self'`}; ${styleCsp}; ${imgCsp}; ${connectCsp}; ${mediaCsp}`;
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
         ...details.responseHeaders,
-        "Content-Security-Policy": [isDev ? cspDev : cspProd],
+        "Content-Security-Policy": [cspFinal],
+        "X-Content-Type-Options": ["nosniff"],
+        "X-Frame-Options": ["DENY"],
+        "Referrer-Policy": ["strict-origin-when-cross-origin"],
       },
     });
   });
@@ -335,8 +368,72 @@ function createWindow() {
   });
 
   mainWindow.webContents.on("render-process-gone", (_event, details) => {
-    log.error("Renderer process gone:", details);
+    log.error("[crash] Renderer process gone:", details.reason, details.exitCode);
+    if (details.reason === "crashed") {
+      mainWindow?.reload();
+    }
   });
+}
+
+// ── Quick Chat Overlay Window ─────────────────────────────────────────
+function createQuickChatWindow() {
+  if (quickChatWindow && !quickChatWindow.isDestroyed()) return;
+  quickChatWindow = new BrowserWindow({
+    width: 380,
+    height: 520,
+    resizable: false,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    show: false,
+    center: true,
+    backgroundColor: "#00000000",
+    webPreferences: {
+      preload: path.join(__dirname, "preload.cjs"),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+    },
+  });
+  quickChatWindow.setAlwaysOnTop(true, "floating");
+  quickChatWindow.setVisibleOnAllWorkspaces(true);
+
+  if (isDev) {
+    quickChatWindow.loadURL("http://localhost:5173/#/quick-chat");
+    quickChatWindow.webContents.openDevTools({ mode: "detach" });
+  } else {
+    quickChatWindow.loadFile(path.join(__dirname, "..", "dist", "index.html"), { hash: "/quick-chat" });
+  }
+
+  quickChatWindow.on("blur", () => {
+    // Auto-hide when losing focus (click outside)
+    if (quickChatWindow && !quickChatWindow.isDestroyed()) {
+      quickChatWindow.hide();
+    }
+  });
+
+  quickChatWindow.on("close", (event) => {
+    if (!isQuitting) {
+      event.preventDefault();
+      quickChatWindow?.hide();
+    }
+  });
+}
+
+function showQuickChat() {
+  if (!quickChatWindow || quickChatWindow.isDestroyed()) createQuickChatWindow();
+  quickChatWindow.show();
+  quickChatWindow.focus();
+  quickChatWindow.webContents.send("quick-chat:show");
+}
+
+function toggleQuickChat() {
+  if (quickChatWindow && !quickChatWindow.isDestroyed() && quickChatWindow.isVisible()) {
+    quickChatWindow.hide();
+  } else {
+    showQuickChat();
+  }
 }
 
 function createTray() {
@@ -347,6 +444,18 @@ function createTray() {
   tray.setContextMenu(
     Menu.buildFromTemplate([
       { label: "Show Orun OS", click: () => { mainWindow?.show(); mainWindow?.focus(); } },
+      { label: "Quick Chat", click: () => { showQuickChat(); } },
+      { type: "separator" },
+      { label: "Voice", click: () => {
+        if (mainWindow?.isVisible()) {
+          mainWindow.focus();
+          mainWindow.webContents.send("voice-overlay:show");
+        } else {
+          mainWindow?.show();
+          mainWindow?.focus();
+          mainWindow?.webContents.send("voice-overlay:show");
+        }
+      }},
       { type: "separator" },
       { label: "Quit", click: () => { isQuitting = true; app.quit(); } },
     ])
@@ -393,6 +502,13 @@ function buildSystemPrompt(basePrompt, agentId) {
       prompt += suffix;
     }
   }
+  if (prompt) {
+    prompt += "\n\nCRIACAO DE ARQUIVOS (IMPORTANTE): quando o usuario pedir para criar um site, codigo, script ou qualquer arquivo, grave os arquivos no developer workspace com as ferramentas write_file/edit_file/read_file/list_files/run_command. Essas ferramentas resolvem caminhos relativos contra {DEVELOPER_WORKSPACE}, entao os arquivos criados aparecem no Explorer do Developer IDE. Depois de criar os arquivos, NAO cole o codigo inteiro na resposta do chat: responda de forma curta listando os arquivos criados e o caminho completo, e o resultado de qualquer comando.\n\nA pasta 'hello' que o usuario menciona E a raiz do workspace ({DEVELOPER_WORKSPACE}). NUNCA crie uma subpasta chamada 'hello' dentro do workspace. Exemplo: se o usuario pedir 'crie um site na pasta hello', grave em 'index.html' (relativo = {DEVELOPER_WORKSPACE}\\index.html), NAO em 'hello/index.html'. Se ele pedir 'site de restaurante na pasta hello', grave em 'restaurante/index.html' (relativo = {DEVELOPER_WORKSPACE}\\restaurante\\index.html).";
+  }
+  if (prompt && prompt.includes("{DEVELOPER_WORKSPACE}")) {
+    const devWs = db.getSetting("developerWorkspace", null) || path.join(app.getPath("desktop"), "hello");
+    prompt = prompt.split("{DEVELOPER_WORKSPACE}").join(devWs);
+  }
   const n8nCfg = db.getSetting("n8n", {});
   const actions = db.getSetting("automationActions", []);
   if (!n8nCfg.autoTrigger || !actions.length) return prompt;
@@ -402,7 +518,7 @@ function buildSystemPrompt(basePrompt, agentId) {
 
 /** Enqueue a row for Supabase cloud sync (fire-and-forget). */
 function syncEnqueue(tableName, row) {
-  try { supabaseSync.enqueue(db.getDb(), tableName, row); } catch { /* ignore */ }
+  try { supabaseSync.enqueue(db.getDb(), tableName, row); } catch (e) { log.warn("[sync] enqueue failed:", e.message); }
 }
 
 // ── Autonomous loop ─────────────────────────────────────────────────────
@@ -418,14 +534,16 @@ function autonomousLoop(opts) {
 // ── IPC handlers ─────────────────────────────────────────────────────────
 
 function registerIpcHandlers() {
+  const homeAssistantCtl = homeAssistant.init(app);
+  const securityAuditCtl = securityAudit.init(app, toolsModule);
   const ctx = {
     aiRouter, ttsRouter, sttRouter, n8n, db, agentPrompts, whatsapp, scheduler,
     videoEditor, image3d, socialMedia, musicProducer, toolsModule, mcpClient,
     pluginSystem, rag, secretStore, agentProcessor, supabaseSync,
+    homeAssistant: homeAssistantCtl, securityAudit: securityAuditCtl,
     activeStreamRequests, activeAutonomousRequests,
     telemetry,
     rateLimiter: ipcRateLimiter,
-    readKeys: () => secretStore.readSecretStore(),
     syncEnqueue, resolveAISettings, buildSystemPrompt, getGlobalAISettings,
     autonomousLoop, isDev, log, app,
     agentRecommendedModels: AGENT_RECOMMENDED_MODELS,
@@ -437,9 +555,87 @@ function registerIpcHandlers() {
   require("./ipc/settings-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/data-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/media-handlers.cjs").register(ipcMain, ctx);
+  require("./ipc/home-assistant-handlers.cjs").register(ipcMain, ctx);
+  require("./ipc/security-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/update-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/spotify-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/discord-handlers.cjs").register(ipcMain, ctx);
+  require("./ipc/google-handlers.cjs").register(ipcMain, ctx);
+
+  // File system handlers (evidence management)
+  registerFileSystemHandlers(ipcMain, ctx);
+
+  // Backup handlers (localStorage JSON backups)
+  ipcMain.handle("backup:list", async () => {
+    try {
+      const backupDir = path.join(app.getPath("userData"), "backups");
+      if (!fs.existsSync(backupDir)) return [];
+      return fs.readdirSync(backupDir)
+        .filter(f => f.startsWith("orun-backup-") && f.endsWith(".json"))
+        .sort().reverse()
+        .map(f => {
+          const fullPath = path.join(backupDir, f);
+          const stat = fs.statSync(fullPath);
+          return {
+            name: f,
+            path: fullPath,
+            size: stat.size,
+            date: stat.mtime.toISOString(),
+          };
+        });
+    } catch (err) {
+      log.error("[backup:list] Failed:", err.message);
+      return [];
+    }
+  });
+
+  ipcMain.handle("backup:restore", async (_event, backupPath) => {
+    try {
+      if (!backupPath || typeof backupPath !== "string") return { ok: false, error: "Invalid backup path" };
+      const backupDir = path.join(app.getPath("userData"), "backups");
+      const resolved = path.resolve(backupPath);
+      if (!resolved.startsWith(path.resolve(backupDir))) return { ok: false, error: "Path outside backup directory" };
+      if (!fs.existsSync(resolved)) return { ok: false, error: "Backup file not found" };
+      const content = fs.readFileSync(resolved, "utf-8");
+      return { ok: true, data: content };
+    } catch (err) {
+      log.error("[backup:restore] Failed:", err.message);
+      return { ok: false, error: err.message };
+    }
+  });
+
+  // ── Activity Log / History IPC ────────────────────────────────────
+  auditLog.init(app.getPath("userData"));
+  auditLog.setOnNewEntry((entry) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("activity:new-entry", entry);
+    }
+  });
+
+  ipcMain.handle("activity:list", async (_e, { count = 50, agentId, action } = {}) => {
+    try {
+      let entries;
+      if (agentId) entries = auditLog.getActionsByAgent(agentId, count);
+      else if (action) entries = auditLog.getActionsByType(action, count);
+      else entries = auditLog.getRecentActions(count);
+      return entries;
+    } catch (err) {
+      log.error("[activity:list] Error:", err.message);
+      return [];
+    }
+  });
+
+  ipcMain.handle("activity:telemetry", () => {
+    try { return telemetry.summary(); } catch { return { counters: {}, metrics: {}, recentTraces: [] }; }
+  });
+
+  ipcMain.handle("activity:usage-range", async (_e, startDate, endDate) => {
+    try { return await db.getUsageRange?.(startDate, endDate) || []; } catch { return []; }
+  });
+
+  ipcMain.handle("activity:clear", () => {
+    try { auditLog.clearLog(); return true; } catch { return false; }
+  });
 
   // Open URLs in system browser (for Spotify OAuth, etc.)
   ipcMain.handle("shell:open-external", async (_e, url) => {
@@ -580,16 +776,7 @@ function registerIpcHandlers() {
 }
 
 // ── Auto-update ──────────────────────────────────────────────────────────
-function setupAutoUpdate() {
-  if (isDev) return;
-  try {
-    const { autoUpdater } = require("electron-updater");
-    autoUpdater.logger = log;
-    autoUpdater.checkForUpdatesAndNotify().catch((err) => log.warn("Auto-update check failed:", err.message));
-  } catch (err) {
-    log.warn("electron-updater not available:", err.message);
-  }
-}
+const { checkForUpdates: auCheckForUpdates, getUpdateStatus: auGetUpdateStatus } = require("./auto-updater.cjs");
 
 // ── WhatsApp message routing ─────────────────────────────────────────────
 
@@ -706,7 +893,7 @@ app.whenReady().then(() => {
   log.info("[wa-automation] initialized");
   createWindow();
   createTray();
-  setupAutoUpdate();
+  initAutoUpdater(mainWindow);
   providerHealth.startPeriodic((providerName) => secretStore.readSecretStore()[providerName]);
 
   // Try to restore DATABASE_URL from encrypted storage if .env is missing
@@ -740,7 +927,7 @@ app.whenReady().then(() => {
     if (supabaseSync.isConnected()) {
       supabaseSync.sync(db.getDb()).then((r) => {
         if (r.ok && (r.pushed > 0 || r.pulled > 0)) log.info(`[sync] pushed=${r.pushed} pulled=${r.pulled}`);
-      }).catch(() => {});
+      }).catch((err) => log.warn("[sync] periodic sync failed:", err.message));
     }
   }, syncIntervalMs);
 
@@ -780,10 +967,10 @@ app.whenReady().then(() => {
         log.warn("[whatsapp] still connecting after 60s, forcing reconnect cycle");
         whatsapp.disconnect().then(() => {
           // Re-attempt after a short delay
-          setTimeout(() => {
-            whatsapp.connect(userDataPathInit).catch(() => {});
+            setTimeout(() => {
+            whatsapp.connect(userDataPathInit).catch((err) => log.warn("[whatsapp] reconnect failed:", err.message));
           }, 5000);
-        }).catch(() => {});
+        }).catch((err) => log.warn("[whatsapp] disconnect failed:", err.message));
         clearInterval(watchdog);
       } else {
         clearInterval(watchdog);
@@ -816,10 +1003,14 @@ app.whenReady().then(() => {
   const autoStart = db.getSetting("autoStart", false);
   app.setLoginItemSettings({ openAtLogin: autoStart });
 
+  // Renderer error reporting (from preload error/unhandledrejection listeners)
+  ipcMain.on("renderer:error", (_event, msg) => {
+    if (typeof msg === "string" && msg.length < 2000) log.error(`[renderer] ${msg}`);
+  });
+
   // Notification forwarding: main process -> OS notifications (rate-limited)
   let lastNotifyTime = 0;
-  ipcMain.on("app:notify", (_event, { title, body, silent }) => {
-    const now = Date.now();
+  ipcMain.on("app:notify", (_event, { title, body, silent }) => {    const now = Date.now();
     if (now - lastNotifyTime < 500) return; // Max 2 notifications per second
     lastNotifyTime = now;
     if (!title || typeof title !== "string" || title.length > 200) return;
@@ -843,6 +1034,80 @@ app.whenReady().then(() => {
     }
   });
 
+  globalShortcut.register("CommandOrControl+Shift+O", () => {
+    toggleQuickChat();
+  });
+
+  globalShortcut.register("Alt+Space", () => {
+    toggleQuickChat();
+  });
+
+  // ── Quick Chat IPC ────────────────────────────────────────────────
+  ipcMain.handle("quick-chat:hide", () => {
+    if (quickChatWindow && !quickChatWindow.isDestroyed()) quickChatWindow.hide();
+    return true;
+  });
+
+  ipcMain.handle("quick-chat:is-visible", () => {
+    return quickChatWindow && !quickChatWindow.isDestroyed() && quickChatWindow.isVisible();
+  });
+
+  ipcMain.handle("quick-chat:send-message", async (_event, text) => {
+    if (!text || typeof text !== "string" || text.length > 2000) return false;
+    try {
+      const settings = resolveAISettings();
+      const keys = secretStore.readSecretStore();
+      const apiKey = keys[settings.provider];
+      const systemPrompt = buildSystemPrompt(settings.systemPrompt);
+      const messages = [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: text },
+      ];
+      const { context } = await aiRouter.buildContext({
+        messages, systemPrompt, provider: settings.provider,
+        model: settings.model, baseUrl: settings.baseUrl, apiKey,
+      });
+      const result = await aiRouter.routeChat({
+        provider: settings.provider, model: settings.model,
+        baseUrl: settings.baseUrl, apiKey, messages: context,
+      });
+      const processed = agentProcessor.processAgentReply(null, result.text);
+      if (quickChatWindow && !quickChatWindow.isDestroyed()) {
+        quickChatWindow.webContents.send("quick-chat:response", processed);
+      }
+      return true;
+    } catch (err) {
+      log.error("[quick-chat] AI error:", err.message);
+      if (quickChatWindow && !quickChatWindow.isDestroyed()) {
+        quickChatWindow.webContents.send("quick-chat:error", err.message);
+      }
+      return false;
+    }
+  });
+
+  // ── Webhook Receiver ──────────────────────────────────────────────
+  const wh = startWebhookReceiver({ log });
+  setEventHandler((event) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("webhook:event", event);
+    }
+  });
+  ipcMain.handle("webhook:status", () => {
+    const whPort = process.env.WEBHOOK_PORT || 8082;
+    return { running: true, port: whPort, secret: wh.secret };
+  });
+
+  // ── MCP Servers (auto-load persisted servers) ──────────────────────
+  const savedMcpServers = db.getSetting("mcpServers", []);
+  if (Array.isArray(savedMcpServers)) {
+    for (const srv of savedMcpServers) {
+      if (!srv || typeof srv.name !== "string" || typeof srv.command !== "string") continue;
+      mcpClient.addServer(srv.name, srv.command, srv.args || [], srv.env || {}).catch((err) => {
+        log.error(`[mcp] failed to auto-start ${srv.name}:`, err.message);
+      });
+    }
+  }
+
   // ── Background Services (wake word + Piper TTS) ────────────────────
   bgServices = createBackgroundServices({ app, db, log, mainWindow: { isDestroyed: () => mainWindow?.isDestroyed(), isVisible: () => mainWindow?.isVisible(), show: () => mainWindow?.show(), focus: () => mainWindow?.focus(), webContents: { send: (...a) => mainWindow?.webContents.send(...a) } } });
   bgServices.start();
@@ -858,6 +1123,12 @@ app.on("before-quit", () => {
   if (syncIntervalId) { clearInterval(syncIntervalId); syncIntervalId = null; }
   if (rateLimiterIntervalId) { clearInterval(rateLimiterIntervalId); rateLimiterIntervalId = null; }
   providerHealth.stop();
+
+  // Destroy quick chat window
+  if (quickChatWindow && !quickChatWindow.isDestroyed()) { quickChatWindow.destroy(); quickChatWindow = null; }
+
+  // Stop webhook receiver
+  try { stopWebhookReceiver(); } catch {}
 
   // Stop background services (wake word + Piper + STT)
   if (bgServices) { bgServices.stop(); bgServices = null; }

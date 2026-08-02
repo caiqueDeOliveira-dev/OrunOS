@@ -1,7 +1,8 @@
-import React from "react";
-import { Settings, History, Puzzle, User } from "lucide-react";
+import React, { useState } from "react";
+import { Settings, History, Puzzle, User, Award, Activity, Mail, Calendar } from "lucide-react";
 import { useTranslation } from "../../i18n/I18nProvider";
 import { getNavTop } from "../constants";
+import { DashboardWidgets } from "./DashboardWidgets";
 
 export const Sidebar = React.memo(function Sidebar({
   activeNav,
@@ -10,6 +11,11 @@ export const Sidebar = React.memo(function Sidebar({
   onHistoryClick,
   onPluginsClick,
   onProfileClick,
+  onAchievementsClick,
+  onActivityClick,
+  onEmailClick,
+  onCalendarClick,
+  badgeCounts,
 }: {
   activeNav: string;
   onNavClick: (id: string) => void;
@@ -17,20 +23,28 @@ export const Sidebar = React.memo(function Sidebar({
   onHistoryClick: () => void;
   onPluginsClick: () => void;
   onProfileClick: () => void;
+  onAchievementsClick?: () => void;
+  onActivityClick: () => void;
+  onEmailClick: () => void;
+  onCalendarClick: () => void;
+  badgeCounts?: Record<string, number>;
 }) {
   const { t } = useTranslation();
   const NAV_TOP = getNavTop(t);
+  const [dashboardOpen, setDashboardOpen] = useState(false);
   return (
-    <nav className="fixed left-0 top-8 h-[calc(100%-2rem)] z-40 flex flex-col items-center py-5 border-r" style={{ width: 64, background: "var(--sidebar)", borderColor: "var(--sidebar-border)" }} role="navigation" aria-label="Sidebar">
-      {/* Mark */}
-      <button className="mb-7 p-1" onClick={() => onNavClick("home")} aria-label={t("sidebarHome") || "Home"}>
-        <svg width="22" height="22" viewBox="0 0 52 52" fill="none">
-          <polygon points="26,2 50,14 50,38 26,50 2,38 2,14" stroke="var(--primary)" strokeWidth="2" fill="none" />
-          <circle cx="26" cy="26" r="5.5" fill="var(--primary)" style={{ filter: "drop-shadow(0 0 4px var(--primary))" }} />
-        </svg>
-      </button>
+    <>
+      <DashboardWidgets open={dashboardOpen} onToggle={() => setDashboardOpen(p => !p)} />
+      <nav className="fixed left-0 top-8 h-[calc(100%-2rem)] z-40 flex flex-col items-center py-5 border-r" style={{ width: 64, background: "var(--sidebar)", borderColor: "var(--sidebar-border)" }} role="navigation" aria-label="Sidebar">
+        {/* Mark */}
+        <button className="mb-7 p-1" onClick={() => onNavClick("home")} aria-label={t("sidebarHome") || "Home"}>
+          <svg width="22" height="22" viewBox="0 0 52 52" fill="none">
+            <polygon points="26,2 50,14 50,38 26,50 2,38 2,14" stroke="var(--primary)" strokeWidth="2" fill="none" />
+            <circle cx="26" cy="26" r="5.5" fill="var(--primary)" style={{ filter: "drop-shadow(0 0 4px var(--primary))" }} />
+          </svg>
+        </button>
 
-      {/* Top nav items */}
+        {/* Top nav items */}
       <div className="flex flex-col gap-0.5 flex-1">
         {NAV_TOP.map(item => {
           const Icon = item.icon;
@@ -58,23 +72,41 @@ export const Sidebar = React.memo(function Sidebar({
       {/* Bottom */}
       <div className="flex flex-col gap-0.5">
         {[
+          { icon: Mail, id: "email", title: "Email", onClick: onEmailClick },
+          { icon: Calendar, id: "calendar", title: "Calendário", onClick: onCalendarClick },
+          { icon: Activity, id: "activity", title: "Atividade", onClick: onActivityClick, badge: badgeCounts?.activity },
           { icon: History, id: "history", title: t("sidebarHistory"), onClick: onHistoryClick },
           { icon: Puzzle, id: "plugins", title: t("plugins"), onClick: onPluginsClick },
           { icon: User, id: "profile", title: t("profileTitle"), onClick: onProfileClick },
+          ...(onAchievementsClick ? [{ icon: Award, id: "achievements", title: t("achievements_title"), onClick: onAchievementsClick }] : []),
           { icon: Settings, id: "settings", title: t("sidebarSettings"), onClick: onSettingsClick },
         ].map(item => {
           const Icon = item.icon;
           return (
-            <button key={item.id} onClick={item.onClick} title={item.title} aria-label={item.title} className="w-10 h-10 flex items-center justify-center rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] outline-none" style={{ color: "var(--muted-foreground)" }}
+            <button key={item.id} onClick={item.onClick} title={item.title} aria-label={item.title} className="relative w-10 h-10 flex items-center justify-center rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] outline-none" style={{ color: "var(--muted-foreground)" }}
               onMouseEnter={e => (e.currentTarget.style.color = "var(--foreground)")}
               onMouseLeave={e => (e.currentTarget.style.color = "var(--muted-foreground)")}
             >
               <Icon size={17} />
+              {"badge" in item && item.badge != null && item.badge > 0 && (
+                <div className="absolute -top-0.5 -right-0.5 flex items-center justify-center"
+                  style={{
+                    minWidth: 14, height: 14, borderRadius: 7,
+                    background: "#C00018", color: "#fff",
+                    fontSize: 8, fontWeight: 600, lineHeight: 1,
+                    padding: "0 3px",
+                    boxShadow: "0 0 6px #C00018",
+                  }}
+                >
+                  {item.badge > 99 ? "99+" : item.badge}
+                </div>
+              )}
             </button>
           );
         })}
       </div>
     </nav>
+    </>
   );
 });
 

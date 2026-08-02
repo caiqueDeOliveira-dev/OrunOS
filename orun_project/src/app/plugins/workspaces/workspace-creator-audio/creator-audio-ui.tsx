@@ -47,20 +47,41 @@ export function AnimatedMeter({ baseLevel, width, height }: { baseLevel: number;
 
 export function Knob({ value, size = 22, color, label, onChange }: { value: number; size?: number; color: string; label: string; onChange: (v: number) => void }) {
   const rotation = (value - 0.5) * 270;
+  const knobRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{ startY: number; startVal: number } | null>(null);
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    e.preventDefault();
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    dragRef.current = { startY: e.clientY, startVal: value };
+    const handleMove = (ev: PointerEvent) => {
+      if (!dragRef.current) return;
+      const dy = dragRef.current.startY - ev.clientY;
+      const newVal = Math.max(0, Math.min(1, dragRef.current.startVal + dy * 0.01));
+      onChange(newVal);
+    };
+    const handleUp = () => {
+      dragRef.current = null;
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointerup", handleUp);
+    };
+    window.addEventListener("pointermove", handleMove);
+    window.addEventListener("pointerup", handleUp);
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-      <button
-        onClick={() => onChange(value >= 0.95 ? 0 : Math.min(1, value + 0.05))}
+      <div ref={knobRef} onPointerDown={handlePointerDown}
         style={{
           width: size, height: size, borderRadius: "50%",
           background: `conic-gradient(from 225deg, ${color} ${value * 75}%, rgba(255,255,255,0.06) 0)`,
           border: "2px solid rgba(255,255,255,0.1)",
-          cursor: "pointer", position: "relative",
+          cursor: "ns-resize", position: "relative", touchAction: "none",
           transform: `rotate(${rotation}deg)`,
         }}
       >
         <div style={{ position: "absolute", top: 2, left: "50%", width: 2, height: size * 0.25, background: "#fff", borderRadius: 1, transform: "translateX(-50%)" }} />
-      </button>
+      </div>
       {label && <span style={{ fontSize: 7, color: TEXT_DIM, fontFamily: FONT_LABEL, letterSpacing: 0.5, textTransform: "uppercase" }}>{label}</span>}
     </div>
   );

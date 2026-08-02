@@ -25,12 +25,12 @@ app = Flask(__name__)
 model = None
 model_name = None
 
-def load_model(model_size="base", device="cpu"):
+def load_model(model_size="base", device="cpu", compute_type="int8"):
     global model, model_name
-    print(f"[stt] Loading whisper model '{model_size}' on {device}...")
+    print(f"[stt] Loading whisper model '{model_size}' on {device} (compute_type={compute_type})...")
     start = time.time()
     from faster_whisper import WhisperModel
-    model = WhisperModel(model_size, device=device, compute_type="int8")
+    model = WhisperModel(model_size, device=device, compute_type=compute_type)
     model_name = model_size
     elapsed = time.time() - start
     print(f"[stt] Model loaded in {elapsed:.1f}s")
@@ -167,11 +167,22 @@ def health():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Orun OS Whisper STT Server")
     parser.add_argument("--port", type=int, default=8080, help="Server port (default: 8080)")
-    parser.add_argument("--model", type=str, default="small", help="Whisper model: tiny, base, small, medium, large-v3 (default: small)")
+    parser.add_argument(
+        "--model", type=str, default="small",
+        help="Whisper model: tiny, base, small, medium, large-v3, distil-large-v3 (default: small)",
+    )
     parser.add_argument("--device", type=str, default="cpu", help="Device: cpu or cuda (default: cpu)")
+    parser.add_argument(
+        "--compute-type", type=str, default="int8",
+        help="Compute type: int8 (CPU rápido), float16 (GPU), int8_float16 (GPU misto) (default: int8)",
+    )
+    parser.add_argument(
+        "--host", type=str, default="127.0.0.1",
+        help="Bind address (default: 127.0.0.1 — use 0.0.0.0 somente para acesso via rede)",
+    )
     args = parser.parse_args()
 
-    load_model(args.model, args.device)
-    print(f"[stt] Server running on http://localhost:{args.port}")
+    load_model(args.model, args.device, args.compute_type)
+    print(f"[stt] Server running on http://{args.host}:{args.port}")
     print(f"[stt] API: POST http://localhost:{args.port}/v1/audio/transcriptions")
-    app.run(host="0.0.0.0", port=args.port, debug=False)
+    app.run(host=args.host, port=args.port, debug=False)

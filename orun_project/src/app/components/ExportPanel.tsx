@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Download, Upload, FileText, CheckCircle, AlertCircle, Database } from "lucide-react";
 import { useTranslation } from "../../i18n/I18nProvider";
 import { isElectron } from "../constants";
+import { unlock } from "../services/achievements";
 
 export const ExportPanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const { t } = useTranslation();
@@ -79,6 +80,7 @@ export const ExportPanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       URL.revokeObjectURL(url);
 
       setStatus("success");
+      unlock("first_export");
       setTimeout(() => { if (mountedRef.current) setStatus("idle"); }, 3000);
     } catch (err) {
       console.error("Export failed:", err);

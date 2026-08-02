@@ -1,13 +1,15 @@
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, Cpu, Cloud, CheckCircle2, XCircle, Loader2, RefreshCw, Users, Activity, MessageCircle, Globe, Sparkles, Volume2, Shield, Palette, Bot, Plug, ChevronRight, Zap, Mic, Music, Send, Database, Download } from "lucide-react";
+import { X, Cpu, Cloud, CheckCircle2, XCircle, Loader2, RefreshCw, Users, Activity, MessageCircle, Globe, Sparkles, Volume2, Shield, Palette, Bot, Plug, ChevronRight, Zap, Mic, Music, Send, Database, Download, Upload, LifeBuoy, TreePine, Waves, CupSoda, Flame, Ear, Award, Mail, Calendar, Keyboard, Server, Plus, Trash2 } from "lucide-react";
 import { useTranslation } from "../../i18n/I18nProvider";
 import { LANGUAGE_OPTIONS, type Language } from "../../i18n/translations";
 import { isElectron } from "../constants";
 import type { OrunProvider } from "../../types/orun";
 import { useTheme } from "../contexts/ThemeContext";
+import { startSound, stopSound, setVolume, stopAll, getActiveSounds, AMBIENT_SOUNDS } from "../services/ambientSounds";
 import { ThemeToggle } from "./ThemeToggle";
 import { EncryptionToggle } from "./EncryptionToggle";
+import { AutoBackup } from "../services/autoBackup";
 
 const PROVIDER_INFO: Record<OrunProvider, { label: string; kind: "local" | "cloud"; defaultModel: string; note?: string }> = {
   ollama: { label: "Ollama", kind: "local", defaultModel: "llama3.1" },
@@ -83,6 +85,111 @@ function VoiceToggle({ settingKey, defaultValue }: { settingKey: string; default
         style={{ left: enabled ? "22px" : "2px" }}
       />
     </button>
+  );
+}
+
+// ── Google Settings ────────────────────────────────────────────────────
+function GoogleSettings({ t }: { t: (key: string) => string }) {
+  const [clientId, setClientId] = useState("");
+  const [clientSecret, setClientSecret] = useState("");
+  const [connected, setConnected] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isElectron) return;
+    window.orun.google.getCredentials().then((c: any) => {
+      if (c?.clientId) setClientId(c.clientId);
+      if (c?.clientSecret) setClientSecret(c.clientSecret);
+    }).catch(() => {});
+    window.orun.google.isConnected().then(setConnected).catch(() => {});
+  }, []);
+
+  const saveCredentials = async () => {
+    if (!isElectron) return;
+    await window.orun.google.setCredentials(clientId.trim(), clientSecret.trim());
+  };
+
+  const handleOAuth = async () => {
+    if (!isElectron || !clientId.trim() || !clientSecret.trim()) return;
+    setLoading(true);
+    try {
+      await saveCredentials();
+      await window.orun.google.startCallbackServer();
+      const authResult = await window.orun.google.getAuthUrl();
+      if ("error" in authResult || !authResult.url) {
+        setLoading(false); return;
+      }
+      (window as any).orun?.shell?.openExternal?.(authResult.url) || window.open(authResult.url, "_blank");
+      let attempts = 0;
+      const interval = setInterval(async () => {
+        attempts++;
+        const isConnected = await window.orun.google.isConnected();
+        if (isConnected || attempts > 60) {
+          clearInterval(interval);
+          setConnected(isConnected);
+          setLoading(false);
+        }
+      }, 2000);
+    } catch { setLoading(false); }
+  };
+
+  const disconnect = async () => {
+    if (!isElectron) return;
+    await window.orun.google.disconnect();
+    setConnected(false);
+  };
+
+  return (
+    <Section title="Google" icon={Mail} accent="#4285F4">
+      <SettingRow label="Cliente ID">
+        <input value={clientId} onChange={(e) => setClientId(e.target.value)}
+          className="w-56 px-2 py-1.5 rounded-lg text-[10px] font-mono"
+          style={{ background: "var(--secondary)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+          placeholder="123456.apps.googleusercontent.com"
+        />
+      </SettingRow>
+      <SettingRow label="Cliente Secret">
+        <input type="password" value={clientSecret} onChange={(e) => setClientSecret(e.target.value)}
+          className="w-56 px-2 py-1.5 rounded-lg text-[10px] font-mono"
+          style={{ background: "var(--secondary)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+          placeholder="GOCSPX-..."
+        />
+      </SettingRow>
+      <SettingRow label="">
+        <button onClick={saveCredentials}
+          className="px-4 py-1.5 rounded-lg text-[10px]"
+          style={{ background: "#4285F4", color: "#fff" }}
+        >{t("settingsSave")}</button>
+      </SettingRow>
+      <SettingRow label={connected ? "Conectado" : "Desconectado"}>
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full" style={{ background: connected ? "#4285F4" : "#666" }} />
+          <button onClick={connected ? disconnect : handleOAuth}
+            disabled={loading}
+            className="px-3 py-1.5 rounded-lg text-[10px]"
+            style={{ background: connected ? "#ef4444" : "#4285F4", color: "#fff", opacity: loading ? 0.5 : 1 }}
+          >
+            {loading ? "Conectando..." : connected ? "Desconectar" : "Conectar com Google"}
+          </button>
+        </div>
+      </SettingRow>
+      <div className="px-3 pb-3">
+          <div className="text-[9px] space-y-1" style={{ color: "var(--muted-foreground)" }}>
+            <p>1. Crie um projeto em{" "}
+              <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer"
+                style={{ color: "#4285F4" }}>Google Cloud Console</a>
+            </p>
+            <p>2. Ative Gmail API e Google Calendar API</p>
+            <p>3. Em "Credenciais" → "OAuth 2.0 Client IDs" → "Aplicativo Web"</p>
+            <p>4. Adicione{" "}
+              <code className="text-[9px]" style={{ background: "var(--secondary)", padding: "1px 4px", borderRadius: 3 }}>http://127.0.0.1:9223/callback</code>
+              {" "}em "Redirect URIs autorizados"
+            </p>
+            <p>5. Em "Tela de consentimento OAuth", adicione <strong style={{ color: "var(--foreground)" }}>seu email</strong> como "Usuário de teste"</p>
+            <p style={{ color: "#FBBF24" }}>⚠️ Sem isso, o Google bloqueia com erro 403 access_denied</p>
+          </div>
+      </div>
+    </Section>
   );
 }
 
@@ -427,6 +534,220 @@ function DiscordSettings({ t }: { t: (key: string) => string }) {
   );
 }
 
+// ── MCP Servers ────────────────────────────────────────────────────────
+
+function McpSettings({ t }: { t: (key: string) => string }) {
+  const [servers, setServers] = useState<{ name: string; ready: boolean; tools: number }[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [name, setName] = useState("");
+  const [command, setCommand] = useState("");
+  const [args, setArgs] = useState("");
+  const [env, setEnv] = useState("");
+  const [error, setError] = useState("");
+  const [adding, setAdding] = useState(false);
+
+  const refresh = async () => {
+    setLoading(true);
+    try {
+      const list = await window.orun.mcp.listServers();
+      setServers(list || []);
+    } catch {
+      setServers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  const add = async () => {
+    setError("");
+    if (!name.trim() || !command.trim()) {
+      setError("Informe nome e comando");
+      return;
+    }
+    let parsedArgs: string[] = [];
+    let parsedEnv: Record<string, string> = {};
+    if (args.trim()) {
+      try {
+        const a = JSON.parse(args.trim());
+        if (!Array.isArray(a) || a.some((x: unknown) => typeof x !== "string")) throw new Error();
+        parsedArgs = a;
+      } catch {
+        setError('Args deve ser um array JSON de strings, ex: ["--flag"]');
+        return;
+      }
+    }
+    if (env.trim()) {
+      try {
+        const e = JSON.parse(env.trim());
+        if (typeof e !== "object" || e === null || Array.isArray(e) || Object.values(e).some((v) => typeof v !== "string")) throw new Error();
+        parsedEnv = e;
+      } catch {
+        setError('Env deve ser um objeto JSON de chave=valor, ex: {"KEY":"value"}');
+        return;
+      }
+    }
+    setAdding(true);
+    try {
+      const result = await window.orun.mcp.addServer({ name: name.trim(), command: command.trim(), args: parsedArgs, env: parsedEnv });
+      if (!result.ok) {
+        setError(result.error || "Falha ao adicionar servidor");
+        return;
+      }
+      setName("");
+      setCommand("");
+      setArgs("");
+      setEnv("");
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao adicionar servidor");
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const remove = async (srvName: string) => {
+    try {
+      await window.orun.mcp.removeServer(srvName);
+    } catch {
+      // ignore
+    }
+    await refresh();
+  };
+
+  return (
+    <Section title={t("mcp")} icon={Server} accent="#7C3AED">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>Model Context Protocol</span>
+        <button onClick={refresh} disabled={loading} className="p-1.5 rounded-md" style={{ color: "var(--muted-foreground)" }} title="Atualizar">
+          <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
+        </button>
+      </div>
+
+      {servers.length === 0 ? (
+        <div className="py-2 text-[10px]" style={{ color: "var(--muted-foreground)" }}>{t("mcpEmpty")}</div>
+      ) : (
+        <div className="flex flex-col gap-1.5 mb-2">
+          {servers.map((s) => (
+            <div key={s.name} className="flex items-center justify-between px-2.5 py-2 rounded-lg" style={{ background: "var(--secondary)", border: "1px solid var(--border)" }}>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full" style={{ background: s.ready ? "#22C55E" : "#EF4444" }} />
+                <span className="text-[10px] font-medium" style={{ color: "var(--foreground)" }}>{s.name}</span>
+                <span className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>{s.tools} tools</span>
+              </div>
+              <button onClick={() => remove(s.name)} className="p-1 rounded-md" style={{ color: "#EF4444" }} title="Remover">
+                <Trash2 size={12} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex flex-col gap-1.5">
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome (ex: penpot)" className="w-full px-2.5 py-1.5 rounded-md text-[10px] outline-none" style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }} />
+        <input value={command} onChange={(e) => setCommand(e.target.value)} placeholder="Comando (ex: node)" className="w-full px-2.5 py-1.5 rounded-md text-[10px] outline-none" style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)", fontFamily: "'JetBrains Mono', monospace" }} />
+        <input value={args} onChange={(e) => setArgs(e.target.value)} placeholder={'Args (JSON) ex: ["C:\\caminho\\index.js"]'} className="w-full px-2.5 py-1.5 rounded-md text-[10px] outline-none" style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)", fontFamily: "'JetBrains Mono', monospace" }} />
+        <input value={env} onChange={(e) => setEnv(e.target.value)} placeholder={'Env (JSON) ex: {"KEY":"value"}'} className="w-full px-2.5 py-1.5 rounded-md text-[10px] outline-none" style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)", fontFamily: "'JetBrains Mono', monospace" }} />
+        {error && <div className="text-[9px]" style={{ color: "#EF4444" }}>{error}</div>}
+        <button
+          onClick={add}
+          disabled={adding || !name.trim() || !command.trim()}
+          className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-[10px] transition-colors"
+          style={{ background: "#7C3AED", color: "#fff", fontFamily: "'Sora', sans-serif", opacity: !name.trim() || !command.trim() ? 0.5 : 1 }}
+        >
+          {adding ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
+          {t("mcpAdd")}
+        </button>
+      </div>
+    </Section>
+  );
+}
+
+// ── Ambient Sounds ─────────────────────────────────────────────────────
+
+const SOUND_ICONS: Record<string, React.ElementType> = {
+  Cloud, TreePine, Waves, CupSoda, Flame, Ear,
+};
+
+function AmbientSoundsSection({ t }: { t: (key: string) => string }) {
+  const [active, setActive] = useState<string[]>([]);
+  const [volume, setVolumeState] = useState(0.5);
+
+  const toggleSound = (id: string) => {
+    if (active.includes(id)) {
+      stopSound(id);
+      setActive(getActiveSounds());
+    } else {
+      startSound(id);
+      setActive(getActiveSounds());
+    }
+  };
+
+  const handleVolume = (vol: number) => {
+    setVolumeState(vol);
+    setVolume(vol);
+  };
+
+  useEffect(() => {
+    return () => { stopAll(); };
+  }, []);
+
+  return (
+    <Section title={t("sounds_ambient")} icon={Volume2} accent="#8B5CF6">
+      <div className="grid grid-cols-3 gap-2">
+        {AMBIENT_SOUNDS.map((sound) => {
+          const Icon = SOUND_ICONS[sound.icon] || Ear;
+          const isActive = active.includes(sound.id);
+          return (
+            <button
+              key={sound.id}
+              onClick={() => toggleSound(sound.id)}
+              className="flex flex-col items-center gap-1.5 py-3 rounded-lg transition-all"
+              style={{
+                background: isActive ? `${sound.color}20` : "var(--secondary)",
+                border: `2px solid ${isActive ? sound.color : "var(--border)"}`,
+                color: isActive ? sound.color : "var(--muted-foreground)",
+              }}
+            >
+              <Icon size={18} />
+              <span className="text-[9px] tracking-wider text-center leading-tight" style={{ fontFamily: "'Sora', sans-serif" }}>
+                {t(sound.name)}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="flex items-center gap-2 px-1 mt-2">
+        <span className="text-[9px]" style={{ color: "var(--muted-foreground)", fontFamily: "'Sora', sans-serif" }}>{t("sounds_volume")}</span>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.05"
+          value={volume}
+          onChange={(e) => handleVolume(parseFloat(e.target.value))}
+          className="flex-1 h-1 accent-[#8B5CF6]"
+        />
+        <span className="text-[9px] w-8 text-right" style={{ fontFamily: "'JetBrains Mono', monospace", color: "var(--muted-foreground)" }}>
+          {Math.round(volume * 100)}%
+        </span>
+      </div>
+      {active.length > 0 && (
+        <button
+          onClick={() => { stopAll(); setActive([]); }}
+          className="w-full mt-1 py-1.5 rounded-lg text-[9px]"
+          style={{ background: "rgba(139,92,246,0.1)", color: "#8B5CF6", border: "1px solid rgba(139,92,246,0.2)", fontFamily: "'Sora', sans-serif" }}
+        >
+          Stop All
+        </button>
+      )}
+    </Section>
+  );
+}
+
 // ── Tab Navigation ──────────────────────────────────────────────────────
 
 type SettingsTab = "ai" | "integrations" | "appearance" | "system";
@@ -438,9 +759,108 @@ const getTabs = (t: (key: string) => string): { id: SettingsTab; label: string; 
   { id: "system", label: t("settingsTabSystem"), icon: Cpu },
 ];
 
+// ── Keyboard Shortcut Builder ───────────────────────────────────────────
+
+const DEFAULT_SHORTCUTS = [
+  { id: "cmdPalette", label: "Paleta de Comandos", defaultKeys: "Ctrl+K" },
+  { id: "newChat", label: "Novo Chat", defaultKeys: "Ctrl+N" },
+  { id: "closePanel", label: "Fechar Painel", defaultKeys: "Esc" },
+  { id: "agents", label: "Agentes", defaultKeys: "Ctrl+Shift+O" },
+  { id: "automation", label: "Automação", defaultKeys: "Ctrl+Shift+A" },
+  { id: "settings", label: "Configurações", defaultKeys: "Ctrl+Shift+S" },
+  { id: "profile", label: "Perfil", defaultKeys: "Ctrl+Shift+P" },
+  { id: "email", label: "Email", defaultKeys: "Ctrl+Shift+E" },
+  { id: "calendar", label: "Calendário", defaultKeys: "Ctrl+Shift+C" },
+  { id: "activity", label: "Atividades", defaultKeys: "Ctrl+Shift+L" },
+];
+
+function KeyboardShortcutBuilder() {
+  const [customShortcuts, setCustomShortcuts] = useState<Record<string, string>>(() => {
+    try { return JSON.parse(localStorage.getItem("orun-custom-shortcuts") || "{}"); } catch { return {}; }
+  });
+  const [recording, setRecording] = useState<string | null>(null);
+
+  function handleStartRecord(id: string) {
+    setRecording(id);
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!recording) return;
+    const parts: string[] = [];
+    if (e.ctrlKey || e.metaKey) parts.push("Ctrl");
+    if (e.shiftKey) parts.push("Shift");
+    if (e.altKey) parts.push("Alt");
+    const key = e.key === "Escape" ? "Esc" : e.key === " " ? "Space" : e.key.length === 1 ? e.key.toUpperCase() : e.key;
+    if (!["Control", "Shift", "Alt", "Meta"].includes(e.key)) parts.push(key);
+    const combo = parts.join("+");
+    if (combo) {
+      const updated = { ...customShortcuts, [recording]: combo };
+      setCustomShortcuts(updated);
+      localStorage.setItem("orun-custom-shortcuts", JSON.stringify(updated));
+    }
+    setRecording(null);
+  }
+
+  useEffect(() => {
+    if (!recording) return;
+    const handler = (e: KeyboardEvent) => {
+      e.preventDefault();
+      const parts: string[] = [];
+      if (e.ctrlKey || e.metaKey) parts.push("Ctrl");
+      if (e.shiftKey) parts.push("Shift");
+      if (e.altKey) parts.push("Alt");
+      const key = e.key === "Escape" ? "Esc" : e.key === " " ? "Space" : e.key.length === 1 ? e.key.toUpperCase() : e.key;
+      if (!["Control", "Shift", "Alt", "Meta"].includes(e.key)) parts.push(key);
+      const combo = parts.join("+");
+      if (combo) {
+        const updated = { ...customShortcuts, [recording]: combo };
+        setCustomShortcuts(updated);
+        localStorage.setItem("orun-custom-shortcuts", JSON.stringify(updated));
+      }
+      setRecording(null);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [recording, customShortcuts]);
+
+  function getKeys(id: string): string {
+    return customShortcuts[id] || DEFAULT_SHORTCUTS.find(s => s.id === id)?.defaultKeys || "";
+  }
+
+  return (
+    <div className="space-y-1" onKeyDown={handleKeyDown}>
+      {recording && (
+        <div className="text-[9px] text-center py-1.5 rounded-lg mb-2" style={{ background: "rgba(245,158,11,0.1)", color: "#F59E0B" }}>
+          Pressione a combinação de teclas desejada...
+        </div>
+      )}
+      {DEFAULT_SHORTCUTS.map((s) => (
+        <SettingRow key={s.id} label={s.label}>
+          <button
+            onClick={() => handleStartRecord(s.id)}
+            className="text-[10px] px-2 py-0.5 rounded border font-mono transition-all hover:opacity-80"
+            style={{
+              color: recording === s.id ? "#F59E0B" : "var(--muted-foreground)",
+              borderColor: recording === s.id ? "#F59E0B" : "var(--border)",
+              background: recording === s.id ? "rgba(245,158,11,0.1)" : "var(--card)",
+            }}
+          >
+            {recording === s.id ? "..." : getKeys(s.id)}
+          </button>
+        </SettingRow>
+      ))}
+      <p className="text-[8px] pt-1 text-center" style={{ color: "var(--muted-foreground)" }}>
+        Clique em um atalho para personalizar
+      </p>
+    </div>
+  );
+}
+
 // ── Main Component ──────────────────────────────────────────────────────
 
-export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenWhatsApp, onOpenTelegram }: { onClose: () => void; onOpenAgentModels: () => void; onOpenUsage: () => void; onOpenWhatsApp: () => void; onOpenTelegram: () => void }) {
+export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenWhatsApp, onOpenTelegram, onOpenSuporte, onOpenAchievements }: { onClose: () => void; onOpenAgentModels: () => void; onOpenUsage: () => void; onOpenWhatsApp: () => void; onOpenTelegram: () => void; onOpenSuporte?: () => void; onOpenAchievements?: () => void }) {
   const { t, language, setLanguage } = useTranslation();
   const { theme, setTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<SettingsTab>("ai");
@@ -470,10 +890,16 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [backups, setBackups] = useState<Array<{ name: string; path: string; size: number; date: string }>>([]);
   const [restoring, setRestoring] = useState(false);
+  const [lsBackups, setLsBackups] = useState<Array<{ name: string; path: string; size: number; date: string }>>([]);
+  const [backupInfo, setBackupInfo] = useState<{ lastBackup: string | null; nextBackup: string | null; totalBackups: number; storageUsed: number }>({ lastBackup: null, nextBackup: null, totalBackups: 0, storageUsed: 0 });
+  const [lsRestoring, setLsRestoring] = useState(false);
+  const [restoreResult, setRestoreResult] = useState<string | null>(null);
 
   useEffect(() => {
     if (isElectron) {
       window.orun.db?.listBackups?.().then(setBackups).catch(() => {});
+      AutoBackup.getBackupInfo().then(setBackupInfo).catch(() => {});
+      AutoBackup.listBackups().then(setLsBackups).catch(() => {});
     }
   }, []);
   const [ttsEngine, setTtsEngine] = useState<string>("");
@@ -889,11 +1315,17 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
                   </div>
                 </Section>
 
+                {/* Google */}
+                <GoogleSettings t={t} />
+
                 {/* Spotify */}
                 <SpotifySettings t={t} />
 
                 {/* Discord */}
                 <DiscordSettings t={t} />
+
+                {/* MCP Servers */}
+                <McpSettings t={t} />
               </motion.div>
             )}
 
@@ -906,6 +1338,12 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
 
                 <Section title={t("settingsSecuritySection")} icon={Shield} accent="#22C55E">
                   <EncryptionToggle />
+                </Section>
+
+                <AmbientSoundsSection t={t} />
+
+                <Section title="Atalhos de Teclado" icon={Keyboard} accent="#F59E0B">
+                  <KeyboardShortcutBuilder />
                 </Section>
               </motion.div>
             )}
@@ -921,8 +1359,25 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
                     <input type="checkbox" checked={autoStart} onChange={(e) => { setAutoStart(e.target.checked); window.orun.app?.setAutoStart?.(e.target.checked); }} className="accent-[#C00018] w-4 h-4" />
                   </SettingRow>
                   <SettingRow label={t("settingsWakeWord")} description={t("settings_wake_word_desc")}>
-                    <input type="checkbox" checked={wakeWordEnabled} onChange={(e) => setWakeWordEnabled(e.target.checked)} className="accent-[#C00018] w-4 h-4" />
+                    <input type="checkbox" checked={wakeWordEnabled} onChange={async (e) => {
+                      const on = e.target.checked;
+                      setWakeWordEnabled(on);
+                      if (isElectron && on) {
+                        // In Electron, the browser wake word doesn't work.
+                        // Enable the Python-based background listener instead.
+                        setBackgroundListening(true);
+                        await window.orun.settings.set("backgroundListening", true);
+                        await window.orun.wakeListener?.start();
+                        const s = await window.orun.wakeListener?.status();
+                        setWakeServiceRunning(s?.running ?? false);
+                      }
+                    }} className="accent-[#C00018] w-4 h-4" />
                   </SettingRow>
+                  {wakeWordEnabled && (
+                    <div className="ml-1 mb-1 text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+                      <span>No Electron, usa detecção local via Python (STT Whisper)</span>
+                    </div>
+                  )}
                   <SettingRow label={t("settingsBackgroundListen")} description={t("settingsBackgroundListenDesc")}>
                     <input
                       type="checkbox"
@@ -1032,6 +1487,138 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
                         </div>
                       ))}
                     </div>
+                  </Section>
+                )}
+
+                {/* Backup (LocalStorage) */}
+                {isElectron && (
+                  <Section title="Backup (LocalStorage)" icon={Database} accent="#8B5CF6">
+                    <div className="space-y-2">
+                      {backupInfo.lastBackup && (
+                        <div className="px-3 py-2 rounded-lg" style={{ background: "var(--secondary)", border: "1px solid var(--border)" }}>
+                          <span className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>
+                            Último backup: {new Date(backupInfo.lastBackup).toLocaleString("pt-BR")}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={async () => {
+                            await AutoBackup.manualBackup();
+                            const info = await AutoBackup.getBackupInfo();
+                            setBackupInfo(info);
+                            const list = await AutoBackup.listBackups();
+                            setLsBackups(list);
+                          }}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[9px]"
+                          style={{ background: "#8B5CF6", color: "#fff" }}
+                        >
+                          <Download size={10} /> Fazer Backup Agora
+                        </button>
+                        <button
+                          onClick={async () => {
+                            const input = document.createElement("input");
+                            input.type = "file";
+                            input.accept = ".json";
+                            input.onchange = async () => {
+                              const file = input.files?.[0];
+                              if (!file) return;
+                              const text = await file.text();
+                              setRestoreResult("Backup carregado. Verifique os dados no console.");
+                              console.log("[backup:restore] Loaded backup data:", text.slice(0, 200));
+                            };
+                            input.click();
+                          }}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[9px]"
+                          style={{ background: "var(--secondary)", border: "1px solid var(--border)", color: "var(--muted-foreground)" }}
+                        >
+                          <Upload size={10} /> Restaurar Backup
+                        </button>
+                      </div>
+                      {restoreResult && (
+                        <div className="px-3 py-2 rounded-lg text-[9px]" style={{ background: "rgba(139,92,246,0.08)", color: "#8B5CF6" }}>
+                          {restoreResult}
+                        </div>
+                      )}
+                      {lsBackups.length > 0 && (
+                        <div className="space-y-1 max-h-32 overflow-y-auto">
+                          {lsBackups.map((b) => (
+                            <div key={b.name} className="flex items-center justify-between px-3 py-1.5 rounded-lg" style={{ background: "var(--secondary)", border: "1px solid var(--border)" }}>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-[9px] truncate" style={{ color: "var(--foreground)" }}>{b.name}</div>
+                                <div className="text-[8px]" style={{ color: "var(--muted-foreground)" }}>
+                                  {new Date(b.date).toLocaleDateString("pt-BR")} · {Math.round(b.size / 1024)}KB
+                                </div>
+                              </div>
+                              <button
+                                onClick={async () => {
+                                  setLsRestoring(true);
+                                  const result = await (window as any).orun?.backup?.restore?.(b.path);
+                                  if (result?.ok) {
+                                    try {
+                                      const parsed = JSON.parse(result.data);
+                                      const { data } = parsed;
+                                      for (const [key, value] of Object.entries(data)) {
+                                        if (value) localStorage.setItem(key, value as string);
+                                      }
+                                      setRestoreResult("Backup restaurado! Dados do localStorage recuperados.");
+                                    } catch {
+                                      setRestoreResult("Erro ao processar o backup.");
+                                    }
+                                  }
+                                  setLsRestoring(false);
+                                }}
+                                disabled={lsRestoring}
+                                className="ml-2 px-2 py-1 rounded text-[8px]"
+                                style={{ background: "rgba(139,92,246,0.1)", color: "#8B5CF6" }}
+                              >
+                                {lsRestoring ? <Loader2 size={8} className="animate-spin" /> : "Restaurar"}
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </Section>
+                )}
+
+                <Section title={t("suporte_title")} icon={LifeBuoy} accent="#0EA5E9">
+                  <button
+                    onClick={onOpenSuporte}
+                    className="w-full flex items-center justify-between px-3 py-3 rounded-lg transition-colors"
+                    style={{ background: "rgba(14,165,233,0.06)", border: "1px solid rgba(14,165,233,0.2)" }}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(14,165,233,0.15)" }}>
+                        <LifeBuoy size={14} style={{ color: "#0EA5E9" }} />
+                      </div>
+                      <div className="text-left">
+                        <span className="text-[11px] font-medium block" style={{ color: "var(--foreground)" }}>{t("suporte_title")}</span>
+                        <span className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>{t("suporte_settings_desc")}</span>
+                      </div>
+                    </div>
+                    <ChevronRight size={14} style={{ color: "var(--muted-foreground)" }} />
+                  </button>
+                </Section>
+
+                {onOpenAchievements && (
+                  <Section title={t("achievements_title")} icon={Award} accent="#EAB308">
+                    <button
+                      onClick={onOpenAchievements}
+                      className="w-full flex items-center justify-between px-3 py-3 rounded-lg transition-colors"
+                      style={{ background: "rgba(234,179,8,0.06)", border: "1px solid rgba(234,179,8,0.2)" }}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(234,179,8,0.15)" }}>
+                          <Award size={14} style={{ color: "#EAB308" }} />
+                        </div>
+                        <div className="text-left">
+                          <span className="text-[11px] font-medium block" style={{ color: "var(--foreground)" }}>{t("achievements_title")}</span>
+                          <span className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>{t("achievements_desc")}</span>
+                        </div>
+                      </div>
+                      <ChevronRight size={14} style={{ color: "var(--muted-foreground)" }} />
+                    </button>
                   </Section>
                 )}
 

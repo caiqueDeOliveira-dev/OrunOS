@@ -19,6 +19,7 @@ export const useVideoStore = createStore<VideoState>({
   fadeIn: 0,
   fadeOut: 0,
   speed: 1,
+  speedRange: { min: 0.1, max: 4 },
   blendMode: "Normal",
   tool: "select",
   snapEnabled: true,
@@ -37,6 +38,10 @@ export const useVideoStore = createStore<VideoState>({
   textColor: "#FFFFFF",
   selectedEffect: null,
   selectedTransition: null,
+  keyframes: [],
+  aiState: { prompt: "", type: "text-to-video", status: "idle", progress: 0 },
+  snapPoints: [],
+  markers: [],
 });
 
 // Undo/Redo helpers

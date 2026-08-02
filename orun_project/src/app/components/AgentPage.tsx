@@ -230,7 +230,7 @@ export function AgentPage({ agent, onClose, onStartChat, onOpenWorkspace }: Prop
           {agent === "Creator" && <CreatorCharts accent={env.accent} />}
           {agent === "Designer" && <DesignerCharts accent={env.accent} />}
           {agent === "Marketing" && <MarketingCharts accent={env.accent} />}
-          {(agent === "Automation" || agent === "System" || agent === "Hampton") && <NoCharts agent={agent} accent={env.accent} />}
+          {(agent === "Automation" || agent === "System" || agent === "Hampton" || agent === "Personal Assistant") && <NoCharts agent={agent} accent={env.accent} />}
         </div>
 
         {/* Quick Actions */}

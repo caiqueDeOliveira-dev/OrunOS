@@ -31,6 +31,88 @@ const TRIPO_MODELS = [
   { id: "image-to-3d", name: "Image to 3D", type: "3d" },
 ];
 
+// ── Fooocus (local, free) ──────────────────────────────────────────────
+// Fooocus (illyasviel/Fooocus) is a local SDXL/FLUX image generator with a
+// REST API. It runs as a separate local service (default port 7865) — the
+// same pattern as the STT / Piper / Edge TTS servers.
+const DEFAULT_FOOOCUS_URL = "http://127.0.0.1:7865";
+
+// Maps fal.ai image-size presets to Fooocus aspect ratios (W*H).
+const FOOOCUS_ASPECT_MAP = {
+  "landscape_16_9": "1344*768",
+  "landscape_4_3": "1152*896",
+  "landscape_3_2": "1216*832",
+  "portrait_2_3": "832*1216",
+  "portrait_3_4": "896*1152",
+  "portrait_9_16": "768*1344",
+  "square": "1024*1024",
+  "square_hd": "1024*1024",
+  "square_1_1": "1024*1024",
+};
+
+function toFooocusAspect(imageSize) {
+  if (!imageSize) return "1152*896";
+  if (FOOOCUS_ASPECT_MAP[imageSize]) return FOOOCUS_ASPECT_MAP[imageSize];
+  if (/^\d+\*\d+$/.test(imageSize)) return imageSize;
+  return "1152*896";
+}
+
+/**
+ * Generate an image via a local Fooocus service (no API key).
+ * @param {object} opts
+ * @param {string} opts.prompt - Text prompt
+ * @param {string} [opts.negative_prompt=""] - Negative prompt
+ * @param {string} [opts.imageSize="1152*896"] - Aspect ratio (fal preset or "W*H")
+ * @param {number} [opts.numImages=1] - Number of images
+ * @param {string} [baseUrl=DEFAULT_FOOOCUS_URL] - Fooocus server URL
+ * @returns {Promise<{images: Array<{url: string, width: number, height: number}>, model: string}>}
+ */
+async function generateFooocusImage({ prompt, negative_prompt = "", imageSize, numImages = 1 }, baseUrl = DEFAULT_FOOOCUS_URL) {
+  const resp = await fetch(`${baseUrl}/v1/generation/text-to-image`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      prompt,
+      negative_prompt,
+      aspect_ratios_selection: toFooocusAspect(imageSize),
+      image_number: numImages,
+      output_format: "png",
+    }),
+    signal: AbortSignal.timeout(600000), // Fooocus can take minutes on CPU
+  });
+
+  if (!resp.ok) {
+    const err = await resp.text();
+    throw new Error(`Fooocus error (${resp.status}): ${err}`);
+  }
+
+  const data = await resp.json();
+  const images = (data.images || []).map((img) => ({
+    url: img.url,
+    width: img.width || 0,
+    height: img.height || 0,
+  }));
+
+  if (images.length === 0) throw new Error("Fooocus returned no images");
+  return { images, model: "fooocus" };
+}
+
+/**
+ * Test a Fooocus connection.
+ * @param {string} [baseUrl=DEFAULT_FOOOCUS_URL]
+ * @returns {Promise<{ok: boolean, version?: string, error?: string}>}
+ */
+async function testFooocusConnection(baseUrl = DEFAULT_FOOOCUS_URL) {
+  try {
+    const resp = await fetch(`${baseUrl}/ping`, { signal: AbortSignal.timeout(5000) });
+    if (!resp.ok) return { ok: false, error: `HTTP ${resp.status}` };
+    const text = await resp.text();
+    return { ok: true, version: (text || "").trim().slice(0, 40) || "unknown" };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+}
+
 /**
  * Generate an image via Fal.ai.
  * @param {object} opts
@@ -218,6 +300,9 @@ module.exports = {
   getComfyUIResults,
   testComfyUIConnection,
   getComfyUISystemStats,
+  generateFooocusImage,
+  testFooocusConnection,
+  DEFAULT_FOOOCUS_URL,
   FAL_MODELS,
   TRIPO_MODELS,
 };

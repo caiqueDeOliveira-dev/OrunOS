@@ -54,26 +54,25 @@ export function WhatsAppPanel({ onClose }: { onClose: () => void }) {
 
   useEffect(() => {
     if (!isElectron) return;
-    window.orun.whatsapp.status().then((s) => {
-      setStatus(s);
-      if (s === "disconnected" && !autoConnectAttempted.current) {
-        autoConnectAttempted.current = true;
-        connect();
-      }
-    });
-    window.orun.settings.get<{ listenJid?: string }>("whatsapp").then((cfg) => { if (cfg?.listenJid) setListenJid(cfg.listenJid); });
-    window.orun.whatsapp.getAgentJids().then(setAgentJids);
-    window.orun.waAutomation.getStats().then(setMsgStats);
-    window.orun.waAutomation.getKeywordRules().then(setKeywordRules);
-    window.orun.waAutomation.getN8nWebhook().then(setN8nUrl);
-
     const loadGroups = async () => {
       setLoadingGroups(true);
       const g = await window.orun.whatsapp.listGroups();
       setGroups(g);
       setLoadingGroups(false);
     };
-    if (status === "connected") loadGroups();
+    window.orun.whatsapp.status().then((s) => {
+      setStatus(s);
+      if (s === "disconnected" && !autoConnectAttempted.current) {
+        autoConnectAttempted.current = true;
+        connect();
+      }
+      if (s === "connected") loadGroups();
+    });
+    window.orun.settings.get<{ listenJid?: string }>("whatsapp").then((cfg) => { if (cfg?.listenJid) setListenJid(cfg.listenJid); });
+    window.orun.whatsapp.getAgentJids().then(setAgentJids);
+    window.orun.waAutomation.getStats().then(setMsgStats);
+    window.orun.waAutomation.getKeywordRules().then(setKeywordRules);
+    window.orun.waAutomation.getN8nWebhook().then(setN8nUrl);
 
     const offStatus = window.orun.whatsapp.onStatusUpdate((s) => {
       setStatus(s.status);

@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { isElectron } from "../constants";
+import { setActiveAgentStore } from "../utils/activeAgent";
 import type { HamptonState, Message } from "../types";
 import type { AttachedImage } from "../components/ChatInput";
 
@@ -26,6 +27,10 @@ export function useChat({ t, onHamptonStateChange, speak, speakIncremental, spea
   const activeConvoIdRef = useRef<string | null>(null);
   const messagesRef = useRef<Message[]>([]);
   messagesRef.current = messages;
+
+  useEffect(() => {
+    setActiveAgentStore(activeAgent);
+  }, [activeAgent]);
 
   // Keep latest speak functions in a ref so callbacks always get the real versions
   const speakRef = useRef(speak);
