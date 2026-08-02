@@ -1139,6 +1139,11 @@ app.on("before-quit", () => {
   if (rateLimiterIntervalId) { clearInterval(rateLimiterIntervalId); rateLimiterIntervalId = null; }
   providerHealth.stop();
   try { supabaseSync.stopHeartbeat(); } catch { /* best effort */ }
+  // Marca este dispositivo offline no ecossistema antes de sair.
+  try {
+    const controller = supabaseSync.getController();
+    if (controller) controller.markOffline().catch(() => {});
+  } catch { /* best effort */ }
 
   // Destroy quick chat window
   if (quickChatWindow && !quickChatWindow.isDestroyed()) { quickChatWindow.destroy(); quickChatWindow = null; }
