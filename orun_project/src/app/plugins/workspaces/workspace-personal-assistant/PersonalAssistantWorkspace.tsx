@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { registerPersonalAssistantActions, unregisterPersonalAssistantActions } from "./personal-assistant-actions";
 import { isElectron } from "../../../constants";
+import { P, PremiumRoot, ScrollArea } from "../premium";
 
 interface CalendarEvent {
   id: string; summary: string; description?: string;
@@ -156,46 +157,46 @@ export function PersonalAssistantWorkspace() {
   const selectedStr = selectedDate.toDateString();
 
   return (
-    <div className="flex flex-col h-full" style={{ background: "var(--bg)" }}>
-      <div className="flex items-center gap-2 px-4 pt-3 pb-2 shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
-        <CalendarDays size={12} style={{ color: "#0EA5E9" }} />
-        <span className="text-[11px] font-semibold" style={{ color: "var(--foreground)" }}>Assistente Pessoal</span>
-        {connected && <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: "rgba(34,197,94,0.15)", color: "#22c55e" }}>Google</span>}
+    <PremiumRoot>
+      <div className="flex items-center gap-2 px-4 pt-3 pb-2 shrink-0" style={{ borderBottom: `1px solid ${P.border}` }}>
+        <CalendarDays size={12} style={{ color: P.info }} />
+        <span className="text-[11px] font-semibold" style={{ color: P.text }}>Assistente Pessoal</span>
+        {connected && <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: "rgba(0,210,106,0.15)", color: P.success }}>Google</span>}
         <div className="ml-auto flex gap-1.5">
-          <button onClick={openCreateEvent} className="px-2 py-1 rounded text-[9px]" style={{ color: "var(--muted-foreground)" }}>+ Evento</button>
-          <button onClick={refreshAll} className="px-2 py-1 rounded text-[9px]" style={{ color: "var(--muted-foreground)" }}>Atualizar</button>
+          <button onClick={openCreateEvent} className="px-2 py-1 rounded text-[9px]" style={{ color: P.sub }}>+ Evento</button>
+          <button onClick={refreshAll} className="px-2 py-1 rounded text-[9px]" style={{ color: P.sub }}>Atualizar</button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto ws-scrollbar p-3 space-y-4">
+      <ScrollArea className="p-3 space-y-4">
         {!connected && (
-          <div className="px-3 py-2 rounded-xl text-[9px]" style={{ background: "rgba(245,158,11,0.1)", color: "#F59E0B" }}>
+          <div className="px-3 py-2 rounded-xl text-[9px]" style={{ background: "rgba(255,181,71,0.1)", color: P.alert }}>
             Conecte o Google Calendar e o Gmail nas Configurações para sincronizar sua agenda.
           </div>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
           {/* Month calendar */}
-          <div className="lg:col-span-2 p-3 rounded-2xl" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+          <div className="lg:col-span-2 p-3 rounded-2xl" style={{ background: P.card, border: `1px solid ${P.border}` }}>
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-1">
                 <button onClick={() => setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1))}
                   className="p-1 rounded hover:bg-white/[0.05]"><ChevronLeft size={12} /></button>
-                <span className="text-[11px] font-semibold capitalize" style={{ color: "var(--foreground)" }}>
+                <span className="text-[11px] font-semibold capitalize" style={{ color: P.text }}>
                   {viewMonth.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
                 </span>
                 <button onClick={() => setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1))}
                   className="p-1 rounded hover:bg-white/[0.05]"><ChevronRight size={12} /></button>
               </div>
               <button onClick={() => { setViewMonth(new Date(today.getFullYear(), today.getMonth(), 1)); setSelectedDate(new Date()); }}
-                className="px-2 py-1 rounded text-[9px]" style={{ background: "rgba(192,0,24,0.12)", color: "#C00018" }}>
+                className="px-2 py-1 rounded text-[9px]" style={{ background: "rgba(195,0,47,0.12)", color: P.primary }}>
                 Hoje
               </button>
             </div>
 
             <div className="grid grid-cols-7 gap-1 mb-1">
               {WEEKDAYS.map((w) => (
-                <div key={w} className="text-center text-[8px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>{w}</div>
+                <div key={w} className="text-center text-[8px] uppercase tracking-wider" style={{ color: P.sub }}>{w}</div>
               ))}
             </div>
 
@@ -208,16 +209,16 @@ export function PersonalAssistantWorkspace() {
                   onClick={() => setSelectedDate(day)}
                   className="h-10 flex flex-col items-center justify-center rounded-lg"
                   style={{
-                    background: day.toDateString() === selectedStr ? "#0EA5E9" : "transparent",
-                    color: day.toDateString() === selectedStr ? "#fff" : "var(--foreground)",
-                    border: day.toDateString() === todayStr ? "1px solid #C00018" : "1px solid transparent",
+                    background: day.toDateString() === selectedStr ? P.info : "transparent",
+                    color: day.toDateString() === selectedStr ? "#fff" : P.text,
+                    border: day.toDateString() === todayStr ? `1px solid ${P.primary}` : "1px solid transparent",
                   }}
                 >
                   <span className="text-[9px] font-medium leading-none">{day.getDate()}</span>
                   <div className="flex gap-0.5 mt-1 h-1">
                     {eventsForDay(day).slice(0, 3).map((ev) => (
                       <span key={ev.id} className="w-1 h-1 rounded-full"
-                        style={{ background: day.toDateString() === selectedStr ? "#fff" : "#0EA5E9" }} />
+                        style={{ background: day.toDateString() === selectedStr ? "#fff" : P.info }} />
                     ))}
                   </div>
                 </button>
@@ -226,58 +227,58 @@ export function PersonalAssistantWorkspace() {
           </div>
 
           {/* Agenda */}
-          <div className="p-3 rounded-2xl flex flex-col gap-2" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+          <div className="p-3 rounded-2xl flex flex-col gap-2" style={{ background: P.card, border: `1px solid ${P.border}` }}>
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-semibold" style={{ color: "var(--foreground)" }}>Agenda</span>
+              <span className="text-[10px] font-semibold" style={{ color: P.text }}>Agenda</span>
               <button onClick={openCreateEvent} className="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px]"
-                style={{ background: "rgba(14,165,233,0.15)", color: "#0EA5E9" }}>
+                style={{ background: "rgba(77,163,255,0.15)", color: P.info }}>
                 <Plus size={9} /> Novo evento
               </button>
             </div>
-            <div className="text-[9px] capitalize" style={{ color: "var(--muted-foreground)" }}>
+            <div className="text-[9px] capitalize" style={{ color: P.sub }}>
               {selectedDate.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}
             </div>
 
             {showCreateEvent && (
-              <div className="p-2.5 rounded-xl space-y-1.5" style={{ background: "var(--secondary)", border: "1px solid var(--border)" }}>
+              <div className="p-2.5 rounded-xl space-y-1.5" style={{ background: P.card2, border: `1px solid ${P.border}` }}>
                 <input
                   placeholder="Título do evento"
                   value={eventForm.summary}
                   onChange={(e) => setEventForm((p) => ({ ...p, summary: e.target.value }))}
                   className="w-full px-2 py-1.5 rounded-lg text-[10px]"
-                  style={{ background: "var(--background)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+                  style={{ background: P.panel, border: `1px solid ${P.border}`, color: P.text }}
                 />
                 <div className="flex gap-1.5">
                   <input type="datetime-local" value={eventForm.startTime}
                     onChange={(e) => setEventForm((p) => ({ ...p, startTime: e.target.value }))}
                     className="flex-1 min-w-0 px-2 py-1.5 rounded-lg text-[9px]"
-                    style={{ background: "var(--background)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+                    style={{ background: P.panel, border: `1px solid ${P.border}`, color: P.text }}
                   />
                   <input type="datetime-local" value={eventForm.endTime}
                     onChange={(e) => setEventForm((p) => ({ ...p, endTime: e.target.value }))}
                     className="flex-1 min-w-0 px-2 py-1.5 rounded-lg text-[9px]"
-                    style={{ background: "var(--background)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+                    style={{ background: P.panel, border: `1px solid ${P.border}`, color: P.text }}
                   />
                 </div>
                 <div className="flex gap-1.5">
-                  <button onClick={handleCreateEvent} className="flex-1 py-1.5 rounded-lg text-[9px]" style={{ background: "#0EA5E9", color: "#fff" }}>Criar</button>
-                  <button onClick={() => setShowCreateEvent(false)} className="flex-1 py-1.5 rounded-lg text-[9px]" style={{ background: "var(--secondary)", color: "var(--muted-foreground)" }}>Cancelar</button>
+                  <button onClick={handleCreateEvent} className="flex-1 py-1.5 rounded-lg text-[9px]" style={{ background: P.info, color: "#fff" }}>Criar</button>
+                  <button onClick={() => setShowCreateEvent(false)} className="flex-1 py-1.5 rounded-lg text-[9px]" style={{ background: P.card2, color: P.sub }}>Cancelar</button>
                 </div>
               </div>
             )}
 
             {loadingEvents ? (
-              <div className="text-[10px] py-4 text-center" style={{ color: "var(--muted-foreground)" }}>Carregando...</div>
+              <div className="text-[10px] py-4 text-center" style={{ color: P.sub }}>Carregando...</div>
             ) : selectedEvents.length === 0 ? (
-              <div className="text-[10px] py-4 text-center" style={{ color: "var(--muted-foreground)" }}>
+              <div className="text-[10px] py-4 text-center" style={{ color: P.sub }}>
                 {connected ? "Nenhum evento neste dia" : "Conecte o Google Calendar nas Configurações"}
               </div>
             ) : (
               <div className="space-y-1.5">
                 {selectedEvents.map((ev) => (
-                  <div key={ev.id} className="p-2.5 rounded-xl" style={{ background: "var(--secondary)", borderLeft: "2px solid #0EA5E9" }}>
-                    <div className="text-[10px] font-medium" style={{ color: "var(--foreground)" }}>{ev.summary}</div>
-                    <div className="text-[9px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>{fmtTimeRange(ev)}</div>
+                  <div key={ev.id} className="p-2.5 rounded-xl" style={{ background: P.card2, borderLeft: `2px solid ${P.info}` }}>
+                    <div className="text-[10px] font-medium" style={{ color: P.text }}>{ev.summary}</div>
+                    <div className="text-[9px] mt-0.5" style={{ color: P.sub }}>{fmtTimeRange(ev)}</div>
                   </div>
                 ))}
               </div>
@@ -289,15 +290,15 @@ export function PersonalAssistantWorkspace() {
         {nextWeek.length > 0 && (
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-[10px] uppercase tracking-wider" style={{ color: "#0EA5E9" }}>Próximos 7 dias</span>
-              <span className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>{nextWeek.length} evento{nextWeek.length !== 1 ? "s" : ""}</span>
+              <span className="text-[10px] uppercase tracking-wider" style={{ color: P.info }}>Próximos 7 dias</span>
+              <span className="text-[9px]" style={{ color: P.sub }}>{nextWeek.length} evento{nextWeek.length !== 1 ? "s" : ""}</span>
             </div>
             <div className="space-y-1.5">
               {nextWeek.map((ev) => (
                 <button key={ev.id} onClick={() => { const d = eventDate(ev); setSelectedDate(d); setViewMonth(new Date(d.getFullYear(), d.getMonth(), 1)); }}
-                  className="w-full text-left p-2.5 rounded-xl" style={{ background: "var(--secondary)" }}>
-                  <div className="text-[10px] font-medium" style={{ color: "var(--foreground)" }}>{ev.summary}</div>
-                  <div className="text-[9px] mt-0.5 capitalize" style={{ color: "var(--muted-foreground)" }}>
+                  className="w-full text-left p-2.5 rounded-xl" style={{ background: P.card2 }}>
+                  <div className="text-[10px] font-medium" style={{ color: P.text }}>{ev.summary}</div>
+                  <div className="text-[9px] mt-0.5 capitalize" style={{ color: P.sub }}>
                     {ev.start.date ? eventDate(ev).toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" }) : `${eventDate(ev).toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" })} · ${fmtTimeRange(ev)}`}
                   </div>
                 </button>
@@ -309,9 +310,9 @@ export function PersonalAssistantWorkspace() {
         {/* Emails */}
         <div>
           <button onClick={() => setShowEmails(!showEmails)} className="w-full flex items-center gap-2 mb-2">
-            <span className="text-[10px] uppercase tracking-wider" style={{ color: "#0EA5E9" }}>Emails</span>
+            <span className="text-[10px] uppercase tracking-wider" style={{ color: P.info }}>Emails</span>
             {unreadEmails.length > 0 && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: "rgba(192,0,24,0.15)", color: "#C00018" }}>
+              <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: "rgba(195,0,47,0.15)", color: P.primary }}>
                 {unreadEmails.length} não lido{unreadEmails.length !== 1 ? "s" : ""}
               </span>
             )}
@@ -320,12 +321,12 @@ export function PersonalAssistantWorkspace() {
           {showEmails && (
             selectedEmail ? (
               <div className="space-y-2">
-                <button onClick={() => { setSelectedEmail(null); setReplyText(""); }} className="text-[9px]" style={{ color: "#0EA5E9" }}>← Voltar</button>
-                <div className="p-3 rounded-xl space-y-1" style={{ background: "var(--secondary)" }}>
-                  <div className="text-[10px] font-medium" style={{ color: "var(--foreground)" }}>{selectedEmail.subject}</div>
-                  <div className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>{selectedEmail.from}</div>
+                <button onClick={() => { setSelectedEmail(null); setReplyText(""); }} className="text-[9px]" style={{ color: P.info }}>← Voltar</button>
+                <div className="p-3 rounded-xl space-y-1" style={{ background: P.card2 }}>
+                  <div className="text-[10px] font-medium" style={{ color: P.text }}>{selectedEmail.subject}</div>
+                  <div className="text-[9px]" style={{ color: P.sub }}>{selectedEmail.from}</div>
                 </div>
-                <div className="p-3 rounded-xl text-[10px] whitespace-pre-wrap max-h-40 overflow-auto" style={{ background: "var(--secondary)", color: "var(--muted-foreground)" }}>
+                <div className="p-3 rounded-xl text-[10px] whitespace-pre-wrap max-h-40 overflow-auto" style={{ background: P.card2, color: P.sub }}>
                   {selectedEmail.body || selectedEmail.snippet}
                 </div>
                 <textarea
@@ -334,13 +335,13 @@ export function PersonalAssistantWorkspace() {
                   placeholder="Digite sua resposta..."
                   className="w-full p-2.5 rounded-xl text-[10px] resize-none"
                   rows={3}
-                  style={{ background: "var(--secondary)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+                  style={{ background: P.card2, border: `1px solid ${P.border}`, color: P.text }}
                 />
                 <button
                   onClick={handleReply}
                   disabled={sending || !replyText.trim()}
                   className="w-full py-1.5 rounded-lg text-[9px] disabled:opacity-30"
-                  style={{ background: "#0EA5E9", color: "#fff" }}
+                  style={{ background: P.info, color: "#fff" }}
                 >
                   {sending ? "Enviando..." : "Responder"}
                 </button>
@@ -348,9 +349,9 @@ export function PersonalAssistantWorkspace() {
             ) : (
               <>
                 {loadingEmails ? (
-                  <div className="text-[10px] py-4 text-center" style={{ color: "var(--muted-foreground)" }}>Carregando...</div>
+                  <div className="text-[10px] py-4 text-center" style={{ color: P.sub }}>Carregando...</div>
                 ) : emails.length === 0 ? (
-                  <div className="text-[10px] py-4 text-center" style={{ color: "var(--muted-foreground)" }}>
+                  <div className="text-[10px] py-4 text-center" style={{ color: P.sub }}>
                     {connected ? "Nenhum email" : "Conecte o Gmail nas Configurações"}
                   </div>
                 ) : (
@@ -360,15 +361,15 @@ export function PersonalAssistantWorkspace() {
                         key={msg.id}
                         onClick={() => setSelectedEmail(msg)}
                         className="w-full text-left p-2.5 rounded-xl"
-                        style={{ background: "var(--secondary)" }}
+                        style={{ background: P.card2 }}
                       >
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-medium truncate" style={{ color: "var(--foreground)" }}>{msg.subject}</span>
+                          <span className="text-[10px] font-medium truncate" style={{ color: P.text }}>{msg.subject}</span>
                           {msg.labelIds?.includes("UNREAD") && (
-                            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "#C00018" }} />
+                            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: P.primary }} />
                           )}
                         </div>
-                        <div className="text-[9px] mt-0.5 truncate" style={{ color: "var(--muted-foreground)" }}>{msg.from}</div>
+                        <div className="text-[9px] mt-0.5 truncate" style={{ color: P.sub }}>{msg.from}</div>
                       </button>
                     ))}
                   </div>
@@ -377,7 +378,7 @@ export function PersonalAssistantWorkspace() {
             )
           )}
         </div>
-      </div>
-    </div>
+      </ScrollArea>
+    </PremiumRoot>
   );
 }

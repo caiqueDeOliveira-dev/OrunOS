@@ -19,6 +19,22 @@ export interface VADConfig {
   minSpeechDuration?: number;
   /** Frame size in samples (default 512) */
   frameSize?: number;
+  /**
+   * Adaptive noise floor (EMA, mirrors the Python wake service): tracks ambient
+   * noise so a quiet room has a low floor and background hum doesn't count as
+   * speech. Speech is declared when energy > max(speechThreshold, floor*floorRatio).
+   * Default true.
+   */
+  adaptiveFloor?: boolean;
+  /** Multiplier applied to the noise floor for the effective speech threshold (default 2.5) */
+  floorRatio?: number;
+  /**
+   * Adaptive end-of-speech: instead of a fixed silence window, scale the silence
+   * wait with how long the user has been talking. Short commands are sent fast;
+   * long statements keep a wider pause for thought. Effective wait =
+   * min(max, base + (speechDuration/1000) * perSecond).
+   */
+  adaptiveSilence?: { base: number; max: number; perSecond: number };
 }
 
 export interface VADEvent {
@@ -34,10 +50,11 @@ export interface VADEvent {
 export type VADCallback = (event: VADEvent) => void;
 
 export class VoiceActivityDetector {
-  private config: Required<VADConfig>;
+  private config: Required<Omit<VADConfig, "adaptiveSilence">> & { adaptiveSilence?: VADConfig["adaptiveSilence"] };
   private _isSpeaking = false;
   private _lastSpeechTime = 0;
   private _speechStartTime = 0;
+  private _noiseFloor = 0;
   private _onEvent: VADCallback | null = null;
   private _analyser: AnalyserNode | null = null;
   private _ctx: AudioContext | null = null;
@@ -51,6 +68,9 @@ export class VoiceActivityDetector {
       hangover: config?.hangover ?? 400,
       minSpeechDuration: config?.minSpeechDuration ?? 300,
       frameSize: config?.frameSize ?? 512,
+      adaptiveFloor: config?.adaptiveFloor ?? true,
+      floorRatio: config?.floorRatio ?? 2.5,
+      adaptiveSilence: config?.adaptiveSilence,
     };
   }
 
@@ -70,6 +90,7 @@ export class VoiceActivityDetector {
     source.connect(this._analyser);
 
     this._checkInterval = setInterval(() => this._analyze(), 50);
+    this._noiseFloor = 0;
   }
 
   stop() {
@@ -122,6 +143,20 @@ export class VoiceActivityDetector {
     const now = Date.now();
     const event: VADEvent = { type: "energy", energy, zcr, spectralCentroid, timestamp: now };
 
+    // Adaptive noise floor (EMA): update ONLY during silence, so speech energy
+    // never pollutes the floor. Dips fast (quiet moments), rises slowly.
+    if (this.config.adaptiveFloor) {
+      if (this._noiseFloor <= 0) {
+        this._noiseFloor = energy;
+      } else if (energy < this._noiseFloor * this.config.floorRatio) {
+        this._noiseFloor = this._noiseFloor * 0.85 + energy * 0.15;
+      }
+    }
+
+    const floorThreshold = this._noiseFloor * this.config.floorRatio;
+    const speechOnThreshold = Math.max(this.config.speechThreshold, floorThreshold);
+    const silenceOffThreshold = Math.max(this.config.silenceThreshold, floorThreshold * 0.5);
+
     if (!this._isSpeaking) {
       // Voice characteristics: energy above threshold, ZCR in speech range (0.02-0.2),
       // spectral centroid in voice range (80-4000Hz)
@@ -132,7 +167,7 @@ export class VoiceActivityDetector {
         spectralCentroid > 50 &&
         spectralCentroid < 6000;
 
-      if (energy > this.config.speechThreshold || (isSpeechLike && energy > this.config.silenceThreshold * 2)) {
+      if (energy > speechOnThreshold || (isSpeechLike && energy > this.config.silenceThreshold * 2)) {
         this._isSpeaking = true;
         this._speechStartTime = now;
         this._lastSpeechTime = now;
@@ -140,15 +175,28 @@ export class VoiceActivityDetector {
       }
     } else {
       // Currently speaking — check for silence
-      if (energy > this.config.silenceThreshold) {
+      if (energy > silenceOffThreshold) {
         this._lastSpeechTime = now;
       }
 
       const silenceTime = now - this._lastSpeechTime;
       const speechDuration = now - this._speechStartTime;
 
-      // Hangover: wait hangover ms after last speech before declaring silence
-      if (silenceTime > this.config.hangover) {
+      // Adaptive silence: short commands send fast, long statements keep a wider
+      // pause for thought. Falls back to fixed silenceDuration when not enabled.
+      let effectiveSilence = this.config.silenceDuration;
+      const adaptive = this.config.adaptiveSilence;
+      if (adaptive) {
+        effectiveSilence = Math.min(
+          adaptive.max,
+          adaptive.base + (speechDuration / 1000) * adaptive.perSecond
+        );
+      }
+
+      // Wait effectiveSilence ms of continuous silence before declaring end of
+      // speech — this is the knob that lets the user pause to think without the
+      // recording being cut short (short phrases must survive brief pauses).
+      if (silenceTime > effectiveSilence) {
         // Check minimum duration
         if (speechDuration >= this.config.minSpeechDuration) {
           this._isSpeaking = false;

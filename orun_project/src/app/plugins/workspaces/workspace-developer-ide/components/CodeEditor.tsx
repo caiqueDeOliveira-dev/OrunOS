@@ -129,12 +129,12 @@ export function CodeEditor() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center border-b overflow-x-auto scrollbar-hide shrink-0" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
-        <div className="flex items-center flex-1 overflow-x-auto scrollbar-hide">
+      <div className="flex items-center border-b overflow-x-auto hs-scroll shrink-0" style={{ borderColor: "#252525", background: "#141414" }}>
+        <div className="flex items-center flex-1 overflow-x-auto hs-scroll">
           {openTabs.length === 0 && (
             <div className="flex items-center gap-2 px-3 py-2">
-              <Code2 size={12} style={{ color: "var(--muted-foreground)" }} />
-              <span className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>No files open</span>
+              <Code2 size={12} style={{ color: "#A0A0A0" }} />
+              <span className="text-[9px]" style={{ color: "#A0A0A0" }}>No files open</span>
             </div>
           )}
           {openTabs.map((tabId) => {
@@ -146,17 +146,17 @@ export function CodeEditor() {
                 key={tabId}
                 className="flex items-center gap-1.5 px-3 py-2 text-[10px] cursor-pointer border-r shrink-0 group transition-colors"
                 style={{
-                  borderColor: "var(--border)",
-                  background: isActive ? "var(--background)" : "transparent",
-                  color: isActive ? "var(--foreground)" : "var(--muted-foreground)",
-                  borderBottom: isActive ? "2px solid #C00018" : "2px solid transparent",
+                  borderColor: "#252525",
+                  background: isActive ? "#050505" : "transparent",
+                  color: isActive ? "#FFFFFF" : "#A0A0A0",
+                  borderBottom: isActive ? "2px solid #C3002F" : "2px solid transparent",
                 }}
                 onClick={() => useIDEStore.setState({ activeFileId: tabId })}
               >
                 <span className="text-[10px]"><FileIcon name={f.name} size={12} /></span>
                 <span className="max-w-[100px] truncate">{f.name}</span>
                 {isEditing && editingFile === tabId && (
-                  <span className="w-2 h-2 rounded-full" style={{ background: "#C00018" }} />
+                  <span className="w-2 h-2 rounded-full" style={{ background: "#C3002F" }} />
                 )}
                 <button
                   onClick={(e) => { e.stopPropagation(); closeTab(tabId); }}
@@ -171,7 +171,7 @@ export function CodeEditor() {
         <div className="flex items-center gap-1 px-2 shrink-0">
           {activeFile && (
             <>
-              <button onClick={startEditing} className="p-1 rounded hover:bg-white/[0.05]" title="Edit (click to edit)" style={{ color: isEditing ? "#C00018" : "var(--muted-foreground)" }}>
+              <button onClick={startEditing} className="p-1 rounded hover:bg-white/[0.05]" title="Edit (click to edit)" style={{ color: isEditing ? "#C3002F" : "#A0A0A0" }}>
                 <Edit3 size={11} />
               </button>
               {isEditing && (
@@ -187,7 +187,7 @@ export function CodeEditor() {
       <div
         ref={editorRef}
         className="flex-1 overflow-auto font-mono text-[12px] leading-[1.6] outline-none"
-        style={{ background: "var(--background)" }}
+        style={{ background: "#050505" }}
         tabIndex={0}
         onKeyDown={handleKeyDown}
         onMouseUp={trackCursor}
@@ -206,7 +206,7 @@ export function CodeEditor() {
                   </td>
                   <td
                     className="pr-4 whitespace-pre"
-                    style={{ fontFamily: "'JetBrains Mono', monospace", color: "var(--foreground)" }}
+                    style={{ fontFamily: "'JetBrains Mono', monospace", color: "#FFFFFF" }}
                     data-line={i}
                   >
                     {isEditing && editingFile === activeFileId ? (
@@ -214,7 +214,7 @@ export function CodeEditor() {
                         value={displayContent}
                         onChange={(e) => handleContentChange(e.target.value)}
                         className="w-full bg-transparent outline-none resize-none overflow-hidden"
-                        style={{ fontFamily: "'JetBrains Mono', monospace", color: "var(--foreground)", fontSize: 12, lineHeight: 1.6, minHeight: lines.length * 19.2, height: "100%", border: "none" }}
+                        style={{ fontFamily: "'JetBrains Mono', monospace", color: "#FFFFFF", fontSize: 12, lineHeight: 1.6, minHeight: lines.length * 19.2, height: "100%", border: "none" }}
                         spellCheck={false}
                       />
                     ) : (
@@ -228,11 +228,11 @@ export function CodeEditor() {
         ) : (
           <div className="flex items-center justify-center h-full">
             <div className="text-center max-w-md px-8">
-              <Code2 size={40} style={{ color: "var(--muted-foreground)", opacity: 0.15 }} className="mx-auto mb-4" />
-              <h2 className="text-sm font-semibold mb-2" style={{ fontFamily: "'Sora', sans-serif", color: "var(--foreground)" }}>
+              <Code2 size={40} style={{ color: "#A0A0A0", opacity: 0.15 }} className="mx-auto mb-4" />
+              <h2 className="text-sm font-semibold mb-2" style={{ fontFamily: "'Sora', sans-serif", color: "#FFFFFF" }}>
                 Cybersecurity Engineering Workspace
               </h2>
-              <p className="text-[11px] mb-4" style={{ color: "var(--muted-foreground)", lineHeight: 1.6 }}>
+              <p className="text-[11px] mb-4" style={{ color: "#A0A0A0", lineHeight: 1.6 }}>
                 Select a file from the explorer or ask the AI agent to create something new.
               </p>
             </div>

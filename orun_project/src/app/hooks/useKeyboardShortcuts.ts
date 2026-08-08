@@ -37,6 +37,7 @@ export function useKeyboardShortcuts({ nav, setCommandPaletteOpen, setProfileOpe
         if (n.schedulesOpen) { n.setSchedulesOpen(false); return; }
         if (n.socialMediaOpen) { n.setSocialMediaOpen(false); return; }
         if (n.memoryOpen) { n.setMemoryOpen(false); return; }
+        if (n.skillsOpen) { n.setSkillsOpen(false); return; }
         if (n.exportImportOpen) { n.setExportImportOpen(false); return; }
         if (n.activityOpen) { n.setActivityOpen(false); return; }
         if (n.emailOpen) { n.setEmailOpen(false); return; }

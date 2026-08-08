@@ -81,8 +81,35 @@ def transcribe():
     print(f"[stt] Transcribing: {wav_path} (size={os.path.getsize(wav_path)})")
 
     try:
-        # Transcribe
-        kwargs = {"beam_size": 5, "vad_filter": True}
+        # Transcribe with anti-hallucination defaults:
+        # - condition_on_previous_text=False stops the model from repeating
+        #   itself / echoing when the clip is mostly silence.
+        # - no_speech_threshold rejects clips that are (likely) pure silence.
+        # - log_prob/compression thresholds discard degenerate low-confidence
+        #   or repetitive transcriptions.
+        def _form_bool(key, default):
+            raw = request.form.get(key)
+            if raw is None:
+                return default
+            return str(raw).strip().lower() in ("1", "true", "yes", "on")
+
+        def _form_float(key, default):
+            raw = request.form.get(key)
+            if raw is None or str(raw).strip() == "":
+                return default
+            try:
+                return float(raw)
+            except ValueError:
+                return default
+
+        kwargs = {
+            "beam_size": 5,
+            "vad_filter": True,
+            "condition_on_previous_text": _form_bool("condition_on_previous_text", False),
+            "no_speech_threshold": _form_float("no_speech_threshold", 0.6),
+            "log_prob_threshold": _form_float("log_prob_threshold", -1.0),
+            "compression_ratio_threshold": _form_float("compression_ratio_threshold", 2.4),
+        }
         if language:
             kwargs["language"] = language
 
@@ -103,10 +130,12 @@ def transcribe():
                 "text": seg.text.strip(),
             })
 
+        no_speech_prob = getattr(info, "no_speech_prob", None)
         result = {
             "text": full_text.strip(),
             "language": info.language,
             "duration": info.duration,
+            "no_speech_prob": round(no_speech_prob, 3) if no_speech_prob is not None else None,
         }
 
         if response_format == "verbose_json":
@@ -168,8 +197,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Orun OS Whisper STT Server")
     parser.add_argument("--port", type=int, default=8080, help="Server port (default: 8080)")
     parser.add_argument(
-        "--model", type=str, default="small",
-        help="Whisper model: tiny, base, small, medium, large-v3, distil-large-v3 (default: small)",
+        "--model", type=str, default="base",
+        help="Whisper model: tiny, base, small, medium, large-v3, distil-large-v3 (default: base)",
     )
     parser.add_argument("--device", type=str, default="cpu", help="Device: cpu or cuda (default: cpu)")
     parser.add_argument(
@@ -185,4 +214,7 @@ if __name__ == "__main__":
     load_model(args.model, args.device, args.compute_type)
     print(f"[stt] Server running on http://{args.host}:{args.port}")
     print(f"[stt] API: POST http://localhost:{args.port}/v1/audio/transcriptions")
-    app.run(host=args.host, port=args.port, debug=False)
+    # threaded=True allows concurrent transcription requests (each transcribe()
+    # call runs independently in faster-whisper), so wake-word detection and
+    # user dictation don't block each other.
+    app.run(host=args.host, port=args.port, debug=False, threaded=True)

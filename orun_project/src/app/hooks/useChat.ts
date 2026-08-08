@@ -12,9 +12,12 @@ interface UseChatOptions {
   speakRemainder: (fullText: string) => void;
   getHamptonReplies: () => string[];
   spokenUpToRef: React.MutableRefObject<number>;
+  /** True when replies will be read aloud (voice overlay) — the assistant
+   *  then produces short, spoken-friendly sentences. */
+  voiceMode?: boolean;
 }
 
-export function useChat({ t, onHamptonStateChange, speak, speakIncremental, speakRemainder, getHamptonReplies, spokenUpToRef }: UseChatOptions) {
+export function useChat({ t, onHamptonStateChange, speak, speakIncremental, speakRemainder, getHamptonReplies, spokenUpToRef, voiceMode = false }: UseChatOptions) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [chatMode, setChatMode] = useState(false);
@@ -163,6 +166,7 @@ export function useChat({ t, onHamptonStateChange, speak, speakIncremental, spea
 
           cancelStreamRef.current = window.orun.ai.autonomous(history, {
             agentId: activeAgent || undefined,
+            voiceMode,
             onToolCall: (tc) => {
               onHamptonStateChange("thinking");
               toolCallsMap.set(tc.id, { ...tc });

@@ -154,7 +154,7 @@ function FigmaSidebar({ frame, onFrameChange: setFrame }: { frame: FramePreset; 
     <div className="w-[220px] border-l flex flex-col shrink-0 ws-bg-card ws-bd-border">
       <div className="flex border-b ws-bd-border">
         {[{id:"components",label:"Components"},{id:"layers",label:"Layers"},{id:"properties",label:"Props"}].map((t) => (
-          <button key={t.id} onClick={() => setActiveTab(t.id as any)} className="flex-1 py-2 text-[8px] tracking-wider uppercase transition-all ws-font-sora" style={{ color: activeTab === t.id ? "var(--foreground)" : "var(--muted-foreground)", borderBottom: activeTab === t.id ? "2px solid var(--accent)" : "2px solid transparent" }}>{t.label}</button>
+          <button key={t.id} onClick={() => setActiveTab(t.id as any)} className="flex-1 py-2 text-[8px] tracking-wider uppercase transition-all ws-font-sora" style={{ color: activeTab === t.id ? "#FFFFFF" : "#A0A0A0", borderBottom: activeTab === t.id ? "2px solid #C3002F" : "2px solid transparent" }}>{t.label}</button>
         ))}
       </div>
       <div className="flex-1 overflow-y-auto p-2 space-y-1.5 ws-scrollbar">
@@ -172,7 +172,7 @@ function FigmaSidebar({ frame, onFrameChange: setFrame }: { frame: FramePreset; 
           <div className="space-y-0.5">
             {components.length === 0 && <p className="text-[10px] text-center py-4 text-muted-foreground">No components yet</p>}
             {components.map((c) => (
-              <button key={c.id} onClick={() => useDesignerStore.setState({ figmaSelectedId: c.id })} className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-[10px] text-left" style={{ background: selectedId === c.id ? "rgba(45,127,249,0.1)" : "transparent", color: selectedId === c.id ? "var(--foreground)" : "var(--muted-foreground)" }}>
+              <button key={c.id} onClick={() => useDesignerStore.setState({ figmaSelectedId: c.id })} className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-[10px] text-left" style={{ background: selectedId === c.id ? "rgba(195,0,47,0.14)" : "transparent", color: selectedId === c.id ? "#FFFFFF" : "#A0A0A0" }}>
                 <span>▣</span>
                 <span className="truncate flex-1">{c.type} {c.props.text ? `"${String(c.props.text).slice(0, 10)}"` : ""}</span>
                 <span className="text-[8px] opacity-50 ws-font-mono">{(c.width)}×{(c.height)}</span>
@@ -187,7 +187,7 @@ function FigmaSidebar({ frame, onFrameChange: setFrame }: { frame: FramePreset; 
               if (typeof val === "boolean") return (
                 <div key={key} className="flex items-center justify-between">
                   <span className="text-[9px] text-muted-foreground">{key}</span>
-                  <button onClick={() => { useDesignerStore.setState((s) => ({ figmaComponents: s.figmaComponents.map((c) => c.id === selComp.id ? { ...c, props: { ...c.props, [key]: !val } } : c) })); }} className="px-2 py-0.5 rounded text-[9px]" style={{ background: val ? "var(--accent)" : "var(--card)", color: "#FFF" }}>{String(val)}</button>
+                  <button onClick={() => { useDesignerStore.setState((s) => ({ figmaComponents: s.figmaComponents.map((c) => c.id === selComp.id ? { ...c, props: { ...c.props, [key]: !val } } : c) })); }} className="px-2 py-0.5 rounded text-[9px]" style={{ background: val ? "#C3002F" : "#141414", color: "#FFF" }}>{String(val)}</button>
                 </div>
               );
               if (typeof val === "number") return (
@@ -212,7 +212,7 @@ function FigmaSidebar({ frame, onFrameChange: setFrame }: { frame: FramePreset; 
         <div className="text-[8px] uppercase text-muted-foreground">Frame</div>
         <div className="grid grid-cols-2 gap-1">
           {FRAMES.map((f) => (
-            <button key={f.label} onClick={() => setFrame(f)} className="px-1.5 py-1 rounded text-[8px] text-left truncate" style={{ background: frame.label === f.label ? "var(--accent)" : "var(--card)", color: "#FFF" }}>
+            <button key={f.label} onClick={() => setFrame(f)} className="px-1.5 py-1 rounded text-[8px] text-left truncate" style={{ background: frame.label === f.label ? "#C3002F" : "#141414", color: "#FFF" }}>
               {f.icon} {f.label}
             </button>
           ))}

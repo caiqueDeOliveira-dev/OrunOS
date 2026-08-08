@@ -59,7 +59,7 @@ function SelectionOverlay({ el, onResizeStart }: { el: CanvasElement; onResizeSt
   return (<>{handles.map((h) => (<rect key={h.pos} x={h.cx} y={h.cy} width={hs} height={hs} fill="#FFF" stroke="#2D7FF9" strokeWidth={1.5} rx={1} style={{ cursor: cursors[h.pos], pointerEvents: "all" }} onPointerDown={(e) => { e.stopPropagation(); onResizeStart?.(e, h.pos); }} />))}</>);
 }
 
-const solidColors = ["#FFFFFF","#000000","#C00018","#2D7FF9","#10B981","#F59E0B","#8B5CF6","#EC4899","#06B6D4","#F97316","#1F2937","#6B7280","#D1D5DB","#F3F4F6"];
+const solidColors = ["#FFFFFF","#000000","#C3002F","#2D7FF9","#10B981","#F59E0B","#8B5CF6","#EC4899","#06B6D4","#F97316","#1F2937","#6B7280","#D1D5DB","#F3F4F6"];
 
 const TOOLS = [
   { id: "select", icon: "⊹", label: "Select", shortcut: "V" },
@@ -125,7 +125,7 @@ function LeftSidebar() {
   const addEl = useCallback((patch: Partial<CanvasElement>, type: CanvasElement["type"]) => {
     const state = useDesignerStore.getState();
     pushUndo();
-    const newEl: CanvasElement = { id: `el-${Date.now()}`, type, x: 60 + Math.random() * 80, y: 60 + Math.random() * 80, width: type === "line" ? 100 : 100, height: type === "line" ? 4 : 100, fill: type === "line" ? "#C00018" : "#C00018", rotation: 0, opacity: 1, name: type, zIndex: state.elements.length, ...patch };
+    const newEl: CanvasElement = { id: `el-${Date.now()}`, type, x: 60 + Math.random() * 80, y: 60 + Math.random() * 80, width: type === "line" ? 100 : 100, height: type === "line" ? 4 : 100, fill: type === "line" ? "#C3002F" : "#C3002F", rotation: 0, opacity: 1, name: type, zIndex: state.elements.length, ...patch };
     useDesignerStore.setState((s) => ({ elements: [...s.elements, newEl], selectedId: newEl.id }));
   }, []);
 
@@ -134,7 +134,7 @@ function LeftSidebar() {
   return (
     <div className="w-[200px] border-r flex flex-col shrink-0 ws-bg-card ws-bd-border">
       <div className="flex border-b ws-bd-border">
-        {tabs.map((t) => (<button key={t.id} onClick={() => setTab(t.id as any)} className="flex-1 py-2 text-[8px] tracking-wider uppercase transition-all ws-font-sora" style={{ color: tab === t.id ? "var(--foreground)" : "var(--muted-foreground)", borderBottom: tab === t.id ? "2px solid var(--accent)" : "2px solid transparent" }}>{t.label}</button>))}
+        {tabs.map((t) => (<button key={t.id} onClick={() => setTab(t.id as any)} className="flex-1 py-2 text-[8px] tracking-wider uppercase transition-all ws-font-sora" style={{ color: tab === t.id ? "#FFFFFF" : "#A0A0A0", borderBottom: tab === t.id ? "2px solid #C3002F" : "2px solid transparent" }}>{t.label}</button>))}
       </div>
       <div className="flex-1 overflow-y-auto p-2 space-y-2 ws-scrollbar">
         {tab === "templates" && (
@@ -150,7 +150,7 @@ function LeftSidebar() {
         {tab === "shapes" && (
           <div className="grid grid-cols-3 gap-1.5">
             {[{type:"rect",preview:"□",label:"Rect"},{type:"circle",preview:"○",label:"Circle"},{type:"triangle",preview:"△",label:"Triangle"},{type:"star",preview:"★",label:"Star"},{type:"line",preview:"—",label:"Line"}].map((s) => (
-              <button key={s.type} onClick={() => addEl({fill:"#C00018",width:80,height:s.type==="line"?4:80,strokeWidth:s.type==="line"?3:undefined}, s.type as any)} className="aspect-square rounded-lg flex flex-col items-center justify-center gap-1 ws-card-hover">
+              <button key={s.type} onClick={() => addEl({fill:"#C3002F",width:80,height:s.type==="line"?4:80,strokeWidth:s.type==="line"?3:undefined}, s.type as any)} className="aspect-square rounded-lg flex flex-col items-center justify-center gap-1 ws-card-hover">
                 <span className="text-[14px] ws-text-foreground">{s.preview}</span><span className="text-[7px] text-muted-foreground">{s.label}</span>
               </button>
             ))}
@@ -160,7 +160,7 @@ function LeftSidebar() {
           <div className="space-y-1.5">
             {[{label:"Heading",size:36,weight:"bold"},{label:"Subheading",size:24,weight:"600"},{label:"Body",size:14,weight:"normal"}].map((p) => (
               <button key={p.label} onClick={() => addEl({fill:"#374151",text:p.label,fontSize:p.size,bold:p.weight==="bold",width:200,height:p.size+10},"text")} className="w-full p-3 rounded-lg text-left ws-card-hover">
-                <div className="font-medium truncate" style={{ fontSize: `${Math.min(p.size/3,14)}px`, color: "var(--foreground)", fontWeight: p.weight }}>{p.label}</div>
+                <div className="font-medium truncate" style={{ fontSize: `${Math.min(p.size/3,14)}px`, color: "#FFFFFF", fontWeight: p.weight }}>{p.label}</div>
                 <div className="text-[8px] mt-0.5 text-muted-foreground">{p.size}px</div>
               </button>
             ))}
@@ -178,7 +178,7 @@ function LeftSidebar() {
           <div>
             <div className="text-[9px] uppercase mb-2 text-muted-foreground ws-font-sora">Solid Colors</div>
             <div className="grid grid-cols-4 gap-1.5">
-              {solidColors.map((color) => (<button key={color} onClick={() => useDesignerStore.setState({ canvasBg: color })} className="aspect-square rounded-lg transition-all" style={{ background: color, border: `2px solid ${useDesignerStore.getState().canvasBg === color ? "var(--foreground)" : "transparent"}`, boxShadow: "0 1px 3px rgba(0,0,0,0.3)" }} />))}
+              {solidColors.map((color) => (<button key={color} onClick={() => useDesignerStore.setState({ canvasBg: color })} className="aspect-square rounded-lg transition-all" style={{ background: color, border: `2px solid ${useDesignerStore.getState().canvasBg === color ? "#FFFFFF" : "transparent"}`, boxShadow: "0 1px 3px rgba(0,0,0,0.3)" }} />))}
             </div>
           </div>
         )}
@@ -212,9 +212,9 @@ function RightPanel() {
           </div>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => update({ bold: !el.bold })} className="ws-btn-sm" style={{ background: el.bold ? "var(--accent)" : "var(--card)" }}>B</button>
-          <button onClick={() => update({ italic: !el.italic })} className="ws-btn-sm italic" style={{ background: el.italic ? "var(--accent)" : "var(--card)" }}>I</button>
-          <button onClick={() => update({ underline: !el.underline })} className="ws-btn-sm underline" style={{ background: el.underline ? "var(--accent)" : "var(--card)" }}>U</button>
+          <button onClick={() => update({ bold: !el.bold })} className="ws-btn-sm" style={{ background: el.bold ? "#C3002F" : "#141414" }}>B</button>
+          <button onClick={() => update({ italic: !el.italic })} className="ws-btn-sm italic" style={{ background: el.italic ? "#C3002F" : "#141414" }}>I</button>
+          <button onClick={() => update({ underline: !el.underline })} className="ws-btn-sm underline" style={{ background: el.underline ? "#C3002F" : "#141414" }}>U</button>
         </div>
       </>)}
       <WorkspaceSection title="Fill">
@@ -290,7 +290,7 @@ function CanvasArea() {
     const mx = (e.clientX - svgRect.left) / zoom, my = (e.clientY - svgRect.top) / zoom;
     if (resizeInfo) {
       const dh = resizeInfo.handle;
-      let dx = mx - resizeInfo.startX, dy = my - resizeInfo.startY;
+      const dx = mx - resizeInfo.startX, dy = my - resizeInfo.startY;
       let nx = resizeInfo.elX, ny = resizeInfo.elY, nw = resizeInfo.elW, nh = resizeInfo.elH;
       if (dh.includes("e")) nw = Math.max(20, resizeInfo.elW + dx);
       if (dh.includes("w")) { nw = Math.max(20, resizeInfo.elW - dx); nx = resizeInfo.elX + dx; }
@@ -358,7 +358,7 @@ function BottomBar() {
       </div>
       <div className="flex items-center gap-3">
         <span>{canvasWidth} × {canvasHeight}</span>
-        <span style={{ color: "var(--accent)" }}>Canvas</span>
+        <span style={{ color: "#C3002F" }}>Canvas</span>
       </div>
     </div>
   );

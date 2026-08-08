@@ -272,13 +272,13 @@ export function FileExplorer() {
         <div key={id}>
           <div
             className="flex items-center gap-1 py-1 px-2 text-[11px] cursor-pointer select-none group hover:bg-white/[0.03] transition-colors"
-            style={{ paddingLeft: depth * 16 + 8, color: "var(--muted-foreground)" }}
+            style={{ paddingLeft: depth * 16 + 8, color: "#A0A0A0" }}
             onClick={() => toggleFolder(id)}
             onContextMenu={(e) => handleContextMenu(e, id)}
           >
             <span className="text-[8px] w-3 shrink-0">{node.expanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}</span>
             <span className="text-[11px] shrink-0">{node.expanded ? "📂" : "📁"}</span>
-            <span className="truncate flex-1" style={{ color: "var(--foreground)" }}>{node.name}</span>
+            <span className="truncate flex-1" style={{ color: "#FFFFFF" }}>{node.name}</span>
             <div className="hidden group-hover:flex items-center gap-0.5">
               <button onClick={(e) => { e.stopPropagation(); startCreatingFile(id, false); }} className="p-0.5 rounded hover:bg-white/[0.05]" title="New File"><File size={10} /></button>
               <button onClick={(e) => { e.stopPropagation(); startCreatingFile(id, true); }} className="p-0.5 rounded hover:bg-white/[0.05]" title="New Folder"><Folder size={10} /></button>
@@ -296,7 +296,7 @@ export function FileExplorer() {
                     onChange={(e) => useIDEStore.setState({ newFileName: e.target.value })}
                     onKeyDown={(e) => { if (e.key === "Enter") confirmCreateFile(); if (e.key === "Escape") useIDEStore.setState({ isCreatingFile: false }); }}
                     className="flex-1 bg-transparent text-[11px] outline-none border-b"
-                    style={{ color: "var(--foreground)", borderColor: "#C00018" }}
+                    style={{ color: "#FFFFFF", borderColor: "#C3002F" }}
                     placeholder={creatingIsFolder ? "folder-name" : "file.ext"}
                     onClick={(e) => e.stopPropagation()}
                   />
@@ -321,7 +321,7 @@ export function FileExplorer() {
               onChange={(e) => setRenameValue(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") confirmRename(); if (e.key === "Escape") setRenamingId(null); }}
               className="flex-1 bg-transparent text-[11px] outline-none border-b"
-              style={{ color: "var(--foreground)", borderColor: "#C00018" }}
+              style={{ color: "#FFFFFF", borderColor: "#C3002F" }}
               onClick={(e) => e.stopPropagation()}
               onBlur={confirmRename}
             />
@@ -331,9 +331,9 @@ export function FileExplorer() {
             className="flex items-center gap-1.5 py-1 px-2 text-[11px] cursor-pointer select-none group transition-colors"
             style={{
               paddingLeft: depth * 16 + 22,
-              color: isActive ? "var(--foreground)" : "var(--muted-foreground)",
-              background: isActive ? "rgba(192,0,24,0.08)" : "transparent",
-              borderRight: isActive ? "2px solid #C00018" : "2px solid transparent",
+              color: isActive ? "#FFFFFF" : "#A0A0A0",
+              background: isActive ? "rgba(195,0,47,0.08)" : "transparent",
+              borderRight: isActive ? "2px solid #C3002F" : "2px solid transparent",
             }}
             onClick={() => openFile(id)}
             onContextMenu={(e) => handleContextMenu(e, id)}
@@ -354,8 +354,8 @@ export function FileExplorer() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-3 py-2 border-b shrink-0" style={{ borderColor: "var(--border)" }}>
-        <span className="text-[10px] font-semibold tracking-wider uppercase" style={{ fontFamily: "'Sora', sans-serif", color: "var(--muted-foreground)" }}>
+      <div className="flex items-center justify-between px-3 py-2 border-b shrink-0" style={{ borderColor: "#252525" }}>
+        <span className="text-[10px] font-semibold tracking-wider uppercase" style={{ fontFamily: "'Sora', sans-serif", color: "#A0A0A0" }}>
           Explorer
         </span>
         <div className="flex items-center gap-1">
@@ -374,22 +374,22 @@ export function FileExplorer() {
             onChange={(e) => useIDEStore.setState({ newFileName: e.target.value })}
             onKeyDown={(e) => { if (e.key === "Enter") confirmCreateFile(); if (e.key === "Escape") useIDEStore.setState({ isCreatingFile: false }); }}
             className="flex-1 bg-transparent text-[11px] outline-none border-b"
-            style={{ color: "var(--foreground)", borderColor: "#C00018" }}
+            style={{ color: "#FFFFFF", borderColor: "#C3002F" }}
             placeholder="file.ts"
             onClick={(e) => e.stopPropagation()}
           />
         </div>
       )}
-      <div className="flex-1 overflow-y-auto scrollbar-hide py-1">
+      <div className="flex-1 overflow-y-auto hs-scroll py-1">
         {rootIds.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-12 px-4 text-center">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: "rgba(192,0,24,0.08)" }}>
-              <FolderOpen size={24} style={{ color: "#C00018", opacity: 0.6 }} />
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: "rgba(195,0,47,0.08)" }}>
+              <FolderOpen size={24} style={{ color: "#C3002F", opacity: 0.6 }} />
             </div>
-            <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>No folder open</p>
+            <p className="text-[11px]" style={{ color: "#A0A0A0" }}>No folder open</p>
             <button onClick={handleImportFolder}
               className="px-4 py-2 rounded-lg text-[10px] font-medium transition-all hover:scale-[1.02]"
-              style={{ background: "var(--primary)", color: "var(--primary-foreground)" }}>
+              style={{ background: "#C3002F", color: "#FFFFFF" }}>
               Open Folder
             </button>
           </div>
@@ -400,7 +400,7 @@ export function FileExplorer() {
       {contextMenu && (
         <div
           className="fixed z-50 w-40 py-1 rounded-lg border shadow-xl"
-          style={{ top: contextMenu.y, left: contextMenu.x, background: "var(--card)", borderColor: "var(--border)" }}
+          style={{ top: contextMenu.y, left: contextMenu.x, background: "#141414", borderColor: "#252525" }}
           onClick={() => useIDEStore.setState({ contextMenu: null })}
         >
           <button className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] hover:bg-white/[0.05]"

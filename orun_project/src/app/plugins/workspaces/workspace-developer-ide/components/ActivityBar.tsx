@@ -13,7 +13,7 @@ export function ActivityBar({ activeTab, onTabChange, onToggleTerminal }: {
   ];
 
   return (
-    <div className="flex flex-col items-center py-2 gap-1 w-10 border-r shrink-0" style={{ background: "var(--card)", borderColor: "var(--border)" }}>
+    <div className="flex flex-col items-center py-2 gap-1 w-10 border-r shrink-0" style={{ background: "#141414", borderColor: "#252525" }}>
       {items.map((item) => {
         const Icon = item.icon;
         const isActive = activeTab === item.id;
@@ -24,12 +24,12 @@ export function ActivityBar({ activeTab, onTabChange, onToggleTerminal }: {
             title={item.label}
             className="w-8 h-8 flex items-center justify-center rounded-lg transition-all relative"
             style={{
-              color: isActive ? "var(--foreground)" : "var(--muted-foreground)",
-              background: isActive ? "rgba(192,0,24,0.1)" : "transparent",
+              color: isActive ? "#FFFFFF" : "#A0A0A0",
+              background: isActive ? "rgba(195,0,47,0.1)" : "transparent",
             }}
           >
             {isActive && (
-              <div className="absolute left-[-8px] w-0.5 h-5 rounded-full" style={{ background: "#C00018" }} />
+              <div className="absolute left-[-8px] w-0.5 h-5 rounded-full" style={{ background: "#C3002F" }} />
             )}
             <Icon size={16} />
           </button>
@@ -41,8 +41,8 @@ export function ActivityBar({ activeTab, onTabChange, onToggleTerminal }: {
         title="Toggle Terminal"
         className="w-8 h-8 flex items-center justify-center rounded-lg transition-all"
         style={{
-          color: showTerminal ? "var(--foreground)" : "var(--muted-foreground)",
-          background: showTerminal ? "rgba(192,0,24,0.1)" : "transparent",
+          color: showTerminal ? "#FFFFFF" : "#A0A0A0",
+          background: showTerminal ? "rgba(195,0,47,0.1)" : "transparent",
         }}
       >
         <Terminal size={16} />

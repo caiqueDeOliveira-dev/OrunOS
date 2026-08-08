@@ -145,9 +145,9 @@ export function ScheduleView() {
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-medium" style={{ color: "var(--foreground)" }}>{t("Posts Agendados")}</span>
+        <span className="text-[11px] font-medium" style={{ color: "#FFFFFF" }}>{t("Posts Agendados")}</span>
         <div className="flex gap-2 items-center">
-          <label className="flex items-center gap-1.5 text-[9px]" style={{ color: "var(--muted-foreground)" }}>
+          <label className="flex items-center gap-1.5 text-[9px]" style={{ color: "#A0A0A0" }}>
             <input
               type="checkbox"
               checked={autoPublish}
@@ -181,11 +181,11 @@ export function ScheduleView() {
               onChange={(e) => setContent(e.target.value)}
               placeholder={t("Conteúdo do post")}
               className="w-full text-[10px] rounded-md px-2 py-1.5 resize-none"
-              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid var(--border)", color: "var(--foreground)", minHeight: 60 }}
+              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid #252525", color: "#FFFFFF", minHeight: 60 }}
             />
             <div className="flex gap-2 flex-wrap">
               {PLATFORMS.map((p) => (
-                <label key={p} className="flex items-center gap-1 text-[9px]" style={{ color: "var(--muted-foreground)" }}>
+                <label key={p} className="flex items-center gap-1 text-[9px]" style={{ color: "#A0A0A0" }}>
                   <input
                     type="checkbox"
                     checked={platforms.includes(p)}
@@ -226,8 +226,8 @@ export function ScheduleView() {
           <WorkspaceCard key={post.id}>
             <div className="flex items-start justify-between mb-1">
               <div className="flex-1 min-w-0">
-                <p className="text-[11px] font-medium truncate" style={{ color: "var(--foreground)" }}>{post.title}</p>
-                <p className="text-[9px] text-ellipsis overflow-hidden whitespace-nowrap" style={{ color: "var(--muted-foreground)" }}>
+                <p className="text-[11px] font-medium truncate" style={{ color: "#FFFFFF" }}>{post.title}</p>
+                <p className="text-[9px] text-ellipsis overflow-hidden whitespace-nowrap" style={{ color: "#A0A0A0" }}>
                   {post.content}
                 </p>
               </div>
@@ -239,7 +239,7 @@ export function ScheduleView() {
               ))}
             </div>
             <div className="flex items-center justify-between mt-2">
-              <span className="text-[8px]" style={{ color: "var(--muted-foreground)" }}>
+              <span className="text-[8px]" style={{ color: "#A0A0A0" }}>
                 {new Date(post.scheduledAt).toLocaleString("pt-BR")}
                 {post.hashtags.length > 0 && ` • ${post.hashtags.map((h) => `#${h}`).join(" ")}`}
               </span>
@@ -254,7 +254,7 @@ export function ScheduleView() {
               <p className="text-[8px] mt-1 text-red-400">{post.error}</p>
             )}
             {post.publishedAt && (
-              <p className="text-[8px] mt-1" style={{ color: "var(--muted-foreground)" }}>
+              <p className="text-[8px] mt-1" style={{ color: "#A0A0A0" }}>
                 {t("Publicado em")}: {new Date(post.publishedAt).toLocaleString("pt-BR")}
               </p>
             )}

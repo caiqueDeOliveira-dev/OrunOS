@@ -49,50 +49,50 @@ export function AnalyticsView() {
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-2">
         <WorkspaceCard>
-          <p className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>{t("Orçamento Total")}</p>
-          <p className="text-[14px] font-bold" style={{ color: "var(--foreground)" }}>R$ {analytics.totalBudget.toLocaleString("pt-BR")}</p>
+          <p className="text-[9px]" style={{ color: "#A0A0A0" }}>{t("Orçamento Total")}</p>
+          <p className="text-[14px] font-bold" style={{ color: "#FFFFFF" }}>R$ {analytics.totalBudget.toLocaleString("pt-BR")}</p>
         </WorkspaceCard>
         <WorkspaceCard>
-          <p className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>{t("Gasto Total")}</p>
-          <p className="text-[14px] font-bold" style={{ color: "var(--accent, #C00018)" }}>R$ {analytics.totalSpent.toLocaleString("pt-BR")}</p>
+          <p className="text-[9px]" style={{ color: "#A0A0A0" }}>{t("Gasto Total")}</p>
+          <p className="text-[14px] font-bold" style={{ color: "#C3002F" }}>R$ {analytics.totalSpent.toLocaleString("pt-BR")}</p>
         </WorkspaceCard>
         <WorkspaceCard>
-          <p className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>{t("Conversões")}</p>
+          <p className="text-[9px]" style={{ color: "#A0A0A0" }}>{t("Conversões")}</p>
           <p className="text-[14px] font-bold" style={{ color: "#22C55E" }}>{analytics.totalConversions}</p>
         </WorkspaceCard>
       </div>
 
       <div className="grid grid-cols-2 gap-2">
         <WorkspaceCard>
-          <p className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>{t("Impressões")}</p>
-          <p className="text-[16px] font-bold" style={{ color: "var(--foreground)" }}>{analytics.totalImpressions.toLocaleString("pt-BR")}</p>
+          <p className="text-[9px]" style={{ color: "#A0A0A0" }}>{t("Impressões")}</p>
+          <p className="text-[16px] font-bold" style={{ color: "#FFFFFF" }}>{analytics.totalImpressions.toLocaleString("pt-BR")}</p>
         </WorkspaceCard>
         <WorkspaceCard>
-          <p className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>{t("CTR")}</p>
-          <p className="text-[16px] font-bold" style={{ color: "var(--foreground)" }}>{analytics.ctr}%</p>
+          <p className="text-[9px]" style={{ color: "#A0A0A0" }}>{t("CTR")}</p>
+          <p className="text-[16px] font-bold" style={{ color: "#FFFFFF" }}>{analytics.ctr}%</p>
         </WorkspaceCard>
       </div>
 
       {analytics.monthlyData.some((d) => d.leads > 0 || d.conv > 0) && (
         <>
           <WorkspaceCard>
-            <h3 className="text-[10px] tracking-wider uppercase mb-3" style={{ fontFamily: "'Sora', sans-serif", color: "var(--muted-foreground)" }} role="heading" aria-level={2}>
+            <h3 className="text-[10px] tracking-wider uppercase mb-3" style={{ fontFamily: "'Sora', sans-serif", color: "#A0A0A0" }} role="heading" aria-level={2}>
               {t("Leads vs Conversões")}
             </h3>
             <div role="img" aria-label="Line chart showing leads and conversions">
               <ResponsiveContainer width="100%" height={140}>
                 <LineChart data={analytics.monthlyData}>
-                  <XAxis dataKey="month" tick={{ fontSize: 9, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} />
+                  <XAxis dataKey="month" tick={{ fontSize: 9, fill: "#A0A0A0" }} axisLine={false} tickLine={false} />
                   <YAxis hide />
-                  <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 10, fontFamily: "'Inter', sans-serif" }} />
-                  <Line type="monotone" dataKey="leads" stroke="var(--accent, #C00018)" strokeWidth={2} dot={false} />
+                  <Tooltip contentStyle={{ background: "#141414", border: "1px solid #252525", borderRadius: 8, fontSize: 10, fontFamily: "'Inter', sans-serif" }} />
+                  <Line type="monotone" dataKey="leads" stroke="#C3002F" strokeWidth={2} dot={false} />
                   <Line type="monotone" dataKey="conv" stroke="#22C55E" strokeWidth={2} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
             <div className="flex justify-center gap-4 mt-2">
               <span className="text-[9px] flex items-center gap-1" aria-label="Leads series">
-                <span className="w-2 h-2 rounded-full" style={{ background: "var(--accent, #C00018)" }} /> {t("Leads")}
+                <span className="w-2 h-2 rounded-full" style={{ background: "#C3002F" }} /> {t("Leads")}
               </span>
               <span className="text-[9px] flex items-center gap-1" aria-label="Conversions series">
                 <span className="w-2 h-2 rounded-full" style={{ background: "#22C55E" }} /> {t("Conversões")}
@@ -101,7 +101,7 @@ export function AnalyticsView() {
           </WorkspaceCard>
 
           <WorkspaceCard>
-            <h3 className="text-[10px] tracking-wider uppercase mb-3" style={{ fontFamily: "'Sora', sans-serif", color: "var(--muted-foreground)" }} role="heading" aria-level={2}>
+            <h3 className="text-[10px] tracking-wider uppercase mb-3" style={{ fontFamily: "'Sora', sans-serif", color: "#A0A0A0" }} role="heading" aria-level={2}>
               {t("Desempenho por Campanha")}
             </h3>
             <div className="space-y-2">
@@ -110,11 +110,11 @@ export function AnalyticsView() {
                 return (
                   <div key={c.id}>
                     <div className="flex justify-between text-[9px] mb-0.5">
-                      <span style={{ color: "var(--foreground)" }}>{c.name}</span>
-                      <span style={{ color: "var(--muted-foreground)" }}>{c.conversions} {t("conv.")}</span>
+                      <span style={{ color: "#FFFFFF" }}>{c.name}</span>
+                      <span style={{ color: "#A0A0A0" }}>{c.conversions} {t("conv.")}</span>
                     </div>
-                    <div className="h-1.5 rounded-full" style={{ background: "var(--border)" }}>
-                      <div className="h-full rounded-full" style={{ width: `${spentPct}%`, background: "var(--accent, #C00018)" }} />
+                    <div className="h-1.5 rounded-full" style={{ background: "#252525" }}>
+                      <div className="h-full rounded-full" style={{ width: `${spentPct}%`, background: "#C3002F" }} />
                     </div>
                   </div>
                 );

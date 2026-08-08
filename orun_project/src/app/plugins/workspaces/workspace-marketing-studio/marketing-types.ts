@@ -64,4 +64,4 @@ export interface MarketingState {
   discord: DiscordState;
 }
 
-export const TYPE_COLORS: Record<string, string> = { post: "var(--accent, #C00018)", email: "#3B82F6", ad: "#F59E0B", blog: "#22C55E" };
+export const TYPE_COLORS: Record<string, string> = { post: "#C3002F", email: "#3B82F6", ad: "#F59E0B", blog: "#22C55E" };

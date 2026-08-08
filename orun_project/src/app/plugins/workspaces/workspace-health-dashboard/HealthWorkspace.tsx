@@ -11,6 +11,7 @@ import { BodyView } from "./components/BodyView";
 import { ExamsView } from "./components/ExamsView";
 import { WorkoutTab } from "./components/WorkoutTab";
 import { ChartsSection } from "./components/ChartsSection";
+import { P, PremiumRoot, ScrollArea, Card } from "../premium";
 
 type ViewKey = "overview" | "meals" | "workout" | "body" | "exams";
 
@@ -42,51 +43,56 @@ export function HealthWorkspace({ onSendMessage }: WorkspaceProps) {
   ];
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto ws-scrollbar">
-      <div className="flex items-center justify-between px-4 pt-2 pb-1">
-        <span className="ws-subtitle">{greeting}, {userName}</span>
-        <div className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold" style={{ background: "#22C55E", color: "#fff" }}>{avatarInitials}</div>
+    <PremiumRoot className="relative">
+      <div className="flex items-center justify-between px-5 pt-4 pb-1 shrink-0">
+        <span className="text-[12px] font-medium" style={{ color: P.text }}>{greeting}, {userName}</span>
+        <div className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold" style={{ background: "rgba(195,0,47,0.16)", color: P.primary }}>{avatarInitials}</div>
       </div>
 
-      <div className="flex items-center gap-1 px-4 py-2 border-b" style={{ borderColor: "var(--border)" }}>
+      <div className="flex items-center gap-1 px-4 py-2 border-b shrink-0" style={{ borderColor: P.border, background: P.bg }}>
         {tabs.map((tab) => (
           <button key={tab.key} onClick={() => setActiveView(tab.key)}
-            className="px-3 py-1.5 rounded-md ws-label transition-all"
+            className="px-3 py-1.5 rounded-lg text-[10px] tracking-wider uppercase transition-all hover:brightness-110"
             style={{
+              fontFamily: "'Sora', sans-serif",
               fontWeight: activeView === tab.key ? 500 : 300,
-              color: activeView === tab.key ? "var(--foreground)" : "var(--muted-foreground)",
-              background: activeView === tab.key ? "rgba(192,0,24,0.08)" : "transparent",
+              color: activeView === tab.key ? P.text : P.sub,
+              background: activeView === tab.key ? "rgba(195,0,47,0.14)" : "transparent",
+              border: `1px solid ${activeView === tab.key ? "rgba(195,0,47,0.35)" : "transparent"}`,
             }}>
             {tab.label}
           </button>
         ))}
       </div>
 
+      <ScrollArea>
       {activeView === "overview" && (
         <div className="p-4 space-y-4">
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2">
             {metrics.map((m) => <MetricCard key={m.id} metric={m} />)}
           </div>
           <ChartsSection metrics={metrics} />
-          <div className="ws-card p-3">
-            <h3 className="ws-label mb-2">Macros Hoje</h3>
+          <Card className="p-3">
+            <h3 className="text-[9px] font-semibold uppercase tracking-[0.14em] mb-2" style={{ fontFamily: "'Sora', sans-serif", color: P.dim }}>Macros Hoje</h3>
             <MacroDonut protein={totalProtein} carbs={totalCarbs} fat={totalFat} />
             <div className="flex justify-center gap-4 mt-2">
-              <span className="ws-small" style={{ color: "#C00018" }}>● Proteína {totalProtein}g</span>
-              <span className="ws-small" style={{ color: "#3B82F6" }}>● Carbs {totalCarbs}g</span>
-              <span className="ws-small" style={{ color: "#F59E0B" }}>● Gordura {totalFat}g</span>
+              <span className="text-[10px]" style={{ color: P.primary }}>● Proteína {totalProtein}g</span>
+              <span className="text-[10px]" style={{ color: P.info }}>● Carbs {totalCarbs}g</span>
+              <span className="text-[10px]" style={{ color: P.alert }}>● Gordura {totalFat}g</span>
             </div>
-          </div>
+          </Card>
         </div>
       )}
 
       {activeView === "meals" && (
         <div className="p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="ws-subtitle">Refeições de Hoje</span>
-            <span className="ws-badge ws-badge-red">{totalCalories} kcal</span>
+            <span className="text-[12px] font-medium" style={{ color: P.text }}>Refeições de Hoje</span>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-semibold tracking-wider uppercase" style={{ background: `${P.primary}1F`, color: P.primary, border: `1px solid ${P.primary}33` }}>
+              {totalCalories} kcal
+            </span>
           </div>
-          {meals.length === 0 && <p className="ws-small text-center py-4">Nenhuma refeição registrada hoje.</p>}
+          {meals.length === 0 && <p className="text-[10px] text-center py-4" style={{ color: P.sub }}>Nenhuma refeição registrada hoje.</p>}
           {meals.map((meal) => <MealEntry key={meal.id} meal={meal} />)}
         </div>
       )}
@@ -95,15 +101,18 @@ export function HealthWorkspace({ onSendMessage }: WorkspaceProps) {
       {activeView === "body" && <BodyView measurements={bodyMeasurements} />}
       {activeView === "exams" && <ExamsView />}
 
-      <div className="ws-card p-3 mx-4 mb-4">
-        <span className="ws-body font-medium block mb-2">Notas Pessoais</span>
-        <textarea value={notes} onChange={(e) => updateNotes(e.target.value)}
-          className="w-full px-3 py-2 rounded-lg text-[10px] resize-none"
-          style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)", minHeight: "60px" }}
-          placeholder="Suas anotações de saúde..." />
+      <div className="p-4">
+        <div className="rounded-[18px] p-3" style={{ background: P.card, border: `1px solid ${P.border}` }}>
+          <span className="text-xs font-medium block mb-2" style={{ color: P.text }}>Notas Pessoais</span>
+          <textarea value={notes} onChange={(e) => updateNotes(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg text-[10px] resize-none"
+            style={{ background: P.panel, color: P.text, border: `1px solid ${P.borderHi}`, minHeight: "60px" }}
+            placeholder="Suas anotações de saúde..." />
+        </div>
       </div>
+      </ScrollArea>
 
       <AIFloatingPrompt onSendMessage={onSendMessage} label="Perguntar à IA" />
-    </div>
+    </PremiumRoot>
   );
 }

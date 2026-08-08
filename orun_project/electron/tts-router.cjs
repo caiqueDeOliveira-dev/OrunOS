@@ -73,7 +73,15 @@ async function postJSON(url, headers, body) {
 async function elevenlabsVoices(apiKey) {
   if (!apiKey) throw new Error("Missing ElevenLabs API key.");
   const result = await getJSON("https://api.elevenlabs.io/v1/voices", { "xi-api-key": apiKey });
-  return (result.voices || []).map((v) => ({ id: v.voice_id, name: v.name, previewUrl: v.preview_url || null }));
+  return (result.voices || []).map((v) => {
+    const g = v.labels?.gender;
+    return {
+      id: v.voice_id,
+      name: v.name,
+      previewUrl: v.preview_url || null,
+      gender: g === "male" ? "male" : g === "female" ? "female" : undefined,
+    };
+  });
 }
 
 async function elevenlabsSynthesize(apiKey, voiceId, text) {
@@ -94,7 +102,15 @@ async function googleVoices(apiKey) {
   const result = await getJSON(`https://texttospeech.googleapis.com/v1/voices?key=${encodeURIComponent(apiKey)}`, {});
   return (result.voices || [])
     .filter((v) => v.languageCodes?.[0]?.startsWith("en") || v.languageCodes?.[0]?.startsWith("pt"))
-    .map((v) => ({ id: v.name, name: `${v.name} (${v.languageCodes[0]})`, previewUrl: null }));
+    .map((v) => {
+      const g = (v.ssmlGender || "").toLowerCase();
+      return {
+        id: v.name,
+        name: `${v.name} (${v.languageCodes[0]})`,
+        previewUrl: null,
+        gender: g === "male" ? "male" : g === "female" ? "female" : undefined,
+      };
+    });
 }
 
 async function googleSynthesize(apiKey, voiceId, text) {
@@ -125,7 +141,15 @@ async function azureVoices(apiKey, region) {
   const result = await getJSON(`https://${region}.tts.speech.microsoft.com/cognitiveservices/voices/list`, { "Ocp-Apim-Subscription-Key": apiKey });
   return result
     .filter((v) => v.Locale?.startsWith("en") || v.Locale?.startsWith("pt"))
-    .map((v) => ({ id: v.ShortName, name: `${v.DisplayName} (${v.Locale})`, previewUrl: null }));
+    .map((v) => {
+      const g = (v.Gender || "").toLowerCase();
+      return {
+        id: v.ShortName,
+        name: `${v.DisplayName} (${v.Locale})`,
+        previewUrl: null,
+        gender: g === "male" ? "male" : g === "female" ? "female" : undefined,
+      };
+    });
 }
 
 function escapeSSML(text) {
@@ -213,8 +237,17 @@ const EDGE_VOICES = [
   "en-US-AndrewNeural", "en-US-EmmaNeural", "en-GB-SoniaNeural",
 ];
 
+// Vozes masculinas do Edge (por nome — os nomes pt-BR masculinos terminam em
+// -o; en-US: Guy/Andrew; en-GB não tem masculino listado).
+const EDGE_MALE = [
+  "pt-BR-AntonioNeural", "pt-BR-DonatoNeural", "pt-BR-FabioNeural",
+  "pt-BR-HumbertoNeural", "pt-BR-MuriloNeural", "pt-BR-RicardoNeural",
+  "pt-BR-ValerioNeural", "en-US-GuyNeural", "en-US-AndrewNeural",
+];
+const EDGE_MALE_SET = new Set(EDGE_MALE);
+
 function edgeVoices() {
-  return EDGE_VOICES.map((id) => ({ id, name: id, previewUrl: null }));
+  return EDGE_VOICES.map((id) => ({ id, name: id, previewUrl: null, gender: EDGE_MALE_SET.has(id) ? "male" : "female" }));
 }
 
 async function edgeSynthesize(baseUrl, voiceId, text) {
@@ -233,7 +266,12 @@ async function kokoroVoices(baseUrl) {
   const names = result.voices || [];
   const pt = names.filter((v) => v.startsWith("p"));
   const rest = names.filter((v) => !v.startsWith("p"));
-  return [...pt, ...rest].map((id) => ({ id, name: id, previewUrl: null }));
+  return [...pt, ...rest].map((id) => ({
+    id,
+    name: id,
+    previewUrl: null,
+    gender: id.startsWith("pm_") ? "male" : id.startsWith("pf_") ? "female" : undefined,
+  }));
 }
 
 async function kokoroSynthesize(baseUrl, voiceId, text) {

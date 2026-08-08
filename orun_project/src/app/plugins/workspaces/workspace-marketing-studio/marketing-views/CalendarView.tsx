@@ -23,7 +23,7 @@ export function CalendarView() {
 
   return (
     <div className="p-4 space-y-2">
-      <h3 className="text-[10px] tracking-wider uppercase mb-2" style={{ fontFamily: "'Sora', sans-serif", color: "var(--muted-foreground)" }} role="heading" aria-level={2}>
+      <h3 className="text-[10px] tracking-wider uppercase mb-2" style={{ fontFamily: "'Sora', sans-serif", color: "#A0A0A0" }} role="heading" aria-level={2}>
         {t("Calendário de Conteúdo")}
       </h3>
       {events.map((e) => (
@@ -34,8 +34,8 @@ export function CalendarView() {
             </span>
             <div className="w-1.5 h-8 rounded-full" style={{ background: TYPE_COLORS[e.type] }} />
             <div className="flex-1">
-              <p className="text-[11px]" style={{ color: "var(--foreground)" }}>{e.title}</p>
-              <p className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>{e.platform}</p>
+              <p className="text-[11px]" style={{ color: "#FFFFFF" }}>{e.title}</p>
+              <p className="text-[9px]" style={{ color: "#A0A0A0" }}>{e.platform}</p>
             </div>
             <span className="text-[8px] px-1.5 py-0.5 rounded-full uppercase" style={{ background: `${TYPE_COLORS[e.type]}15`, color: TYPE_COLORS[e.type] }}>
               {e.type}

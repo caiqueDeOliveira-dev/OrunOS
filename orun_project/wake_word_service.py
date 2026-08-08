@@ -3,7 +3,7 @@ Orun OS — Background Wake Word Service
 Listens for "OK Orun" (or variants) via mic, signals Electron to show voice overlay.
 
 Usage:
-    python wake_word_service.py [--port 8081] [--stt-url http://localhost:8080]
+    python wake_word_service.py [--port 8081] [--stt-url http://127.0.0.1:8080]
 
 Requires: sounddevice, numpy, requests (pip install sounddevice numpy requests)
 """
@@ -20,6 +20,15 @@ import numpy as np
 
 os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "1"
 
+# Windows codec charmap (cp850) crasha em print de caracteres como "✓" (U+2713)
+# quando o stdout é um pipe. Força UTF-8 para o output não derrubar o serviço.
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 # ── Config ─────────────────────────────────────────────────────────────
 WAKE_WORDS = [
     "ok orun", "okay orun", "ô orun", "o orun",
@@ -29,8 +38,8 @@ WAKE_WORDS = [
 SAMPLE_RATE = 16000
 CHUNK_DURATION = 3.0        # seconds per recording chunk
 SILENCE_THRESHOLD = 1e-4    # absolute minimum RMS (quiet mics) — default arg value
-MIN_SPEECH_DURATION = 0.3   # minimum speech to consider
-SLEEP_BETWEEN_CHUNKS = 0.5  # pause between listening cycles
+MIN_SPEECH_DURATION = 0.4   # minimum speech to consider
+SLEEP_BETWEEN_CHUNKS = 0.2  # pause between listening cycles (menor = resposta mais rápida)
 # ── Adaptive VAD ────────────────────────────────────────────────────────
 # Uses a rolling noise floor instead of a fixed threshold, so detection
 # works even on quiet mics/low gain. Speech is declared when the chunk RMS
@@ -99,7 +108,7 @@ _SILERO_TRIED = False
 
 def _load_silero():
     """Lazy-load silero-vad. Returns (model, utils) or (None, None)."""
-    global _SILERO_TRIED
+    global _SILERO_TRIED, _SILERO_MODEL, _SILERO_UTILS
     if _SILERO_TRIED:
         return _SILERO_MODEL, _SILERO_UTILS
     _SILERO_TRIED = True
@@ -138,12 +147,35 @@ def detect_speech_silero(audio, sample_rate):
         return None
 
 
+def detect_speech_auto(audio, abs_threshold, min_duration, sample_rate, noise_floor):
+    """Choose the best available VAD: Silero (precisa) se carregado, senão o
+    VAD adaptativo por RMS. Returns (has_speech, duration, noise_floor) —
+    noise_floor inalterado quando silero decide."""
+    res = detect_speech_silero(audio, sample_rate)
+    if res is not None:
+        has_speech, duration = res
+        return has_speech, duration, noise_floor
+    return detect_speech(audio, abs_threshold, min_duration, sample_rate, noise_floor)
+
+
 # ── Send audio to STT server ──────────────────────────────────────────
-WAKE_PROMPT = "Ok Orun, okay Orun, oi Orun, oie Orun, hey Orun, Ok Hampton, oi Hampton"
+# IMPORTANTE: NÃO enviamos initial_prompt com as palavras de wake. O Whisper
+# tende a alucinar/repetir palavras do prompt mesmo em áudio de ruído — foi
+# isso que causava falsos positivos (transcrição "Hampton" com RMS de 0.0004,
+# ou seja, barulho ambiente sem fala). Sem prompt, a transcrição reflete o
+# que existe de fato no áudio; o match fuzzy de "orun"/"hampton" cobre os
+# erros fonéticos comuns.
+
+# NO_SPEECH_REJECT: se o STT estimar que o áudio tem probabilidade alta de
+# não conter fala, descartamos (evita que ruído vire "Hampton"). Mais baixo
+# que o default do stt_server (0.6) = mais conservador para o wake.
+NO_SPEECH_REJECT = 0.4
 
 
 def transcribe_audio(audio, sample_rate, stt_url):
-    """Send audio to the STT server and return the transcription."""
+    """Send audio to the STT server. Returns (text, no_speech_prob) so the
+    caller can reject clips that are likely pure noise (Whisper alucina
+    palavras de wake em ruído)."""
     import io
     import wave
     import requests
@@ -162,56 +194,118 @@ def transcribe_audio(audio, sample_rate, stt_url):
         resp = requests.post(
             f"{stt_url}/v1/audio/transcriptions",
             files={"file": ("audio.wav", buf, "audio/wav")},
-            data={"language": "pt", "initial_prompt": WAKE_PROMPT},
-            timeout=10,
+            data={"language": "pt", "no_speech_threshold": NO_SPEECH_REJECT},
+            timeout=30,
         )
         if resp.status_code == 200:
-            return resp.json().get("text", "").strip()
+            data = resp.json()
+            no_speech_prob = data.get("no_speech_prob")
+            return (data.get("text", "").strip(), no_speech_prob)
     except Exception as e:
         print(f"[wake] STT error: {e}", flush=True)
-    return ""
+    return ("", None)
 
 
 # ── Check wake word ────────────────────────────────────────────────────
 import re
 
-# Fuzzy patterns: Whisper may transcribe "orun" as variations
+# Whisper often mangles "orun" (pt-BR): accept the common phonetic variants.
+# Optional trigger prefix (ok/oi/hey/...) or bare "orun" anywhere in the text.
+ORUN_VARIANTS = [
+    "orun", "orum", "oren", "ourum", "orõ", "orã", "orunh", "orún",
+    "oron", "oram", "oran", "aurun", "awrun", "oh run", "o run",
+]
+ORUN_PREFIXES = "ok|okay|ô|o|oi|oie|hey|ei|oh"
 ORUN_FUZZY = re.compile(
-    r"(?:ok|okay|ô|o|oi|oie|hey|oi\s+hampton|ok\s+hampton)\s+"
-    r"(?:orun|orum|oren|ourum|orõ|orã|orum|oren|orunh|orún)",
+    rf"\b(?:(?:{ORUN_PREFIXES})\s+)?(?:{'|'.join(ORUN_VARIANTS)})\b",
     re.IGNORECASE,
 )
-HAMPTON_EXACT = re.compile(r"\bhampton\b", re.IGNORECASE)
+
+# "hampton" also gets mangled by Whisper — cover common mis-transcriptions.
+HAMPTON_VARIANTS = [
+    "hampton", "hamptom", "hampon", "hampeton", "hempton", "hampion",
+    "hamtom", "hantam", "hantom",
+    "ampton", "amptom", "amton", "amtom", "anpton", "aumpton",
+]
+HAMPTON_FUZZY = re.compile(
+    rf"\b(?:{'|'.join(HAMPTON_VARIANTS)})\b",
+    re.IGNORECASE,
+)
 
 
 def contains_wake_word(text):
     """Check if text contains a wake word variant (exact + fuzzy)."""
     text_lower = text.lower().strip()
 
-    # Exact match first
+    # Exact match first (multi-word triggers + bare words in WAKE_WORDS)
     for wake in WAKE_WORDS:
         if wake in text_lower:
             return True
 
-    # Fuzzy match for "orun" variations
+    # Fuzzy match for "orun" and "hampton" variations (incl. bare "orun")
     if ORUN_FUZZY.search(text_lower):
         return True
-
-    # Exact "hampton" match
-    if HAMPTON_EXACT.search(text_lower):
+    if HAMPTON_FUZZY.search(text_lower):
         return True
 
     return False
 
 
+# ── Strip wake word from transcript ────────────────────────────────────
+WAKE_STRIP_PUNCT = ".,;:!?()[]{}\"'`"
+WAKE_STRIP_SPACES = " \t"
+
+
+def clean_command(text):
+    """Remove leading/trailing whitespace and stray punctuation left after
+    stripping the wake word (e.g. 'orun, liga o spotify' -> 'liga o spotify')."""
+    t = text.strip(WAKE_STRIP_SPACES + WAKE_STRIP_PUNCT)
+    return t.strip(WAKE_STRIP_SPACES)
+
+
+def strip_wake_word(text):
+    """Remove the wake phrase from a transcript, returning the remaining
+    command ("" if the utterance was only the wake word).
+
+    Order: exact WAKE_WORDS match first (longest first to prefer "ok orun"
+    over a bare "orun"), then fuzzy 'orun', then fuzzy 'hampton'."""
+    if not text:
+        return ""
+    t = text.strip()
+    tl = t.lower()
+
+    for wake in sorted(WAKE_WORDS, key=len, reverse=True):
+        idx = tl.find(wake)
+        if idx >= 0:
+            t = t[:idx] + " " + t[idx + len(wake):]
+            break
+    else:
+        m = ORUN_FUZZY.search(t)
+        if m:
+            t = t[:m.start()] + " " + t[m.end():]
+        else:
+            m = HAMPTON_FUZZY.search(t)
+            if m:
+                t = t[:m.start()] + " " + t[m.end():]
+
+    return clean_command(t)
+
+
 # ── Signal Electron via TCP ────────────────────────────────────────────
-def signal_electron(port, token=""):
-    """Send a wake signal to the Electron app via TCP."""
+def signal_electron(port, token="", text=None):
+    """Send a wake signal to the Electron app via TCP.
+
+    text: optional command transcribed in the same utterance (e.g. "liga o
+    spotify"). Electron opens the voice overlay already primed with this
+    command, so the AI acts without the user having to repeat the phrase."""
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.settimeout(2)
             s.connect(("127.0.0.1", port))
-            s.sendall(json.dumps({"type": "wake", "token": token}).encode())
+            payload = {"type": "wake", "token": token}
+            if text:
+                payload["text"] = text
+            s.sendall(json.dumps(payload).encode())
     except Exception as e:
         print(f"[wake] signal error: {e}", flush=True)
 
@@ -221,10 +315,14 @@ def main():
     global VERBOSE
     parser = argparse.ArgumentParser(description="Orun OS Wake Word Service")
     parser.add_argument("--port", type=int, default=8081, help="TCP port for Electron IPC (default: 8081)")
-    parser.add_argument("--stt-url", type=str, default="http://localhost:8080", help="STT server URL")
+    parser.add_argument("--stt-url", type=str, default="http://127.0.0.1:8080", help="STT server URL")
     parser.add_argument("--threshold", type=float, default=SILENCE_THRESHOLD, help="VAD energy threshold")
     parser.add_argument("--token", type=str, default="", help="Auth token for TCP IPC")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
+    parser.add_argument(
+        "--chunk-duration", type=float, default=CHUNK_DURATION,
+        help=f"Recording chunk duration in seconds (default: {CHUNK_DURATION})",
+    )
     parser.add_argument(
         "--vad", type=str, default="auto", choices=["auto", "silero", "rms"],
         help="VAD engine: auto (silero se disponível, senão RMS), silero, rms (default: auto)",
@@ -266,7 +364,7 @@ def main():
     while True:
         try:
             # Record a chunk
-            audio = record_chunk(CHUNK_DURATION, SAMPLE_RATE)
+            audio = record_chunk(args.chunk_duration, SAMPLE_RATE)
             if audio is None:
                 consecutive_failures += 1
                 if consecutive_failures >= max_failures:
@@ -283,17 +381,12 @@ def main():
             if VERBOSE:
                 print(f"[wake] RMS energy: {rms:.6f} (floor: {noise_floor:.6f})", flush=True)
 
-            # Choose VAD engine
+            # Choose VAD engine (Silero se disponível, senão RMS adaptativo)
             if use_silero:
-                res = detect_speech_silero(audio, SAMPLE_RATE)
-                if res is not None:
-                    has_speech, duration = res
-                else:
-                    has_speech, duration, noise_floor = detect_speech(
-                        audio, args.threshold, MIN_SPEECH_DURATION, SAMPLE_RATE, noise_floor
-                    )
+                has_speech, duration, noise_floor = detect_speech_auto(
+                    audio, args.threshold, MIN_SPEECH_DURATION, SAMPLE_RATE, noise_floor
+                )
             else:
-                # Check for speech (adaptive noise floor)
                 has_speech, duration, noise_floor = detect_speech(
                     audio, args.threshold, MIN_SPEECH_DURATION, SAMPLE_RATE, noise_floor
                 )
@@ -307,9 +400,17 @@ def main():
             print(f"[wake] Speech detected ({duration:.1f}s, RMS={rms:.6f}), transcribing...", flush=True)
 
             # Transcribe
-            text = transcribe_audio(audio, SAMPLE_RATE, args.stt_url)
+            text, no_speech_prob = transcribe_audio(audio, SAMPLE_RATE, args.stt_url)
             if not text:
                 print("[wake] No text from STT", flush=True)
+                time.sleep(SLEEP_BETWEEN_CHUNKS)
+                continue
+
+            # Reject likely-noise clips: Whisper alucina "orun/hampton" em
+            # ruído ambiente (TV, teclado). Se o STT diz alta prob. de não
+            # haver fala, é falso positivo mesmo que o texto tenha o wake.
+            if no_speech_prob is not None and no_speech_prob > NO_SPEECH_REJECT:
+                print(f"[wake] No-speech prob {no_speech_prob:.2f} > {NO_SPEECH_REJECT} — descartando ruído: \"{text}\"", flush=True)
                 time.sleep(SLEEP_BETWEEN_CHUNKS)
                 continue
 
@@ -317,8 +418,9 @@ def main():
 
             # Check wake word
             if contains_wake_word(text):
-                print(f"[wake] ✓ Wake word detected! Signaling Electron...", flush=True)
-                signal_electron(args.port, args.token)
+                command = strip_wake_word(text)
+                print(f"[wake] Wake word detected! Command: \"{command}\"", flush=True)
+                signal_electron(args.port, args.token, command or None)
                 time.sleep(2)  # Cooldown after detection
             else:
                 if VERBOSE:

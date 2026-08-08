@@ -6,6 +6,7 @@ interface VoiceSettings {
   conversationalMode: boolean;
   noiseSuppression: boolean;
   responseDelay: number;
+  sustainedInterrupt: boolean;
   wakeWordEnabled: boolean;
   toggleWakeWord: (enabled: boolean) => void;
 }
@@ -15,6 +16,7 @@ export function useVoiceSettings(): VoiceSettings {
   const [conversationalMode, setConversationalMode] = useState(true);
   const [noiseSuppression, setNoiseSuppression] = useState(true);
   const [responseDelay, setResponseDelay] = useState(1200);
+  const [sustainedInterrupt, setSustainedInterrupt] = useState(true);
   const [wakeWordEnabled, setWakeWordEnabled] = useState(false);
   const mountedRef = useRef(true);
 
@@ -31,12 +33,12 @@ export function useVoiceSettings(): VoiceSettings {
       if (v?.engine === "whisper" && v?.baseUrl) {
         setWhisperUrl(v.baseUrl);
       } else {
-        window.orun.stt.testConnection("http://localhost:8080")
+        window.orun.stt.testConnection("http://127.0.0.1:8080")
           .then((result: any) => {
             if (!mountedRef.current) return;
             if (result?.ok) {
-              setWhisperUrl("http://localhost:8080");
-              window.orun?.settings?.set("stt", { engine: "whisper", baseUrl: "http://localhost:8080", model: "small", device: "cpu", computeType: "int8" }).catch((err: unknown) => console.warn("[IPC error]", err));
+              setWhisperUrl("http://127.0.0.1:8080");
+              window.orun?.settings?.set("stt", { engine: "whisper", baseUrl: "http://127.0.0.1:8080", model: "small", device: "cpu", computeType: "int8" }).catch((err: unknown) => console.warn("[IPC error]", err));
             }
           })
           .catch((err: unknown) => console.warn("[IPC error]", err));
@@ -54,11 +56,12 @@ export function useVoiceSettings(): VoiceSettings {
   // Read voice settings (conversational, noise suppression, response delay)
   useEffect(() => {
     if (!isElectron) return;
-    window.orun.settings.get<{ conversational?: boolean; noiseSuppression?: boolean; responseDelay?: number }>("voice").then((v) => {
+    window.orun.settings.get<{ conversational?: boolean; noiseSuppression?: boolean; responseDelay?: number; sustainedInterrupt?: boolean }>("voice").then((v) => {
       if (!mountedRef.current) return;
       if (v?.conversational) setConversationalMode(true);
       if (v?.noiseSuppression !== undefined) setNoiseSuppression(v.noiseSuppression);
       if (v?.responseDelay) setResponseDelay(v.responseDelay);
+      if (v?.sustainedInterrupt !== undefined) setSustainedInterrupt(v.sustainedInterrupt);
     }).catch((err: unknown) => console.warn("[IPC error]", err));
   }, []);
 
@@ -67,5 +70,5 @@ export function useVoiceSettings(): VoiceSettings {
     window.orun?.settings?.set("wakeWordEnabled", enabled);
   }, []);
 
-  return { whisperUrl, conversationalMode, noiseSuppression, responseDelay, wakeWordEnabled, toggleWakeWord };
+  return { whisperUrl, conversationalMode, noiseSuppression, responseDelay, sustainedInterrupt, wakeWordEnabled, toggleWakeWord };
 }

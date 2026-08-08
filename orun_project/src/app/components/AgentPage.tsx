@@ -4,7 +4,7 @@ import { ArrowLeft, Zap, Send, Layers } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { AGENT_ENVIRONMENTS, getTranslatedEnv } from "./agentPageData";
 import { HealthCharts, FinanceCharts, DeveloperCharts, TeacherCharts, CreatorCharts, DesignerCharts, MarketingCharts, NoCharts } from "./agentCharts";
-import { isElectron } from "../constants";
+import { isElectron, getAgents } from "../constants";
 import { useTranslation } from "../../i18n/I18nProvider";
 import { hasPlugin, getWorkspacePluginId } from "../plugins/PluginRegistry";
 
@@ -202,6 +202,23 @@ export function AgentPage({ agent, onClose, onStartChat, onOpenWorkspace }: Prop
             >
               {env.tagline}
             </motion.p>
+
+            {getAgents(t).find(a => a.name === agent)?.persona && (
+              <motion.div
+                className="mt-3 inline-flex items-center gap-2 px-3 py-1 rounded-full border"
+                style={{ borderColor: `${env.accent}30`, background: `${env.accent}10` }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <span className="text-[10px] tracking-widest uppercase" style={{ color: env.accent, fontFamily: "'Sora', sans-serif" }}>
+                  {getAgents(t).find(a => a.name === agent)?.persona}
+                </span>
+                <span className="text-[9px]" style={{ color: isDark ? "#777" : "#A0AEC0", fontFamily: "'JetBrains Mono', monospace" }}>
+                  {agent}
+                </span>
+              </motion.div>
+            )}
           </div>
         </div>
 

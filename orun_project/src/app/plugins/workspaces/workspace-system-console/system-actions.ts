@@ -13,7 +13,7 @@ function getConsoleState() {
 }
 
 const BLOCKED_COMMANDS = [
-  /rm\s+-rf\s+[\/~]/i,
+  /rm\s+-rf\s+[/~]/i,
   /mkfs/i,
   /dd\s+if=/i,
   /:()\s*\{\s*:\|:&\s*\};/i,

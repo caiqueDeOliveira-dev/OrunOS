@@ -13,6 +13,7 @@ import { sanitizeText } from "../../../utils/sanitize";
 import { usePersonalization, useWorkspaceNotes, useWorkspaceGoals, useWorkspaceStats } from "../../../hooks/usePersonalization";
 import { useConfirmDialog } from "../../../hooks/useConfirmDialog";
 import { getPluginSettings, setPluginSettings } from "../../PluginRegistry";
+import { P, PremiumRoot, ScrollArea } from "../premium";
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -54,9 +55,9 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  aberto: "#EAB308",
+  aberto: P.alert,
   andamento: "#1E40AF",
-  arquivado: "#6B7280",
+  arquivado: P.dim,
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -67,9 +68,9 @@ const STATUS_LABELS: Record<string, string> = {
 
 const STAT_CARD_STYLE: React.CSSProperties = {
   padding: "16px",
-  borderRadius: "12px",
-  background: "var(--card)",
-  border: "1px solid var(--border)",
+  borderRadius: "18px",
+  background: P.card,
+  border: `1px solid ${P.border}`,
 };
 
 // ── Component ─────────────────────────────────────────────────────────
@@ -228,17 +229,19 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
     : null;
 
   return (
-    <div className="flex-1 flex flex-col p-6 gap-6 overflow-y-auto" style={{ background: "var(--background)" }}>
+    <PremiumRoot>
+      <ScrollArea className="p-6">
+      <div className="flex flex-col gap-6">
       {dialogElement}
       {/* ── Header ─────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #1E40AF, #D4AF37)" }}>
+          <div className="w-10 h-10 rounded-[18px] flex items-center justify-center" style={{ background: "linear-gradient(135deg, #1E40AF, #D4AF37)" }}>
             <Scale size={18} color="#fff" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold" style={{ fontFamily: "'Sora', sans-serif", color: "var(--foreground)" }}>{greeting}, Dr. {userName}</h2>
-            <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>Escritório Jurídico · Catálogo de Provas</p>
+            <h2 className="text-sm font-semibold" style={{ fontFamily: "'Sora', sans-serif", color: P.text }}>{greeting}, Dr. {userName}</h2>
+            <p className="text-[10px]" style={{ color: P.sub }}>Escritório Jurídico · Catálogo de Provas</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -252,7 +255,7 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
       </div>
 
       {/* ── Tabs ────────────────────────────────────────── */}
-      <div className="flex gap-1 p-1 rounded-xl" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+      <div className="flex gap-1 p-1 rounded-[18px]" style={{ background: P.card, border: `1px solid ${P.border}` }}>
         {TABS.map((tab) => {
           const Icon = tab.icon;
           const active = activeTab === tab.id;
@@ -264,7 +267,7 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
               style={{
                 fontFamily: "'Sora', sans-serif",
                 background: active ? "linear-gradient(135deg, rgba(30,64,175,0.12), rgba(212,175,55,0.08))" : "transparent",
-                color: active ? "#1E40AF" : "var(--muted-foreground)",
+                color: active ? "#1E40AF" : P.sub,
                 fontWeight: active ? 500 : 300,
               }}
             >
@@ -290,15 +293,15 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
             {[
               { label: "Evidências", value: String(stats.total), icon: Camera, color: "#1E40AF" },
               { label: "Fotos", value: String(stats.fotos), icon: Image, color: "#D4AF37" },
-              { label: "Vídeos", value: String(stats.videos), icon: Video, color: "#22C55E" },
-              { label: "Casos", value: String(casos.length), icon: Briefcase, color: "#8B5CF6" },
+              { label: "Vídeos", value: String(stats.videos), icon: Video, color: P.success },
+              { label: "Casos", value: String(casos.length), icon: Briefcase, color: P.violet },
             ].map((s) => (
               <div key={s.label} style={STAT_CARD_STYLE}>
                 <div className="flex items-center gap-2 mb-2">
                   <s.icon size={14} style={{ color: s.color }} />
-                  <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>{s.label}</span>
+                  <span className="text-[10px]" style={{ color: P.sub }}>{s.label}</span>
                 </div>
-                <span className="text-lg font-bold" style={{ color: "var(--foreground)", fontFamily: "'Sora', sans-serif" }}>{s.value}</span>
+                <span className="text-lg font-bold" style={{ color: P.text, fontFamily: "'Sora', sans-serif" }}>{s.value}</span>
               </div>
             ))}
           </div>
@@ -313,12 +316,12 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
               <button
                 key={btn.label}
                 onClick={btn.action}
-                className="flex items-center gap-2 px-4 py-3 rounded-xl text-xs transition-all"
-                style={{ background: "var(--card)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+                className="flex items-center gap-2 px-4 py-3 rounded-[18px] text-xs transition-all"
+                style={{ background: P.card, border: `1px solid ${P.border}`, color: P.text }}
               >
                 <btn.icon size={16} style={{ color: btn.color }} />
                 {btn.label}
-                <ChevronRight size={12} style={{ color: "var(--muted-foreground)", marginLeft: "auto" }} />
+                <ChevronRight size={12} style={{ color: P.sub, marginLeft: "auto" }} />
               </button>
             ))}
           </div>
@@ -328,20 +331,20 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
             <div style={STAT_CARD_STYLE}>
               <div className="flex items-center gap-2 mb-3">
                 <Clock size={14} style={{ color: "#1E40AF" }} />
-                <span className="text-xs font-medium" style={{ color: "var(--foreground)" }}>Evidências Recentes</span>
+                <span className="text-xs font-medium" style={{ color: P.text }}>Evidências Recentes</span>
               </div>
               {recentEvidence.length === 0 ? (
-                <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>Nenhuma evidência cadastrada.</p>
+                <p className="text-[10px]" style={{ color: P.sub }}>Nenhuma evidência cadastrada.</p>
               ) : (
                 <div className="space-y-2">
                   {recentEvidence.map((ev) => {
                     const Icon = TYPE_ICONS[ev.type] || File;
                     return (
-                      <div key={ev.id} className="flex items-center gap-2 py-1.5 border-b" style={{ borderColor: "var(--border)" }}>
+                      <div key={ev.id} className="flex items-center gap-2 py-1.5 border-b" style={{ borderColor: P.border }}>
                         <Icon size={12} style={{ color: "#1E40AF" }} />
                         <div className="flex-1 min-w-0">
-                          <span className="text-[10px] block truncate" style={{ color: "var(--foreground)" }}>{ev.originalName}</span>
-                          <span className="text-[8px]" style={{ color: "var(--muted-foreground)" }}>{new Date(ev.dateReceived).toLocaleDateString("pt-BR")}</span>
+                          <span className="text-[10px] block truncate" style={{ color: P.text }}>{ev.originalName}</span>
+                          <span className="text-[8px]" style={{ color: P.sub }}>{new Date(ev.dateReceived).toLocaleDateString("pt-BR")}</span>
                         </div>
                         {ev.tags.length > 0 && (
                           <span className="text-[8px] px-1.5 py-0.5 rounded-full" style={{ background: "rgba(30,64,175,0.08)", color: "#1E40AF" }}>
@@ -358,17 +361,17 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
             <div style={STAT_CARD_STYLE}>
               <div className="flex items-center gap-2 mb-3">
                 <Briefcase size={14} style={{ color: "#1E40AF" }} />
-                <span className="text-xs font-medium" style={{ color: "var(--foreground)" }}>Casos Ativos</span>
+                <span className="text-xs font-medium" style={{ color: P.text }}>Casos Ativos</span>
               </div>
               {casos.length === 0 ? (
-                <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>Nenhum caso cadastrado.</p>
+                <p className="text-[10px]" style={{ color: P.sub }}>Nenhum caso cadastrado.</p>
               ) : (
                 <div className="space-y-2">
                   {casos.filter((c) => c.status !== "arquivado").slice(0, 3).map((c) => (
-                    <div key={c.id} className="flex items-center justify-between py-1.5 border-b" style={{ borderColor: "var(--border)" }}>
+                    <div key={c.id} className="flex items-center justify-between py-1.5 border-b" style={{ borderColor: P.border }}>
                       <div>
-                        <span className="text-[10px] block" style={{ color: "var(--foreground)" }}>{c.numero} — {c.cliente}</span>
-                        <span className="text-[8px]" style={{ color: "var(--muted-foreground)" }}>{c.tipo}</span>
+                        <span className="text-[10px] block" style={{ color: P.text }}>{c.numero} — {c.cliente}</span>
+                        <span className="text-[8px]" style={{ color: P.sub }}>{c.tipo}</span>
                       </div>
                       <span className="text-[8px] px-1.5 py-0.5 rounded-full" style={{
                         background: STATUS_COLORS[c.status] + "18",
@@ -386,14 +389,14 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
           {/* Storage info */}
           <div style={STAT_CARD_STYLE}>
             <div className="flex items-center gap-2 mb-2">
-              <HardDrive size={14} style={{ color: "var(--muted-foreground)" }} />
-              <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>Armazenamento de Evidências</span>
+              <HardDrive size={14} style={{ color: P.sub }} />
+              <span className="text-[10px]" style={{ color: P.sub }}>Armazenamento de Evidências</span>
             </div>
             <div className="flex items-center gap-4 text-[10px]">
-              <span style={{ color: "var(--foreground)" }}>Total: <strong>{(stats.totalSize / 1024 / 1024).toFixed(1)} MB</strong></span>
+              <span style={{ color: P.text }}>Total: <strong>{(stats.totalSize / 1024 / 1024).toFixed(1)} MB</strong></span>
               <span style={{ color: "#1E40AF" }}>📷 {stats.fotos} fotos</span>
-              <span style={{ color: "#22C55E" }}>🎬 {stats.videos} vídeos</span>
-              <span style={{ color: "#8B5CF6" }}>📄 {stats.documentos} documentos</span>
+              <span style={{ color: P.success }}>🎬 {stats.videos} vídeos</span>
+              <span style={{ color: P.violet }}>📄 {stats.documentos} documentos</span>
             </div>
           </div>
 
@@ -402,24 +405,24 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
             <div style={STAT_CARD_STYLE}>
               <div className="flex items-center gap-2 mb-1">
                 <BarChart3 size={12} style={{ color: "#D4AF37" }} />
-                <span className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>Hoje</span>
+                <span className="text-[9px]" style={{ color: P.sub }}>Hoje</span>
               </div>
-              <span className="text-lg font-bold" style={{ color: "var(--foreground)", fontFamily: "'Sora', sans-serif" }}>{personalStats["evidencia_adicionada"] || 0}</span>
-              <span className="text-[8px] ml-1" style={{ color: "var(--muted-foreground)" }}>ações</span>
+              <span className="text-lg font-bold" style={{ color: P.text, fontFamily: "'Sora', sans-serif" }}>{personalStats["evidencia_adicionada"] || 0}</span>
+              <span className="text-[8px] ml-1" style={{ color: P.sub }}>ações</span>
             </div>
             <div style={STAT_CARD_STYLE}>
               <div className="flex items-center gap-2 mb-1">
-                <TrendingUp size={12} style={{ color: "#22C55E" }} />
-                <span className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>Total ações</span>
+                <TrendingUp size={12} style={{ color: P.success }} />
+                <span className="text-[9px]" style={{ color: P.sub }}>Total ações</span>
               </div>
-              <span className="text-lg font-bold" style={{ color: "var(--foreground)", fontFamily: "'Sora', sans-serif" }}>{Object.values(personalStats).reduce((a, b) => a + b, 0)}</span>
+              <span className="text-lg font-bold" style={{ color: P.text, fontFamily: "'Sora', sans-serif" }}>{Object.values(personalStats).reduce((a, b) => a + b, 0)}</span>
             </div>
             <div style={STAT_CARD_STYLE}>
               <div className="flex items-center gap-2 mb-1">
                 <Award size={12} style={{ color: "#D4AF37" }} />
-                <span className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>Mais usado</span>
+                <span className="text-[9px]" style={{ color: P.sub }}>Mais usado</span>
               </div>
-              <span className="text-xs font-medium truncate block" style={{ color: "var(--foreground)", fontFamily: "'Sora', sans-serif" }}>
+              <span className="text-xs font-medium truncate block" style={{ color: P.text, fontFamily: "'Sora', sans-serif" }}>
                 {Object.entries(personalStats).sort((a, b) => b[1] - a[1])[0]?.[0]?.replace(/_/g, " ") || "—"}
               </span>
             </div>
@@ -430,7 +433,7 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <Award size={14} style={{ color: "#D4AF37" }} />
-                <span className="text-xs font-medium" style={{ color: "var(--foreground)" }}>Minhas Metas</span>
+                <span className="text-xs font-medium" style={{ color: P.text }}>Minhas Metas</span>
               </div>
               <button
                 onClick={() => {
@@ -447,7 +450,7 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
               </button>
             </div>
             {goals.length === 0 ? (
-              <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>Crie metas para acompanhar seu progresso.</p>
+              <p className="text-[10px]" style={{ color: P.sub }}>Crie metas para acompanhar seu progresso.</p>
             ) : (
               <div className="space-y-2">
                 {goals.map((g, i) => {
@@ -456,11 +459,11 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
                     <div key={i} className="flex items-center gap-2">
                       <div className="flex-1">
                         <div className="flex justify-between text-[9px] mb-1">
-                          <span style={{ color: "var(--foreground)" }}>{g.label}</span>
-                          <span style={{ color: pct >= 100 ? "#22C55E" : "#D4AF37" }}>{g.current}/{g.target}</span>
+                          <span style={{ color: P.text }}>{g.label}</span>
+                          <span style={{ color: pct >= 100 ? P.success : "#D4AF37" }}>{g.current}/{g.target}</span>
                         </div>
-                        <div className="h-1.5 rounded-full" style={{ background: "var(--secondary)" }}>
-                          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: pct >= 100 ? "#22C55E" : "linear-gradient(90deg, #1E40AF, #D4AF37)" }} />
+                        <div className="h-1.5 rounded-full" style={{ background: P.card2 }}>
+                          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: pct >= 100 ? P.success : "linear-gradient(90deg, #1E40AF, #D4AF37)" }} />
                         </div>
                       </div>
                       <button
@@ -472,7 +475,7 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
                       </button>
                       <button
                         onClick={() => updateGoals(goals.filter((_, j) => j !== i))}
-                        style={{ color: "var(--muted-foreground)" }}
+                        style={{ color: P.sub }}
                       >
                         <X size={10} />
                       </button>
@@ -486,14 +489,14 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
           {/* Notas Pessoais */}
           <div style={STAT_CARD_STYLE}>
             <div className="flex items-center gap-2 mb-2">
-              <FileText size={14} style={{ color: "#8B5CF6" }} />
-              <span className="text-xs font-medium" style={{ color: "var(--foreground)" }}>Notas Pessoais</span>
+              <FileText size={14} style={{ color: P.violet }} />
+              <span className="text-xs font-medium" style={{ color: P.text }}>Notas Pessoais</span>
             </div>
             <textarea
               value={notes}
               onChange={(e) => updateNotes(e.target.value)}
               className="w-full px-3 py-2 rounded-lg text-[10px] resize-none"
-              style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)", minHeight: "60px" }}
+              style={{ background: P.card2, color: P.text, border: `1px solid ${P.border}`, minHeight: "60px" }}
               placeholder="Suas anotações pessoais rápidas..."
             />
           </div>
@@ -516,8 +519,8 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
                     onClick={() => setEvidenceFilter(f)}
                     className="px-3 py-1.5 rounded-lg text-[9px] transition-all"
                     style={{
-                      background: evidenceFilter === f ? "#1E40AF" : "var(--secondary)",
-                      color: evidenceFilter === f ? "#fff" : "var(--muted-foreground)",
+                      background: evidenceFilter === f ? "#1E40AF" : P.card2,
+                      color: evidenceFilter === f ? "#fff" : P.sub,
                       fontWeight: evidenceFilter === f ? 500 : 300,
                     }}
                   >
@@ -549,19 +552,19 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
               onDragEnter={handleDragEnter}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
-              className="rounded-xl border-2 border-dashed transition-all flex flex-col items-center justify-center py-6"
+              className="rounded-[18px] border-2 border-dashed transition-all flex flex-col items-center justify-center py-6"
               style={{
-                borderColor: dragOver ? "#1E40AF" : "var(--border)",
-                background: dragOver ? "rgba(30,64,175,0.05)" : "var(--card)",
+                borderColor: dragOver ? "#1E40AF" : P.border,
+                background: dragOver ? "rgba(30,64,175,0.05)" : P.card,
               }}
             >
               {droppedPreviews.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {droppedPreviews.map((f, i) => (
                     f.dataUrl ? (
-                      <img key={i} src={f.dataUrl} alt={f.name} className="w-12 h-12 rounded-lg object-cover border" style={{ borderColor: "var(--border)" }} />
+                      <img key={i} src={f.dataUrl} alt={f.name} className="w-12 h-12 rounded-lg object-cover border" style={{ borderColor: P.border }} />
                     ) : (
-                      <div key={i} className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ background: "var(--secondary)" }}>
+                      <div key={i} className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ background: P.card2 }}>
                         <File size={16} />
                       </div>
                     )
@@ -569,8 +572,8 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
                 </div>
               ) : (
                 <>
-                  <Upload size={24} style={{ color: dragOver ? "#1E40AF" : "var(--muted-foreground)", opacity: 0.4 }} />
-                  <p className="text-[11px] mt-2" style={{ color: dragOver ? "#1E40AF" : "var(--muted-foreground)" }}>
+                  <Upload size={24} style={{ color: dragOver ? "#1E40AF" : P.sub, opacity: 0.4 }} />
+                  <p className="text-[11px] mt-2" style={{ color: dragOver ? "#1E40AF" : P.sub }}>
                     Arraste fotos e vídeos aqui
                   </p>
                 </>
@@ -580,9 +583,9 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
             {/* Grid */}
             <div className="grid grid-cols-3 gap-3 flex-1">
               {filteredEvidence.length === 0 ? (
-                <div className="col-span-3 flex flex-col items-center justify-center p-8 rounded-xl" style={{ background: "var(--card)", border: "1px dashed var(--border)" }}>
-                  <Camera size={32} style={{ color: "var(--muted-foreground)", opacity: 0.3 }} />
-                  <p className="text-[11px] mt-2" style={{ color: "var(--muted-foreground)" }}>Nenhuma evidência encontrada</p>
+                <div className="col-span-3 flex flex-col items-center justify-center p-8 rounded-[18px]" style={{ background: P.card, border: `1px dashed ${P.border}` }}>
+                  <Camera size={32} style={{ color: P.sub, opacity: 0.3 }} />
+                  <p className="text-[11px] mt-2" style={{ color: P.sub }}>Nenhuma evidência encontrada</p>
                   <button
                     onClick={() => setShowAddEvidence(true)}
                     className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[10px] mt-2"
@@ -598,10 +601,10 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
                     <button
                       key={ev.id}
                       onClick={() => setSelectedEvidence(ev)}
-                      className="flex flex-col p-3 rounded-xl text-left transition-all"
+                      className="flex flex-col p-3 rounded-[18px] text-left transition-all"
                       style={{
-                        background: selectedEvidence?.id === ev.id ? "rgba(30,64,175,0.08)" : "var(--card)",
-                        border: selectedEvidence?.id === ev.id ? "1px solid #1E40AF" : "1px solid var(--border)",
+                        background: selectedEvidence?.id === ev.id ? "rgba(30,64,175,0.08)" : P.card,
+                        border: selectedEvidence?.id === ev.id ? "1px solid #1E40AF" : `1px solid ${P.border}`,
                       }}
                     >
                       <div className="flex items-center gap-2 mb-2">
@@ -609,8 +612,8 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
                           <Icon size={14} style={{ color: "#1E40AF" }} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <span className="text-[10px] font-medium block truncate" style={{ color: "var(--foreground)" }}>{ev.originalName}</span>
-                          <span className="text-[8px]" style={{ color: "var(--muted-foreground)" }}>{TYPE_LABELS[ev.type]} · {new Date(ev.dateReceived).toLocaleDateString("pt-BR")}</span>
+                          <span className="text-[10px] font-medium block truncate" style={{ color: P.text }}>{ev.originalName}</span>
+                          <span className="text-[8px]" style={{ color: P.sub }}>{TYPE_LABELS[ev.type]} · {new Date(ev.dateReceived).toLocaleDateString("pt-BR")}</span>
                         </div>
                       </div>
                       {ev.tags.length > 0 && (
@@ -623,7 +626,7 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
                         </div>
                       )}
                       {ev.caseRef && (
-                        <span className="text-[8px] mt-1 flex items-center gap-1" style={{ color: "#8B5CF6" }}>
+                        <span className="text-[8px] mt-1 flex items-center gap-1" style={{ color: P.violet }}>
                           <Link2 size={8} /> Vinculado a caso
                         </span>
                       )}
@@ -637,32 +640,32 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
           {/* Evidence Detail Panel */}
           {selectedEvidence && (
             <div className="w-72 flex flex-col gap-3" style={{ minWidth: "240px" }}>
-              <div className="p-4 rounded-xl" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+              <div className="p-4 rounded-[18px]" style={{ background: P.card, border: `1px solid ${P.border}` }}>
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-medium" style={{ color: "var(--foreground)" }}>Detalhes</span>
-                  <button onClick={() => setSelectedEvidence(null)} style={{ color: "var(--muted-foreground)" }}>
+                  <span className="text-xs font-medium" style={{ color: P.text }}>Detalhes</span>
+                  <button onClick={() => setSelectedEvidence(null)} style={{ color: P.sub }}>
                     <X size={14} />
                   </button>
                 </div>
 
                 <div className="flex flex-col items-center mb-4">
-                  <div className="w-16 h-16 rounded-xl flex items-center justify-center mb-2" style={{ background: "rgba(30,64,175,0.1)" }}>
+                  <div className="w-16 h-16 rounded-[18px] flex items-center justify-center mb-2" style={{ background: "rgba(30,64,175,0.1)" }}>
                     {(() => { const Icon = TYPE_ICONS[selectedEvidence.type] || File; return <Icon size={28} style={{ color: "#1E40AF" }} />; })()}
                   </div>
-                  <span className="text-xs font-medium text-center" style={{ color: "var(--foreground)" }}>{selectedEvidence.originalName}</span>
-                  <span className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>{TYPE_LABELS[selectedEvidence.type]}</span>
+                  <span className="text-xs font-medium text-center" style={{ color: P.text }}>{selectedEvidence.originalName}</span>
+                  <span className="text-[9px]" style={{ color: P.sub }}>{TYPE_LABELS[selectedEvidence.type]}</span>
                 </div>
 
                 {/* Detail tabs */}
-                <div className="flex gap-1 mb-3 p-0.5 rounded-lg" style={{ background: "var(--secondary)" }}>
+                <div className="flex gap-1 mb-3 p-0.5 rounded-lg" style={{ background: P.card2 }}>
                   {(["info", "caso"] as const).map((t) => (
                     <button
                       key={t}
                       onClick={() => setEvidenceDetailTab(t)}
                       className="flex-1 py-1 rounded text-[9px]"
                       style={{
-                        background: evidenceDetailTab === t ? "var(--card)" : "transparent",
-                        color: evidenceDetailTab === t ? "var(--foreground)" : "var(--muted-foreground)",
+                        background: evidenceDetailTab === t ? P.card : "transparent",
+                        color: evidenceDetailTab === t ? P.text : P.sub,
                       }}
                     >
                       {t === "info" ? "Info" : "Caso"}
@@ -673,26 +676,26 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
                 {evidenceDetailTab === "info" && (
                   <div className="space-y-2 text-[10px]">
                     <div className="flex justify-between">
-                      <span style={{ color: "var(--muted-foreground)" }}>Data</span>
-                      <span style={{ color: "var(--foreground)" }}>{new Date(selectedEvidence.dateReceived).toLocaleDateString("pt-BR")}</span>
+                      <span style={{ color: P.sub }}>Data</span>
+                      <span style={{ color: P.text }}>{new Date(selectedEvidence.dateReceived).toLocaleDateString("pt-BR")}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span style={{ color: "var(--muted-foreground)" }}>Arquivo</span>
-                      <span className="truncate max-w-[120px]" style={{ color: "var(--foreground)" }}>{selectedEvidence.fileName}</span>
+                      <span style={{ color: P.sub }}>Arquivo</span>
+                      <span className="truncate max-w-[120px]" style={{ color: P.text }}>{selectedEvidence.fileName}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span style={{ color: "var(--muted-foreground)" }}>Tamanho</span>
-                      <span style={{ color: "var(--foreground)" }}>{(selectedEvidence.size / 1024).toFixed(1)} KB</span>
+                      <span style={{ color: P.sub }}>Tamanho</span>
+                      <span style={{ color: P.text }}>{(selectedEvidence.size / 1024).toFixed(1)} KB</span>
                     </div>
                     {selectedEvidence.description && (
                       <div>
-                        <span style={{ color: "var(--muted-foreground)" }}>Descrição</span>
-                        <p style={{ color: "var(--foreground)" }} className="mt-1">{selectedEvidence.description}</p>
+                        <span style={{ color: P.sub }}>Descrição</span>
+                        <p style={{ color: P.text }} className="mt-1">{selectedEvidence.description}</p>
                       </div>
                     )}
                     {selectedEvidence.tags.length > 0 && (
                       <div>
-                        <span style={{ color: "var(--muted-foreground)" }}>Tags</span>
+                        <span style={{ color: P.sub }}>Tags</span>
                         <div className="flex flex-wrap gap-1 mt-1">
                           {selectedEvidence.tags.map((tag) => (
                             <span key={tag} className="text-[8px] px-1.5 py-0.5 rounded-full" style={{ background: "rgba(212,175,55,0.1)", color: "#D4AF37" }}>
@@ -708,17 +711,17 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
                 {evidenceDetailTab === "caso" && (
                   <div className="space-y-2">
                     {evidenceByCase ? (
-                      <div className="p-2 rounded-lg" style={{ background: "var(--secondary)" }}>
-                        <span className="text-[10px] font-medium block" style={{ color: "var(--foreground)" }}>{evidenceByCase.numero}</span>
-                        <span className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>{evidenceByCase.cliente} · {evidenceByCase.tipo}</span>
+                      <div className="p-2 rounded-lg" style={{ background: P.card2 }}>
+                        <span className="text-[10px] font-medium block" style={{ color: P.text }}>{evidenceByCase.numero}</span>
+                        <span className="text-[9px]" style={{ color: P.sub }}>{evidenceByCase.cliente} · {evidenceByCase.tipo}</span>
                       </div>
                     ) : (
                       <div>
-                        <p className="text-[10px] mb-2" style={{ color: "var(--muted-foreground)" }}>Não vinculado a nenhum caso.</p>
+                        <p className="text-[10px] mb-2" style={{ color: P.sub }}>Não vinculado a nenhum caso.</p>
                         {casos.length > 0 && (
                           <select
                             className="w-full p-1.5 rounded-lg text-[10px]"
-                            style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)" }}
+                            style={{ background: P.card2, color: P.text, border: `1px solid ${P.border}` }}
                             onChange={(e) => {
                               if (e.target.value) handleLinkEvidenceToCase(selectedEvidence.id, e.target.value);
                             }}
@@ -735,7 +738,7 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
                 )}
 
                 <div className="flex gap-2 mt-4">
-                  <button className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-[9px]" style={{ background: "var(--secondary)", color: "var(--foreground)" }}>
+                  <button className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-[9px]" style={{ background: P.card2, color: P.text }}>
                     <Download size={10} /> Baixar
                   </button>
                   <button
@@ -746,7 +749,7 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
                       variant: "danger",
                       onConfirm: () => handleRemoveEvidence(selectedEvidence.id),
                     })}
-                    className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-[9px]" style={{ background: "rgba(192,0,24,0.1)", color: "#C00018" }}
+                    className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-[9px]" style={{ background: "rgba(195,0,47,0.1)", color: P.primary }}
                   >
                     <Trash2 size={10} /> Excluir
                   </button>
@@ -763,7 +766,7 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
       {activeTab === "casos" && (
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium" style={{ color: "var(--foreground)" }}>Meus Casos</span>
+            <span className="text-xs font-medium" style={{ color: P.text }}>Meus Casos</span>
             <button
               onClick={() => setShowAddCase(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px]"
@@ -774,20 +777,20 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
           </div>
 
           {casos.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-8 rounded-xl" style={{ background: "var(--card)", border: "1px dashed var(--border)" }}>
-              <Briefcase size={32} style={{ color: "var(--muted-foreground)", opacity: 0.3 }} />
-              <p className="text-[11px] mt-2" style={{ color: "var(--muted-foreground)" }}>Nenhum caso cadastrado</p>
+            <div className="flex flex-col items-center justify-center p-8 rounded-[18px]" style={{ background: P.card, border: `1px dashed ${P.border}` }}>
+              <Briefcase size={32} style={{ color: P.sub, opacity: 0.3 }} />
+              <p className="text-[11px] mt-2" style={{ color: P.sub }}>Nenhum caso cadastrado</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3">
               {casos.map((c) => {
                 const caseEvidence = evidenceList.filter((e) => e.caseRef === c.id);
                 return (
-                  <div key={c.id} className="p-4 rounded-xl" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+                  <div key={c.id} className="p-4 rounded-[18px]" style={{ background: P.card, border: `1px solid ${P.border}` }}>
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <Briefcase size={14} style={{ color: "#1E40AF" }} />
-                        <span className="text-xs font-medium" style={{ color: "var(--foreground)" }}>{c.numero}</span>
+                        <span className="text-xs font-medium" style={{ color: P.text }}>{c.numero}</span>
                       </div>
                       <span className="text-[8px] px-2 py-0.5 rounded-full" style={{
                         background: STATUS_COLORS[c.status] + "18",
@@ -798,18 +801,18 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
                     </div>
                     <div className="space-y-1 text-[10px]">
                       <div className="flex items-center gap-1">
-                        <User size={10} style={{ color: "var(--muted-foreground)" }} />
-                        <span style={{ color: "var(--foreground)" }}>{c.cliente}</span>
+                        <User size={10} style={{ color: P.sub }} />
+                        <span style={{ color: P.text }}>{c.cliente}</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Tag size={10} style={{ color: "var(--muted-foreground)" }} />
-                        <span style={{ color: "var(--muted-foreground)" }}>{c.tipo.charAt(0).toUpperCase() + c.tipo.slice(1)}</span>
+                        <Tag size={10} style={{ color: P.sub }} />
+                        <span style={{ color: P.sub }}>{c.tipo.charAt(0).toUpperCase() + c.tipo.slice(1)}</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Calendar size={10} style={{ color: "var(--muted-foreground)" }} />
-                        <span style={{ color: "var(--muted-foreground)" }}>{new Date(c.dataAbertura).toLocaleDateString("pt-BR")}</span>
+                        <Calendar size={10} style={{ color: P.sub }} />
+                        <span style={{ color: P.sub }}>{new Date(c.dataAbertura).toLocaleDateString("pt-BR")}</span>
                       </div>
-                      <p className="text-[9px] mt-1" style={{ color: "var(--muted-foreground)" }}>{c.descricao}</p>
+                      <p className="text-[9px] mt-1" style={{ color: P.sub }}>{c.descricao}</p>
                       <div className="flex items-center gap-1 mt-2">
                         <Camera size={10} style={{ color: "#D4AF37" }} />
                         <span style={{ color: "#D4AF37" }}>{caseEvidence.length} evidência(s) vinculada(s)</span>
@@ -841,13 +844,13 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
       {activeTab === "whatsapp" && (
         <div className="flex flex-col gap-4">
           {/* Connection Status */}
-          <div className="p-4 rounded-xl" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+          <div className="p-4 rounded-[18px]" style={{ background: P.card, border: `1px solid ${P.border}` }}>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <MessageSquare size={16} style={{ color: "#25D366" }} />
-                <span className="text-xs font-medium" style={{ color: "var(--foreground)" }}>WhatsApp</span>
+                <span className="text-xs font-medium" style={{ color: P.text }}>WhatsApp</span>
               </div>
-              <label className="flex items-center gap-2 text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+              <label className="flex items-center gap-2 text-[10px]" style={{ color: P.sub }}>
                 <input
                   type="checkbox"
                   checked={whatsAutoSave}
@@ -860,8 +863,8 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
 
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full" style={{ background: whatsConnected ? "#22C55E" : "#6B7280" }} />
-                <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+                <div className="w-2 h-2 rounded-full" style={{ background: whatsConnected ? P.success : P.dim }} />
+                <span className="text-[10px]" style={{ color: P.sub }}>
                   {whatsConnected ? "Conectado" : "Desconectado"}
                 </span>
               </div>
@@ -869,8 +872,8 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
                 onClick={() => setWhatsConnected(!whatsConnected)}
                 className="px-3 py-1.5 rounded-lg text-[9px]"
                 style={{
-                  background: whatsConnected ? "rgba(192,0,24,0.1)" : "#25D366",
-                  color: whatsConnected ? "#C00018" : "#fff",
+                  background: whatsConnected ? "rgba(195,0,47,0.1)" : "#25D366",
+                  color: whatsConnected ? P.primary : "#fff",
                 }}
               >
                 {whatsConnected ? "Desconectar" : "Conectar WhatsApp"}
@@ -878,11 +881,11 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
             </div>
 
             {!whatsConnected && (
-              <div className="p-3 rounded-lg" style={{ background: "var(--secondary)" }}>
-                <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
-                  Envie fotos e vídeos para o número <strong style={{ color: "var(--foreground)" }}>(XX) XXXXX-XXXX</strong> para registrar como evidência automaticamente.
+              <div className="p-3 rounded-lg" style={{ background: P.card2 }}>
+                <p className="text-[10px]" style={{ color: P.sub }}>
+                  Envie fotos e vídeos para o número <strong style={{ color: P.text }}>(XX) XXXXX-XXXX</strong> para registrar como evidência automaticamente.
                 </p>
-                <p className="text-[9px] mt-1" style={{ color: "var(--muted-foreground)" }}>
+                <p className="text-[9px] mt-1" style={{ color: P.sub }}>
                   Após conectar, todas as mídias recebidas serão salvas no catálogo de evidências e organizadas por data e caso.
                 </p>
               </div>
@@ -891,12 +894,12 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
 
           {/* Instructions */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="p-4 rounded-xl" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="p-4 rounded-[18px]" style={{ background: P.card, border: `1px solid ${P.border}` }}>
               <div className="flex items-center gap-2 mb-2">
                 <Smartphone size={14} style={{ color: "#25D366" }} />
-                <span className="text-xs font-medium" style={{ color: "var(--foreground)" }}>Como Funciona</span>
+                <span className="text-xs font-medium" style={{ color: P.text }}>Como Funciona</span>
               </div>
-              <ol className="space-y-1.5 text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+              <ol className="space-y-1.5 text-[10px]" style={{ color: P.sub }}>
                 <li>1. Conecte seu WhatsApp escaneando o QR Code</li>
                 <li>2. Envie fotos/vídeos para seu próprio número</li>
                 <li>3. O agente Jurídico salva automaticamente como evidência</li>
@@ -905,12 +908,12 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
               </ol>
             </div>
 
-            <div className="p-4 rounded-xl" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="p-4 rounded-[18px]" style={{ background: P.card, border: `1px solid ${P.border}` }}>
               <div className="flex items-center gap-2 mb-2">
                 <Shield size={14} style={{ color: "#D4AF37" }} />
-                <span className="text-xs font-medium" style={{ color: "var(--foreground)" }}>Dicas Legais</span>
+                <span className="text-xs font-medium" style={{ color: P.text }}>Dicas Legais</span>
               </div>
-              <ul className="space-y-1.5 text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+              <ul className="space-y-1.5 text-[10px]" style={{ color: P.sub }}>
                 <li>• Nomeie os arquivos com data e descrição do evento</li>
                 <li>• Use tags para categorizar: #contrato, #acidente, #prova</li>
                 <li>• Vincule cada mídia ao caso correspondente</li>
@@ -922,19 +925,19 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
 
           {/* Recently received via WhatsApp */}
           {recentWhatsFiles.length > 0 && (
-            <div className="p-4 rounded-xl" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="p-4 rounded-[18px]" style={{ background: P.card, border: `1px solid ${P.border}` }}>
               <div className="flex items-center gap-2 mb-3">
                 <Download size={14} style={{ color: "#25D366" }} />
-                <span className="text-xs font-medium" style={{ color: "var(--foreground)" }}>Recebidos Recentemente</span>
+                <span className="text-xs font-medium" style={{ color: P.text }}>Recebidos Recentemente</span>
               </div>
               <div className="space-y-2">
                 {recentWhatsFiles.map((ev) => {
                   const Icon = TYPE_ICONS[ev.type] || File;
                   return (
-                    <div key={ev.id} className="flex items-center gap-2 py-1.5 border-b" style={{ borderColor: "var(--border)" }}>
+                    <div key={ev.id} className="flex items-center gap-2 py-1.5 border-b" style={{ borderColor: P.border }}>
                       <Icon size={12} style={{ color: "#25D366" }} />
-                      <span className="text-[10px]" style={{ color: "var(--foreground)" }}>{ev.originalName}</span>
-                      <span className="text-[8px]" style={{ color: "var(--muted-foreground)" }}>{new Date(ev.dateReceived).toLocaleString("pt-BR")}</span>
+                      <span className="text-[10px]" style={{ color: P.text }}>{ev.originalName}</span>
+                      <span className="text-[8px]" style={{ color: P.sub }}>{new Date(ev.dateReceived).toLocaleString("pt-BR")}</span>
                     </div>
                   );
                 })}
@@ -951,15 +954,15 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
       {/* Add Evidence Modal */}
       {showAddEvidence && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.5)" }}>
-          <div className="w-96 p-6 rounded-xl" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+          <div className="w-96 p-6 rounded-[18px]" style={{ background: P.card, border: `1px solid ${P.border}` }}>
             <div className="flex items-center justify-between mb-4">
-              <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>Nova Evidência</span>
-              <button onClick={() => setShowAddEvidence(false)} style={{ color: "var(--muted-foreground)" }}><X size={16} /></button>
+              <span className="text-sm font-medium" style={{ color: P.text }}>Nova Evidência</span>
+              <button onClick={() => setShowAddEvidence(false)} style={{ color: P.sub }}><X size={16} /></button>
             </div>
 
             <div className="space-y-3">
               <div>
-                <label className="text-[10px] block mb-1" style={{ color: "var(--muted-foreground)" }}>Tipo</label>
+                <label className="text-[10px] block mb-1" style={{ color: P.sub }}>Tipo</label>
                 <div className="flex gap-2">
                   {(["foto", "video", "documento"] as const).map((t) => {
                     const Icon = TYPE_ICONS[t];
@@ -970,8 +973,8 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
                         onClick={() => setNewEvidenceType(t)}
                         className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[10px] flex-1 justify-center"
                         style={{
-                          background: active ? "#1E40AF" : "var(--secondary)",
-                          color: active ? "#fff" : "var(--muted-foreground)",
+                          background: active ? "#1E40AF" : P.card2,
+                          color: active ? "#fff" : P.sub,
                         }}
                       >
                         <Icon size={12} /> {TYPE_LABELS[t]}
@@ -982,34 +985,34 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
               </div>
 
               <div>
-                <label className="text-[10px] block mb-1" style={{ color: "var(--muted-foreground)" }}>Nome do Arquivo</label>
+                <label className="text-[10px] block mb-1" style={{ color: P.sub }}>Nome do Arquivo</label>
                 <input
                   value={newEvidenceName}
                   onChange={(e) => setNewEvidenceName(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg text-[11px]"
-                  style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)" }}
+                  style={{ background: P.card2, color: P.text, border: `1px solid ${P.border}` }}
                   placeholder="Ex: Contrato assinado"
                 />
               </div>
 
               <div>
-                <label className="text-[10px] block mb-1" style={{ color: "var(--muted-foreground)" }}>Descrição</label>
+                <label className="text-[10px] block mb-1" style={{ color: P.sub }}>Descrição</label>
                 <textarea
                   value={newEvidenceDesc}
                   onChange={(e) => setNewEvidenceDesc(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg text-[11px] resize-none"
-                  style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)", minHeight: "60px" }}
+                  style={{ background: P.card2, color: P.text, border: `1px solid ${P.border}`, minHeight: "60px" }}
                   placeholder="Descreva a evidência..."
                 />
               </div>
 
               <div>
-                <label className="text-[10px] block mb-1" style={{ color: "var(--muted-foreground)" }}>Tags (separadas por vírgula)</label>
+                <label className="text-[10px] block mb-1" style={{ color: P.sub }}>Tags (separadas por vírgula)</label>
                 <input
                   value={newEvidenceTags}
                   onChange={(e) => setNewEvidenceTags(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg text-[11px]"
-                  style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)" }}
+                  style={{ background: P.card2, color: P.text, border: `1px solid ${P.border}` }}
                   placeholder="contrato, trabalhista, assinado"
                 />
               </div>
@@ -1018,7 +1021,7 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
                 onClick={handleAddEvidence}
                 disabled={!newEvidenceName.trim()}
                 className="w-full py-2 rounded-lg text-[11px] font-medium"
-                style={{ background: newEvidenceName.trim() ? "#1E40AF" : "var(--secondary)", color: newEvidenceName.trim() ? "#fff" : "var(--muted-foreground)" }}
+                style={{ background: newEvidenceName.trim() ? "#1E40AF" : P.card2, color: newEvidenceName.trim() ? "#fff" : P.sub }}
               >
                 <Plus size={12} className="inline mr-1" /> Registrar Evidência
               </button>
@@ -1030,26 +1033,26 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
       {/* Add Case Modal */}
       {showAddCase && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.5)" }}>
-          <div className="w-96 p-6 rounded-xl" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+          <div className="w-96 p-6 rounded-[18px]" style={{ background: P.card, border: `1px solid ${P.border}` }}>
             <div className="flex items-center justify-between mb-4">
-              <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>Novo Caso</span>
-              <button onClick={() => setShowAddCase(false)} style={{ color: "var(--muted-foreground)" }}><X size={16} /></button>
+              <span className="text-sm font-medium" style={{ color: P.text }}>Novo Caso</span>
+              <button onClick={() => setShowAddCase(false)} style={{ color: P.sub }}><X size={16} /></button>
             </div>
 
             <div className="space-y-3">
               <div>
-                <label className="text-[10px] block mb-1" style={{ color: "var(--muted-foreground)" }}>Cliente</label>
+                <label className="text-[10px] block mb-1" style={{ color: P.sub }}>Cliente</label>
                 <input
                   value={newCaseCliente}
                   onChange={(e) => setNewCaseCliente(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg text-[11px]"
-                  style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)" }}
+                  style={{ background: P.card2, color: P.text, border: `1px solid ${P.border}` }}
                   placeholder="Nome do cliente"
                 />
               </div>
 
               <div>
-                <label className="text-[10px] block mb-1" style={{ color: "var(--muted-foreground)" }}>Tipo</label>
+                <label className="text-[10px] block mb-1" style={{ color: P.sub }}>Tipo</label>
                 <div className="flex gap-2">
                   {(["trabalhista", "civil", "criminal", "previdenciario"] as const).map((t) => {
                     const active = newCaseTipo === t;
@@ -1059,8 +1062,8 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
                         onClick={() => setNewCaseTipo(t)}
                         className="flex-1 py-2 rounded-lg text-[9px]"
                         style={{
-                          background: active ? "#1E40AF" : "var(--secondary)",
-                          color: active ? "#fff" : "var(--muted-foreground)",
+                          background: active ? "#1E40AF" : P.card2,
+                          color: active ? "#fff" : P.sub,
                         }}
                       >
                         {t.charAt(0).toUpperCase() + t.slice(1)}
@@ -1071,12 +1074,12 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
               </div>
 
               <div>
-                <label className="text-[10px] block mb-1" style={{ color: "var(--muted-foreground)" }}>Descrição</label>
+                <label className="text-[10px] block mb-1" style={{ color: P.sub }}>Descrição</label>
                 <textarea
                   value={newCaseDesc}
                   onChange={(e) => setNewCaseDesc(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg text-[11px] resize-none"
-                  style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)", minHeight: "60px" }}
+                  style={{ background: P.card2, color: P.text, border: `1px solid ${P.border}`, minHeight: "60px" }}
                   placeholder="Descreva o caso..."
                 />
               </div>
@@ -1085,7 +1088,7 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
                 onClick={handleAddCase}
                 disabled={!newCaseCliente.trim()}
                 className="w-full py-2 rounded-lg text-[11px] font-medium"
-                style={{ background: newCaseCliente.trim() ? "#1E40AF" : "var(--secondary)", color: newCaseCliente.trim() ? "#fff" : "var(--muted-foreground)" }}
+                style={{ background: newCaseCliente.trim() ? "#1E40AF" : P.card2, color: newCaseCliente.trim() ? "#fff" : P.sub }}
               >
                 <Plus size={12} className="inline mr-1" /> Criar Caso
               </button>
@@ -1093,6 +1096,8 @@ export function JuridicoWorkspace(_props: WorkspaceProps) {
           </div>
         </div>
       )}
-    </div>
+      </div>
+      </ScrollArea>
+    </PremiumRoot>
   );
 }

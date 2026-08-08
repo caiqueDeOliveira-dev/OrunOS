@@ -17,8 +17,8 @@ export function ClipInfo({ clip, fps }: { clip: VideoClip; fps: number }) {
           [t("creator_video_duration"), `${(clip.durationFrames / fps).toFixed(1)}s`],
         ].map(([k, v]) => (
           <div key={k} className="flex justify-between">
-            <span style={{ fontSize: 9, color: "#484F58" }}>{k}</span>
-            <span style={{ fontSize: 9, color: "#8B949E", fontFamily: MONO }}>{v}</span>
+            <span style={{ fontSize: 9, color: "#5C5C5C" }}>{k}</span>
+            <span style={{ fontSize: 9, color: "#A0A0A0", fontFamily: MONO }}>{v}</span>
           </div>
         ))}
       </div>

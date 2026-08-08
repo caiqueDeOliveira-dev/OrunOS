@@ -142,7 +142,7 @@ export function highlightSyntax(code: string, language?: string): string {
     "it", "test", "beforeEach", "afterEach", "beforeAll", "afterAll",
   ];
 
-  const kwColor = "#C00018";
+  const kwColor = "#C3002F";
   const sortedKW = [...keywords].sort((a, b) => b.length - a.length);
   for (const kw of sortedKW) {
     result = result.replace(new RegExp(`\\b(${kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})\\b`, "g"), `<span style="color:${kwColor};font-weight:500">$1</span>`);
@@ -174,4 +174,4 @@ export function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-export const ACCENT = "#C00018";
+export const ACCENT = "#C3002F";

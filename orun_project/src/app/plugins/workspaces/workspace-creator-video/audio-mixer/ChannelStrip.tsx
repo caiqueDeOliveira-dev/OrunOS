@@ -22,12 +22,12 @@ export function ChannelStrip({ index, name, color, controls }: ChannelStripProps
       className="flex flex-col items-center shrink-0"
       style={{
         width: 72, padding: "4px 2px",
-        background: "#0D1117", borderRadius: 4, border: "1px solid #21262D",
+        background: "#0A0A0C", borderRadius: 6, border: "1px solid #141414",
       }}
     >
       <div className="flex items-center gap-1" style={{ marginBottom: 2 }}>
         <div style={{ width: 5, height: 5, borderRadius: 3, background: color, flexShrink: 0 }} />
-        <span style={{ fontSize: 7, fontFamily: SANS, fontWeight: 600, color: "#8B949E", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <span style={{ fontSize: 7, fontFamily: SANS, fontWeight: 600, color: "#A0A0A0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {name.split(" ").pop()}
         </span>
       </div>
@@ -48,22 +48,22 @@ export function ChannelStrip({ index, name, color, controls }: ChannelStripProps
           <>
             <button
               title="Solo" onClick={() => useVideoStore.setState((s) => ({ trackSolo: { ...s.trackSolo, [index]: !s.trackSolo[index] } }))}
-              style={{ ...btnBase, width: 14, height: 14, background: trackSolo[index] ? "#D4A01730" : "transparent", border: trackSolo[index] ? "1px solid #D4A017" : "1px solid #30363D", borderRadius: 2 }}
+              style={{ ...btnBase, width: 14, height: 14, background: trackSolo[index] ? "#FFB54730" : "transparent", border: trackSolo[index] ? "1px solid #FFB547" : "1px solid #1C1C1C", borderRadius: 2 }}
             >
-              <span style={{ fontSize: 7, fontFamily: MONO, fontWeight: 700, color: trackSolo[index] ? "#D4A017" : "#484F58" }}>S</span>
+              <span style={{ fontSize: 7, fontFamily: MONO, fontWeight: 700, color: trackSolo[index] ? "#FFB547" : "#5C5C5C" }}>S</span>
             </button>
             <button
               title="Mute" onClick={() => useVideoStore.setState((s) => ({ trackMuted: { ...s.trackMuted, [index]: !s.trackMuted[index] } }))}
-              style={{ ...btnBase, width: 14, height: 14, background: trackMuted[index] ? "#C0001830" : "transparent", border: trackMuted[index] ? "1px solid #C00018" : "1px solid #30363D", borderRadius: 2 }}
+              style={{ ...btnBase, width: 14, height: 14, background: trackMuted[index] ? "#C3002F30" : "transparent", border: trackMuted[index] ? "1px solid #C3002F" : "1px solid #1C1C1C", borderRadius: 2 }}
             >
-              <span style={{ fontSize: 7, fontFamily: MONO, fontWeight: 700, color: trackMuted[index] ? "#C00018" : "#484F58" }}>M</span>
+              <span style={{ fontSize: 7, fontFamily: MONO, fontWeight: 700, color: trackMuted[index] ? "#C3002F" : "#5C5C5C" }}>M</span>
             </button>
           </>
         )}
         {(controls === "eye-lock" || controls === "eye") && (
           <button
             title="Visibility" onClick={() => useVideoStore.setState((s) => ({ trackMuted: { ...s.trackMuted, [index]: !s.trackMuted[index] } }))}
-            style={{ ...btnBase, width: 14, height: 14, color: trackMuted[index] ? "#C00018" : "#8B949E", border: "1px solid #30363D", borderRadius: 2, background: "transparent" }}
+            style={{ ...btnBase, width: 14, height: 14, color: trackMuted[index] ? "#C3002F" : "#A0A0A0", border: "1px solid #1C1C1C", borderRadius: 2, background: "transparent" }}
           >
             <span style={{ fontSize: 8 }}>{trackMuted[index] ? "\u25CF" : "\u25CB"}</span>
           </button>
@@ -71,7 +71,7 @@ export function ChannelStrip({ index, name, color, controls }: ChannelStripProps
       </div>
 
       <PanKnob value={pan} onChange={(v) => setPan(v)} />
-      <span style={{ fontSize: 6, fontFamily: MONO, color: "#484F58", marginTop: 1 }}>
+      <span style={{ fontSize: 6, fontFamily: MONO, color: "#5C5C5C", marginTop: 1 }}>
         {pan === 0 ? "C" : pan < 0 ? `L${Math.abs(pan)}` : `R${pan}`}
       </span>
     </div>

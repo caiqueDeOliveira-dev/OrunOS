@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "motion/react";
-import { AvatarOrb } from "./AvatarOrb";
 import { isElectron } from "../constants";
 
 const QUICK_CHAT_HASH = "#/quick-chat";
@@ -95,9 +94,18 @@ export function QuickChat() {
           className="flex items-center justify-center gap-3 px-4 py-3 shrink-0"
           style={{ borderBottom: "1px solid var(--border)" }}
         >
-          <div style={{ width: 28, height: 28 }}>
-            <AvatarOrb size={28} />
-          </div>
+          <img
+            src="./LogoIA.png"
+            alt="Orun OS"
+            className="rounded-full"
+            style={{
+              width: 28,
+              height: 28,
+              objectFit: "cover",
+              border: "1px solid rgba(195,0,47,0.45)",
+              boxShadow: "0 0 8px rgba(195,0,47,0.2)",
+            }}
+          />
           <span
             className="text-xs tracking-widest uppercase"
             style={{ fontFamily: "'Sora', sans-serif", color: "var(--foreground)" }}

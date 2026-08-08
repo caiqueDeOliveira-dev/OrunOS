@@ -25,13 +25,13 @@ export function LeftSidebar() {
       className="flex flex-col shrink-0 overflow-hidden"
       style={{
         width: 180,
-        background: "var(--card, #161B22)",
-        borderRight: "1px solid var(--border, #21262D)",
+        background: "#0A0A0C",
+        borderRight: "1px solid #252525",
       }}
     >
       <div
         className="flex overflow-x-auto shrink-0"
-        style={{ borderBottom: "1px solid #21262D" }}
+        style={{ borderBottom: "1px solid #141414" }}
       >
         {MEDIA_TABS.map((tab) => (
           <button
@@ -43,12 +43,12 @@ export function LeftSidebar() {
               fontSize: 9,
               fontFamily: SANS,
               fontWeight: activeTab === tab ? 600 : 400,
-              color: activeTab === tab ? "#C9D1D9" : "#484F58",
+              color: activeTab === tab ? "#FFFFFF" : "#5C5C5C",
               background: "transparent",
               border: "none",
               borderBottom:
                 activeTab === tab
-                  ? "2px solid #C00018"
+                  ? "2px solid #C3002F"
                   : "2px solid transparent",
               cursor: "pointer",
               whiteSpace: "nowrap",
@@ -60,10 +60,10 @@ export function LeftSidebar() {
         ))}
       </div>
       <div
-        className="flex-1 overflow-y-auto p-2"
+        className="hs-scroll flex-1 overflow-y-auto p-2"
         style={{
           scrollbarWidth: "thin",
-          scrollbarColor: "#30363D transparent",
+          scrollbarColor: "#1C1C1C transparent",
         }}
       >
         {renderTabContent()}

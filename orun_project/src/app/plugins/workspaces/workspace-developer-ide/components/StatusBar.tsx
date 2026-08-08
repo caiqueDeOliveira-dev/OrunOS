@@ -19,10 +19,10 @@ export function StatusBar() {
 
   return (
     <div className="flex items-center justify-between px-3 py-[3px] border-t text-[10px] shrink-0 select-none"
-      style={{ borderColor: "var(--border)", background: "var(--card)", color: "var(--muted-foreground)" }}>
+      style={{ borderColor: "#252525", background: "#141414", color: "#A0A0A0" }}>
       <div className="flex items-center gap-3">
         <button onClick={() => useIDEStore.setState({ sidebarVisible: !sidebarVisible })}
-          className="flex items-center gap-1 hover:text-[var(--foreground)] transition-colors">
+          className="flex items-center gap-1 hover:text-[#FFFFFF] transition-colors">
           <Files size={10} />
           <span>{sidebarVisible ? "Hide" : "Show"} Sidebar</span>
         </button>
@@ -39,18 +39,18 @@ export function StatusBar() {
       </div>
       <div className="flex items-center gap-3">
         <button onClick={() => useIDEStore.setState({ showMinimap: !showMinimap })}
-          className="hover:text-[var(--foreground)] transition-colors">
+          className="hover:text-[#FFFFFF] transition-colors">
           {showMinimap ? "Minimap" : ""}
         </button>
-        <span className="hover:text-[var(--foreground)] transition-colors cursor-default">
+        <span className="hover:text-[#FFFFFF] transition-colors cursor-default">
           {lang}
         </span>
         {activeFile && (
           <>
-            <span className="hover:text-[var(--foreground)] transition-colors cursor-default">
+            <span className="hover:text-[#FFFFFF] transition-colors cursor-default">
               Ln {cursorLine}, Col {cursorCol}
             </span>
-            <span className="hover:text-[var(--foreground)] transition-colors cursor-default">
+            <span className="hover:text-[#FFFFFF] transition-colors cursor-default">
               {lineCount} lines ({formatBytes(byteCount)})
             </span>
           </>

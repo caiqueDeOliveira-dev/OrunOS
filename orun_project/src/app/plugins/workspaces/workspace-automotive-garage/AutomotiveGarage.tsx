@@ -7,6 +7,7 @@ import { useTranslation } from "../../../../i18n/I18nProvider";
 import { usePersonalization, useWorkspaceNotes } from "../../../hooks/usePersonalization";
 import { useConfirmDialog } from "../../../hooks/useConfirmDialog";
 import { AIFloatingPrompt } from "../../components/AIFloatingPrompt";
+import { P, PremiumRoot, ScrollArea, PrimaryButton } from "../premium";
 
 interface Vehicle {
   id: string;
@@ -28,6 +29,7 @@ interface ServiceRecord {
   mileage: number;
   shop: string;
   date: number;
+  notes?: string;
 }
 
 interface Expense {
@@ -87,15 +89,15 @@ function getExpenseCategories(t: (key: string) => string): string[] {
 function Modal({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.5)" }} onClick={onClose}>
-      <div className="w-[420px] max-h-[80vh] rounded-2xl border overflow-hidden" style={{ background: "var(--card)", borderColor: "var(--border)" }} onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-4 py-2 border-b" style={{ borderColor: "var(--border)" }}>
-          <h3 className="text-[13px] font-semibold" style={{ fontFamily: "'Sora', sans-serif", color: "var(--foreground)" }}>{title}</h3>
-          <button onClick={onClose} className="p-1 rounded-lg transition-colors" style={{ color: "var(--muted-foreground)" }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)" }} onClick={onClose}>
+      <div className="w-[420px] max-h-[80vh] rounded-2xl border overflow-hidden" style={{ background: P.card, borderColor: P.border, boxShadow: "0 24px 60px rgba(0,0,0,0.5)" }} onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-4 py-2.5 border-b" style={{ borderColor: P.border, background: P.panel }}>
+          <h3 className="text-[13px] font-semibold" style={{ fontFamily: "'Sora', sans-serif", color: P.text }}>{title}</h3>
+          <button onClick={onClose} className="p-1 rounded-lg transition-colors hover:scale-105" style={{ color: P.sub }}>
             <X size={16} />
           </button>
         </div>
-        <div className="p-5 overflow-y-auto max-h-[60vh]">{children}</div>
+        <div className="p-5 overflow-y-auto max-h-[60vh] hs-scroll">{children}</div>
       </div>
     </div>
   );
@@ -104,7 +106,7 @@ function Modal({ open, onClose, title, children }: { open: boolean; onClose: () 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="mb-3">
-      <label className="text-[10px] font-medium mb-1 block" style={{ color: "var(--muted-foreground)" }}>{label}</label>
+      <label className="text-[10px] font-medium mb-1 block" style={{ color: P.sub }}>{label}</label>
       {children}
     </div>
   );
@@ -118,7 +120,7 @@ function Input({ value, onChange, placeholder, type = "text" }: { value: string;
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
       className="w-full px-3 py-2 rounded-lg text-[12px] outline-none transition-colors"
-      style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+      style={{ background: P.panel, border: `1px solid ${P.borderHi}`, color: P.text }}
     />
   );
 }
@@ -130,11 +132,11 @@ function Select({ value, onChange, options }: { value: string; onChange: (v: str
         value={value}
         onChange={e => onChange(e.target.value)}
         className="w-full px-3 py-2 rounded-lg text-[12px] outline-none appearance-none"
-        style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+        style={{ background: P.panel, border: `1px solid ${P.borderHi}`, color: P.text }}
       >
-        {options.map(o => <option key={o} value={o}>{o}</option>)}
+        {options.map(o => <option key={o} value={o} style={{ background: P.card, color: P.text }}>{o}</option>)}
       </select>
-      <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "var(--muted-foreground)" }} />
+      <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: P.sub }} />
     </div>
   );
 }
@@ -270,31 +272,31 @@ export function AutomotiveGarage({ onSendMessage }: WorkspaceProps) {
   ];
 
   return (
-    <div className="h-full flex flex-col" style={{ background: "var(--background)" }}>
+    <PremiumRoot className="relative">
       {dialogElement}
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
+      <div className="flex items-center justify-between px-4 py-2 border-b shrink-0" style={{ borderColor: P.border, background: P.panel }}>
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #1E40AF, #3B82F6)" }}>
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `linear-gradient(135deg, #0e3a86, ${P.info})`, boxShadow: "0 0 14px rgba(77,163,255,0.25)" }}>
             <Car size={18} color="#FFF" />
           </div>
           <div>
-            <h1 className="text-sm font-semibold" style={{ fontFamily: "'Sora', sans-serif", color: "var(--foreground)" }}>{t("automotive_header_title")}</h1>
-            <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>{t("automotive_header_subtitle")}</p>
+            <h1 className="text-sm font-semibold" style={{ fontFamily: "'Sora', sans-serif", color: P.text }}>{t("automotive_header_title")}</h1>
+            <p className="text-[10px]" style={{ color: P.sub }}>{t("automotive_header_subtitle")}</p>
           </div>
         </div>
       </div>
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        <div className="w-48 border-r flex flex-col py-3" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
+        <div className="w-48 border-r shrink-0 flex flex-col py-3 overflow-y-auto hs-scroll" style={{ borderColor: P.border, background: P.panel }}>
           {navItems.map(item => {
             const Icon = item.icon;
             const isActive = view === item.id;
             return (
               <button key={item.id} onClick={() => setView(item.id)}
-                className="flex items-center gap-2.5 px-4 py-2.5 text-left transition-colors mx-2 rounded-lg"
-                style={{ background: isActive ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent", color: isActive ? "var(--primary)" : "var(--muted-foreground)" }}
+                className="flex items-center gap-2.5 px-4 py-2.5 text-left transition-colors mx-2 rounded-lg hover:scale-[1.01]"
+                style={{ background: isActive ? "rgba(195,0,47,0.14)" : "transparent", color: isActive ? P.primary : P.sub, border: `1px solid ${isActive ? "rgba(195,0,47,0.3)" : "transparent"}` }}
               >
                 <Icon size={15} />
                 <span className="text-[11px] font-medium">{item.label}</span>
@@ -303,87 +305,88 @@ export function AutomotiveGarage({ onSendMessage }: WorkspaceProps) {
           })}
           {state.vehicles.length > 0 && (
             <div className="mt-4 px-4">
-              <p className="text-[9px] uppercase tracking-wider mb-2" style={{ color: "var(--muted-foreground)" }}>{t("automotive_filter_label")}</p>
+              <p className="text-[9px] uppercase tracking-[0.14em] mb-2" style={{ color: P.dim }}>{t("automotive_filter_label")}</p>
               <button onClick={() => setSelectedVehicle(null)} className="w-full text-left px-2 py-1 rounded text-[10px] mb-1"
-                style={{ color: !selectedVehicle ? "var(--primary)" : "var(--muted-foreground)" }}>{t("automotive_filter_all")}</button>
+                style={{ color: !selectedVehicle ? P.primary : P.sub }}>{t("automotive_filter_all")}</button>
               {state.vehicles.map(v => (
                 <button key={v.id} onClick={() => setSelectedVehicle(v.id)} className="w-full text-left px-2 py-1 rounded text-[10px] mb-1 truncate"
-                  style={{ color: selectedVehicle === v.id ? "var(--primary)" : "var(--muted-foreground)" }}>{v.year} {v.model}</button>
+                  style={{ color: selectedVehicle === v.id ? P.primary : P.sub }}>{v.year} {v.model}</button>
               ))}
             </div>
           )}
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <ScrollArea className="flex-1">
+          <div className="p-6">
 
           <div className="flex items-center justify-between px-4 py-1">
-            <span className="text-xs font-medium" style={{ fontFamily: "'Sora', sans-serif", color: "var(--foreground)" }}>{greeting}, {userName}</span>
-            <div className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold" style={{ background: "#EF4444", color: "#fff" }}>{avatarInitials}</div>
+            <span className="text-xs font-medium" style={{ fontFamily: "'Sora', sans-serif", color: P.text }}>{greeting}, {userName}</span>
+            <div className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold" style={{ background: "rgba(195,0,47,0.16)", color: P.primary }}>{avatarInitials}</div>
           </div>
 
           {/* OVERVIEW */}
           {view === "overview" && (
             <div className="space-y-6">
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
                 {[
-                  { label: t("automotive_overview_stat_vehicles"), value: String(state.vehicles.length), icon: Car, color: "#3B82F6" },
-                  { label: t("automotive_overview_stat_services"), value: String(state.serviceRecords.length), icon: Wrench, color: "#F59E0B" },
-                  { label: t("automotive_overview_stat_total_expenses"), value: `R$ ${totalExpenses.toLocaleString("pt-BR")}`, icon: DollarSign, color: "#10B981" },
-                  { label: t("automotive_overview_stat_total_services"), value: `R$ ${totalServiceCost.toLocaleString("pt-BR")}`, icon: Shield, color: "#8B5CF6" },
+                  { label: t("automotive_overview_stat_vehicles"), value: String(state.vehicles.length), icon: Car, color: P.info },
+                  { label: t("automotive_overview_stat_services"), value: String(state.serviceRecords.length), icon: Wrench, color: P.alert },
+                  { label: t("automotive_overview_stat_total_expenses"), value: `R$ ${totalExpenses.toLocaleString("pt-BR")}`, icon: DollarSign, color: P.success },
+                  { label: t("automotive_overview_stat_total_services"), value: `R$ ${totalServiceCost.toLocaleString("pt-BR")}`, icon: Shield, color: P.violet },
                 ].map((stat, i) => {
                   const Icon = stat.icon;
                   return (
-                    <div key={i} className="rounded-xl p-4 border" style={{ background: "var(--card)", borderColor: "var(--border)" }}>
+                    <div key={i} className="rounded-[18px] p-4 border transition-all hover:scale-[1.01]" style={{ background: P.card, borderColor: P.border }}>
                       <div className="flex items-center gap-2 mb-2">
                         <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${stat.color}20` }}>
                           <Icon size={14} color={stat.color} />
                         </div>
-                        <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>{stat.label}</span>
+                        <span className="text-[9px] uppercase tracking-[0.14em]" style={{ color: P.dim }}>{stat.label}</span>
                       </div>
-                      <p className="text-lg font-bold" style={{ fontFamily: "'JetBrains Mono', monospace", color: "var(--foreground)" }}>{stat.value}</p>
+                      <p className="text-lg font-bold" style={{ fontFamily: "'JetBrains Mono', monospace", color: P.text }}>{stat.value}</p>
                     </div>
                   );
                 })}
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <button onClick={() => { resetVehicleForm(); setShowAddVehicle(true); }}
-                  className="flex flex-col items-start gap-2 p-4 rounded-xl border transition-all hover:scale-[1.02]"
-                  style={{ background: "var(--card)", borderColor: "var(--border)" }}>
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "#3B82F615" }}><Car size={16} color="#3B82F6" /></div>
+                  className="flex flex-col items-start gap-2 p-4 rounded-[18px] border transition-all hover:scale-[1.02] hover:shadow-[0_0_24px_rgba(77,163,255,0.08)]"
+                  style={{ background: P.card, borderColor: P.border }}>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${P.info}1A` }}><Car size={16} color={P.info} /></div>
                   <div className="text-left">
-                    <p className="text-[11px] font-semibold" style={{ color: "var(--foreground)" }}>{t("automotive_overview_new_vehicle_title")}</p>
-                    <p className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>{t("automotive_overview_new_vehicle_desc")}</p>
+                    <p className="text-[11px] font-semibold" style={{ color: P.text }}>{t("automotive_overview_new_vehicle_title")}</p>
+                    <p className="text-[9px]" style={{ color: P.sub }}>{t("automotive_overview_new_vehicle_desc")}</p>
                   </div>
                 </button>
                 <button onClick={() => { resetServiceForm(); setShowAddService(true); }}
-                  className="flex flex-col items-start gap-2 p-4 rounded-xl border transition-all hover:scale-[1.02]"
-                  style={{ background: "var(--card)", borderColor: "var(--border)" }}>
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "#F59E0B15" }}><Wrench size={16} color="#F59E0B" /></div>
+                  className="flex flex-col items-start gap-2 p-4 rounded-[18px] border transition-all hover:scale-[1.02] hover:shadow-[0_0_24px_rgba(255,181,71,0.08)]"
+                  style={{ background: P.card, borderColor: P.border }}>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${P.alert}1A` }}><Wrench size={16} color={P.alert} /></div>
                   <div className="text-left">
-                    <p className="text-[11px] font-semibold" style={{ color: "var(--foreground)" }}>{t("automotive_overview_new_service_title")}</p>
-                    <p className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>{t("automotive_overview_new_service_desc")}</p>
+                    <p className="text-[11px] font-semibold" style={{ color: P.text }}>{t("automotive_overview_new_service_title")}</p>
+                    <p className="text-[9px]" style={{ color: P.sub }}>{t("automotive_overview_new_service_desc")}</p>
                   </div>
                 </button>
                 <button onClick={() => { resetExpenseForm(); setShowAddExpense(true); }}
-                  className="flex flex-col items-start gap-2 p-4 rounded-xl border transition-all hover:scale-[1.02]"
-                  style={{ background: "var(--card)", borderColor: "var(--border)" }}>
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "#10B98115" }}><DollarSign size={16} color="#10B981" /></div>
+                  className="flex flex-col items-start gap-2 p-4 rounded-[18px] border transition-all hover:scale-[1.02] hover:shadow-[0_0_24px_rgba(0,210,106,0.08)]"
+                  style={{ background: P.card, borderColor: P.border }}>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${P.success}1A` }}><DollarSign size={16} color={P.success} /></div>
                   <div className="text-left">
-                    <p className="text-[11px] font-semibold" style={{ color: "var(--foreground)" }}>{t("automotive_overview_new_expense_title")}</p>
-                    <p className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>{t("automotive_overview_new_expense_desc")}</p>
+                    <p className="text-[11px] font-semibold" style={{ color: P.text }}>{t("automotive_overview_new_expense_title")}</p>
+                    <p className="text-[9px]" style={{ color: P.sub }}>{t("automotive_overview_new_expense_desc")}</p>
                   </div>
                 </button>
               </div>
 
               {/* Recent */}
               <div>
-                <h3 className="text-xs font-semibold mb-3" style={{ fontFamily: "'Sora', sans-serif", color: "var(--foreground)" }}>{t("automotive_overview_recent_activity")}</h3>
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] mb-3" style={{ fontFamily: "'Sora', sans-serif", color: P.text }}>{t("automotive_overview_recent_activity")}</h3>
                 {[...state.serviceRecords, ...state.expenses].length === 0 ? (
-                  <div className="text-center py-8 rounded-xl border" style={{ background: "var(--card)", borderColor: "var(--border)" }}>
-                    <Car size={32} style={{ color: "var(--muted-foreground)", opacity: 0.3 }} className="mx-auto mb-2" />
-                    <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{t("automotive_overview_no_activity")}</p>
+                  <div className="text-center py-8 rounded-[18px] border" style={{ background: P.card, borderColor: P.border }}>
+                    <Car size={32} style={{ color: P.dim, opacity: 0.4 }} className="mx-auto mb-2" />
+                    <p className="text-[11px]" style={{ color: P.sub }}>{t("automotive_overview_no_activity")}</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -391,11 +394,13 @@ export function AutomotiveGarage({ onSendMessage }: WorkspaceProps) {
                       .sort((a, b) => b.date - a.date)
                       .slice(0, 5)
                       .map((item, i) => (
-                        <div key={i} className="flex items-center gap-3 p-3 rounded-lg border" style={{ background: "var(--card)", borderColor: "var(--border)" }}>
-                          {item._kind === "service" ? <Wrench size={14} style={{ color: "#F59E0B" }} /> : <DollarSign size={14} style={{ color: "#10B981" }} />}
-                          <div className="flex-1">
-                            <p className="text-[11px]" style={{ color: "var(--foreground)" }}>{item.description}</p>
-                            <p className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>
+                        <div key={i} className="flex items-center gap-3 p-3 rounded-[14px] border transition-all hover:scale-[1.005]" style={{ background: P.card, borderColor: P.border }}>
+                          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: item._kind === "service" ? `${P.alert}1A` : `${P.success}1A` }}>
+                            {item._kind === "service" ? <Wrench size={14} style={{ color: P.alert }} /> : <DollarSign size={14} style={{ color: P.success }} />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[11px] truncate" style={{ color: P.text }}>{item.description}</p>
+                            <p className="text-[9px]" style={{ color: P.sub }}>
                               {"cost" in item ? `R$ ${item.cost}` : `R$ ${item.amount}`} · {new Date(item.date).toLocaleDateString("pt-BR")}
                             </p>
                           </div>
@@ -411,29 +416,29 @@ export function AutomotiveGarage({ onSendMessage }: WorkspaceProps) {
           {view === "vehicles" && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-semibold" style={{ fontFamily: "'Sora', sans-serif", color: "var(--foreground)" }}>{t("automotive_vehicles_title")}</h3>
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ fontFamily: "'Sora', sans-serif", color: P.text }}>{t("automotive_vehicles_title")}</h3>
                 <button onClick={() => { resetVehicleForm(); setShowAddVehicle(true); }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium"
-                  style={{ background: "var(--primary)", color: "var(--primary-foreground)" }}><Plus size={11} /> {t("automotive_vehicles_add_button")}</button>
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium transition-all hover:scale-[1.03] hover:brightness-110"
+                  style={{ background: P.primary, color: "#fff" }}><Plus size={11} /> {t("automotive_vehicles_add_button")}</button>
               </div>
               {state.vehicles.length === 0 ? (
-                <div className="text-center py-12 rounded-xl border" style={{ background: "var(--card)", borderColor: "var(--border)" }}>
-                  <Car size={40} style={{ color: "var(--muted-foreground)", opacity: 0.2 }} className="mx-auto mb-3" />
-                  <p className="text-[12px] font-medium mb-1" style={{ color: "var(--foreground)" }}>{t("automotive_vehicles_empty_title")}</p>
-                  <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>{t("automotive_vehicles_empty_desc")}</p>
+                <div className="text-center py-12 rounded-[18px] border" style={{ background: P.card, borderColor: P.border }}>
+                  <Car size={40} style={{ color: P.dim, opacity: 0.3 }} className="mx-auto mb-3" />
+                  <p className="text-[12px] font-medium mb-1" style={{ color: P.text }}>{t("automotive_vehicles_empty_title")}</p>
+                  <p className="text-[10px]" style={{ color: P.sub }}>{t("automotive_vehicles_empty_desc")}</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {state.vehicles.map(v => (
-                    <div key={v.id} className="rounded-xl border p-4" style={{ background: "var(--card)", borderColor: "var(--border)" }}>
+                    <div key={v.id} className="rounded-[18px] border p-4 transition-all hover:scale-[1.01]" style={{ background: P.card, borderColor: P.border }}>
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center gap-2">
-                          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #1E40AF, #3B82F6)" }}>
+                          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `linear-gradient(135deg, #0e3a86, ${P.info})` }}>
                             <Car size={18} color="#FFF" />
                           </div>
                           <div>
-                            <p className="text-[12px] font-semibold" style={{ color: "var(--foreground)" }}>{v.name}</p>
-                            <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>{v.year} · {v.model}</p>
+                            <p className="text-[12px] font-semibold" style={{ color: P.text }}>{v.name}</p>
+                            <p className="text-[10px]" style={{ color: P.sub }}>{v.year} · {v.model}</p>
                           </div>
                         </div>
                         <button onClick={() => confirm({
@@ -443,11 +448,11 @@ export function AutomotiveGarage({ onSendMessage }: WorkspaceProps) {
                           variant: "danger",
                           onConfirm: () => store.setState(s => ({ vehicles: s.vehicles.filter(veh => veh.id !== v.id) })),
                         })}
-                          className="p-1 rounded" style={{ color: "var(--muted-foreground)" }}><Trash2 size={12} /></button>
+                          className="p-1 rounded transition-colors hover:text-white" style={{ color: P.dim }}><Trash2 size={12} /></button>
                       </div>
-                      <div className="flex flex-wrap gap-2 text-[10px]" style={{ color: "var(--muted-foreground)" }}>
-                        <span className="flex items-center gap-1"><Gauge size={10} /> {v.mileage.toLocaleString("pt-BR")} km</span>
-                        {v.plate && <span className="flex items-center gap-1"><FileText size={10} /> {v.plate}</span>}
+                      <div className="flex flex-wrap gap-2 text-[10px]" style={{ color: P.sub }}>
+                        <span className="flex items-center gap-1"><Gauge size={10} color={P.info} /> {v.mileage.toLocaleString("pt-BR")} km</span>
+                        {v.plate && <span className="flex items-center gap-1"><FileText size={10} color={P.info} /> {v.plate}</span>}
                         {v.color && <span>{v.color}</span>}
                       </div>
                     </div>
@@ -461,33 +466,53 @@ export function AutomotiveGarage({ onSendMessage }: WorkspaceProps) {
           {view === "services" && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-semibold" style={{ fontFamily: "'Sora', sans-serif", color: "var(--foreground)" }}>{t("automotive_services_title")}</h3>
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ fontFamily: "'Sora', sans-serif", color: P.text }}>{t("automotive_services_title")}</h3>
                 <button onClick={() => { resetServiceForm(); setShowAddService(true); }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium"
-                  style={{ background: "var(--primary)", color: "var(--primary-foreground)" }}><Plus size={11} /> {t("automotive_services_add_button")}</button>
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium transition-all hover:scale-[1.03] hover:brightness-110"
+                  style={{ background: P.primary, color: "#fff" }}><Plus size={11} /> {t("automotive_services_add_button")}</button>
               </div>
-              {filteredServices.length === 0 ? (
-                <div className="text-center py-12 rounded-xl border" style={{ background: "var(--card)", borderColor: "var(--border)" }}>
-                  <Wrench size={40} style={{ color: "var(--muted-foreground)", opacity: 0.2 }} className="mx-auto mb-3" />
-                  <p className="text-[12px] font-medium" style={{ color: "var(--foreground)" }}>{t("automotive_services_empty")}</p>
+              {state.serviceRecords.length === 0 ? (
+                <div className="text-center py-12 rounded-[18px] border" style={{ background: P.card, borderColor: P.border }}>
+                  <Wrench size={40} style={{ color: P.dim, opacity: 0.3 }} className="mx-auto mb-3" />
+                  <p className="text-[12px] font-medium mb-1" style={{ color: P.text }}>{t("automotive_services_empty_title")}</p>
+                  <p className="text-[10px]" style={{ color: P.sub }}>{t("automotive_services_empty_desc")}</p>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {filteredServices.map(r => (
-                    <div key={r.id} className="flex items-center gap-3 p-3 rounded-lg border" style={{ background: "var(--card)", borderColor: "var(--border)" }}>
-                      <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "#F59E0B20" }}><Wrench size={14} color="#F59E0B" /></div>
-                      <div className="flex-1">
-                        <p className="text-[11px] font-medium" style={{ color: "var(--foreground)" }}>{r.description}</p>
-                        <p className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>
-                          {getVehicleName(r.vehicleId)} · {r.type} · {r.shop || t("automotive_services_no_shop")} · {new Date(r.date).toLocaleDateString("pt-BR")}
-                        </p>
+                  {state.serviceRecords.map(record => {
+                    const vehicle = state.vehicles.find(v => v.id === record.vehicleId);
+                    return (
+                      <div key={record.id} className="rounded-[18px] border p-4 transition-all hover:scale-[1.005]" style={{ background: P.card, borderColor: P.border }}>
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${P.alert}1A` }}>
+                              <Wrench size={18} color={P.alert} />
+                            </div>
+                            <div>
+                              <p className="text-[12px] font-semibold" style={{ color: P.text }}>{record.type}</p>
+                              <p className="text-[10px]" style={{ color: P.sub }}>
+                                {vehicle ? `${vehicle.year} ${vehicle.model}` : "—"} · {new Date(record.date).toLocaleDateString("pt-BR")}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 rounded-full text-[9px] uppercase tracking-[0.1em] font-medium" style={{ background: `${P.success}1A`, color: P.success }}>
+                              R$ {record.cost.toLocaleString("pt-BR")}
+                            </span>
+                            <button onClick={() => confirm({
+                              title: "Excluir Serviço",
+                              message: `Tem certeza que deseja excluir "${record.type}"?`,
+                              confirmLabel: "Excluir",
+                              variant: "danger",
+                              onConfirm: () => store.setState(s => ({ serviceRecords: s.serviceRecords.filter(r => r.id !== record.id) })),
+                            })}
+                              className="p-1 rounded transition-colors hover:text-white" style={{ color: P.dim }}><Trash2 size={12} /></button>
+                          </div>
+                        </div>
+                        {record.notes && <p className="text-[11px] leading-relaxed" style={{ color: P.sub }}>{record.notes}</p>}
                       </div>
-                      <div className="text-right">
-                        <p className="text-[11px] font-semibold" style={{ fontFamily: "'JetBrains Mono', monospace", color: "var(--foreground)" }}>R$ {r.cost.toLocaleString("pt-BR")}</p>
-                        <p className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>{r.mileage.toLocaleString("pt-BR")} km</p>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -497,30 +522,53 @@ export function AutomotiveGarage({ onSendMessage }: WorkspaceProps) {
           {view === "expenses" && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-semibold" style={{ fontFamily: "'Sora', sans-serif", color: "var(--foreground)" }}>{t("automotive_expenses_title")}</h3>
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ fontFamily: "'Sora', sans-serif", color: P.text }}>{t("automotive_expenses_title")}</h3>
                 <button onClick={() => { resetExpenseForm(); setShowAddExpense(true); }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium"
-                  style={{ background: "var(--primary)", color: "var(--primary-foreground)" }}><Plus size={11} /> {t("automotive_expenses_add_button")}</button>
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium transition-all hover:scale-[1.03] hover:brightness-110"
+                  style={{ background: P.primary, color: "#fff" }}><Plus size={11} /> {t("automotive_expenses_add_button")}</button>
               </div>
-              {filteredExpenses.length === 0 ? (
-                <div className="text-center py-12 rounded-xl border" style={{ background: "var(--card)", borderColor: "var(--border)" }}>
-                  <DollarSign size={40} style={{ color: "var(--muted-foreground)", opacity: 0.2 }} className="mx-auto mb-3" />
-                  <p className="text-[12px] font-medium" style={{ color: "var(--foreground)" }}>{t("automotive_expenses_empty")}</p>
+              {state.expenses.length === 0 ? (
+                <div className="text-center py-12 rounded-[18px] border" style={{ background: P.card, borderColor: P.border }}>
+                  <DollarSign size={40} style={{ color: P.dim, opacity: 0.3 }} className="mx-auto mb-3" />
+                  <p className="text-[12px] font-medium mb-1" style={{ color: P.text }}>{t("automotive_expenses_empty_title")}</p>
+                  <p className="text-[10px]" style={{ color: P.sub }}>{t("automotive_expenses_empty_desc")}</p>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {filteredExpenses.map(e => (
-                    <div key={e.id} className="flex items-center gap-3 p-3 rounded-lg border" style={{ background: "var(--card)", borderColor: "var(--border)" }}>
-                      <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "#10B98120" }}><DollarSign size={14} color="#10B981" /></div>
-                      <div className="flex-1">
-                        <p className="text-[11px] font-medium" style={{ color: "var(--foreground)" }}>{e.description}</p>
-                        <p className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>
-                          {getVehicleName(e.vehicleId)} · {e.category} · {new Date(e.date).toLocaleDateString("pt-BR")}
-                        </p>
+                  {state.expenses.map(expense => {
+                    const vehicle = state.vehicles.find(v => v.id === expense.vehicleId);
+                    return (
+                      <div key={expense.id} className="rounded-[18px] border p-4 transition-all hover:scale-[1.005]" style={{ background: P.card, borderColor: P.border }}>
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${P.success}1A` }}>
+                              <DollarSign size={18} color={P.success} />
+                            </div>
+                            <div>
+                              <p className="text-[12px] font-semibold" style={{ color: P.text }}>{expense.description}</p>
+                              <p className="text-[10px]" style={{ color: P.sub }}>
+                                {vehicle ? `${vehicle.year} ${vehicle.model}` : "—"} · {new Date(expense.date).toLocaleDateString("pt-BR")}
+                              </p>
+                            </div>
+                          </div>
+                          <span className="px-2 py-0.5 rounded-full text-[9px] uppercase tracking-[0.1em] font-medium" style={{ background: `${P.success}1A`, color: P.success }}>
+                            R$ {expense.amount.toLocaleString("pt-BR")}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: `${P.info}1A`, color: P.info }}>{expense.category}</span>
+                          <button onClick={() => confirm({
+                            title: "Excluir Despesa",
+                            message: `Tem certeza que deseja excluir "${expense.description}"?`,
+                            confirmLabel: "Excluir",
+                            variant: "danger",
+                            onConfirm: () => store.setState(s => ({ expenses: s.expenses.filter(e => e.id !== expense.id) })),
+                          })}
+                            className="p-1 rounded transition-colors hover:text-white" style={{ color: P.dim }}><Trash2 size={12} /></button>
+                        </div>
                       </div>
-                      <p className="text-[11px] font-semibold" style={{ fontFamily: "'JetBrains Mono', monospace", color: "var(--foreground)" }}>R$ {e.amount.toLocaleString("pt-BR")}</p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -530,50 +578,50 @@ export function AutomotiveGarage({ onSendMessage }: WorkspaceProps) {
           {view === "debits" && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-xs font-semibold mb-1" style={{ fontFamily: "'Sora', sans-serif", color: "var(--foreground)" }}>Consultar Débitos</h3>
-                <p className="text-[10px] mb-4" style={{ color: "var(--muted-foreground)" }}>Selecione seu estado para acessar o Detran ou use os links diretos abaixo</p>
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] mb-1" style={{ fontFamily: "'Sora', sans-serif", color: P.text }}>Consultar Débitos</h3>
+                <p className="text-[10px] mb-4" style={{ color: P.sub }}>Selecione seu estado para acessar o Detran ou use os links diretos abaixo</p>
               </div>
 
               <div className="grid grid-cols-2 gap-2 mb-4">
                 {["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT","PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"].map(uf => (
                   <button key={uf} onClick={() => window.open(`https://www.detran.${uf.toLowerCase()}.gov.br`, "_blank")}
                     className="flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] border transition-all hover:scale-[1.02]"
-                    style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--foreground)" }}>
-                    <Shield size={12} style={{ color: "#3B82F6" }} />
+                    style={{ background: P.card, borderColor: P.border, color: P.text }}>
+                    <Shield size={12} style={{ color: P.info }} />
                     Detran {uf}
                   </button>
                 ))}
               </div>
 
               <div className="space-y-2">
-                <h4 className="text-[11px] font-semibold" style={{ color: "var(--foreground)" }}>Links Rápidos</h4>
+                <h4 className="text-[9px] uppercase tracking-[0.14em] font-semibold mb-2" style={{ color: P.dim }}>Links Rápidos</h4>
                 {debitsItems.map((item, i) => (
                   <button key={i} onClick={() => window.open(item.url, "_blank")}
-                    className="w-full flex items-center gap-3 p-3 rounded-lg border transition-all hover:scale-[1.01] text-left"
-                    style={{ background: "var(--card)", borderColor: "var(--border)" }}>
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "#EF444415" }}>
-                      <Shield size={14} color="#EF4444" />
+                    className="w-full flex items-center gap-3 p-3 rounded-[14px] border transition-all hover:scale-[1.01] text-left"
+                    style={{ background: P.card, borderColor: P.border }}>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${P.error}1A` }}>
+                      <Shield size={14} color={P.error} />
                     </div>
                     <div>
-                      <p className="text-[11px] font-medium" style={{ color: "var(--foreground)" }}>{item.label}</p>
-                      <p className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>{item.desc}</p>
+                      <p className="text-[11px] font-medium" style={{ color: P.text }}>{item.label}</p>
+                      <p className="text-[9px]" style={{ color: P.sub }}>{item.desc}</p>
                     </div>
                   </button>
                 ))}
               </div>
 
-              <div className="rounded-xl border p-4" style={{ background: "var(--card)", borderColor: "var(--border)" }}>
-                <h4 className="text-[11px] font-semibold mb-2" style={{ color: "var(--foreground)" }}>Apps Recomendados</h4>
+              <div className="rounded-[18px] border p-4" style={{ background: P.card, borderColor: P.border }}>
+                <h4 className="text-[9px] uppercase tracking-[0.14em] font-semibold mb-2" style={{ color: P.dim }}>Apps Recomendados</h4>
                 <div className="grid grid-cols-2 gap-3">
                   {[
                     { name: "Gringo", desc: "App completo: IPVA, multas, licenciamento", url: "https://www.gringo.com.br" },
                     { name: "CDT", desc: "Carteira Digital de Trânsito (oficial)", url: "https://portalservicos.denatran.serpro.gov.br" },
                   ].map((app, i) => (
                     <button key={i} onClick={() => window.open(app.url, "_blank")}
-                      className="flex flex-col gap-1 p-3 rounded-lg border text-left transition-all hover:scale-[1.02]"
-                      style={{ background: "var(--secondary)", borderColor: "var(--border)" }}>
-                      <span className="text-[11px] font-semibold" style={{ color: "var(--foreground)" }}>{app.name}</span>
-                      <span className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>{app.desc}</span>
+                      className="flex flex-col gap-1 p-3 rounded-[14px] border text-left transition-all hover:scale-[1.02]"
+                      style={{ background: P.card2, borderColor: P.border }}>
+                      <span className="text-[11px] font-semibold" style={{ color: P.text }}>{app.name}</span>
+                      <span className="text-[9px]" style={{ color: P.sub }}>{app.desc}</span>
                     </button>
                   ))}
                 </div>
@@ -585,8 +633,8 @@ export function AutomotiveGarage({ onSendMessage }: WorkspaceProps) {
           {view === "parts" && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-xs font-semibold mb-1" style={{ fontFamily: "'Sora', sans-serif", color: "var(--foreground)" }}>Buscar Peças</h3>
-                <p className="text-[10px] mb-4" style={{ color: "var(--muted-foreground)" }}>Pesquise peças para seu veículo nos principais marketplaces</p>
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] mb-1" style={{ fontFamily: "'Sora', sans-serif", color: P.text }}>Buscar Peças</h3>
+                <p className="text-[10px] mb-4" style={{ color: P.sub }}>Pesquise peças para seu veículo nos principais marketplaces</p>
               </div>
 
               <div className="flex gap-2 mb-4">
@@ -596,17 +644,17 @@ export function AutomotiveGarage({ onSendMessage }: WorkspaceProps) {
                   onKeyDown={e => { if (e.key === "Enter" && partsQuery.trim()) window.open(`https://lista.mercadolivre.com.br/${encodeURIComponent(partsQuery.trim())}`, "_blank"); }}
                   placeholder="Ex: pastilhas de freio gol 2020"
                   className="flex-1 px-4 py-2.5 rounded-lg text-[12px] outline-none"
-                  style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+                  style={{ background: P.panel, border: `1px solid ${P.border}`, color: P.text }}
                 />
                 <button onClick={() => { if (partsQuery.trim()) window.open(`https://lista.mercadolivre.com.br/${encodeURIComponent(partsQuery.trim())}`, "_blank"); }}
-                  className="px-4 py-2 rounded-lg text-[11px] font-medium"
-                  style={{ background: "var(--primary)", color: "var(--primary-foreground)" }}>
+                  className="px-4 py-2 rounded-lg text-[11px] font-medium transition-all hover:scale-[1.03] hover:brightness-110"
+                  style={{ background: P.primary, color: "#fff" }}>
                   Buscar
                 </button>
               </div>
 
               <div className="space-y-2">
-                <h4 className="text-[11px] font-semibold" style={{ color: "var(--foreground)" }}>Onde Comprar</h4>
+                <h4 className="text-[9px] uppercase tracking-[0.14em] font-semibold mb-2" style={{ color: P.dim }}>Onde Comprar</h4>
                 {[
                   { name: "Mercado Livre", url: "https://lista.mercadolivre.com.br", icon: "🛒", color: "#FFE600", desc: "Maior marketplace da América Latina" },
                   { name: "Shopee", url: "https://shopee.com.br", icon: "🛍️", color: "#EE4D2D", desc: "Preços competitivos e frete grátis" },
@@ -616,26 +664,26 @@ export function AutomotiveGarage({ onSendMessage }: WorkspaceProps) {
                   { name: "Nakata", url: "https://www.nakata.com.br", icon: "⚙️", color: "#0047AB", desc: "Suspensão e direção" },
                 ].map((site, i) => (
                   <button key={i} onClick={() => window.open(`${site.url}?q=${encodeURIComponent(partsQuery || "pecas automotivas")}`, "_blank")}
-                    className="w-full flex items-center gap-3 p-3 rounded-lg border transition-all hover:scale-[1.01] text-left"
-                    style={{ background: "var(--card)", borderColor: "var(--border)" }}>
+                    className="w-full flex items-center gap-3 p-3 rounded-[14px] border transition-all hover:scale-[1.01] text-left"
+                    style={{ background: P.card, borderColor: P.border }}>
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm" style={{ background: `${site.color}20` }}>
                       <span>{site.icon}</span>
                     </div>
                     <div className="flex-1">
-                      <p className="text-[11px] font-medium" style={{ color: "var(--foreground)" }}>{site.name}</p>
-                      <p className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>{site.desc}</p>
+                      <p className="text-[11px] font-medium" style={{ color: P.text }}>{site.name}</p>
+                      <p className="text-[9px]" style={{ color: P.sub }}>{site.desc}</p>
                     </div>
                   </button>
                 ))}
               </div>
 
               {partsQuery.trim() && (
-                <div className="rounded-xl border p-4" style={{ background: "var(--card)", borderColor: "var(--border)" }}>
+                <div className="rounded-[18px] border p-4" style={{ background: P.card, borderColor: P.border }}>
                   <div className="flex items-center gap-2 mb-2">
-                    <FileText size={14} style={{ color: "#3B82F6" }} />
-                    <span className="text-[11px] font-medium" style={{ color: "var(--foreground)" }}>Dica de busca</span>
+                    <FileText size={14} style={{ color: P.info }} />
+                    <span className="text-[11px] font-medium" style={{ color: P.text }}>Dica de busca</span>
                   </div>
-                  <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+                  <p className="text-[10px]" style={{ color: P.sub }}>
                     Para melhores resultados, inclua o modelo e ano do veículo. Ex: "pastilhas de freio Gol 2020 dianteira"
                   </p>
                 </div>
@@ -643,17 +691,18 @@ export function AutomotiveGarage({ onSendMessage }: WorkspaceProps) {
             </div>
           )}
 
-          <div style={{ padding: "12px", borderRadius: "12px", background: "var(--card)", border: "1px solid var(--border)" }}>
-            <span className="text-xs font-medium mb-2 block" style={{ color: "var(--foreground)" }}>Notas Pessoais</span>
+          <div style={{ padding: "12px", borderRadius: "18px", background: P.card, border: `1px solid ${P.border}` }}>
+            <span className="text-[9px] uppercase tracking-[0.14em] font-semibold mb-2 block" style={{ color: P.dim }}>Notas Pessoais</span>
             <textarea
               value={notes}
               onChange={(e) => updateNotes(e.target.value)}
               className="w-full px-3 py-2 rounded-lg text-[10px] resize-none"
-              style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)", minHeight: "60px" }}
+              style={{ background: P.panel, color: P.text, border: `1px solid ${P.border}`, minHeight: "60px" }}
               placeholder="Suas anotações da oficina..."
             />
           </div>
         </div>
+        </ScrollArea>
       </div>
 
       {/* ADD VEHICLE MODAL */}
@@ -680,11 +729,9 @@ export function AutomotiveGarage({ onSendMessage }: WorkspaceProps) {
         <Field label={t("automotive_field_mileage")}>
           <Input value={vMileage} onChange={setVMileage} placeholder="45000" type="number" />
         </Field>
-        <button onClick={addVehicle} disabled={!vName.trim() || !vYear.trim() || !vModel.trim()}
-          className="w-full mt-3 py-2.5 rounded-lg text-[12px] font-semibold transition-colors disabled:opacity-40"
-          style={{ background: "var(--primary)", color: "var(--primary-foreground)" }}>
+        <PrimaryButton onClick={addVehicle} disabled={!vName.trim() || !vYear.trim() || !vModel.trim()} className="w-full mt-3 justify-center">
           {t("automotive_modal_add_vehicle_button")}
-        </button>
+        </PrimaryButton>
       </Modal>
 
       {/* ADD SERVICE MODAL */}
@@ -711,14 +758,12 @@ export function AutomotiveGarage({ onSendMessage }: WorkspaceProps) {
             <Field label={t("automotive_field_shop")}>
               <Input value={sShop} onChange={setSShop} placeholder="Auto Center XYZ" />
             </Field>
-            <button onClick={addService} disabled={!sDesc.trim() || !sVehicle}
-              className="w-full mt-3 py-2.5 rounded-lg text-[12px] font-semibold transition-colors disabled:opacity-40"
-              style={{ background: "var(--primary)", color: "var(--primary-foreground)" }}>
+            <PrimaryButton onClick={addService} disabled={!sDesc.trim() || !sVehicle} className="w-full mt-3 justify-center">
               {t("automotive_modal_add_service_button")}
-            </button>
+            </PrimaryButton>
           </>
         ) : (
-          <p className="text-[12px] text-center py-4" style={{ color: "var(--muted-foreground)" }}>{t("automotive_add_vehicle_first")}</p>
+          <p className="text-[12px] text-center py-4" style={{ color: P.sub }}>{t("automotive_add_vehicle_first")}</p>
         )}
       </Modal>
 
@@ -738,17 +783,15 @@ export function AutomotiveGarage({ onSendMessage }: WorkspaceProps) {
             <Field label={t("automotive_field_amount")}>
               <Input value={eAmount} onChange={setEAmount} placeholder="250" type="number" />
             </Field>
-            <button onClick={addExpense} disabled={!eDesc.trim() || !eAmount.trim() || !eVehicle}
-              className="w-full mt-3 py-2.5 rounded-lg text-[12px] font-semibold transition-colors disabled:opacity-40"
-              style={{ background: "var(--primary)", color: "var(--primary-foreground)" }}>
+            <PrimaryButton onClick={addExpense} disabled={!eDesc.trim() || !eAmount.trim() || !eVehicle} className="w-full mt-3 justify-center">
               {t("automotive_modal_add_expense_button")}
-            </button>
+            </PrimaryButton>
           </>
         ) : (
-          <p className="text-[12px] text-center py-4" style={{ color: "var(--muted-foreground)" }}>{t("automotive_add_vehicle_first")}</p>
+          <p className="text-[12px] text-center py-4" style={{ color: P.sub }}>{t("automotive_add_vehicle_first")}</p>
         )}
       </Modal>
       <AIFloatingPrompt onSendMessage={onSendMessage} label="Perguntar à IA" />
-    </div>
+    </PremiumRoot>
   );
 }

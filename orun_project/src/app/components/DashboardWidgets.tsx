@@ -1,9 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactElement } from "react";
 import { Clock, Cpu, HardDrive, Activity } from "lucide-react";
 import { useTranslation } from "../../i18n/I18nProvider";
-
-const START_TIME = Date.now();
 
 function useTime() {
   const [now, setNow] = useState(new Date());
@@ -16,19 +14,34 @@ function useTime() {
 
 function useSysStats() {
   const [stats, setStats] = useState(() => ({
-    cpu: Math.floor(Math.random() * 31) + 15,
-    memory: Math.floor(Math.random() * 31) + 40,
+    cpu: 0,
+    memory: 0,
     uptime: 0,
   }));
   useEffect(() => {
-    const id = setInterval(() => {
-      setStats({
-        cpu: Math.floor(Math.random() * 31) + 15,
-        memory: Math.floor(Math.random() * 31) + 40,
-        uptime: Math.floor((Date.now() - START_TIME) / 1000),
-      });
-    }, 5000);
-    return () => clearInterval(id);
+    const api = (window as unknown as { orun?: { analytics?: { system: () => Promise<{ cpu: number; memory: number; uptime: number }> } } }).orun?.analytics;
+    let alive = true;
+    const refresh = async () => {
+      try {
+        if (api?.system) {
+          const s = await api.system();
+          if (!alive) return;
+          setStats({ cpu: s.cpu, memory: s.memory, uptime: s.uptime });
+        } else {
+          if (!alive) return;
+          setStats((prev) => ({
+            cpu: Math.floor(Math.random() * 31) + 15,
+            memory: Math.floor(Math.random() * 31) + 40,
+            uptime: prev.uptime + 5,
+          }));
+        }
+      } catch {
+        /* mantém os valores atuais */
+      }
+    };
+    refresh();
+    const id = setInterval(refresh, 5000);
+    return () => { alive = false; clearInterval(id); };
   }, []);
   return stats;
 }
@@ -43,7 +56,6 @@ export function DashboardWidgets({ open, onToggle }: { open: boolean; onToggle: 
   const { t, locale } = useTranslation();
   const now = useTime();
   const stats = useSysStats();
-  const panelRef = useRef<HTMLDivElement>(null);
 
   return (
     <>
@@ -63,7 +75,6 @@ export function DashboardWidgets({ open, onToggle }: { open: boolean; onToggle: 
         <>
           <div className="fixed inset-0 z-20" onClick={onToggle} />
           <div
-            ref={panelRef}
             className="fixed inset-y-0 left-16 w-72 z-30 p-4 overflow-y-auto border-r"
             style={{ background: "var(--background)", borderColor: "var(--border)" }}
           >

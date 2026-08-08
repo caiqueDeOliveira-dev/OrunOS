@@ -26,19 +26,19 @@ export function GitPanel() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-3 py-2 border-b shrink-0" style={{ borderColor: "var(--border)" }}>
-        <span className="text-[10px] font-semibold tracking-wider uppercase" style={{ fontFamily: "'Sora', sans-serif", color: "var(--muted-foreground)" }}>
+      <div className="px-3 py-2 border-b shrink-0" style={{ borderColor: "#252525" }}>
+        <span className="text-[10px] font-semibold tracking-wider uppercase" style={{ fontFamily: "'Sora', sans-serif", color: "#A0A0A0" }}>
           Source Control
         </span>
       </div>
-      <div className="flex-1 overflow-y-auto scrollbar-hide py-1">
+      <div className="flex-1 overflow-y-auto hs-scroll py-1">
         {gitStatus ? (
           <div className="px-3 space-y-1">
             <div className="flex items-center gap-2 py-2">
-              <GitBranch size={12} style={{ color: "#C00018" }} />
-              <span className="text-[11px] font-medium" style={{ color: "var(--foreground)" }}>{gitStatus.branch}</span>
+              <GitBranch size={12} style={{ color: "#C3002F" }} />
+              <span className="text-[11px] font-medium" style={{ color: "#FFFFFF" }}>{gitStatus.branch}</span>
             </div>
-            <div className="flex gap-3 text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+            <div className="flex gap-3 text-[10px]" style={{ color: "#A0A0A0" }}>
               <span style={{ color: "#22C55E" }}>+{gitStatus.staged} staged</span>
               <span style={{ color: "#F59E0B" }}>~{gitStatus.changes - gitStatus.staged} modified</span>
             </div>
@@ -49,12 +49,12 @@ export function GitPanel() {
                     <span className="w-4 text-center font-bold" style={{
                       color: f.status === "M" ? "#F59E0B" : f.status === "A" ? "#22C55E" : f.status === "D" ? "#EF4444" : "#8B5CF6",
                     }}>{f.status}</span>
-                    <span className="truncate" style={{ color: "var(--foreground)" }}>{f.path}</span>
+                    <span className="truncate" style={{ color: "#FFFFFF" }}>{f.path}</span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-[10px] py-4 text-center" style={{ color: "var(--muted-foreground)" }}>
+              <p className="text-[10px] py-4 text-center" style={{ color: "#A0A0A0" }}>
                 <CheckCircle size={12} className="inline mr-1" style={{ color: "#22C55E" }} />
                 No changes
               </p>
@@ -62,8 +62,8 @@ export function GitPanel() {
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2 py-12">
-            <Github size={24} style={{ color: "var(--muted-foreground)", opacity: 0.3 }} />
-            <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>No repository</p>
+            <Github size={24} style={{ color: "#A0A0A0", opacity: 0.3 }} />
+            <p className="text-[10px]" style={{ color: "#A0A0A0" }}>No repository</p>
           </div>
         )}
       </div>

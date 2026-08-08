@@ -10,14 +10,14 @@ export function EffectsTab() {
           className="flex flex-col cursor-pointer"
           onClick={() => useVideoStore.setState({ selectedEffect: fx.label })}
           style={{
-            borderRadius: 4, overflow: "hidden",
+            borderRadius: 6, overflow: "hidden",
             border: useVideoStore.getState().selectedEffect === fx.label
-              ? "1px solid #C9D1D9" : "1px solid #21262D",
+              ? "1px solid #FFFFFF" : "1px solid #141414",
           }}
         >
           <div style={{ height: 40, background: `linear-gradient(135deg, ${fx.color}, ${fx.color}aa)` }} />
-          <div style={{ padding: "2px 4px", background: "#0D1117" }}>
-            <span style={{ fontSize: 8, color: "#8B949E", fontFamily: SANS }}>{fx.label}</span>
+          <div style={{ padding: "2px 4px", background: "#0A0A0C" }}>
+            <span style={{ fontSize: 8, color: "#A0A0A0", fontFamily: SANS }}>{fx.label}</span>
           </div>
         </div>
       ))}

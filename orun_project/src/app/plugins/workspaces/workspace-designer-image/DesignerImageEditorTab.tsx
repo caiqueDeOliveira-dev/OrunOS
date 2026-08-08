@@ -86,7 +86,7 @@ export function DesignerImageEditorTab({ onSendMessage }: { onSendMessage: (msg:
           <button onClick={() => fileRef.current?.click()} className="ws-btn-primary text-[9px]">Open Image</button>
           {imageLoaded && (
             <>
-              <button onClick={() => setShowOriginal((v) => !v)} className="ws-btn-sm text-[9px]" style={{ background: showOriginal ? "var(--accent)" : "var(--card)" }}>Compare</button>
+              <button onClick={() => setShowOriginal((v) => !v)} className="ws-btn-sm text-[9px]" style={{ background: showOriginal ? "#C3002F" : "#141414" }}>Compare</button>
               <button onClick={() => {
                 const canvas = document.createElement("canvas");
                 const img = new Image();
@@ -125,7 +125,7 @@ export function DesignerImageEditorTab({ onSendMessage }: { onSendMessage: (msg:
                 </div>
               )}
               <div className="flex flex-col items-center gap-1">
-                {showOriginal && <span className="text-[8px] uppercase ws-font-sora" style={{ color: "var(--accent)" }}>Edited</span>}
+                {showOriginal && <span className="text-[8px] uppercase ws-font-sora" style={{ color: "#C3002F" }}>Edited</span>}
                 <img src={imageLoaded} alt="Editor preview" style={filterStyle as any} />
               </div>
             </div>
@@ -172,8 +172,8 @@ export function DesignerImageEditorTab({ onSendMessage }: { onSendMessage: (msg:
               <div className="grid grid-cols-3 gap-1">
                 <button onClick={() => setRotation((r) => (r - 90) % 360)} className="ws-btn-sm">↺ Rotate</button>
                 <button onClick={() => setRotation((r) => (r + 90) % 360)} className="ws-btn-sm">↻ Rotate</button>
-                <button onClick={() => setFlipH((v) => !v)} className="ws-btn-sm" style={{ background: flipH ? "var(--accent)" : "var(--card)" }}>↔ Flip</button>
-                <button onClick={() => setFlipV((v) => !v)} className="ws-btn-sm" style={{ background: flipV ? "var(--accent)" : "var(--card)" }}>↕ Flip</button>
+                <button onClick={() => setFlipH((v) => !v)} className="ws-btn-sm" style={{ background: flipH ? "#C3002F" : "#141414" }}>↔ Flip</button>
+                <button onClick={() => setFlipV((v) => !v)} className="ws-btn-sm" style={{ background: flipV ? "#C3002F" : "#141414" }}>↕ Flip</button>
                 <button onClick={resetAll} className="col-span-2 ws-btn-sm" style={{ background: "#EF444420", color: "#EF4444" }}>Reset All</button>
               </div>
             </div>

@@ -17,11 +17,28 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
         animate={{ opacity: [0, 1, 1, 0] }}
         transition={{ duration: 3.4, times: [0, 0.18, 0.82, 1], ease: "easeInOut" }}
       >
-        <svg width="72" height="72" viewBox="0 0 52 52" fill="none">
-          <polygon points="26,2 50,14 50,38 26,50 2,38 2,14" stroke="#C00018" strokeWidth="1.5" fill="none" />
-          <polygon points="26,12 40,20 40,32 26,40 12,32 12,20" stroke="#C00018" strokeWidth="0.6" fill="rgba(192,0,24,0.04)" />
-          <circle cx="26" cy="26" r="5" fill="#C00018" style={{ filter: "drop-shadow(0 0 6px #C00018)" }} />
-        </svg>
+        <div className="relative">
+          <div
+            className="absolute rounded-full"
+            style={{
+              inset: -24,
+              background: "radial-gradient(circle, rgba(195,0,47,0.18) 0%, transparent 65%)",
+              animation: "orunAuraPulse 2.5s ease-in-out infinite",
+            }}
+          />
+          <img
+            src="./LogoIA.png"
+            alt="Orun OS"
+            className="relative rounded-full"
+            style={{
+              width: 84,
+              height: 84,
+              objectFit: "cover",
+              border: "1px solid rgba(195,0,47,0.45)",
+              boxShadow: "0 0 30px rgba(195,0,47,0.25), inset 0 0 20px rgba(0,0,0,0.5)",
+            }}
+          />
+        </div>
       </motion.div>
     </motion.div>
   );

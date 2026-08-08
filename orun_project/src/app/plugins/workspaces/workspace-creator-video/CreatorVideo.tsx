@@ -3,6 +3,7 @@ import type { WorkspaceProps } from "../../types";
 import { registerVideoActions, unregisterVideoActions, setVideoStoreGetter } from "./video-actions";
 import { useVideoStore, undo, redo, pushUndo } from "./video-store";
 import { AIFloatingPrompt } from "../../components/AIFloatingPrompt";
+import { PremiumRoot } from "../premium";
 import { TopToolbar } from "./TopToolbar";
 import { LeftSidebar } from "./LeftSidebar";
 import { CenterPreview } from "./CenterPreview";
@@ -52,7 +53,7 @@ export function CreatorVideo({ plugin, activeTab, onTabChange, onSendMessage, la
   }, [isPlaying, fps, totalFrames]);
 
   return (
-    <div className="flex flex-col w-full h-full" style={{ background: "var(--background)" }}>
+    <PremiumRoot>
       <TopToolbar />
       <div className="flex flex-1 min-h-0">
         <LeftSidebar />
@@ -62,6 +63,6 @@ export function CreatorVideo({ plugin, activeTab, onTabChange, onSendMessage, la
       <AudioMixer />
       <TimelineEditor />
       <AIFloatingPrompt onSendMessage={onSendMessage} label="Video AI" />
-    </div>
+    </PremiumRoot>
   );
 }

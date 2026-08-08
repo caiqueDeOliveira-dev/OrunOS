@@ -32,10 +32,17 @@ export function TitleBar() {
 
       {/* App icon / branding on the left */}
       <div className="relative z-10 flex items-center gap-2 pl-3" style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}>
-        <svg width="14" height="14" viewBox="0 0 52 52" fill="none">
-          <polygon points="26,2 50,14 50,38 26,50 2,38 2,14" stroke="#C00018" strokeWidth="2" fill="none" />
-          <circle cx="26" cy="26" r="5" fill="#C00018" />
-        </svg>
+        <img
+          src="./LogoIA.png"
+          alt="Orun OS"
+          className="rounded-full"
+          style={{
+            width: 16,
+            height: 16,
+            objectFit: "cover",
+            border: "1px solid rgba(195,0,47,0.4)",
+          }}
+        />
       </div>
 
       {/* Window controls on the right */}

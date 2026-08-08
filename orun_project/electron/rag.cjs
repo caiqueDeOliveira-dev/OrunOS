@@ -145,4 +145,4 @@ function stats() {
   return { total: vectors.length, withEmbedding, sizeKB: Math.round(JSON.stringify(vectors).length / 1024) };
 }
 
-module.exports = { init, save, search, remove, stats };
+module.exports = { init, getEmbedding, save, search, remove, stats };

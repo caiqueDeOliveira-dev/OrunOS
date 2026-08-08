@@ -10,6 +10,11 @@ function send(channel, data) {
   }
 }
 
+function sendStatus(status, extra = {}) {
+  updateStatus = status;
+  send("app:update-status", { status, ...extra });
+}
+
 function initAutoUpdater(win) {
   mainWindow = win;
 
@@ -21,42 +26,42 @@ function initAutoUpdater(win) {
 
   autoUpdater.setFeedURL({
     provider: "github",
-    owner: "grupo-orun",
-    repo: "orun-os",
+    owner: "caiqueDeOliveira-dev",
+    repo: "OrunOS",
   });
 
   autoUpdater.on("checking-for-update", () => {
-    updateStatus = "checking";
     send("update:checking");
+    sendStatus("checking");
   });
 
   autoUpdater.on("update-available", (info) => {
-    updateStatus = "available";
     send("update:available", { version: info.version, releaseDate: info.releaseDate });
+    sendStatus("available", { version: info.version });
   });
 
   autoUpdater.on("update-not-available", () => {
-    updateStatus = "not-available";
     send("update:not-available");
+    sendStatus("not-available");
   });
 
   autoUpdater.on("download-progress", (progress) => {
-    updateStatus = "downloading";
     send("update:progress", { percent: Math.round(progress.percent) });
+    sendStatus("downloading", { percent: Math.round(progress.percent) });
   });
 
   autoUpdater.on("update-downloaded", (info) => {
-    updateStatus = "downloaded";
     send("update:downloaded", { version: info.version });
+    sendStatus("downloaded", { version: info.version });
     setTimeout(() => {
       try { autoUpdater.quitAndInstall(); } catch { /* ignore */ }
     }, 24 * 60 * 60 * 1000);
   });
 
   autoUpdater.on("error", (err) => {
-    updateStatus = "error";
     log.error("[auto-updater]", err.message);
     send("update:error", { message: err.message });
+    sendStatus("error", { message: err.message });
   });
 
   autoUpdater.checkForUpdates().catch((err) => {

@@ -4,7 +4,7 @@
     "description": "Orun OS — a personal AI desktop assistant with local and cloud model support.",
     "author": "Grupo Orun Soluções Tecnológicas",
     "private": true,
-    "version": "0.6.3",
+    "version": "0.6.7",
     "type": "module",
     "main": "electron/main.cjs",
     "scripts": {
@@ -18,10 +18,13 @@
         "test": "vitest run",
         "test:watch": "vitest",
         "clean": "rimraf dist release node_modules/.vite",
-        "lint": "eslint src/"
+        "lint": "eslint src/",
+        "lint:report": "node scripts/lint-errors-report.cjs",
+        "lint:fix": "eslint src/ --fix"
     },
     "dependencies": {
         "@fal-ai/client": "^1.10.1",
+        "@orun/core": "github:caiqueDeOliveira-dev/Orun-Core#v0.1.2",
         "@radix-ui/react-accordion": "1.2.3",
         "@radix-ui/react-alert-dialog": "1.1.6",
         "@radix-ui/react-aspect-ratio": "1.1.2",
@@ -48,11 +51,11 @@
         "@radix-ui/react-toggle": "1.1.2",
         "@radix-ui/react-toggle-group": "1.1.2",
         "@radix-ui/react-tooltip": "1.1.8",
-        "@orun/core": "github:caiqueDeOliveira-dev/Orun-Core#v0.1.2",
         "@react-three/drei": "^9.122.0",
         "@react-three/fiber": "^8.18.0",
         "@remotion/bundler": "^4.0.489",
         "@remotion/renderer": "^4.0.489",
+        "@ricky0123/vad-web": "^0.0.30",
         "@supabase/supabase-js": "^2.110.2",
         "@types/three": "^0.185.1",
         "@whiskeysockets/baileys": "7.0.0-rc13",
@@ -77,6 +80,7 @@
         "node-audio-mixer": "^2.2.0",
         "node-cron": "3.0.3",
         "node-wav": "^0.0.2",
+        "onnxruntime-web": "^1.27.0",
         "pg": "^8.22.0",
         "qrcode": "1.5.4",
         "react": "18.3.1",
@@ -119,7 +123,8 @@
         "vitest": "2.1.8",
         "wait-on": "8.0.1"
     },
-    "build": {        "appId": "com.grupoorun.orunos",
+    "build": {
+        "appId": "com.grupoorun.orunos",
         "productName": "Orun OS",
         "artifactName": "Orun-OS-Setup-${version}.${ext}",
         "files": [

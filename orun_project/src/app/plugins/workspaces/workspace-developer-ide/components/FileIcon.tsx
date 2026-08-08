@@ -51,5 +51,5 @@ function getIconColor(ext: string): string {
     bash: "#4EAA25", sql: "#CC2927", go: "#00ADD8", rs: "#DEA584",
     java: "#ED8B00", dockerfile: "#2496ED", gitignore: "#F05032",
   };
-  return colors[ext] || "var(--muted-foreground)";
+  return colors[ext] || "#A0A0A0";
 }

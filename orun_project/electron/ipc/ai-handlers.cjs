@@ -17,7 +17,14 @@ function register(ipcMain, ctx) {
     const settings = resolveAISettings(agentId);
     const keys = secretStore.readSecretStore();
     const apiKey = keys[settings.provider];
-    const systemPrompt = buildSystemPrompt(settings.systemPrompt, agentId);
+    let systemPrompt = buildSystemPrompt(settings.systemPrompt, agentId);
+    if (ctx.memoryEngine) {
+      const lastUser = [...messages].reverse().find((m) => m.role === "user" && typeof m.content === "string")?.content || "";
+      if (lastUser) {
+        const memBlock = await ctx.memoryEngine.injectForPrompt({ query: lastUser, scopeAgent: agentId, topK: 5, maxChars: 1500 });
+        if (memBlock) systemPrompt += memBlock;
+      }
+    }
     const { context } = await aiRouter.buildContext({ messages, systemPrompt, provider: settings.provider, model: settings.model, baseUrl: settings.baseUrl, apiKey });
 
     log.info(`[ai:chat] agent=${agentId || "hampton"} provider=${settings.provider} model=${settings.model}`);
@@ -30,6 +37,7 @@ function register(ipcMain, ctx) {
       telemetry.counter("ai:chat:success");
       agentProcessor.recordUsageSafely(settings.provider, result.usage);
       responseCache.set(messages[messages.length - 1]?.content || "", agentId, result.text);
+      if (ctx.analytics) ctx.analytics.logEvent({ type: "ai:chat", agent: agentId || "hampton", detail: `${settings.provider} ${settings.model}` });
       return agentProcessor.processAgentReply(agentId, await agentProcessor.processActions(result.text));
     } catch (err) {
       telemetry.counter("ai:chat:error");
@@ -39,6 +47,7 @@ function register(ipcMain, ctx) {
         try {
           const result = await aiRouter.routeChat({ provider: fallback.provider, model: fallback.model, apiKey: keys[fallback.provider], messages: context });
           agentProcessor.recordUsageSafely(fallback.provider, result.usage);
+          if (ctx.analytics) ctx.analytics.logEvent({ type: "ai:chat", agent: agentId || "hampton", detail: `${fallback.provider} ${fallback.model}` });
           return agentProcessor.processAgentReply(agentId, await agentProcessor.processActions(result.text));
         } catch (fallbackErr) {
           const userMessage = getErrorMessage(fallbackErr);
@@ -58,7 +67,14 @@ function register(ipcMain, ctx) {
     const sender = event.sender;
     const settings = resolveAISettings(agentId);
     const keys = secretStore.readSecretStore();
-    const systemPrompt = buildSystemPrompt(settings.systemPrompt, agentId);
+    let systemPrompt = buildSystemPrompt(settings.systemPrompt, agentId);
+    if (ctx.memoryEngine) {
+      const lastUser = [...messages].reverse().find((m) => m.role === "user" && typeof m.content === "string")?.content || "";
+      if (lastUser) {
+        const memBlock = await ctx.memoryEngine.injectForPrompt({ query: lastUser, scopeAgent: agentId, topK: 5, maxChars: 1500 });
+        if (memBlock) systemPrompt += memBlock;
+      }
+    }
     const send = (channel, payload) => { if (!sender.isDestroyed()) sender.send(channel, payload); };
 
     const attempt = async (provider, model, baseUrl, apiKey) => {
@@ -80,6 +96,7 @@ function register(ipcMain, ctx) {
       const finalText = agentProcessor.processAgentReply(agentId, await agentProcessor.processActions(result.text));
       telemetry.trace("ai:chat-stream", Date.now() - tStreamStart, { provider: settings.provider, model: settings.model });
       telemetry.counter("ai:chat-stream:success");
+      if (ctx.analytics) ctx.analytics.logEvent({ type: "ai:chat-stream", agent: agentId || "hampton", detail: `${settings.provider} ${settings.model}` });
       send(`ai:chat-stream:done:${requestId}`, finalText);
     } catch (err) {
       activeStreamRequests.delete(requestId);
@@ -122,7 +139,7 @@ function register(ipcMain, ctx) {
   // Runs the tool-call loop in the main process. Sends progress events back
   // to the renderer. Returns the final text when done.
 
-  ipcMain.on("ai:autonomous", async (event, { requestId, messages, agentId }) => {
+  ipcMain.on("ai:autonomous", async (event, { requestId, messages, agentId, voiceMode }) => {
     const sender = event.sender;
     const cancelledRef = { cancelled: false };
     activeAutonomousRequests.set(requestId, cancelledRef);
@@ -130,17 +147,18 @@ function register(ipcMain, ctx) {
 
     log.info(`[ai:autonomous] agent=${agentId || "hampton"} messages=${messages.length}`);
     try {
-      const cached = responseCache.get(messages[messages.length - 1]?.content || "", agentId);
+      const cached = responseCache.get(messages[messages.length - 1]?.content || "", agentId, voiceMode ? "voice" : "text");
       if (cached) {
         activeAutonomousRequests.delete(requestId);
         const processed = agentProcessor.processAgentReply(agentId, cached);
         send(`ai:autonomous:done:${requestId}`, processed);
         return;
       }
-      const finalText = await autonomousLoop({ messages, agentId, sender, requestId, cancelledRef });
+      const finalText = await autonomousLoop({ messages, agentId, sender, requestId, cancelledRef, voiceMode });
       activeAutonomousRequests.delete(requestId);
       if (finalText === null) return; // cancelled
-      responseCache.set(messages[messages.length - 1]?.content || "", agentId, finalText);
+      responseCache.set(messages[messages.length - 1]?.content || "", agentId, finalText, voiceMode ? "voice" : "text");
+      log.info(`[ai:autonomous] done agent=${agentId || "hampton"} len=${finalText.length}`);
       const processed = agentProcessor.processAgentReply(agentId, await agentProcessor.processActions(finalText));
       send(`ai:autonomous:done:${requestId}`, processed);
     } catch (err) {

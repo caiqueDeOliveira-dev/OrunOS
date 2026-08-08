@@ -84,7 +84,7 @@ async function transcribeWhisper(baseUrl, audioBuffer, mimeType = "audio/webm", 
   // File part
   parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${filename}"\r\nContent-Type: ${mimeType}\r\n\r\n`);
   const fileHeader = Buffer.from(parts.join(""));
-  const fileFooter = Buffer.from(`\r\n--${boundary}\r\nContent-Disposition: form-data; name="model"\r\n\r\nsmall\r\n--${boundary}\r\nContent-Disposition: form-data; name="language"\r\n\r\n${language}\r\n--${boundary}\r\nContent-Disposition: form-data; name="response_format"\r\n\r\njson\r\n--${boundary}--\r\n`);
+  const fileFooter = Buffer.from(`\r\n--${boundary}\r\nContent-Disposition: form-data; name="model"\r\n\r\nsmall\r\n--${boundary}\r\nContent-Disposition: form-data; name="language"\r\n\r\n${language}\r\n--${boundary}\r\nContent-Disposition: form-data; name="response_format"\r\n\r\njson\r\n--${boundary}\r\nContent-Disposition: form-data; name="condition_on_previous_text"\r\n\r\nfalse\r\n--${boundary}\r\nContent-Disposition: form-data; name="no_speech_threshold"\r\n\r\n0.6\r\n--${boundary}--\r\n`);
 
   const body = Buffer.concat([fileHeader, audioBuffer, fileFooter]);
   const url = `${baseUrl}/v1/audio/transcriptions`;
@@ -97,7 +97,11 @@ async function transcribeWhisper(baseUrl, audioBuffer, mimeType = "audio/webm", 
 
     const text = result.toString("utf8");
     const parsed = JSON.parse(text);
-    return { text: parsed.text || "" };
+    // Reject clips flagged as pure silence (anti-hallucination on empty audio).
+    if (typeof parsed.no_speech_prob === "number" && parsed.no_speech_prob >= 0.6) {
+      return { text: "", noSpeech: true };
+    }
+    return { text: parsed.text || "", noSpeech: parsed.no_speech_prob != null && parsed.no_speech_prob >= 0.6 };
   } catch (err) {
     // If /v1/audio/transcriptions fails, try /transcribe (faster-whisper native)
     try {
@@ -126,7 +130,7 @@ async function testWhisperConnection(baseUrl) {
 }
 
 /**
- * Transcribe audio using Groq's Whisper endpoint (distil-whisper-large-v3).
+ * Transcribe audio using Groq's Whisper endpoint (whisper-large-v3-turbo).
  * Fast (~1s for pt-BR) and accurate; used as a cloud fallback when the local
  * faster-whisper server is unavailable.
  * @param {string} apiKey - Groq API key (gsk-...)
@@ -136,7 +140,7 @@ async function testWhisperConnection(baseUrl) {
  * @param {string} model - Groq model id
  * @returns {Promise<{ text: string, language?: string, duration?: number, model: string }>}
  */
-async function transcribeGroq(apiKey, audioBuffer, mimeType = "audio/webm", language = "pt", model = "distil-whisper-large-v3") {
+async function transcribeGroq(apiKey, audioBuffer, mimeType = "audio/webm", language = "pt", model = "whisper-large-v3-turbo") {
   if (!apiKey) throw new Error("Missing Groq API key.");
   const boundary = `----OrunGroqSTT${Date.now()}`;
   const ext = mimeType.includes("webm") ? "webm" : mimeType.includes("wav") ? "wav" : mimeType.includes("mp4") ? "mp4" : "ogg";

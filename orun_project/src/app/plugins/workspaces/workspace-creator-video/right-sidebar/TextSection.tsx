@@ -32,18 +32,18 @@ export function TextSection() {
 
       <div className="flex gap-0.5" style={{ marginBottom: 6 }}>
         {([{ icon: IBold, key: "bold" as const, val: bold }, { icon: IItalic, key: "italic" as const, val: italic }, { icon: IUnderline, key: "underline" as const, val: underline }]).map(({ icon: Icon, key, val }) => (
-          <button key={key} onClick={() => useVideoStore.setState({ [key]: !val })} style={{ ...btnBase, width: 22, height: 22, background: val ? "#C0001830" : "#0D1117", border: val ? "1px solid #C00018" : "1px solid #30363D", borderRadius: 3 }}><Icon /></button>
+          <button key={key} onClick={() => useVideoStore.setState({ [key]: !val })} style={{ ...btnBase, width: 22, height: 22, background: val ? "#C3002F30" : "#0A0A0C", border: val ? "1px solid #C3002F" : "1px solid #1C1C1C", borderRadius: 6 }}><Icon /></button>
         ))}
         <div style={{ width: 4 }} />
         {([{ icon: IAlignL, align: "left" as const }, { icon: IAlignC, align: "center" as const }, { icon: IAlignR, align: "right" as const }]).map(({ icon: Icon, align }) => (
-          <button key={align} onClick={() => useVideoStore.setState({ textAlign: align })} style={{ ...btnBase, width: 22, height: 22, background: textAlign === align ? "#C0001830" : "#0D1117", border: textAlign === align ? "1px solid #C00018" : "1px solid #30363D", borderRadius: 3 }}><Icon /></button>
+          <button key={align} onClick={() => useVideoStore.setState({ textAlign: align })} style={{ ...btnBase, width: 22, height: 22, background: textAlign === align ? "#C3002F30" : "#0A0A0C", border: textAlign === align ? "1px solid #C3002F" : "1px solid #1C1C1C", borderRadius: 6 }}><Icon /></button>
         ))}
       </div>
 
       <PropRow label={t("creator_video_color")}>
         <div className="flex gap-1">
-          {["#FFFFFF", "#000000", "#C00018", "#2D7FF9", "#2D9B5A", "#D4A017"].map((c) => (
-            <div key={c} onClick={() => useVideoStore.setState({ textColor: c })} style={{ width: 18, height: 18, background: c, borderRadius: 3, border: textColor === c ? "2px solid #C9D1D9" : "1px solid #30363D", cursor: "pointer" }} />
+          {["#FFFFFF", "#000000", "#C3002F", "#4DA3FF", "#00D26A", "#FFB547"].map((c) => (
+            <div key={c} onClick={() => useVideoStore.setState({ textColor: c })} style={{ width: 18, height: 18, background: c, borderRadius: 6, border: textColor === c ? "2px solid #FFFFFF" : "1px solid #1C1C1C", cursor: "pointer" }} />
           ))}
         </div>
       </PropRow>

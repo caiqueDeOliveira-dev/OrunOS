@@ -60,16 +60,27 @@ function register(ipcMain, ctx) {
     const secrets = secretStore.readSecretStore();
     const engineCfg = db.getSetting("ttsEngineConfig", {})["piper"] || {};
 
-    // ── Fallback chain: primary engine → edge (free neural) → local ─────
-    // When a cloud engine (e.g. ElevenLabs) runs out of quota, fall back to
-    // Edge TTS (free Microsoft neural voices, no key), then Piper, then Bark.
-    const FALLBACK_CHAIN = ["edge", "piper", "bark"];
-    const isCloud = ["elevenlabs", "google", "azure", "edge"].includes(engine);
+    // ── Fallback chain configurable por prioridade ────────────────────────
+    // local-first (padrão): edge → kokoro → piper → bark → xtts → f5tts →
+    //   elevenlabs → google → azure (gratuito em primeiro; cloud só com chave)
+    // cloud-first: cloud em primeiro (qualidade premium), local depois.
+    // O kokoro (neural local pt-BR) entrou na chain como 2º local.
+    const CLOUD_ENGINES = ["elevenlabs", "google", "azure"];
+    const LOCAL_ENGINES = ["edge", "kokoro", "piper", "bark", "xtts", "f5tts"];
+    const priorityMode = db.getSetting("ttsFallbackPriority", "local-first") || "local-first";
+
+    function buildFallbackChain(primary) {
+      const rest = (list) => list.filter((e) => e !== primary);
+      return priorityMode === "cloud-first"
+        ? [...rest(CLOUD_ENGINES), ...rest(LOCAL_ENGINES)]
+        : [...rest(LOCAL_ENGINES), ...rest(CLOUD_ENGINES)];
+    }
 
     async function trySynthesize(eng, vid, txt) {
-      const cfg = eng === engine
-        ? { apiKey: secrets[`tts-${eng}`], ...(db.getSetting("ttsEngineConfig", {})[eng] || {}) }
-        : { ...(db.getSetting("ttsEngineConfig", {})[eng] || {}) };
+      const cfg = {
+        ...(db.getSetting("ttsEngineConfig", {})[eng] || {}),
+      };
+      if (secrets[`tts-${eng}`]) cfg.apiKey = secrets[`tts-${eng}`];
       return ttsRouter.synthesize(eng, cfg, vid, txt);
     }
 
@@ -81,12 +92,15 @@ function register(ipcMain, ctx) {
     } catch (primaryErr) {
       log.warn(`[tts:synthesize] ${engine} failed:`, primaryErr.message);
 
-      // Only fallback for cloud engines (quota/key errors)
-      if (!isCloud) throw primaryErr;
-
-      // Try each fallback engine
+      // Try each fallback engine (ordered by priority mode). Cloud engines only
+      // when the respective key exists — otherwise skip fast.
+      const FALLBACK_CHAIN = buildFallbackChain(engine);
       for (const fallback of FALLBACK_CHAIN) {
-        if (fallback === engine) continue; // skip same engine
+        if (fallback === engine) continue;
+        if (CLOUD_ENGINES.includes(fallback) && !secrets[`tts-${fallback}`]) {
+          log.info(`[tts:synthesize] skipping ${fallback}: no API key configured`);
+          continue;
+        }
         try {
           log.info(`[tts:synthesize] trying fallback: ${fallback}`);
           const { buffer, mime } = await trySynthesize(fallback, voiceId, text);

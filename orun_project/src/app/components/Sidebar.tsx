@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import { Settings, History, Puzzle, User, Award, Activity, Mail, Calendar } from "lucide-react";
-import { useTranslation } from "../../i18n/I18nProvider";
+import { Settings, History, Puzzle, User, Award, Activity, Mail, Calendar, Target, Bot, BarChart3 } from "lucide-react";import { useTranslation } from "../../i18n/I18nProvider";
 import { getNavTop } from "../constants";
 import { DashboardWidgets } from "./DashboardWidgets";
 
@@ -37,11 +36,19 @@ export const Sidebar = React.memo(function Sidebar({
       <DashboardWidgets open={dashboardOpen} onToggle={() => setDashboardOpen(p => !p)} />
       <nav className="fixed left-0 top-8 h-[calc(100%-2rem)] z-40 flex flex-col items-center py-5 border-r" style={{ width: 64, background: "var(--sidebar)", borderColor: "var(--sidebar-border)" }} role="navigation" aria-label="Sidebar">
         {/* Mark */}
-        <button className="mb-7 p-1" onClick={() => onNavClick("home")} aria-label={t("sidebarHome") || "Home"}>
-          <svg width="22" height="22" viewBox="0 0 52 52" fill="none">
-            <polygon points="26,2 50,14 50,38 26,50 2,38 2,14" stroke="var(--primary)" strokeWidth="2" fill="none" />
-            <circle cx="26" cy="26" r="5.5" fill="var(--primary)" style={{ filter: "drop-shadow(0 0 4px var(--primary))" }} />
-          </svg>
+        <button className="mb-7 p-0.5" onClick={() => onNavClick("home")} aria-label={t("sidebarHome") || "Home"}>
+          <img
+            src="./LogoIA.png"
+            alt="Orun OS"
+            className="rounded-full"
+            style={{
+              width: 26,
+              height: 26,
+              objectFit: "cover",
+              border: "1px solid rgba(195,0,47,0.5)",
+              boxShadow: "0 0 10px rgba(195,0,47,0.25)",
+            }}
+          />
         </button>
 
         {/* Top nav items */}
@@ -75,6 +82,10 @@ export const Sidebar = React.memo(function Sidebar({
           { icon: Mail, id: "email", title: "Email", onClick: onEmailClick },
           { icon: Calendar, id: "calendar", title: "Calendário", onClick: onCalendarClick },
           { icon: Activity, id: "activity", title: "Atividade", onClick: onActivityClick, badge: badgeCounts?.activity },
+          { icon: Puzzle, id: "skills", title: "Skills", onClick: () => onNavClick("skills") },
+          { icon: Target, id: "planner", title: "Planner", onClick: () => onNavClick("planner") },
+          { icon: Bot, id: "agentHub", title: "Agent Hub", onClick: () => onNavClick("agentHub") },
+          { icon: BarChart3, id: "analytics", title: "Analytics", onClick: () => onNavClick("analytics") },
           { icon: History, id: "history", title: t("sidebarHistory"), onClick: onHistoryClick },
           { icon: Puzzle, id: "plugins", title: t("plugins"), onClick: onPluginsClick },
           { icon: User, id: "profile", title: t("profileTitle"), onClick: onProfileClick },

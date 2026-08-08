@@ -196,7 +196,11 @@ export function VoicesPicker({ onClose }: { onClose: () => void }) {
                       style={{ background: isSelected ? "rgba(192,0,24,0.08)" : "var(--secondary)", border: `1px solid ${isSelected ? "#C00018" : "var(--border)"}` }}
                     >
                       {playingId === voice.id ? <Loader2 size={13} className="animate-spin" style={{ color: "#FF1A2D" }} /> : <Play size={13} style={{ color: isSelected ? "#FF1A2D" : "var(--muted-foreground)" }} />}
-                      <span className="text-xs flex-1 truncate" style={{ fontFamily: "'Sora', sans-serif", color: isSelected ? "#F5F5F5" : "var(--foreground)" }}>{voice.name}</span>
+                      <span className="text-xs flex-1 truncate" style={{ fontFamily: "'Sora', sans-serif", color: isSelected ? "#F5F5F5" : "var(--foreground)" }}>
+                        {voice.gender === "male" && <span title="Masculina" className="mr-1" style={{ color: "#4FC3F7" }}>♂</span>}
+                        {voice.gender === "female" && <span title="Feminina" className="mr-1" style={{ color: "#F48FB1" }}>♀</span>}
+                        {voice.name}
+                      </span>
                       {isSelected && <Check size={13} style={{ color: "#FF1A2D" }} />}
                     </button>
                   );

@@ -35,20 +35,11 @@ function TTSFallbackListener() {
   return null;
 }
 
-export default function App() {
-  const isQuickChat = typeof window !== "undefined" && window.location.hash === QUICK_CHAT_HASH;
-
-  if (isQuickChat) {
-    return (
-      <ThemeProvider>
-        <QuickChat />
-      </ThemeProvider>
-    );
-  }
-
+function MainApp() {
   const [phase, setPhase] = useState<Phase>("splash");
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [voiceOverlayVisible, setVoiceOverlayVisible] = useState(false);
+  const [proactivePrompt, setProactivePrompt] = useState<{ prompt: string; source?: string } | null>(null);
 
   const handleVoiceOverlayDismiss = useCallback(() => setVoiceOverlayVisible(false), []);
 
@@ -68,6 +59,11 @@ export default function App() {
       setVoiceOverlayVisible(true);
     });
 
+    const unsubProactive = window.orun.voiceOverlay.onProactive((payload) => {
+      setProactivePrompt(payload);
+      setVoiceOverlayVisible(true);
+    });
+
     const unsubWsOpen = window.orun.workspaceActions.onOpen((workspaceId: string) => {
       window.dispatchEvent(new CustomEvent("workspace:open", { detail: { workspaceId } }));
     });
@@ -75,6 +71,7 @@ export default function App() {
     return () => {
       destroyWorkspaceActionListener();
       unsubVoice();
+      unsubProactive();
       unsubWsOpen();
     };
   }, []);
@@ -131,6 +128,8 @@ export default function App() {
         <VoiceOverlay
           visible={voiceOverlayVisible}
           onDismiss={handleVoiceOverlayDismiss}
+          proactivePrompt={proactivePrompt}
+          onProactiveHandled={() => setProactivePrompt(null)}
         />
 
         </div>
@@ -139,4 +138,18 @@ export default function App() {
       </I18nProvider>
     </ErrorBoundary>
   );
+}
+
+export default function App() {
+  const isQuickChat = typeof window !== "undefined" && window.location.hash === QUICK_CHAT_HASH;
+
+  if (isQuickChat) {
+    return (
+      <ThemeProvider>
+        <QuickChat />
+      </ThemeProvider>
+    );
+  }
+
+  return <MainApp />;
 }

@@ -60,8 +60,8 @@ export function AgentsPanel({ onClose, onSelectAgent, onOpenAgentPage, onViewDat
                   fontFamily: "'Sora', sans-serif",
                   fontWeight: agent.special ? 500 : 300,
                   color: agent.special ? "var(--foreground)" : "inherit",
-                }}>
-                  {agent.name}
+                }} title={`${agent.persona} (${agent.name})`}>
+                  {agent.persona}
                 </div>
                 <div className="text-[9px] truncate" style={{ fontFamily: "'Inter', sans-serif", color: "#3a3a3a" }}>
                   {agent.role}

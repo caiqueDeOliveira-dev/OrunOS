@@ -85,6 +85,8 @@ interface OrunAutonomousCallbacks {
   onDone?: (fullText: string) => void;
   onError?: (message: string) => void;
   agentId?: string;
+  /** When true, the assistant replies in short spoken-friendly sentences (voice overlay). */
+  voiceMode?: boolean;
 }
 
 interface OrunN8nConfig {
@@ -116,6 +118,209 @@ export interface AutomationRule {
   action: string;
   enabled: boolean;
   created_at: number;
+}
+
+export interface SkillInfo {
+  id: string;
+  name: string;
+  version: string;
+  author: string;
+  description: string;
+  enabled: boolean;
+  status: "ok" | "invalid";
+  errors: string[];
+  warnings: string[];
+  permissions: string[];
+  dependencies: Record<string, string>;
+  missingDeps: string[];
+  manifestVersion: number;
+  installed: boolean;
+}
+
+export interface SkillDetails {
+  ok: boolean;
+  id: string;
+  manifest: Record<string, unknown>;
+  validation: { ok: boolean; errors: string[]; warnings: string[] };
+  enabled: boolean;
+  dependencies: Record<string, { satisfied: boolean; reason?: string; range?: string; version?: string }>;
+  loaded: boolean;
+  error?: string;
+}
+
+export interface MemoryRecord {
+  id: string;
+  uid?: string;
+  key: string;
+  content: string;
+  tags: string[];
+  scopeAgent: string | null;
+  scopeProject: string | null;
+  source: string;
+  embedding: number[] | null;
+  created_at: number;
+  updated_at: number;
+  access_count: number;
+}
+
+export interface MemorySaveInput {
+  key: string;
+  content: string;
+  tags?: string[];
+  scopeAgent?: string | null;
+  scopeProject?: string | null;
+  source?: string;
+}
+
+export interface MemorySearchOpts {
+  query: string;
+  scopeAgent?: string | null;
+  scopeProject?: string | null;
+  topK?: number;
+  threshold?: number;
+}
+
+export interface MemorySearchResult {
+  results: MemoryRecord[];
+  method: "semantic" | "text-fallback" | "empty";
+}
+
+export interface MemoryStats {
+  total: number;
+  withEmbedding: number;
+  byScope: Record<string, number>;
+  sizeKB: number;
+}
+
+export interface KnowledgeDoc {
+  id: string;
+  uid?: string;
+  kind: string;
+  title: string;
+  content: string;
+  tags: string[];
+  metadata: Record<string, unknown>;
+  date: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface KnowledgeDocSummary {
+  id: string;
+  uid?: string;
+  kind: string;
+  title: string;
+  tags: string[];
+  date: string;
+  metadata: Record<string, unknown>;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface KnowledgeDocInput {
+  kind?: string;
+  title: string;
+  content: string;
+  tags?: string[];
+  metadata?: Record<string, unknown>;
+  date?: string;
+}
+
+export type PlannerStatus = "pending" | "running" | "done" | "failed" | "blocked" | "cancelled";
+
+export interface PlannerTask {
+  id: string;
+  uid?: string;
+  goalId: string;
+  title: string;
+  description: string;
+  agent: string | null;
+  status: PlannerStatus;
+  priority: number;
+  dependencies: string[];
+  result: string | null;
+  error: string | null;
+  created_at: number;
+  updated_at: number;
+  started_at: number | null;
+  completed_at: number | null;
+}
+
+export interface PlannerTaskInput {
+  goalId?: string;
+  title: string;
+  description?: string;
+  agent?: string | null;
+  priority?: number;
+  dependencies?: string[];
+}
+
+export interface PlannerReview {
+  goalId: string;
+  total: number;
+  done: number;
+  failed: number;
+  review?: string;
+  tasks: { id: string; title: string; status: PlannerStatus; result?: string | null; error?: string | null }[];
+}
+
+export interface AgentSchema {
+  id: string;
+  name: string;
+  persona: string;
+  tools: string[] | null;
+  memoryScope: string;
+  permissions: string[] | null;
+}
+
+export interface DelegationStep {
+  step: "route" | "execute" | "escalate";
+  agent?: string | null;
+  reason?: string;
+  ok?: boolean;
+  error?: string | null;
+}
+
+export interface DelegationResult {
+  ok: boolean;
+  agent?: string | null;
+  reason?: string;
+  result?: string;
+  error?: string;
+  escalated?: boolean;
+  steps: DelegationStep[];
+}
+
+export interface AnalyticsSystem {
+  cpu: number;
+  memory: number;
+  disk: { freeGB: number; totalGB: number; usedPercent: number };
+  uptime: number;
+  platform: string;
+  arch: string;
+  hostname: string;
+}
+
+export interface AnalyticsSummary {
+  system: AnalyticsSystem;
+  counts: {
+    conversations: number;
+    messages: number;
+    financeLog: number;
+    healthLog: number;
+    marketingLog: number;
+    agenda: number;
+    usageEvents: number;
+  };
+  usage: { today: Record<string, number>; total: Record<string, number> };
+  ai: { requests: number; tokensIn: number; tokensOut: number };
+  telemetry: { counters: Record<string, number>; metrics: Record<string, unknown>; recentTraces: number };
+  engines: {
+    planner: { total: number; byStatus: Record<string, number>; goals: number } | null;
+    memory: { total: number; byScope: Record<string, number> } | null;
+    knowledge: { total: number; byKind: Record<string, number> } | null;
+    skills: { total: number; enabled: number } | null;
+  };
 }
 
 export interface OrunSocialMediaWebhook {
@@ -155,6 +360,7 @@ export interface OrunVoice {
   id: string;
   name: string;
   previewUrl: string | null;
+  gender?: "male" | "female";
 }
 
 export interface OrunUpdateStatus {
@@ -633,6 +839,59 @@ interface OrunAPI {
     unload: (id: string) => Promise<{ success?: boolean; error?: string }>;
     loadAll: () => Promise<{ id: string; success?: boolean; error?: string; tools?: number }[]>;
   };
+  skills: {
+    list: () => Promise<SkillInfo[]>;
+    details: (id: string) => Promise<SkillDetails>;
+    install: (srcDir: string, force?: boolean) => Promise<{ ok: boolean; id?: string; version?: string; error?: string; warnings?: string[] }>;
+    installDialog: () => Promise<{ ok: boolean; id?: string; error?: string; canceled?: boolean }>;
+    uninstall: (id: string, force?: boolean) => Promise<{ ok: boolean; id?: string; error?: string }>;
+    setEnabled: (id: string, enabled: boolean) => Promise<{ ok: boolean; id?: string; enabled?: boolean; error?: string }>;
+    reload: () => Promise<{ ok: boolean; order?: string[]; errors?: string[]; failed?: { id: string; error: string }[]; loaded?: number }>;
+    tools: () => Promise<{ name: string; description: string; parameters?: Record<string, unknown> }[]>;
+    dir: () => Promise<string>;
+    openDir: () => Promise<{ ok: boolean; dir?: string; error?: string }>;
+  };
+  memory: {
+    save: (entry: MemorySaveInput) => Promise<{ ok: boolean; record?: MemoryRecord; deduped?: boolean; error?: string }>;
+    search: (opts: MemorySearchOpts) => Promise<MemorySearchResult>;
+    inject: (opts: MemorySearchOpts & { maxChars?: number }) => Promise<string>;
+    consolidate: (opts?: { scopeAgent?: string | null; scopeProject?: string | null; minAgeMs?: number }) => Promise<{ ok: boolean; reason?: string; summarized?: string; candidates?: number; saved?: { ok: boolean } }>;
+    remove: (id: string) => Promise<{ ok: boolean; removed?: number }>;
+    stats: () => Promise<MemoryStats>;
+    list: () => Promise<MemoryRecord[]>;
+  };
+  agentHub: {
+    list: () => Promise<AgentSchema[]>;
+    get: (id: string) => Promise<{ ok: boolean; schema?: AgentSchema; error?: string }>;
+    route: (request: string, context?: string) => Promise<{ agent: string | null; reason?: string }>;
+    delegate: (request: string, context?: string, agent?: string | null) => Promise<DelegationResult>;
+  };
+  analytics: {
+    summary: () => Promise<AnalyticsSummary>;
+    system: () => Promise<AnalyticsSystem>;
+    event: (ev: { type: string; agent?: string | null; detail?: string }) => Promise<{ ok: boolean; error?: string }>;
+  };
+  knowledge: {
+    save: (doc: KnowledgeDocInput) => Promise<{ ok: boolean; record?: KnowledgeDoc; updated?: boolean; error?: string }>;
+    changelog: (opts?: { repoPath?: string; sinceDays?: number; title?: string; date?: string }) => Promise<{ ok: boolean; record?: KnowledgeDoc; error?: string }>;
+    diary: (opts?: { date?: string; repoPath?: string; memories?: { content: string }[]; title?: string }) => Promise<{ ok: boolean; record?: KnowledgeDoc; error?: string }>;
+    adr: (opts?: { title?: string; context?: string; decision?: string; consequences?: string[]; status?: string }) => Promise<{ ok: boolean; record?: KnowledgeDoc; error?: string }>;
+    list: (opts?: { kind?: string }) => Promise<KnowledgeDocSummary[]>;
+    get: (id: string) => Promise<{ ok: boolean; record?: KnowledgeDoc; error?: string }>;
+    remove: (id: string) => Promise<{ ok: boolean; removed?: number }>;
+    stats: () => Promise<{ total: number; byKind: Record<string, number>; sizeKB: number }>;
+  };
+  planner: {
+    create: (opts?: PlannerTaskInput) => Promise<{ ok: boolean; task?: PlannerTask; updated?: boolean; error?: string }>;
+    list: (opts?: { goalId?: string | null; status?: string | null }) => Promise<PlannerTask[]>;
+    get: (id: string) => Promise<{ ok: boolean; task?: PlannerTask; error?: string }>;
+    update: (id: string, patch?: Partial<PlannerTask>) => Promise<{ ok: boolean; task?: PlannerTask; error?: string }>;
+    next: (goalId: string) => Promise<{ ok: boolean; task?: PlannerTask; error?: string; done?: boolean }>;
+    run: (goalId: string) => Promise<{ ok: boolean; executed: { id?: string; title?: string; status?: string }[]; counts: { total: number; done: number; failed: number; pending: number } }>;
+    plan: (goal: string, context?: string) => Promise<{ ok: boolean; tasks?: PlannerTask[]; error?: string }>;
+    review: (goalId: string) => Promise<{ ok: boolean; summary: PlannerReview }>;
+    stats: () => Promise<{ total: number; byStatus: Record<string, number>; goals: number }>;
+  };
   workspaceActions: {
     onAction: (handler: (request: { requestId: string; workspace: string; action: string; params: Record<string, unknown> }) => void) => () => void;
     sendResult: (requestId: string, result: { success: boolean; data?: unknown; error?: string; message?: string }) => void;
@@ -658,6 +917,7 @@ interface OrunAPI {
   };
   voiceOverlay: {
     onShow: (handler: () => void) => () => void;
+    onProactive: (handler: (payload: { prompt: string; source?: string }) => void) => () => void;
   };
   quickChat: {
     hide: () => Promise<boolean>;

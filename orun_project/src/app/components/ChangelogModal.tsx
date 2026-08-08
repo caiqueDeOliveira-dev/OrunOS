@@ -15,6 +15,15 @@ interface ChangeEntry {
 
 const changelog: ChangeEntry[] = [
   {
+    version: "v0.6.6",
+    date: "Ago 2026",
+    changes: [
+      "Avatar corrigido no app instalado (assets por caminho relativo)",
+      "Atualização automática por dentro do app (feed do GitHub corrigido)",
+      "Progresso de atualização visível em Configurações",
+    ],
+  },
+  {
     version: "v0.7.0",
     date: "Jul 2026",
     changes: [

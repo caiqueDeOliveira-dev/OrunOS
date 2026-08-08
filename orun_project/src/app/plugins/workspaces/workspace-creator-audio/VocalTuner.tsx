@@ -68,7 +68,7 @@ export function VocalTuner() {
       {/* Header */}
       <div className="flex items-center gap-3">
         <button onClick={() => setEnabled(!enabled)}
-          style={{ padding: "4px 14px", borderRadius: 4, fontSize: 9, fontWeight: 600, letterSpacing: 0.5, border: "none", cursor: "pointer", background: enabled ? ACCENT : STRIP, color: "#FFF" }}>
+          style={{ padding: "4px 14px", borderRadius: 6, fontSize: 9, fontWeight: 600, letterSpacing: 0.5, border: "none", cursor: "pointer", background: enabled ? ACCENT : STRIP, color: "#FFF" }}>
           {enabled ? "🟢 AUTO-TUNE ON" : "⚪ AUTO-TUNE OFF"}
         </button>
         <span style={{ fontSize: 9, color: TEXT_DIM, fontFamily: FONT_MONO }}>BPM: {bpm}</span>
@@ -131,7 +131,7 @@ export function VocalTuner() {
             {KEYS.map((k) => {
               const inScale = scaleNotes.includes(k);
               return <button key={k} onClick={() => setKey(k)}
-                style={{ width: 22, height: 18, borderRadius: 2, fontSize: 7, border: "none", cursor: "pointer", background: key === k ? ACCENT : inScale ? "rgba(192,0,24,0.15)" : STRIP, color: key === k ? "#FFF" : inScale ? ACCENT : TEXT_DIM, fontWeight: inScale ? 600 : 400 }}>
+                style={{ width: 22, height: 18, borderRadius: 2, fontSize: 7, border: "none", cursor: "pointer", background: key === k ? ACCENT : inScale ? "rgba(195,0,47,0.15)" : STRIP, color: key === k ? "#FFF" : inScale ? ACCENT : TEXT_DIM, fontWeight: inScale ? 600 : 400 }}>
                 {k.replace("#", "♯")}
               </button>;
             })}
@@ -147,7 +147,7 @@ export function VocalTuner() {
             const inScale = scaleNotes.includes(note);
             const isActive = activeNotes.includes(note);
             return <button key={note} onClick={() => toggleNote(note)}
-              style={{ width: 24, height: 20, borderRadius: 2, fontSize: 7, border: "none", cursor: "pointer", background: isActive ? ACCENT : inScale ? "rgba(192,0,24,0.12)" : STRIP, color: isActive ? "#FFF" : inScale ? ACCENT : TEXT_DIM, fontWeight: inScale ? 600 : 400, opacity: inScale ? 1 : 0.4 }}>
+              style={{ width: 24, height: 20, borderRadius: 2, fontSize: 7, border: "none", cursor: "pointer", background: isActive ? ACCENT : inScale ? "rgba(195,0,47,0.12)" : STRIP, color: isActive ? "#FFF" : inScale ? ACCENT : TEXT_DIM, fontWeight: inScale ? 600 : 400, opacity: inScale ? 1 : 0.4 }}>
               {note.replace("#", "♯")}
             </button>;
           })}

@@ -24,6 +24,8 @@ export interface TranscriptionResult {
   text: string;
   language?: string;
   duration?: number;
+  /** true when the backend reports the clip is (likely) pure silence. */
+  noSpeech?: boolean;
   segments?: Array<{
     start: number;
     end: number;
@@ -58,6 +60,14 @@ export async function transcribeWhisper(
     formData.append("response_format", config.responseFormat);
   }
 
+  // Anti-hallucination params — only for the local faster-whisper server
+  // (it understands these extra form fields; cloud endpoints ignore them).
+  const isLocal = /localhost|127\.0\.0\.1|0\.0\.0\.0/.test(baseUrl);
+  if (isLocal) {
+    formData.append("condition_on_previous_text", "false");
+    formData.append("no_speech_threshold", "0.6");
+  }
+
   // Try /v1/audio/transcriptions first (OpenAI-compatible)
   let url = `${baseUrl}/v1/audio/transcriptions`;
   let response = await fetch(url, {
@@ -82,6 +92,12 @@ export async function transcribeWhisper(
 
   const data = await response.json();
 
+  // Reject clips the backend flagged as pure silence (avoids the model
+  // "hallucinating" text over empty audio).
+  if (typeof data.no_speech_prob === "number" && data.no_speech_prob >= 0.6) {
+    return { text: "", noSpeech: true };
+  }
+
   // Normalize response format
   if (typeof data === "string") {
     return { text: data };
@@ -91,6 +107,7 @@ export async function transcribeWhisper(
       text: data.text,
       language: data.language,
       duration: data.duration,
+      noSpeech: data.no_speech_prob != null && data.no_speech_prob >= 0.6,
       segments: data.segments?.map((s: any) => ({
         start: s.start,
         end: s.end,

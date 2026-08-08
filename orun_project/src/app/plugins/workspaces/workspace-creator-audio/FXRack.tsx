@@ -3,7 +3,7 @@ import { useCallback } from "react";
 import { useTranslation } from "../../../../i18n/I18nProvider";
 import { useDJStore } from "./creator-audio-store";
 import { Knob } from "./creator-audio-ui";
-import { BORDER, FONT_LABEL, type EffectSlot } from "./creator-audio-types";
+import { BORDER, TEXT_DIM, FONT_LABEL, type EffectSlot } from "./creator-audio-types";
 import { getAudioEngine } from "./audio-engine";
 
 export function FXRack() {
@@ -21,11 +21,11 @@ export function FXRack() {
           const ctx = engine.getCtx();
           if (next.active) {
             if (e.name === "Delay" || e.name === "Flanger") {
-              ctx && window.dispatchEvent(new CustomEvent("creator-audio:effect", { detail: { type: "delay", wetDry: e.wetDry, paramX: e.paramX } }));
+              if (ctx) window.dispatchEvent(new CustomEvent("creator-audio:effect", { detail: { type: "delay", wetDry: e.wetDry, paramX: e.paramX } }));
             } else if (e.name === "Reverb") {
-              ctx && window.dispatchEvent(new CustomEvent("creator-audio:effect", { detail: { type: "reverb", wetDry: e.wetDry, paramY: e.paramY } }));
+              if (ctx) window.dispatchEvent(new CustomEvent("creator-audio:effect", { detail: { type: "reverb", wetDry: e.wetDry, paramY: e.paramY } }));
             } else if (e.name === "Filter LP") {
-              ctx && window.dispatchEvent(new CustomEvent("creator-audio:effect", { detail: { type: "filter", wetDry: e.wetDry, paramX: e.paramX } }));
+              if (ctx) window.dispatchEvent(new CustomEvent("creator-audio:effect", { detail: { type: "filter", wetDry: e.wetDry, paramX: e.paramX } }));
             }
           }
         } catch {}
@@ -57,7 +57,7 @@ export function FXRack() {
     <div style={{ display: "flex", gap: 8, padding: "8px 12px", height: "100%", alignItems: "flex-start" }}>
       {effects.map((fx, i) => (
         <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: "8px 4px", borderRadius: 6, background: fx.active ? `${fx.color}10` : "rgba(255,255,255,0.02)", border: `1px solid ${fx.active ? `${fx.color}40` : BORDER}`, transition: "all 0.15s", minWidth: 0 }}>
-          <span style={{ fontSize: 9, color: fx.active ? fx.color : "var(--muted-foreground, rgba(255,255,255,0.3))", fontFamily: FONT_LABEL, fontWeight: 600, letterSpacing: 0.5, textTransform: "uppercase", whiteSpace: "nowrap" }}>{fx.name}</span>
+          <span style={{ fontSize: 9, color: fx.active ? fx.color : TEXT_DIM, fontFamily: FONT_LABEL, fontWeight: 600, letterSpacing: 0.5, textTransform: "uppercase", whiteSpace: "nowrap" }}>{fx.name}</span>
           {/* On/Off toggle */}
           <button onClick={() => toggleEffect(i)} style={{ width: 28, height: 14, borderRadius: 7, border: "none", cursor: "pointer", background: fx.active ? fx.color : "rgba(255,255,255,0.08)", position: "relative", transition: "all 0.15s" }}>
             <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: fx.active ? 16 : 2, transition: "left 0.15s" }} />

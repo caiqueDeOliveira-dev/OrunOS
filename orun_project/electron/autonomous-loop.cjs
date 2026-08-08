@@ -13,22 +13,38 @@ const AUTONOMOUS_MAX_ITERATIONS = 15;
  * @param {object} opts.ctx - context with all dependencies (aiRouter, toolsModule, etc.)
  * @returns {Promise<string|null>} final text or null if cancelled
  */
-async function autonomousLoop({ messages, agentId, sender, requestId, cancelledRef }, ctx) {
+async function autonomousLoop({ messages, agentId, sender, requestId, cancelledRef, voiceMode }, ctx) {
   const { aiRouter, toolsModule, mcpClient, pluginSystem, responseCache, agentProcessor, logger, secretStore, resolveAISettings, buildSystemPrompt, getToolsForAgent } = ctx;
   const log = ctx.log || console;
 
   const settings = resolveAISettings(agentId);
   const keys = secretStore.readSecretStore();
   const apiKey = keys[settings.provider];
-  const systemPrompt = buildSystemPrompt(settings.systemPrompt, agentId);
+  let systemPrompt = buildSystemPrompt(settings.systemPrompt, agentId);
+  if (voiceMode) {
+    // Speech-shaped replies: the answer will be read aloud by TTS. Short,
+    // spoken-friendly sentences without heavy markdown or homophone traps.
+    systemPrompt +=
+      "\n\nREGRAS DE RESPOSTA POR VOZ:\n" +
+      "- A sua resposta sera LIDA EM VOZ ALTA pelo assistente. Use frases curtas (ate ~15 palavras cada).\n" +
+      "- Nao use markdown pesado (titulos, asteriscos, listas longas, tabelas) — formate de forma falada e natural.\n" +
+      "- Evite abreviacoes, homofonos e palavras de leitura ambigua (ex.: escreva \"hora\" para nao confundir com \"ora\").\n" +
+      "- Prefira numeros por extenso quando a leitura ficar mais clara (ex.: \"as quinze horas\").\n" +
+      "- Seja direto: a resposta ideal para voz tem 2 a 4 frases curtas.\n" +
+      "- Responda em portugues do Brasil.";
+  }
   const send = (ch, p) => { if (!sender.isDestroyed()) sender.send(ch, p); };
 
   const agentTools = getToolsForAgent(agentId);
+  const startedAt = Date.now();
+  const logDone = (iterations, toolCalls) => {
+    log.info(`[autonomous] done agent=${agentId || "hampton"} iterations=${iterations} toolCalls=${toolCalls} ms=${Date.now() - startedAt}`);
+  };
 
   // Check response cache for repeated queries
   const lastUserMsg = messages[messages.length - 1]?.content;
   if (lastUserMsg) {
-    const cached = responseCache.get(lastUserMsg, agentId);
+    const cached = responseCache.get(lastUserMsg, agentId, voiceMode ? "voice" : "text");
     if (cached && !cancelledRef.cancelled) {
       log.info(`[autonomous] cache hit for agent=${agentId}`);
       return cached;
@@ -155,8 +171,9 @@ async function autonomousLoop({ messages, agentId, sender, requestId, cancelledR
       }
 
       if (lastUserMsg && finalText) {
-        responseCache.set(lastUserMsg, agentId, finalText);
+        responseCache.set(lastUserMsg, agentId, finalText, voiceMode ? "voice" : "text");
       }
+      logDone(i + 1, 0);
       return finalText;
     }
 
@@ -204,6 +221,7 @@ async function autonomousLoop({ messages, agentId, sender, requestId, cancelledR
     }
   }
 
+  logDone(AUTONOMOUS_MAX_ITERATIONS, -1);
   return lastToolText || "I've reached the maximum number of autonomous steps. Here's what I accomplished so far.";
 }
 

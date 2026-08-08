@@ -1,0 +1,68 @@
+# Developer Elite bundled Semgrep ruleset
+# Used as the default --config for the `semgrep_scan` tool when no
+# pattern/config is provided. Focus: high-signal security & correctness.
+rules:
+  - id: dev-elite-eval-usage
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: Avoid `eval` — it can execute arbitrary code (injection risk).
+    pattern-either:
+      - pattern: eval($X)
+      - pattern: new Function($X)
+    metadata:
+      dev-elite: security
+
+  - id: dev-elite-child-process-shell
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: shell:true on exec/spawn can enable command injection — pass an args array instead.
+    pattern-either:
+      - pattern: exec($CMD, {shell: true})
+      - pattern: execSync($CMD, {shell: true})
+      - pattern: spawn($CMD, $ARGS, {shell: true})
+
+  - id: dev-elite-python-eval-usage
+    languages: [python]
+    severity: WARNING
+    message: Avoid `eval`/`exec` — can execute arbitrary code.
+    pattern-either:
+      - pattern: eval($X)
+      - pattern: exec($X)
+
+  - id: dev-elite-python-pickle
+    languages: [python]
+    severity: WARNING
+    message: Loading untrusted pickles can execute arbitrary code — use a safe format (json).
+    pattern-either:
+      - pattern: pickle.loads($X)
+      - pattern: pickle.load($X)
+    metadata:
+      dev-elite: security
+
+  - id: dev-elite-python-http-url
+    languages: [python]
+    severity: WARNING
+    message: Plain `http://` request — prefer HTTPS to avoid cleartext traffic.
+    pattern-either:
+      - pattern: requests.get("http://...")
+      - pattern: requests.post("http://...")
+      - pattern: requests.put("http://...")
+      - pattern: requests.delete("http://...")
+
+  - id: dev-elite-node-process-env-inject
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: Avoid interpolating env values directly into SQL/HTML — validate inputs first.
+    pattern: $SQL = `...${process.env.$VAR}...`
+
+  - id: dev-elite-python-print-debug
+    languages: [python]
+    severity: INFO
+    message: Debug `print` left in code — remove before committing.
+    pattern: print($X)
+
+  - id: dev-elite-js-console-log
+    languages: [javascript, typescript]
+    severity: INFO
+    message: `console.log` left in code — remove or route through the app logger.
+    pattern: console.log($X)

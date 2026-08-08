@@ -4,6 +4,7 @@
 // Every workspace plugin must implement this interface.
 
 import type { ComponentType, LazyExoticComponent } from "react";
+import type { HamptonState } from "../types";
 
 // ── Plugin Tab ──────────────────────────────────────────────────────────
 // A workspace can have multiple tabs (e.g., Creator has Audio + Video).
@@ -52,6 +53,14 @@ export interface WorkspaceProps {
   onSendMessage: (message: string) => void;
   /** Last tool result from the chat (for workspace to react to) */
   lastToolResult: { toolName: string; result: unknown } | null;
+  /** Current Hampton voice state (wired from the app shell) */
+  hamptonState?: HamptonState;
+  /** Toggle voice recording */
+  onMicClick?: () => void;
+  /** Live mic volume while listening (0..1) */
+  voiceVolume?: number;
+  /** Live partial transcript while listening */
+  partialTranscript?: string;
 }
 
 export interface ToolbarProps {

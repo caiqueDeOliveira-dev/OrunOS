@@ -3,9 +3,9 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "../../../../i18n/I18nProvider";
 import { useDJStore } from "./creator-audio-store";
 import { getAudioEngine } from "./audio-engine";
-import { PANEL, ACCENT, GREEN, TEXT_DIM, TEXT_MED, TEXT_BRI, BORDER, FONT_MONO, FONT_LABEL } from "./creator-audio-types";
+import { ACCENT, GREEN, TEXT_DIM, TEXT_MED, TEXT_BRI, FONT_MONO, FONT_LABEL } from "./creator-audio-types";
 
-const HOT_CUE_COLORS = ["#C00018", "#3B82F6", "#22C55E", "#F59E0B", "#8B5CF6", "#06B6D4", "#EC4899", "#F97316"];
+const HOT_CUE_COLORS = ["#C3002F", "#4DA3FF", "#00D26A", "#FFB547", "#8B5CF6", "#4DA3FF", "#8B5CF6", "#FFB547"];
 const SECONDS_PER_TURN = 3; // Full spin of the record scrubs 3 seconds of audio
 
 function formatTime(sec: number): string {
@@ -36,7 +36,7 @@ export function DeckPanel({ deck }: { deck: "A" | "B" }) {
   const scrubStartPosRef = useRef(0);
   const scrubWasPlayingRef = useRef(false);
 
-  const deckColor = deck === "A" ? ACCENT : "#3B82F6";
+  const deckColor = deck === "A" ? ACCENT : "#4DA3FF";
 
   // Update position from engine
   useEffect(() => {
@@ -224,7 +224,7 @@ export function DeckPanel({ deck }: { deck: "A" | "B" }) {
       : "none";
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", borderRadius: 10, background: "linear-gradient(180deg, #131722 0%, #0B0E14 100%)", border: `1px solid ${deckColor}35`, boxShadow: `0 0 20px ${deckColor}10`, padding: "10px 12px", overflow: "hidden", minHeight: 0, position: "relative" }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", borderRadius: 12, background: "linear-gradient(180deg, #101013 0%, #0A0A0C 100%)", border: `1px solid ${deckColor}40`, boxShadow: `0 0 20px ${deckColor}12`, padding: "10px 12px", overflow: "hidden", minHeight: 0, position: "relative" }}>
       <style>{`
         @keyframes vinylSpin {
           from { transform: rotate(0deg); }
@@ -255,7 +255,7 @@ export function DeckPanel({ deck }: { deck: "A" | "B" }) {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <span style={{ fontSize: 9, color: TEXT_DIM, fontFamily: FONT_MONO }}>Pitch: {data.pitch >= 0 ? `+${data.pitch.toFixed(1)}` : data.pitch.toFixed(1)}%</span>
-          <button onClick={handleImport} title={t("creator_audio_import") || "Import"} style={{ height: 20, padding: "0 8px", borderRadius: 4, border: `1px solid ${BORDER}`, background: "rgba(255,255,255,0.08)", color: TEXT_BRI, cursor: "pointer", fontSize: 9, fontFamily: FONT_LABEL, fontWeight: 600, display: "flex", alignItems: "center", gap: 4, transition: "all 0.15s" }}>
+          <button onClick={handleImport} title={t("creator_audio_import") || "Import"} style={{ height: 20, padding: "0 8px", borderRadius: 6, border: `1px solid ${deckColor}55`, background: `${deckColor}14`, color: TEXT_BRI, cursor: "pointer", fontSize: 9, fontFamily: FONT_LABEL, fontWeight: 600, display: "flex", alignItems: "center", gap: 4, transition: "all 0.15s" }}>
             <span>📂</span> {t("creator_audio_import") || "Import"}
           </button>
         </div>
@@ -274,7 +274,7 @@ export function DeckPanel({ deck }: { deck: "A" | "B" }) {
           style={{ position: "relative", width: discSize, height: discSize, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", cursor: data.loaded ? (scrubbing ? "grabbing" : "grab") : "default", touchAction: "none", userSelect: "none", WebkitUserSelect: "none" }}
         >
           {/* Metallic Platter Outer Rim */}
-          <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "conic-gradient(#3a3f4a 0deg, #1a1a1a 90deg, #4a4f5a 180deg, #1a1a1a 270deg, #3a3f4a 360deg)", border: `2px solid ${deckColor}50`, boxShadow: isPlaying ? `0 0 22px ${deckColor}55` : scrubbing ? `0 0 18px ${deckColor}40` : "0 6px 16px rgba(0,0,0,0.85)" }} />
+          <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "conic-gradient(#1C1C1C 0deg, #050505 90deg, #252525 180deg, #050505 270deg, #1C1C1C 360deg)", border: `2px solid ${deckColor}50`, boxShadow: isPlaying ? `0 0 22px ${deckColor}55` : scrubbing ? `0 0 18px ${deckColor}40` : "0 6px 16px rgba(0,0,0,0.85)" }} />
           {/* Progress Ring */}
           <svg width={discSize} height={discSize} style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)", pointerEvents: "none", zIndex: 3 }}>
             <circle cx={discSize / 2} cy={discSize / 2} r={ringR} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={3} />
@@ -288,7 +288,7 @@ export function DeckPanel({ deck }: { deck: "A" | "B" }) {
           {/* Spinning Record */}
           <div style={{
             position: "absolute", inset: 5, borderRadius: "50%",
-            background: "radial-gradient(circle, #23262e 0%, #14161c 25%, #0a0b0f 45%, #1c1e26 50%, #0d0e13 70%, #000 100%)",
+            background: "radial-gradient(circle, #1C1C1C 0%, #141414 25%, #0A0A0C 45%, #1C1C1C 50%, #0A0A0C 70%, #050505 100%)",
             animation: scrubbing ? "none" : discAnimation,
             transform: scrubbing ? `rotate(${scrubAngle}deg)` : "none",
             boxShadow: "inset 0 0 10px rgba(255,255,255,0.12)",
@@ -314,12 +314,9 @@ export function DeckPanel({ deck }: { deck: "A" | "B" }) {
               </span>
             </div>
             {/* Spindle Hole */}
-            <div style={{ position: "absolute", top: "50%", left: "50%", width: 6, height: 6, borderRadius: "50%", background: "#e5e7eb", transform: "translate(-50%, -50%)", border: "1px solid #000", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.8)", zIndex: 2 }} />
-          </div>
-          {/* Tonearm Arm & Needle */}
-          <div style={{ position: "absolute", top: -2, right: -6, width: 42, height: 50, pointerEvents: "none", zIndex: 5, transform: isPlaying ? "rotate(20deg)" : "rotate(0deg)", transformOrigin: "top right", transition: "transform 0.4s ease-in-out" }}>
-            <div style={{ position: "absolute", top: 0, right: 0, width: 11, height: 11, borderRadius: "50%", background: "#4a4f5a", border: "1px solid #8890a0", boxShadow: "0 0 6px rgba(0,0,0,0.8)" }} />
-            <div style={{ position: "absolute", top: 7, right: 5, width: 2, height: 36, background: "linear-gradient(to bottom, #8890a0, #d7dbe4)", transform: "rotate(-20deg)", transformOrigin: "top right" }} />
+            <div style={{ position: "absolute", top: "50%", left: "50%", width: 6, height: 6, borderRadius: "50%", background: "#A0A0A0", transform: "translate(-50%, -50%)", border: "1px solid #050505", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.8)", zIndex: 2 }} />
+            <div style={{ position: "absolute", top: 0, right: 0, width: 11, height: 11, borderRadius: "50%", background: "#383838", border: "1px solid #5C5C5C", boxShadow: "0 0 6px rgba(0,0,0,0.8)" }} />
+            <div style={{ position: "absolute", top: 7, right: 5, width: 2, height: 36, background: "linear-gradient(to bottom, #5C5C5C, #A0A0A0)", transform: "rotate(-20deg)", transformOrigin: "top right" }} />
             <div style={{ position: "absolute", bottom: 2, left: 4, width: 6, height: 9, background: deckColor, borderRadius: 1, boxShadow: `0 0 6px ${deckColor}` }} />
           </div>
         </div>
@@ -347,7 +344,7 @@ export function DeckPanel({ deck }: { deck: "A" | "B" }) {
       </div>
 
       {/* Waveform Visualizer */}
-      <div style={{ flex: 1, borderRadius: 6, background: "rgba(5, 7, 12, 0.85)", border: `1px solid ${deckColor}30`, overflow: "hidden", display: "flex", alignItems: "center", gap: 0.5, padding: "0 4px", position: "relative", minHeight: 55, marginBottom: 6 }}>
+      <div style={{ flex: 1, borderRadius: 8, background: "rgba(10, 10, 12, 0.85)", border: `1px solid ${deckColor}30`, overflow: "hidden", display: "flex", alignItems: "center", gap: 0.5, padding: "0 4px", position: "relative", minHeight: 55, marginBottom: 6 }}>
         <div style={{ position: "absolute", left: "50%", top: 0, bottom: 0, width: 2, background: "#FFF", zIndex: 2, boxShadow: `0 0 8px #FFF` }} />
         {hasRealWaveform ? (
           waveformData.map((h, i) => (

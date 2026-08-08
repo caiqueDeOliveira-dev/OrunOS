@@ -7,9 +7,9 @@ export function PreviewActions({ safeMargins, onToggleSafeMargins }: { safeMargi
         style={{
           display: "flex", alignItems: "center", justifyContent: "center",
           width: 22, height: 22, fontSize: 8, fontFamily: MONO,
-          color: safeMargins ? "#2D7FF9" : "#484F58", cursor: "pointer", borderRadius: 3, transition: "all 0.12s",
-          background: safeMargins ? "#2D7FF918" : "rgba(255,255,255,0.05)",
-          border: safeMargins ? "1px solid #2D7FF940" : "1px solid transparent",
+          color: safeMargins ? "#4DA3FF" : "#5C5C5C", cursor: "pointer", borderRadius: 6, transition: "all 0.12s",
+          background: safeMargins ? "#4DA3FF18" : "rgba(255,255,255,0.05)",
+          border: safeMargins ? "1px solid #4DA3FF40" : "1px solid transparent",
         }}
         title="Safe Margins">&#9638;</button>
       <button onClick={() => {
@@ -22,10 +22,10 @@ export function PreviewActions({ safeMargins, onToggleSafeMargins }: { safeMargi
         style={{
           display: "flex", alignItems: "center", justifyContent: "center",
           background: "rgba(255,255,255,0.05)", border: "none", width: 22, height: 22,
-          color: "#8B949E", cursor: "pointer", borderRadius: 3, transition: "all 0.12s",
+          color: "#A0A0A0", cursor: "pointer", borderRadius: 6, transition: "all 0.12s",
         }}
         onMouseEnter={(e) => { e.currentTarget.style.color = "#fff"; }}
-        onMouseLeave={(e) => { e.currentTarget.style.color = "#8B949E"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}
         title="Fullscreen">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" /><line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" /></svg>
       </button>

@@ -7,7 +7,7 @@ export function LevelMeter({ color }: { color: string }) {
           style={{
             width: 3,
             height: `${h * 100}%`,
-            background: i >= 2 ? "#C00018" : i === 1 ? "#D4A017" : color,
+            background: i >= 2 ? "#C3002F" : i === 1 ? "#FFB547" : color,
             borderRadius: 1,
             opacity: 0.85,
           }}

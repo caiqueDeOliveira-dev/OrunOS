@@ -682,3 +682,42 @@ describe("DB ENCRYPTION — overview", () => {
     expect(encryptionMethods).toContain("SQLCipher");
   });
 });
+
+// ── 15. AGENT WORKSPACE SCOPING ────────────────────────────────────────
+describe("WORKSPACE SCOPING — agents restricted to their own workspace", () => {
+  beforeEach(() => {
+    setAllowedRoots(["C:\\Users\\Caiqu\\AppData\\Local\\Temp\\opencode"]);
+  });
+
+  it("blocks Juridico from the developer workspace", async () => {
+    const r = await executeTool("open_workspace", { workspace: "developer" }, "Juridico");
+    expect(r.error).toContain("only use workspace");
+  });
+
+  it("blocks Juridico workspace_action on developer", async () => {
+    const r = await executeTool("workspace_action", { workspace: "developer", action: "write_file" }, "Juridico");
+    expect(r.error).toContain("only use workspace");
+  });
+
+  it("allows Developer on its own workspace (scope passes)", async () => {
+    const r = await executeTool("open_workspace", { workspace: "developer" }, "Developer");
+    expect(r.error).not.toContain("only use workspace");
+  });
+
+  it("allows Creator on creator-audio but blocks developer", async () => {
+    const ok = await executeTool("open_workspace", { workspace: "creator-audio" }, "Creator");
+    expect(ok.error).not.toContain("only use workspace");
+    const blocked = await executeTool("open_workspace", { workspace: "developer" }, "Creator");
+    expect(blocked.error).toContain("only use workspace");
+  });
+
+  it("bypasses scope when no agentId (system/chat path)", async () => {
+    const r = await executeTool("open_workspace", { workspace: "developer" }, null);
+    expect(r.error).not.toContain("only use workspace");
+  });
+
+  it("does not apply scope to non-workspace tools", async () => {
+    const r = await executeTool("write_file", { path: "x.txt", content: "y" }, "Juridico");
+    expect(r.error).not.toContain("only use workspace");
+  });
+});

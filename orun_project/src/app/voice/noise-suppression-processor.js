@@ -1,5 +1,5 @@
 // @ts-nocheck — AudioWorklet processor runs in a separate scope (no DOM types)
-/* eslint-disable no-restricted-globals */
+ 
 /**
  * Simple spectral-gate noise suppression AudioWorklet.
  * Captures a noise profile from the first ~500ms, then gates frequencies below

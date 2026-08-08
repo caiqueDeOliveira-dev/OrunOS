@@ -2,7 +2,7 @@
 import { useState, useCallback } from "react";
 import { useTranslation } from "../../../../i18n/I18nProvider";
 import { useVideoStore, pushUndo } from "./video-store";
-import { TRACK_CONFIG, MONO, SANS, ACCENT, STRIP, BORDER, btnBase, formatTC, IEye, IEyeOff, ILock, IZoomIn, IZoomOut } from "./video-types";
+import { TRACK_CONFIG, MONO, SANS, ACCENT, btnBase, IEye, IEyeOff, ILock, IZoomIn, IZoomOut } from "./video-types";
 
 const TRACK_HEADER_W = 140;
 const TRACK_H = 32;
@@ -55,55 +55,55 @@ export function TimelineEditor() {
   }
 
   return (
-    <div className="flex flex-col shrink-0" style={{ height: 200, background: "#1A1F2E" }}>
+    <div className="flex flex-col shrink-0" style={{ height: 200, background: "#0A0A0C" }}>
       {/* Ruler */}
-      <div className="relative shrink-0 overflow-hidden" style={{ height: RULER_H, borderBottom: "1px solid #21262D", background: "#12161F" }}>
-        <div className="absolute top-0 left-0 h-full flex items-center" style={{ width: TRACK_HEADER_W, background: "var(--card, #161B22)", borderRight: "1px solid var(--border, #21262D)" }}>
-          <span style={{ fontSize: 8, color: "#484F58", paddingLeft: 10, fontFamily: SANS }}>{t("creator_video_timeline")}</span>
+      <div className="relative shrink-0 overflow-hidden" style={{ height: RULER_H, borderBottom: "1px solid #141414", background: "#050505" }}>
+        <div className="absolute top-0 left-0 h-full flex items-center" style={{ width: TRACK_HEADER_W, background: "#0A0A0C", borderRight: "1px solid #252525" }}>
+          <span style={{ fontSize: 8, color: "#5C5C5C", paddingLeft: 10, fontFamily: SANS }}>{t("creator_video_timeline")}</span>
         </div>
         <div className="absolute top-0" style={{ left: TRACK_HEADER_W, right: 0, height: "100%" }}>
           {markers.map((m) => (
             <div key={m.frame} className="absolute top-0 flex flex-col items-center" style={{ left: m.frame * FRAME_W }}>
-              <span style={{ fontSize: m.major ? 8 : 7, fontFamily: MONO, color: m.major ? "#8B949E" : "#30363D", marginTop: 1 }}>{m.label}</span>
-              <div style={{ width: 1, height: m.major ? 8 : 4, background: m.major ? "#30363D" : "#21262D", marginTop: 1 }} />
+              <span style={{ fontSize: m.major ? 8 : 7, fontFamily: MONO, color: m.major ? "#A0A0A0" : "#5C5C5C", marginTop: 1 }}>{m.label}</span>
+              <div style={{ width: 1, height: m.major ? 8 : 4, background: m.major ? "#383838" : "#141414", marginTop: 1 }} />
             </div>
           ))}
         </div>
       </div>
 
       {/* Tracks area */}
-      <div className="flex-1 overflow-auto" style={{ scrollbarWidth: "thin", scrollbarColor: "#30363D transparent" }}>
+      <div className="hs-scroll flex-1 overflow-auto" style={{ scrollbarWidth: "thin", scrollbarColor: "#1C1C1C transparent" }}>
         <div className="flex" style={{ minWidth: TRACK_HEADER_W + contentWidth }}>
           {/* Track Headers */}
-          <div className="shrink-0" style={{ width: TRACK_HEADER_W, background: "var(--card, #161B22)", borderRight: "1px solid var(--border, #21262D)" }}>
+          <div className="shrink-0" style={{ width: TRACK_HEADER_W, background: "#0A0A0C", borderRight: "1px solid #252525" }}>
             {TRACK_CONFIG.map((track, idx) => (
-              <div key={idx} className="flex items-center gap-1 px-2" style={{ height: TRACK_H, borderBottom: "1px solid #21262D" }}>
+              <div key={idx} className="flex items-center gap-1 px-2" style={{ height: TRACK_H, borderBottom: "1px solid #141414" }}>
                 <div style={{ width: 5, height: 5, borderRadius: 3, background: track.color, flexShrink: 0 }} />
-                <span style={{ fontSize: 9, color: "#8B949E", fontFamily: SANS, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <span style={{ fontSize: 9, color: "#A0A0A0", fontFamily: SANS, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {track.name}
                 </span>
                 {track.controls === "eye-lock" && (
                   <>
-                    <button title={t("creator_video_visibility")} onClick={() => toggleVis(idx)} style={{ ...btnBase, width: 16, height: 16, color: trackVisibility[idx] ? "#8B949E" : "#484F58" }}>
+                    <button title={t("creator_video_visibility")} onClick={() => toggleVis(idx)} style={{ ...btnBase, width: 16, height: 16, color: trackVisibility[idx] ? "#A0A0A0" : "#5C5C5C" }}>
                       {trackVisibility[idx] ? <IEye /> : <IEyeOff />}
                     </button>
-                    <button title={t("creator_video_lock")} onClick={() => toggleLock(idx)} style={{ ...btnBase, width: 16, height: 16, color: trackLock[idx] ? "#C00018" : "#484F58" }}>
+                    <button title={t("creator_video_lock")} onClick={() => toggleLock(idx)} style={{ ...btnBase, width: 16, height: 16, color: trackLock[idx] ? "#C3002F" : "#5C5C5C" }}>
                       <ILock />
                     </button>
                   </>
                 )}
                 {track.controls === "solo-mute" && (
                   <>
-                    <button title={t("creator_video_solo")} onClick={() => useVideoStore.setState((s) => ({ trackSolo: { ...s.trackSolo, [idx]: !s.trackSolo[idx] } }))} style={{ ...btnBase, width: 16, height: 16, background: useVideoStore.getState().trackSolo[idx] ? "#D4A01730" : "transparent", border: useVideoStore.getState().trackSolo[idx] ? "1px solid #D4A017" : "1px solid transparent" }}>
-                      <span style={{ fontSize: 8, fontFamily: MONO, fontWeight: 700, color: useVideoStore.getState().trackSolo[idx] ? "#D4A017" : "#484F58" }}>S</span>
+                    <button title={t("creator_video_solo")} onClick={() => useVideoStore.setState((s) => ({ trackSolo: { ...s.trackSolo, [idx]: !s.trackSolo[idx] } }))} style={{ ...btnBase, width: 16, height: 16, background: useVideoStore.getState().trackSolo[idx] ? "#FFB54730" : "transparent", border: useVideoStore.getState().trackSolo[idx] ? "1px solid #FFB547" : "1px solid transparent" }}>
+                      <span style={{ fontSize: 8, fontFamily: MONO, fontWeight: 700, color: useVideoStore.getState().trackSolo[idx] ? "#FFB547" : "#5C5C5C" }}>S</span>
                     </button>
-                    <button title={t("creator_video_mute")} onClick={() => useVideoStore.setState((s) => ({ trackMuted: { ...s.trackMuted, [idx]: !s.trackMuted[idx] } }))} style={{ ...btnBase, width: 16, height: 16, background: useVideoStore.getState().trackMuted[idx] ? "#C0001830" : "transparent", border: useVideoStore.getState().trackMuted[idx] ? "1px solid #C00018" : "1px solid transparent" }}>
-                      <span style={{ fontSize: 8, fontFamily: MONO, fontWeight: 700, color: useVideoStore.getState().trackMuted[idx] ? "#C00018" : "#484F58" }}>M</span>
+                    <button title={t("creator_video_mute")} onClick={() => useVideoStore.setState((s) => ({ trackMuted: { ...s.trackMuted, [idx]: !s.trackMuted[idx] } }))} style={{ ...btnBase, width: 16, height: 16, background: useVideoStore.getState().trackMuted[idx] ? "#C3002F30" : "transparent", border: useVideoStore.getState().trackMuted[idx] ? "1px solid #C3002F" : "1px solid transparent" }}>
+                      <span style={{ fontSize: 8, fontFamily: MONO, fontWeight: 700, color: useVideoStore.getState().trackMuted[idx] ? "#C3002F" : "#5C5C5C" }}>M</span>
                     </button>
                   </>
                 )}
                 {track.controls === "eye" && (
-                  <button title={t("creator_video_visibility")} onClick={() => toggleVis(idx)} style={{ ...btnBase, width: 16, height: 16, color: trackVisibility[idx] ? "#8B949E" : "#484F58" }}>
+                  <button title={t("creator_video_visibility")} onClick={() => toggleVis(idx)} style={{ ...btnBase, width: 16, height: 16, color: trackVisibility[idx] ? "#A0A0A0" : "#5C5C5C" }}>
                     {trackVisibility[idx] ? <IEye /> : <IEyeOff />}
                   </button>
                 )}
@@ -113,12 +113,12 @@ export function TimelineEditor() {
 
             {/* Snap lines */}
             {snapEnabled && snapPoints.map((sp) => (
-              <div key={`snap-${sp}`} className="absolute top-0 bottom-0 pointer-events-none" style={{ left: sp * FRAME_W, width: 1, background: "rgba(212,160,23,0.3)", zIndex: 15 }} />
+              <div key={`snap-${sp}`} className="absolute top-0 bottom-0 pointer-events-none" style={{ left: sp * FRAME_W, width: 1, background: "rgba(255,181,71,0.3)", zIndex: 15 }} />
             ))}
             {/* Keyframe markers */}
             {keyframes.map((kf, i) => (
               <div key={`kf-${i}`} className="absolute pointer-events-none" style={{ left: kf.frame * FRAME_W - 3, top: -RULER_H, zIndex: 25 }}>
-                <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#D4A017", border: "1px solid #FFF" }} />
+                <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#FFB547", border: "1px solid #FFF" }} />
               </div>
             ))}
             {/* Clips area */}
@@ -126,7 +126,7 @@ export function TimelineEditor() {
             {TRACK_CONFIG.map((track, trackIdx) => {
               const trackClips = clips.filter((c) => c.trackIndex === trackIdx);
               return (
-                <div key={trackIdx} className="relative" style={{ height: TRACK_H, borderBottom: "1px solid #21262D" }}>
+                <div key={trackIdx} className="relative" style={{ height: TRACK_H, borderBottom: "1px solid #141414" }}>
                   {trackClips.map((clip) => {
                     const isSelected = selectedClipId === clip.id;
                     const clipLeft = clip.startFrame * FRAME_W;
@@ -190,7 +190,7 @@ export function TimelineEditor() {
                       >
                         {/* Speed badge */}
                         {speed !== 1 && isSelected && (
-                          <div style={{ position: "absolute", top: 1, right: 2, fontSize: 7, fontFamily: MONO, color: "#D4A017", fontWeight: 700, zIndex: 2 }}>{speed}x</div>
+                          <div style={{ position: "absolute", top: 1, right: 2, fontSize: 7, fontFamily: MONO, color: "#FFB547", fontWeight: 700, zIndex: 2 }}>{speed}x</div>
                         )}
                         {isAudio && (
                           <svg width="100%" height="100%" style={{ position: "absolute", top: 0, left: 0, opacity: 0.3 }}>
@@ -221,27 +221,27 @@ export function TimelineEditor() {
             })}
 
             {/* Playhead */}
-            <div className="absolute top-0 bottom-0 pointer-events-none" style={{ left: currentTimeFrame * FRAME_W, width: 1, background: "#C00018", zIndex: 20, boxShadow: "0 0 4px rgba(192,0,24,0.4)" }}>
-              <div style={{ position: "absolute", top: -RULER_H, left: -5, width: 0, height: 0, borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderTop: "6px solid #C00018", zIndex: 20 }} />
+            <div className="absolute top-0 bottom-0 pointer-events-none" style={{ left: currentTimeFrame * FRAME_W, width: 1, background: "#C3002F", zIndex: 20, boxShadow: "0 0 4px rgba(195,0,47,0.4)" }}>
+              <div style={{ position: "absolute", top: -RULER_H, left: -5, width: 0, height: 0, borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderTop: "6px solid #C3002F", zIndex: 20 }} />
             </div>
           </div>
         </div>
       </div>
 
       {/* Bottom zoom bar */}
-      <div className="flex items-center justify-between px-2 shrink-0" style={{ height: 22, background: "var(--card, #161B22)", borderTop: "1px solid var(--border, #21262D)", gap: 4 }}>
+      <div className="flex items-center justify-between px-2 shrink-0" style={{ height: 22, background: "#0A0A0C", borderTop: "1px solid #252525", gap: 4 }}>
         <div className="flex items-center gap-2">
-          <span style={{ fontSize: 7, fontFamily: MONO, color: "#484F58" }}>FPS: {fps}</span>
-          <span style={{ fontSize: 7, fontFamily: MONO, color: speed !== 1 ? "#D4A017" : "#484F58" }}>SPEED: {speed}x</span>
+          <span style={{ fontSize: 7, fontFamily: MONO, color: "#5C5C5C" }}>FPS: {fps}</span>
+          <span style={{ fontSize: 7, fontFamily: MONO, color: speed !== 1 ? "#FFB547" : "#5C5C5C" }}>SPEED: {speed}x</span>
           <button onClick={() => useVideoStore.setState((s) => ({ snapEnabled: !s.snapEnabled }))}
-            style={{ ...btnBase, width: 16, height: 14, background: snapEnabled ? `${ACCENT}30` : "transparent", border: snapEnabled ? `1px solid ${ACCENT}` : "1px solid transparent", fontSize: 7, fontFamily: MONO, color: snapEnabled ? ACCENT : "#484F58" }}>
+            style={{ ...btnBase, width: 16, height: 14, background: snapEnabled ? `${ACCENT}30` : "transparent", border: snapEnabled ? `1px solid ${ACCENT}` : "1px solid transparent", fontSize: 7, fontFamily: MONO, color: snapEnabled ? ACCENT : "#5C5C5C" }}>
             ⚡
           </button>
         </div>
         <div className="flex items-center gap-1">
-          <button onClick={() => useVideoStore.setState((s) => ({ zoomLevel: Math.max(0.25, s.zoomLevel - 0.25) }))} style={{ ...btnBase, width: 18, height: 16, background: "#21262D", border: "1px solid #30363D" }}><IZoomOut /></button>
-          <button onClick={() => useVideoStore.setState((s) => ({ zoomLevel: Math.min(4, s.zoomLevel + 0.25) }))} style={{ ...btnBase, width: 18, height: 16, background: "#21262D", border: "1px solid #30363D" }}><IZoomIn /></button>
-          <span style={{ fontSize: 8, fontFamily: MONO, color: "#484F58", minWidth: 28, textAlign: "center" }}>{Math.round(zoomLevel * 100)}%</span>
+          <button onClick={() => useVideoStore.setState((s) => ({ zoomLevel: Math.max(0.25, s.zoomLevel - 0.25) }))} style={{ ...btnBase, width: 18, height: 16, background: "#141414", border: "1px solid #1C1C1C" }}><IZoomOut /></button>
+          <button onClick={() => useVideoStore.setState((s) => ({ zoomLevel: Math.min(4, s.zoomLevel + 0.25) }))} style={{ ...btnBase, width: 18, height: 16, background: "#141414", border: "1px solid #1C1C1C" }}><IZoomIn /></button>
+          <span style={{ fontSize: 8, fontFamily: MONO, color: "#5C5C5C", minWidth: 28, textAlign: "center" }}>{Math.round(zoomLevel * 100)}%</span>
         </div>
       </div>
     </div>

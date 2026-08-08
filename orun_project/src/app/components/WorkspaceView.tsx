@@ -4,7 +4,7 @@ import { useTranslation } from "../../i18n/I18nProvider";
 import { getPlugin, getPluginActiveTab, setPluginActiveTab } from "../plugins/PluginRegistry";
 import { WorkspaceErrorBoundary } from "./WorkspaceErrorBoundary";
 import type { HamptonState, Message } from "../types";
-import { ChatInput } from "./ChatInput";
+import { FloatingWorkspaceChat } from "./FloatingWorkspaceChat";
 import { useTheme } from "../contexts/ThemeContext";
 
 interface WorkspaceViewProps {
@@ -97,37 +97,33 @@ export function WorkspaceView({
           }>
             {(() => {
               const WC = plugin.components.workspace;
-              return <WC plugin={plugin} activeTab={workspaceTab} onTabChange={handleTabChange} onSendMessage={onSendMessage} lastToolResult={null} />;
+              return (
+                <WC
+                  plugin={plugin}
+                  activeTab={workspaceTab}
+                  onTabChange={handleTabChange}
+                  onSendMessage={onSendMessage}
+                  lastToolResult={null}
+                  hamptonState={hamptonState}
+                  onMicClick={onMicClick}
+                  voiceVolume={voiceVolume}
+                  partialTranscript={partialTranscript}
+                />
+              );
             })()}
           </Suspense>
         </WorkspaceErrorBoundary>
       </div>
 
-      {/* Minimal chat bar at bottom */}
-      <div className="shrink-0 border-t" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
-        {messages.length > 0 && (
-          <div className="max-h-[120px] overflow-y-auto px-4 py-2 space-y-2 scrollbar-hide">
-            {messages.slice(-4).map((msg) => (
-              <div key={msg.id} className="flex gap-2 items-start">
-                <div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ background: msg.role === "hampton" ? "#C00018" : "var(--muted-foreground)" }} />
-                <p className="text-[10px] leading-relaxed" style={{ color: msg.role === "hampton" ? "var(--foreground)" : "var(--muted-foreground)" }}>
-                  {msg.content.length > 120 ? msg.content.slice(0, 120) + "..." : msg.content}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
-        <div className="flex items-center gap-2 px-3 py-2">
-          <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "#C00018", boxShadow: "0 0 6px #C00018", animation: hamptonState !== "idle" ? "orunStatePulse 1s ease-in-out infinite" : "none" }} />
-          <ChatInput
-            onSend={onSendMessage}
-            onMicClick={onMicClick}
-            listening={hamptonState === "listening"}
-            volume={voiceVolume}
-            partialTranscript={partialTranscript}
-          />
-        </div>
-      </div>
+      {/* Floating draggable chat */}
+      <FloatingWorkspaceChat
+        messages={messages}
+        hamptonState={hamptonState}
+        onSendMessage={onSendMessage}
+        onMicClick={onMicClick}
+        voiceVolume={voiceVolume}
+        partialTranscript={partialTranscript}
+      />
     </div>
   );
 }

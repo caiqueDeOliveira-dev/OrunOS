@@ -21,8 +21,8 @@ class ResponseCache {
     return crypto.createHash("sha256").update(content.toLowerCase().trim()).digest("hex").slice(0, 16);
   }
 
-  get(userMessage, agentId) {
-    const key = `${agentId || "hampton"}:${this._hash(userMessage)}`;
+  get(userMessage, agentId, variant = "") {
+    const key = `${agentId || "hampton"}:${variant}:${this._hash(userMessage)}`;
     const entry = this.cache.get(key);
     if (!entry) { this.misses++; return null; }
     if (Date.now() - entry.timestamp > this.ttlMs) {
@@ -37,8 +37,8 @@ class ResponseCache {
     return entry.response;
   }
 
-  set(userMessage, agentId, response) {
-    const key = `${agentId || "hampton"}:${this._hash(userMessage)}`;
+  set(userMessage, agentId, response, variant = "") {
+    const key = `${agentId || "hampton"}:${variant}:${this._hash(userMessage)}`;
     // Evict oldest if at capacity
     if (this.cache.size >= this.maxEntries) {
       const firstKey = this.cache.keys().next().value;

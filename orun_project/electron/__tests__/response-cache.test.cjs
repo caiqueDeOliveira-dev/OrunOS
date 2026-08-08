@@ -52,4 +52,17 @@ describe("ResponseCache", () => {
     expect(stats.misses).toBe(1);
     expect(stats.entries).toBe(1);
   });
+
+  it("should keep voice and text variants separate", () => {
+    cache.set("que horas sao", "hampton", "typed reply", "text");
+    cache.set("que horas sao", "hampton", "spoken reply", "voice");
+    expect(cache.get("que horas sao", "hampton", "text")).toBe("typed reply");
+    expect(cache.get("que horas sao", "hampton", "voice")).toBe("spoken reply");
+  });
+
+  it("should isolate variants per agent", () => {
+    cache.set("analise", "Finance", "finance reply", "voice");
+    expect(cache.get("analise", "Hampton", "voice")).toBeNull();
+    expect(cache.get("analise", "Finance", "voice")).toBe("finance reply");
+  });
 });

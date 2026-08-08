@@ -14,8 +14,8 @@ interface BackupInfo {
 let _intervalId: ReturnType<typeof setInterval> | null = null;
 let _lastBackup: string | null = null;
 let _nextBackup: string | null = null;
-let _cacheHits = 0;
-let _cacheMisses = 0;
+const _cacheHits = 0;
+const _cacheMisses = 0;
 
 function getBackupDir(): string {
   return BACKUP_FOLDER;
@@ -108,7 +108,7 @@ export const AutoBackup = {
 
   async getBackupInfo(): Promise<BackupInfo> {
     let totalBackups = 0;
-    let storageUsed = 0;
+    const storageUsed = 0;
     if (orun) {
       const files = await listExistingBackups();
       totalBackups = files.length;

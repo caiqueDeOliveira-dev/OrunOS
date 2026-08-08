@@ -59,7 +59,7 @@ export interface DJState {
   redoStack: Channel[][];
 }
 
-export const CHANNEL_COLORS = ["#C00018", "#3B82F6", "#22C55E", "#F59E0B"];
+export const CHANNEL_COLORS = ["#C3002F", "#4DA3FF", "#00D26A", "#FFB547"];
 export const CHANNEL_NAMES = ["CH 1", "CH 2", "CH 3", "CH 4"];
 
 export const SAMPLE_NAMES: { name: string; category: SamplePad["category"] }[] = [
@@ -74,21 +74,21 @@ export const SAMPLE_NAMES: { name: string; category: SamplePad["category"] }[] =
 ];
 
 export const CATEGORY_COLORS: Record<SamplePad["category"], string> = {
-  drums: "#8B5CF6", bass: "#3B82F6", synth: "#C00018", fx: "#22C55E",
+  drums: "#8B5CF6", bass: "#4DA3FF", synth: "#C3002F", fx: "#00D26A",
 };
 
-export const EFFECT_COLORS = ["#C00018", "#3B82F6", "#22C55E", "#F59E0B", "#8B5CF6", "#06B6D4"];
+export const EFFECT_COLORS = ["#C3002F", "#4DA3FF", "#00D26A", "#FFB547", "#8B5CF6", "#4DA3FF"];
 
-// Style constants (kept for backward compat — prefer CSS vars + ws-* classes in new code)
-export const BG = "var(--background)";
-export const PANEL = "var(--card)";
-export const STRIP = "var(--secondary, #161D2A)";
-export const ACCENT = "var(--accent, #C00018)";
-export const GREEN = "#22C55E";
-export const TEXT_DIM = "var(--muted-foreground)";
-export const TEXT_MED = "var(--muted-foreground)";
-export const TEXT_BRI = "var(--foreground)";
-export const BORDER = "var(--border)";
-export const BORDER_MED = "var(--border)";
+// Style constants (premium Orun OS palette — see ../premium.tsx)
+export const BG = "#050505";
+export const PANEL = "#0A0A0C";
+export const STRIP = "#141414";
+export const ACCENT = "#C3002F";
+export const GREEN = "#00D26A";
+export const TEXT_DIM = "#5C5C5C";
+export const TEXT_MED = "#A0A0A0";
+export const TEXT_BRI = "#FFFFFF";
+export const BORDER = "#252525";
+export const BORDER_MED = "#252525";
 export const FONT_MONO = "'JetBrains Mono', monospace";
 export const FONT_LABEL = "'Sora', sans-serif";

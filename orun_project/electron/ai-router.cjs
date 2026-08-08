@@ -396,8 +396,23 @@ async function streamOpenAICompatible(provider, { model, messages, apiKey, onChu
   return { text: fullText, toolCalls: [], reasoningContent: fullReasoning || undefined, usage: { tokensIn: estimateTokens(systemPrompt), tokensOut: estimateTokens(fullText) } };
 }
 
+// Normalize tool definitions into the OpenAI function-calling schema.
+// MCP and plugin tools arrive as { name, description, parameters } while the
+// chat providers expect { type: "function", function: { name, ... } }.
+function normalizeTools(tools) {
+  if (!Array.isArray(tools)) return tools;
+  return tools.map((t) => {
+    if (t && t.type === "function" && t.function?.name) return t;
+    if (t && t.name) {
+      return { type: "function", function: { name: t.name, description: t.description || "", parameters: t.parameters || t.inputSchema || { type: "object", properties: {} } } };
+    }
+    return t;
+  });
+}
+
 // Inner routeChat — no retry logic, used by retry wrapper
 async function routeChatOnce(req) {
+  if (req.tools?.length) req = { ...req, tools: normalizeTools(req.tools) };
   if (req.provider === "ollama") return chatOllama(req);
   if (req.provider === "anthropic") return chatAnthropic(req);
   if (isOpenAICompatible(req.provider)) return chatOpenAICompatible(req.provider, req);

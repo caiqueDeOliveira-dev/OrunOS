@@ -35,28 +35,28 @@ export function SearchPanel() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-3 py-2 border-b shrink-0" style={{ borderColor: "var(--border)" }}>
-        <span className="text-[10px] font-semibold tracking-wider uppercase" style={{ fontFamily: "'Sora', sans-serif", color: "var(--muted-foreground)" }}>
+      <div className="px-3 py-2 border-b shrink-0" style={{ borderColor: "#252525" }}>
+        <span className="text-[10px] font-semibold tracking-wider uppercase" style={{ fontFamily: "'Sora', sans-serif", color: "#A0A0A0" }}>
           Search
         </span>
         <input
           value={searchQuery}
           onChange={(e) => handleSearch(e.target.value)}
           className="w-full mt-2 px-3 py-1.5 rounded-lg text-[11px] outline-none"
-          style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+          style={{ background: "#0A0A0C", border: "1px solid #252525", color: "#FFFFFF" }}
           placeholder="Search files..."
         />
       </div>
-      <div className="flex-1 overflow-y-auto scrollbar-hide py-1">
+      <div className="flex-1 overflow-y-auto hs-scroll py-1">
         {searchResults.length === 0 && searchQuery && (
-          <p className="text-[10px] text-center py-8" style={{ color: "var(--muted-foreground)" }}>No results found</p>
+          <p className="text-[10px] text-center py-8" style={{ color: "#A0A0A0" }}>No results found</p>
         )}
         {searchResults.slice(0, 100).map((r, i) => (
           <button key={i} onClick={() => openResult(r.fileId)}
             className="w-full text-left px-3 py-1.5 hover:bg-white/[0.03] transition-colors">
-            <p className="text-[10px] font-medium truncate" style={{ color: "var(--foreground)" }}>{r.fileName}</p>
-            <p className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>
-              <span style={{ color: "#C00018" }}>Ln {r.line}</span>: {r.content.slice(0, 80)}
+            <p className="text-[10px] font-medium truncate" style={{ color: "#FFFFFF" }}>{r.fileName}</p>
+            <p className="text-[9px]" style={{ color: "#A0A0A0" }}>
+              <span style={{ color: "#C3002F" }}>Ln {r.line}</span>: {r.content.slice(0, 80)}
             </p>
           </button>
         ))}

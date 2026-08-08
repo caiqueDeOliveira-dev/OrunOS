@@ -10,8 +10,8 @@ export function VolumeControl() {
       <IVolIcon />
       <input type="range" min={0} max={100} value={volume}
         onChange={(e) => useVideoStore.setState({ volume: Number(e.target.value) })}
-        style={{ width: 60, height: 3, accentColor: "#C9D1D9" }} />
-      <span style={{ fontSize: 8, fontFamily: MONO, color: "#484F58", minWidth: 20 }}>{volume}%</span>
+        style={{ width: 60, height: 3, accentColor: "#FFFFFF" }} />
+      <span style={{ fontSize: 8, fontFamily: MONO, color: "#5C5C5C", minWidth: 20 }}>{volume}%</span>
     </div>
   );
 }

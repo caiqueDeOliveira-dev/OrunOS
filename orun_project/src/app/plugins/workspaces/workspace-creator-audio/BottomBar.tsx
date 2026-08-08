@@ -2,7 +2,7 @@
 import { useTranslation } from "../../../../i18n/I18nProvider";
 import { useDJStore } from "./creator-audio-store";
 import { AnimatedMeter, Knob, fmt } from "./creator-audio-ui";
-import { ACCENT, GREEN, BORDER, TEXT_DIM, FONT_LABEL, FONT_MONO, CHANNEL_COLORS } from "./creator-audio-types";
+import { ACCENT, GREEN, BORDER, TEXT_DIM, FONT_LABEL, FONT_MONO, CHANNEL_COLORS, BG } from "./creator-audio-types";
 
 export function BottomBar() {
   const { t } = useTranslation();
@@ -14,7 +14,7 @@ export function BottomBar() {
   const recordTime = useDJStore((s) => s.recordTime);
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "6px 12px", background: "var(--background, #0A0E17)", borderTop: `1px solid ${BORDER}`, flexShrink: 0 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "6px 12px", background: BG, borderTop: `1px solid ${BORDER}`, flexShrink: 0 }}>
       {/* Recording status */}
       <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 90 }}>
         <div style={{ width: 6, height: 6, borderRadius: "50%", background: isRecording ? ACCENT : "rgba(255,255,255,0.1)", boxShadow: isRecording ? `0 0 6px ${ACCENT}80` : "none" }} />
@@ -48,7 +48,7 @@ export function BottomBar() {
         <div style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
           <span style={{ fontSize: 8, color: ACCENT, fontFamily: FONT_LABEL, fontWeight: 600 }}>A</span>
           <span style={{ fontSize: 7, color: TEXT_DIM, fontFamily: FONT_LABEL, letterSpacing: 1 }}>{t("creator_audio_crossfader")}</span>
-          <span style={{ fontSize: 8, color: "#3B82F6", fontFamily: FONT_LABEL, fontWeight: 600 }}>B</span>
+          <span style={{ fontSize: 8, color: "#4DA3FF", fontFamily: FONT_LABEL, fontWeight: 600 }}>B</span>
         </div>
         <input type="range" min={0} max={100} value={Math.round((crossfader + 1) * 50)} onChange={(e) => useDJStore.setState({ crossfader: (Number(e.target.value) / 50) - 1 })} style={{ width: "100%", height: 4, accentColor: ACCENT, cursor: "pointer" }} />
       </div>
@@ -58,7 +58,7 @@ export function BottomBar() {
       {/* Headphone cue */}
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
         <span style={{ fontSize: 7, color: TEXT_DIM, fontFamily: FONT_LABEL, letterSpacing: 1 }}>{t("creator_audio_cue_mix")}</span>
-        <Knob value={cueMix} size={18} color="#D4A017" label="" onChange={(v) => useDJStore.setState({ cueMix: v })} />
+        <Knob value={cueMix} size={18} color="#FFB547" label="" onChange={(v) => useDJStore.setState({ cueMix: v })} />
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>

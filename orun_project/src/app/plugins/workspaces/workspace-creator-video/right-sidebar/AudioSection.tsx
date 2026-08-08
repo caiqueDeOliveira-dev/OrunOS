@@ -16,22 +16,22 @@ export function AudioSection() {
 
       <PropRow label={t("creator_video_volume")}>
         <div className="flex items-center gap-2">
-          <input type="range" min={0} max={100} value={volume} onChange={(e) => useVideoStore.setState({ volume: Number(e.target.value) })} className="flex-1" style={{ accentColor: "#C00018", height: 3 }} />
-          <span style={{ fontSize: 9, fontFamily: MONO, color: "#8B949E", minWidth: 36, textAlign: "right" }}>{(volume * 0.3 - 30).toFixed(0)} dB</span>
+          <input type="range" min={0} max={100} value={volume} onChange={(e) => useVideoStore.setState({ volume: Number(e.target.value) })} className="flex-1" style={{ accentColor: "#C3002F", height: 3 }} />
+          <span style={{ fontSize: 9, fontFamily: MONO, color: "#A0A0A0", minWidth: 36, textAlign: "right" }}>{(volume * 0.3 - 30).toFixed(0)} dB</span>
         </div>
       </PropRow>
 
       <PropRow label={t("creator_video_fade_in")}>
         <div className="flex items-center gap-2">
-          <input type="range" min={0} max={5000} value={fadeIn} onChange={(e) => useVideoStore.setState({ fadeIn: Number(e.target.value) })} className="flex-1" style={{ accentColor: "#C00018", height: 3 }} />
-          <span style={{ fontSize: 9, fontFamily: MONO, color: "#8B949E", minWidth: 32, textAlign: "right" }}>{fadeIn}ms</span>
+          <input type="range" min={0} max={5000} value={fadeIn} onChange={(e) => useVideoStore.setState({ fadeIn: Number(e.target.value) })} className="flex-1" style={{ accentColor: "#C3002F", height: 3 }} />
+          <span style={{ fontSize: 9, fontFamily: MONO, color: "#A0A0A0", minWidth: 32, textAlign: "right" }}>{fadeIn}ms</span>
         </div>
       </PropRow>
 
       <PropRow label={t("creator_video_fade_out")}>
         <div className="flex items-center gap-2">
-          <input type="range" min={0} max={5000} value={fadeOut} onChange={(e) => useVideoStore.setState({ fadeOut: Number(e.target.value) })} className="flex-1" style={{ accentColor: "#C00018", height: 3 }} />
-          <span style={{ fontSize: 9, fontFamily: MONO, color: "#8B949E", minWidth: 32, textAlign: "right" }}>{fadeOut}ms</span>
+          <input type="range" min={0} max={5000} value={fadeOut} onChange={(e) => useVideoStore.setState({ fadeOut: Number(e.target.value) })} className="flex-1" style={{ accentColor: "#C3002F", height: 3 }} />
+          <span style={{ fontSize: 9, fontFamily: MONO, color: "#A0A0A0", minWidth: 32, textAlign: "right" }}>{fadeOut}ms</span>
         </div>
       </PropRow>
     </>

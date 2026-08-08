@@ -73,6 +73,16 @@ function unloadPlugin(pluginId) {
   return { success: true };
 }
 
+function unloadAll() {
+  const ids = [...loadedPlugins.keys()];
+  for (const id of ids) unloadPlugin(id);
+  return { success: true, unloaded: ids.length };
+}
+
+function isLoaded(pluginId) {
+  return loadedPlugins.has(pluginId);
+}
+
 function getPluginTools() {
   const tools = [];
   for (const [id, plugin] of loadedPlugins) {
@@ -116,4 +126,4 @@ function loadAll() {
   return available.filter((p) => !p.error).map((p) => ({ id: p.id, ...loadPlugin(p.id) }));
 }
 
-module.exports = { init, listAvailable, loadPlugin, unloadPlugin, getPluginTools, executePluginTool, emitHook, loadAll };
+module.exports = { init, listAvailable, loadPlugin, unloadPlugin, unloadAll, isLoaded, getPluginTools, executePluginTool, emitHook, loadAll };

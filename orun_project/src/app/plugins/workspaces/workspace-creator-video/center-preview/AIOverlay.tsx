@@ -15,7 +15,7 @@ export function AIOverlay({ status, progress, result }: { status: string; progre
   if (status === "done" && result) {
     return (
       <div className="absolute top-2 left-1/2 -translate-x-1/2 px-2 py-1 rounded" style={{ background: "rgba(0,0,0,0.7)", border: `1px solid ${ACCENT}40`, zIndex: 50 }}>
-        <span style={{ fontSize: 8, fontFamily: MONO, color: "#22C55E" }}>✓ {result}</span>
+        <span style={{ fontSize: 8, fontFamily: MONO, color: "#00D26A" }}>✓ {result}</span>
       </div>
     );
   }

@@ -11,6 +11,7 @@ import { InventoryService, type RepairItem, type Part, type Tool as ToolType } f
 import { sanitizeText, sanitizeNumeric } from "../../../utils/sanitize";
 import { usePersonalization, useWorkspaceNotes, useWorkspaceGoals, useWorkspaceStats } from "../../../hooks/usePersonalization";
 import { useConfirmDialog } from "../../../hooks/useConfirmDialog";
+import { P, PremiumRoot, ScrollArea } from "../premium";
 
 type TabId = "painel" | "consertos" | "pecas" | "ferramentas" | "compras";
 
@@ -32,12 +33,12 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  aguardando: "#9CA3AF",
-  diagnosticando: "#EAB308",
-  em_conserto: "#D97706",
-  aguardando_peca: "#EF4444",
-  concluido: "#22C55E",
-  entregue: "#3B82F6",
+  aguardando: P.dim,
+  diagnosticando: P.alert,
+  em_conserto: P.alert,
+  aguardando_peca: P.error,
+  concluido: P.success,
+  entregue: P.info,
 };
 
 const PART_CATEGORIES: Record<string, string> = {
@@ -70,21 +71,21 @@ const TOOL_STATUS_LABELS: Record<string, string> = {
 };
 
 const TOOL_STATUS_COLORS: Record<string, string> = {
-  disponivel: "#22C55E",
-  em_uso: "#EAB308",
-  em_manutencao: "#D97706",
-  quebrado: "#EF4444",
-  faltando: "#EF4444",
+  disponivel: P.success,
+  em_uso: P.alert,
+  em_manutencao: P.alert,
+  quebrado: P.error,
+  faltando: P.error,
 };
 
 const CARD_STYLE: React.CSSProperties = {
   padding: "16px",
-  borderRadius: "12px",
-  background: "var(--card)",
-  border: "1px solid var(--border)",
+  borderRadius: "18px",
+  background: P.card,
+  border: `1px solid ${P.border}`,
 };
 
-const ACCENT = "#D97706";
+const ACCENT = P.alert;
 
 function formatDate(d: string): string {
   try {
@@ -344,8 +345,8 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
   function renderStatusBadge(status: string) {
     return (
       <span className="text-[9px] px-2 py-0.5 rounded-full" style={{
-        background: (STATUS_COLORS[status] || "#9CA3AF") + "18",
-        color: STATUS_COLORS[status] || "#9CA3AF",
+        background: (STATUS_COLORS[status] || P.dim) + "18",
+        color: STATUS_COLORS[status] || P.dim,
       }}>
         {STATUS_LABELS[status] || status}
       </span>
@@ -355,8 +356,8 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
   function renderToolStatusBadge(status: string) {
     return (
       <span className="text-[9px] px-2 py-0.5 rounded-full" style={{
-        background: (TOOL_STATUS_COLORS[status] || "#9CA3AF") + "18",
-        color: TOOL_STATUS_COLORS[status] || "#9CA3AF",
+        background: (TOOL_STATUS_COLORS[status] || P.dim) + "18",
+        color: TOOL_STATUS_COLORS[status] || P.dim,
       }}>
         {TOOL_STATUS_LABELS[status] || status}
       </span>
@@ -364,17 +365,19 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
   }
 
   return (
-    <div className="flex-1 flex flex-col p-6 gap-6 overflow-y-auto" style={{ background: "var(--background)" }}>
+    <PremiumRoot>
+      <ScrollArea className="p-6">
+      <div className="flex flex-col gap-6">
       {dialogElement}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "rgba(217,119,6,0.1)" }}>
+          <div className="w-10 h-10 rounded-[18px] flex items-center justify-center" style={{ background: "rgba(255,181,71,0.1)" }}>
             <Wrench size={20} style={{ color: ACCENT }} />
           </div>
           <div>
-            <h2 className="text-sm font-semibold" style={{ fontFamily: "'Sora', sans-serif", color: "var(--foreground)" }}>{greeting}, {userName}</h2>
-            <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>Assistência Técnica Profissional</p>
+            <h2 className="text-sm font-semibold" style={{ fontFamily: "'Sora', sans-serif", color: P.text }}>{greeting}, {userName}</h2>
+            <p className="text-[10px]" style={{ color: P.sub }}>Assistência Técnica Profissional</p>
           </div>
         </div>
         <div className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold" style={{ background: ACCENT, color: "#fff" }}>
@@ -383,7 +386,7 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 p-1 rounded-xl" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+      <div className="flex gap-1 p-1 rounded-[18px]" style={{ background: P.card, border: `1px solid ${P.border}` }}>
         {TABS.map((tab) => {
           const Icon = tab.icon;
           const active = activeTab === tab.id;
@@ -394,8 +397,8 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs transition-all flex-1 justify-center"
               style={{
                 fontFamily: "'Sora', sans-serif",
-                background: active ? "rgba(217,119,6,0.1)" : "transparent",
-                color: active ? ACCENT : "var(--muted-foreground)",
+                background: active ? "rgba(255,181,71,0.1)" : "transparent",
+                color: active ? ACCENT : P.sub,
                 fontWeight: active ? 500 : 300,
               }}
             >
@@ -415,16 +418,16 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
           <div className="grid grid-cols-4 gap-3">
             {[
               { label: "Consertos Ativos", value: String(stats.ongoing), icon: Cpu, color: ACCENT },
-              { label: "Concluídos", value: String(stats.completed), icon: CheckCircle, color: "#22C55E" },
-              { label: "Peças em Falta", value: String(stats.lowStock), icon: AlertTriangle, color: "#EF4444" },
-              { label: "Ferr. com Problema", value: String(stats.toolsMissing), icon: Wrench, color: "#EAB308" },
+              { label: "Concluídos", value: String(stats.completed), icon: CheckCircle, color: P.success },
+              { label: "Peças em Falta", value: String(stats.lowStock), icon: AlertTriangle, color: P.error },
+              { label: "Ferr. com Problema", value: String(stats.toolsMissing), icon: Wrench, color: P.alert },
             ].map((s) => (
               <div key={s.label} style={CARD_STYLE}>
                 <div className="flex items-center gap-2 mb-2">
                   <s.icon size={14} style={{ color: s.color }} />
-                  <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>{s.label}</span>
+                  <span className="text-[10px]" style={{ color: P.sub }}>{s.label}</span>
                 </div>
-                <span className="text-lg font-bold" style={{ color: "var(--foreground)", fontFamily: "'Sora', sans-serif" }}>{s.value}</span>
+                <span className="text-lg font-bold" style={{ color: P.text, fontFamily: "'Sora', sans-serif" }}>{s.value}</span>
               </div>
             ))}
           </div>
@@ -433,18 +436,18 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
           <div className="grid grid-cols-3 gap-3">
             {[
               { label: "Registrar Conserto", icon: Plus, action: () => setShowAddRepair(true), color: ACCENT },
-              { label: "Adicionar Peça", icon: Package, action: () => setShowAddPart(true), color: "#3B82F6" },
-              { label: "Nova Ferramenta", icon: Plus, action: () => setShowAddTool(true), color: "#8B5CF6" },
+              { label: "Adicionar Peça", icon: Package, action: () => setShowAddPart(true), color: P.info },
+              { label: "Nova Ferramenta", icon: Plus, action: () => setShowAddTool(true), color: P.violet },
             ].map((btn) => (
               <button
                 key={btn.label}
                 onClick={btn.action}
-                className="flex items-center gap-2 px-4 py-3 rounded-xl text-xs transition-all"
-                style={{ background: "var(--card)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+                className="flex items-center gap-2 px-4 py-3 rounded-[18px] text-xs transition-all"
+                style={{ background: P.card, border: `1px solid ${P.border}`, color: P.text }}
               >
                 <btn.icon size={16} style={{ color: btn.color }} />
                 {btn.label}
-                <ChevronRight size={12} style={{ color: "var(--muted-foreground)", marginLeft: "auto" }} />
+                <ChevronRight size={12} style={{ color: P.sub, marginLeft: "auto" }} />
               </button>
             ))}
           </div>
@@ -454,24 +457,24 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
             <div style={CARD_STYLE}>
               <div className="flex items-center gap-2 mb-1">
                 <BarChart3 size={12} style={{ color: ACCENT }} />
-                <span className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>Hoje</span>
+                <span className="text-[9px]" style={{ color: P.sub }}>Hoje</span>
               </div>
-              <span className="text-lg font-bold" style={{ color: "var(--foreground)", fontFamily: "'Sora', sans-serif" }}>{personalStats["conserto_criado"] || 0}</span>
-              <span className="text-[8px] ml-1" style={{ color: "var(--muted-foreground)" }}>consertos</span>
+              <span className="text-lg font-bold" style={{ color: P.text, fontFamily: "'Sora', sans-serif" }}>{personalStats["conserto_criado"] || 0}</span>
+              <span className="text-[8px] ml-1" style={{ color: P.sub }}>consertos</span>
             </div>
             <div style={CARD_STYLE}>
               <div className="flex items-center gap-2 mb-1">
-                <TrendingUp size={12} style={{ color: "#22C55E" }} />
-                <span className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>Total ações</span>
+                <TrendingUp size={12} style={{ color: P.success }} />
+                <span className="text-[9px]" style={{ color: P.sub }}>Total ações</span>
               </div>
-              <span className="text-lg font-bold" style={{ color: "var(--foreground)", fontFamily: "'Sora', sans-serif" }}>{Object.values(personalStats).reduce((a, b) => a + b, 0)}</span>
+              <span className="text-lg font-bold" style={{ color: P.text, fontFamily: "'Sora', sans-serif" }}>{Object.values(personalStats).reduce((a, b) => a + b, 0)}</span>
             </div>
             <div style={CARD_STYLE}>
               <div className="flex items-center gap-2 mb-1">
                 <Award size={12} style={{ color: ACCENT }} />
-                <span className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>Mais usado</span>
+                <span className="text-[9px]" style={{ color: P.sub }}>Mais usado</span>
               </div>
-              <span className="text-xs font-medium truncate block" style={{ color: "var(--foreground)", fontFamily: "'Sora', sans-serif" }}>
+              <span className="text-xs font-medium truncate block" style={{ color: P.text, fontFamily: "'Sora', sans-serif" }}>
                 {Object.entries(personalStats).sort((a, b) => b[1] - a[1])[0]?.[0]?.replace(/_/g, " ") || "—"}
               </span>
             </div>
@@ -482,17 +485,17 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
             <div style={CARD_STYLE}>
               <div className="flex items-center gap-2 mb-3">
                 <Clock size={14} style={{ color: ACCENT }} />
-                <span className="text-xs font-medium" style={{ color: "var(--foreground)" }}>Consertos Recentes</span>
+                <span className="text-xs font-medium" style={{ color: P.text }}>Consertos Recentes</span>
               </div>
               {repairs.length === 0 ? (
-                <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>Nenhum conserto registrado.</p>
+                <p className="text-[10px]" style={{ color: P.sub }}>Nenhum conserto registrado.</p>
               ) : (
                 <div className="space-y-2">
                   {repairs.slice(0, 5).map((r) => (
-                    <div key={r.id} className="flex items-center justify-between py-1.5 border-b" style={{ borderColor: "var(--border)" }}>
+                    <div key={r.id} className="flex items-center justify-between py-1.5 border-b" style={{ borderColor: P.border }}>
                       <div className="flex-1 min-w-0 mr-2">
-                        <span className="text-[10px] block truncate" style={{ color: "var(--foreground)" }}>{r.productName}</span>
-                        <span className="text-[8px]" style={{ color: "var(--muted-foreground)" }}>{r.problem}</span>
+                        <span className="text-[10px] block truncate" style={{ color: P.text }}>{r.productName}</span>
+                        <span className="text-[8px]" style={{ color: P.sub }}>{r.problem}</span>
                       </div>
                       {renderStatusBadge(r.status)}
                     </div>
@@ -503,24 +506,24 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
 
             <div style={CARD_STYLE}>
               <div className="flex items-center gap-2 mb-3">
-                <AlertTriangle size={14} style={{ color: "#EF4444" }} />
-                <span className="text-xs font-medium" style={{ color: "var(--foreground)" }}>Alertas de Estoque</span>
+                <AlertTriangle size={14} style={{ color: P.error }} />
+                <span className="text-xs font-medium" style={{ color: P.text }}>Alertas de Estoque</span>
               </div>
               {lowStockParts.length === 0 && toolsWithProblems.length === 0 ? (
-                <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>Nenhum alerta no momento.</p>
+                <p className="text-[10px]" style={{ color: P.sub }}>Nenhum alerta no momento.</p>
               ) : (
                 <div className="space-y-2">
                   {lowStockParts.slice(0, 3).map((p) => (
-                    <div key={p.id} className="flex items-center gap-2 py-1.5 border-b" style={{ borderColor: "var(--border)" }}>
-                      <Package size={10} style={{ color: "#EF4444" }} />
-                      <span className="text-[9px] flex-1" style={{ color: "var(--foreground)" }}>{p.name}</span>
-                      <span className="text-[8px] font-bold" style={{ color: "#EF4444" }}>{p.quantity}/{p.minQuantity}</span>
+                    <div key={p.id} className="flex items-center gap-2 py-1.5 border-b" style={{ borderColor: P.border }}>
+                      <Package size={10} style={{ color: P.error }} />
+                      <span className="text-[9px] flex-1" style={{ color: P.text }}>{p.name}</span>
+                      <span className="text-[8px] font-bold" style={{ color: P.error }}>{p.quantity}/{p.minQuantity}</span>
                     </div>
                   ))}
                   {toolsWithProblems.slice(0, 2).map((t) => (
-                    <div key={t.id} className="flex items-center gap-2 py-1.5 border-b" style={{ borderColor: "var(--border)" }}>
-                      <Wrench size={10} style={{ color: "#EAB308" }} />
-                      <span className="text-[9px] flex-1" style={{ color: "var(--foreground)" }}>{t.name}</span>
+                    <div key={t.id} className="flex items-center gap-2 py-1.5 border-b" style={{ borderColor: P.border }}>
+                      <Wrench size={10} style={{ color: P.alert }} />
+                      <span className="text-[9px] flex-1" style={{ color: P.text }}>{t.name}</span>
                       {renderToolStatusBadge(t.status)}
                     </div>
                   ))}
@@ -534,7 +537,7 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <Award size={14} style={{ color: ACCENT }} />
-                <span className="text-xs font-medium" style={{ color: "var(--foreground)" }}>Minhas Metas</span>
+                <span className="text-xs font-medium" style={{ color: P.text }}>Minhas Metas</span>
               </div>
               <button
                 onClick={() => {
@@ -545,13 +548,13 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
                   }
                 }}
                 className="flex items-center gap-1 px-2 py-1 rounded-lg text-[8px]"
-                style={{ background: "rgba(217,119,6,0.1)", color: ACCENT }}
+                style={{ background: "rgba(255,181,71,0.1)", color: ACCENT }}
               >
                 <Plus size={8} /> Nova Meta
               </button>
             </div>
             {goals.length === 0 ? (
-              <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>Crie metas para acompanhar seu progresso.</p>
+              <p className="text-[10px]" style={{ color: P.sub }}>Crie metas para acompanhar seu progresso.</p>
             ) : (
               <div className="space-y-2">
                 {goals.map((g, i) => {
@@ -560,23 +563,23 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
                     <div key={i} className="flex items-center gap-2">
                       <div className="flex-1">
                         <div className="flex justify-between text-[9px] mb-1">
-                          <span style={{ color: "var(--foreground)" }}>{g.label}</span>
-                          <span style={{ color: pct >= 100 ? "#22C55E" : ACCENT }}>{g.current}/{g.target}</span>
+                          <span style={{ color: P.text }}>{g.label}</span>
+                          <span style={{ color: pct >= 100 ? P.success : ACCENT }}>{g.current}/{g.target}</span>
                         </div>
-                        <div className="h-1.5 rounded-full" style={{ background: "var(--secondary)" }}>
-                          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: pct >= 100 ? "#22C55E" : `linear-gradient(90deg, ${ACCENT}, #22C55E)` }} />
+                        <div className="h-1.5 rounded-full" style={{ background: P.card2 }}>
+                          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: pct >= 100 ? P.success : `linear-gradient(90deg, ${ACCENT}, ${P.success})` }} />
                         </div>
                       </div>
                       <button
                         onClick={() => incrementGoal(i)}
                         className="w-5 h-5 rounded flex items-center justify-center text-[9px]"
-                        style={{ background: "rgba(217,119,6,0.1)", color: ACCENT }}
+                        style={{ background: "rgba(255,181,71,0.1)", color: ACCENT }}
                       >
                         +1
                       </button>
                       <button
                         onClick={() => updateGoals(goals.filter((_, j) => j !== i))}
-                        style={{ color: "var(--muted-foreground)" }}
+                        style={{ color: P.sub }}
                       >
                         <X size={10} />
                       </button>
@@ -590,14 +593,14 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
           {/* Notas Pessoais */}
           <div style={CARD_STYLE}>
             <div className="flex items-center gap-2 mb-2">
-              <ClipboardList size={14} style={{ color: "#8B5CF6" }} />
-              <span className="text-xs font-medium" style={{ color: "var(--foreground)" }}>Notas Pessoais</span>
+              <ClipboardList size={14} style={{ color: P.violet }} />
+              <span className="text-xs font-medium" style={{ color: P.text }}>Notas Pessoais</span>
             </div>
             <textarea
               value={notes}
               onChange={(e) => updateNotes(e.target.value)}
               className="w-full px-3 py-2 rounded-lg text-[10px] resize-none"
-              style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)", minHeight: "60px" }}
+              style={{ background: P.card2, color: P.text, border: `1px solid ${P.border}`, minHeight: "60px" }}
               placeholder="Suas anotações pessoais rápidas..."
             />
           </div>
@@ -619,8 +622,8 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
                     onClick={() => setRepairFilter(f)}
                     className="px-2.5 py-1.5 rounded-lg text-[9px] transition-all"
                     style={{
-                      background: repairFilter === f ? ACCENT : "var(--secondary)",
-                      color: repairFilter === f ? "#fff" : "var(--muted-foreground)",
+                      background: repairFilter === f ? ACCENT : P.card2,
+                      color: repairFilter === f ? "#fff" : P.sub,
                       fontWeight: repairFilter === f ? 500 : 300,
                     }}
                   >
@@ -639,39 +642,39 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
 
             <div className="grid grid-cols-2 gap-3 flex-1">
               {filteredRepairs.length === 0 ? (
-                <div className="col-span-2 flex flex-col items-center justify-center p-8 rounded-xl" style={{ background: "var(--card)", border: "1px dashed var(--border)" }}>
-                  <Cpu size={32} style={{ color: "var(--muted-foreground)", opacity: 0.3 }} />
-                  <p className="text-[11px] mt-2" style={{ color: "var(--muted-foreground)" }}>Nenhum conserto encontrado</p>
+                <div className="col-span-2 flex flex-col items-center justify-center p-8 rounded-[18px]" style={{ background: P.card, border: `1px dashed ${P.border}` }}>
+                  <Cpu size={32} style={{ color: P.sub, opacity: 0.3 }} />
+                  <p className="text-[11px] mt-2" style={{ color: P.sub }}>Nenhum conserto encontrado</p>
                 </div>
               ) : (
                 filteredRepairs.map((r) => (
                   <button
                     key={r.id}
                     onClick={() => setSelectedRepair(r)}
-                    className="flex flex-col p-3 rounded-xl text-left transition-all"
+                    className="flex flex-col p-3 rounded-[18px] text-left transition-all"
                     style={{
-                      background: selectedRepair?.id === r.id ? "rgba(217,119,6,0.08)" : "var(--card)",
-                      border: selectedRepair?.id === r.id ? `1px solid ${ACCENT}` : "1px solid var(--border)",
+                      background: selectedRepair?.id === r.id ? "rgba(255,181,71,0.08)" : P.card,
+                      border: selectedRepair?.id === r.id ? `1px solid ${ACCENT}` : `1px solid ${P.border}`,
                     }}
                   >
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(217,119,6,0.1)" }}>
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(255,181,71,0.1)" }}>
                         <Cpu size={14} style={{ color: ACCENT }} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <span className="text-[10px] font-medium block truncate" style={{ color: "var(--foreground)" }}>{r.productName}</span>
-                        <span className="text-[8px]" style={{ color: "var(--muted-foreground)" }}>{formatDate(r.entryDate)}</span>
+                        <span className="text-[10px] font-medium block truncate" style={{ color: P.text }}>{r.productName}</span>
+                        <span className="text-[8px]" style={{ color: P.sub }}>{formatDate(r.entryDate)}</span>
                       </div>
                     </div>
-                    <p className="text-[9px] mb-2 line-clamp-2" style={{ color: "var(--muted-foreground)" }}>{r.problem}</p>
+                    <p className="text-[9px] mb-2 line-clamp-2" style={{ color: P.sub }}>{r.problem}</p>
                     <div className="flex items-center justify-between">
                       {renderStatusBadge(r.status)}
                       {r.estimatedPrice != null && (
-                        <span className="text-[9px]" style={{ color: "#22C55E" }}>R$ {r.estimatedPrice.toFixed(2)}</span>
+                        <span className="text-[9px]" style={{ color: P.success }}>R$ {r.estimatedPrice.toFixed(2)}</span>
                       )}
                     </div>
                     {r.clientName && (
-                      <span className="text-[8px] mt-1 flex items-center gap-1" style={{ color: "var(--muted-foreground)" }}>
+                      <span className="text-[8px] mt-1 flex items-center gap-1" style={{ color: P.sub }}>
                         <User size={8} /> {r.clientName}
                       </span>
                     )}
@@ -684,58 +687,58 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
           {/* Repair Detail Panel */}
           {selectedRepair && (
             <div className="w-72 flex flex-col gap-3" style={{ minWidth: "240px" }}>
-              <div className="p-4 rounded-xl" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+              <div className="p-4 rounded-[18px]" style={{ background: P.card, border: `1px solid ${P.border}` }}>
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-medium" style={{ color: "var(--foreground)" }}>Detalhes</span>
-                  <button onClick={() => setSelectedRepair(null)} style={{ color: "var(--muted-foreground)" }}><X size={14} /></button>
+                  <span className="text-xs font-medium" style={{ color: P.text }}>Detalhes</span>
+                  <button onClick={() => setSelectedRepair(null)} style={{ color: P.sub }}><X size={14} /></button>
                 </div>
 
                 <div className="space-y-2 text-[10px] mb-4">
                   <div>
-                    <span className="text-[8px] block" style={{ color: "var(--muted-foreground)" }}>Aparelho</span>
-                    <span className="text-[11px] font-medium" style={{ color: "var(--foreground)" }}>{selectedRepair.productName}</span>
+                    <span className="text-[8px] block" style={{ color: P.sub }}>Aparelho</span>
+                    <span className="text-[11px] font-medium" style={{ color: P.text }}>{selectedRepair.productName}</span>
                   </div>
                   <div>
-                    <span className="text-[8px] block" style={{ color: "var(--muted-foreground)" }}>Problema</span>
-                    <span style={{ color: "var(--foreground)" }}>{selectedRepair.problem}</span>
+                    <span className="text-[8px] block" style={{ color: P.sub }}>Problema</span>
+                    <span style={{ color: P.text }}>{selectedRepair.problem}</span>
                   </div>
                   {selectedRepair.clientName && (
                     <div className="flex items-center gap-2">
-                      <User size={10} style={{ color: "var(--muted-foreground)" }} />
-                      <span style={{ color: "var(--foreground)" }}>{selectedRepair.clientName}</span>
+                      <User size={10} style={{ color: P.sub }} />
+                      <span style={{ color: P.text }}>{selectedRepair.clientName}</span>
                     </div>
                   )}
                   {selectedRepair.clientPhone && (
                     <div className="flex items-center gap-2">
-                      <Phone size={10} style={{ color: "var(--muted-foreground)" }} />
-                      <span style={{ color: "var(--foreground)" }}>{selectedRepair.clientPhone}</span>
+                      <Phone size={10} style={{ color: P.sub }} />
+                      <span style={{ color: P.text }}>{selectedRepair.clientPhone}</span>
                     </div>
                   )}
                   <div className="flex items-center gap-2">
-                    <Calendar size={10} style={{ color: "var(--muted-foreground)" }} />
-                    <span style={{ color: "var(--muted-foreground)" }}>{formatDate(selectedRepair.entryDate)}</span>
+                    <Calendar size={10} style={{ color: P.sub }} />
+                    <span style={{ color: P.sub }}>{formatDate(selectedRepair.entryDate)}</span>
                   </div>
                   {selectedRepair.estimatedPrice != null && (
                     <div className="flex items-center gap-2">
-                      <DollarSign size={10} style={{ color: "#22C55E" }} />
-                      <span style={{ color: "#22C55E" }}>R$ {selectedRepair.estimatedPrice.toFixed(2)}</span>
+                      <DollarSign size={10} style={{ color: P.success }} />
+                      <span style={{ color: P.success }}>R$ {selectedRepair.estimatedPrice.toFixed(2)}</span>
                     </div>
                   )}
                   <div className="flex items-center justify-between">
-                    <span style={{ color: "var(--muted-foreground)" }}>Status</span>
+                    <span style={{ color: P.sub }}>Status</span>
                     {renderStatusBadge(selectedRepair.status)}
                   </div>
                   {selectedRepair.notes && (
                     <div>
-                      <span className="text-[8px] block" style={{ color: "var(--muted-foreground)" }}>Observações</span>
-                      <p style={{ color: "var(--foreground)" }}>{selectedRepair.notes}</p>
+                      <span className="text-[8px] block" style={{ color: P.sub }}>Observações</span>
+                      <p style={{ color: P.text }}>{selectedRepair.notes}</p>
                     </div>
                   )}
                 </div>
 
                 {/* Status Update */}
                 <div className="mb-3">
-                  <span className="text-[9px] font-medium block mb-2" style={{ color: "var(--foreground)" }}>Atualizar Status</span>
+                  <span className="text-[9px] font-medium block mb-2" style={{ color: P.text }}>Atualizar Status</span>
                   <div className="flex flex-wrap gap-1">
                     {(["aguardando", "diagnosticando", "em_conserto", "aguardando_peca", "concluido", "entregue"] as const).map((s) => (
                       <button
@@ -743,8 +746,8 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
                         onClick={() => handleUpdateRepairStatus(selectedRepair.id, s)}
                         className="text-[8px] px-2 py-1 rounded-lg"
                         style={{
-                          background: selectedRepair.status === s ? (STATUS_COLORS[s] || "#9CA3AF") : "var(--secondary)",
-                          color: selectedRepair.status === s ? "#fff" : "var(--muted-foreground)",
+                          background: selectedRepair.status === s ? (STATUS_COLORS[s] || P.dim) : P.card2,
+                          color: selectedRepair.status === s ? "#fff" : P.sub,
                         }}
                       >
                         {STATUS_LABELS[s]}
@@ -756,25 +759,25 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
                 {/* Parts Used */}
                 <div className="mb-3">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-[9px] font-medium" style={{ color: "var(--foreground)" }}>Peças Utilizadas</span>
+                    <span className="text-[9px] font-medium" style={{ color: P.text }}>Peças Utilizadas</span>
                     <button
                       onClick={() => { setAddPartRepairId(selectedRepair.id); setSelectedPartToAdd(""); setShowAddPartToRepair(true); }}
                       className="text-[8px] px-2 py-1 rounded-lg"
-                      style={{ background: "rgba(217,119,6,0.1)", color: ACCENT }}
+                      style={{ background: "rgba(255,181,71,0.1)", color: ACCENT }}
                     >
                       <Plus size={8} className="inline mr-1" />Adicionar
                     </button>
                   </div>
                   {selectedRepair.partsUsed.length === 0 ? (
-                    <p className="text-[8px]" style={{ color: "var(--muted-foreground)" }}>Nenhuma peça vinculada.</p>
+                    <p className="text-[8px]" style={{ color: P.sub }}>Nenhuma peça vinculada.</p>
                   ) : (
                     <div className="space-y-1">
                       {selectedRepair.partsUsed.map((pid) => {
                         const part = parts.find((p) => p.id === pid);
                         return (
-                          <div key={pid} className="flex items-center gap-1.5 py-1 px-2 rounded-lg" style={{ background: "var(--secondary)" }}>
+                          <div key={pid} className="flex items-center gap-1.5 py-1 px-2 rounded-lg" style={{ background: P.card2 }}>
                             <Package size={8} style={{ color: ACCENT }} />
-                            <span className="text-[8px]" style={{ color: "var(--foreground)" }}>{part?.name || pid}</span>
+                            <span className="text-[8px]" style={{ color: P.text }}>{part?.name || pid}</span>
                           </div>
                         );
                       })}
@@ -792,7 +795,7 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
                       onConfirm: () => handleDeleteRepair(selectedRepair.id),
                     })}
                     className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-[9px]"
-                    style={{ background: "rgba(192,0,24,0.1)", color: "#C00018" }}
+                    style={{ background: "rgba(195,0,47,0.1)", color: P.primary }}
                   >
                     <Trash2 size={10} /> Excluir
                   </button>
@@ -816,8 +819,8 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
                   onClick={() => setPartFilter(f)}
                   className="px-2.5 py-1.5 rounded-lg text-[9px] transition-all"
                   style={{
-                    background: partFilter === f ? ACCENT : "var(--secondary)",
-                    color: partFilter === f ? "#fff" : "var(--muted-foreground)",
+                    background: partFilter === f ? ACCENT : P.card2,
+                    color: partFilter === f ? "#fff" : P.sub,
                     fontWeight: partFilter === f ? 500 : 300,
                   }}
                 >
@@ -835,68 +838,68 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
           </div>
 
           {/* Search by name or barcode */}
-          <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-            <ScanLine size={14} style={{ color: "var(--muted-foreground)" }} />
+          <div className="flex items-center gap-2 px-3 py-2 rounded-[18px]" style={{ background: P.card, border: `1px solid ${P.border}` }}>
+            <ScanLine size={14} style={{ color: P.sub }} />
             <input
               value={partsSearch}
               onChange={(e) => setPartsSearch(e.target.value)}
               className="flex-1 bg-transparent text-[11px] outline-none"
-              style={{ color: "var(--foreground)" }}
+              style={{ color: P.text }}
               placeholder="Buscar por nome ou código de barras..."
             />
             {partsSearch && (
-              <button onClick={() => setPartsSearch("")} style={{ color: "var(--muted-foreground)" }}>
+              <button onClick={() => setPartsSearch("")} style={{ color: P.sub }}>
                 <X size={12} />
               </button>
             )}
           </div>
 
           {filteredParts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-8 rounded-xl" style={{ background: "var(--card)", border: "1px dashed var(--border)" }}>
-              <Package size={32} style={{ color: "var(--muted-foreground)", opacity: 0.3 }} />
-              <p className="text-[11px] mt-2" style={{ color: "var(--muted-foreground)" }}>{partsSearch ? "Nenhuma peça encontrada para esta busca" : "Nenhuma peça cadastrada"}</p>
+            <div className="flex flex-col items-center justify-center p-8 rounded-[18px]" style={{ background: P.card, border: `1px dashed ${P.border}` }}>
+              <Package size={32} style={{ color: P.sub, opacity: 0.3 }} />
+              <p className="text-[11px] mt-2" style={{ color: P.sub }}>{partsSearch ? "Nenhuma peça encontrada para esta busca" : "Nenhuma peça cadastrada"}</p>
             </div>
           ) : (
             <div className="grid grid-cols-3 gap-3">
               {filteredParts.map((p) => {
                 const isLow = p.quantity < p.minQuantity;
                 return (
-                  <div key={p.id} className="p-3 rounded-xl" style={{ background: "var(--card)", border: isLow ? "1px solid #EF4444" : "1px solid var(--border)" }}>
+                  <div key={p.id} className="p-3 rounded-[18px]" style={{ background: P.card, border: isLow ? `1px solid ${P.error}` : `1px solid ${P.border}` }}>
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: isLow ? "rgba(239,68,68,0.1)" : "rgba(217,119,6,0.1)" }}>
-                          <Package size={14} style={{ color: isLow ? "#EF4444" : ACCENT }} />
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: isLow ? "rgba(255,75,75,0.1)" : "rgba(255,181,71,0.1)" }}>
+                          <Package size={14} style={{ color: isLow ? P.error : ACCENT }} />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <span className={`text-[10px] font-medium block truncate ${isLow ? "font-bold" : ""}`} style={{ color: isLow ? "#EF4444" : "var(--foreground)" }}>
+                          <span className={`text-[10px] font-medium block truncate ${isLow ? "font-bold" : ""}`} style={{ color: isLow ? P.error : P.text }}>
                             {p.name}
                           </span>
-                          <span className="text-[8px]" style={{ color: "var(--muted-foreground)" }}>{PART_CATEGORIES[p.category]}</span>
-                          {p.barcode && <span className="text-[7px] block mt-0.5" style={{ color: "var(--muted-foreground)", opacity: 0.6 }}>Cód.: {p.barcode}</span>}
+                          <span className="text-[8px]" style={{ color: P.sub }}>{PART_CATEGORIES[p.category]}</span>
+                          {p.barcode && <span className="text-[7px] block mt-0.5" style={{ color: P.sub, opacity: 0.6 }}>Cód.: {p.barcode}</span>}
                         </div>
                       </div>
                       <div className="flex gap-1 flex-shrink-0">
-                        <button onClick={() => handleEditPart(p)} style={{ color: "var(--muted-foreground)" }} className="hover:opacity-70"><Edit size={10} /></button>
+                        <button onClick={() => handleEditPart(p)} style={{ color: P.sub }} className="hover:opacity-70"><Edit size={10} /></button>
                         <button onClick={() => confirm({
                           title: "Excluir Peça",
                           message: `Tem certeza que deseja excluir "${p.name}"? Esta ação não pode ser desfeita.`,
                           confirmLabel: "Excluir",
                           variant: "danger",
                           onConfirm: () => handleDeletePart(p.id),
-                        })} style={{ color: "#C00018" }} className="hover:opacity-70"><Trash2 size={10} /></button>
+                        })} style={{ color: P.primary }} className="hover:opacity-70"><Trash2 size={10} /></button>
                       </div>
                     </div>
                     <div className="flex items-center justify-between text-[9px]">
-                      <span style={{ color: "var(--muted-foreground)" }}>
-                        Qtd: <strong style={{ color: isLow ? "#EF4444" : "var(--foreground)" }}>{p.quantity}</strong>
+                      <span style={{ color: P.sub }}>
+                        Qtd: <strong style={{ color: isLow ? P.error : P.text }}>{p.quantity}</strong>
                         {" / Min: "}{p.minQuantity}
                       </span>
-                      <span style={{ color: "var(--muted-foreground)" }}>{p.location || "—"}</span>
+                      <span style={{ color: P.sub }}>{p.location || "—"}</span>
                     </div>
-                    {p.supplier && <span className="text-[8px] block mt-1" style={{ color: "var(--muted-foreground)" }}>Fornecedor: {p.supplier}</span>}
-                    {p.price != null && <span className="text-[8px] block" style={{ color: "#22C55E" }}>R$ {p.price.toFixed(2)}</span>}
+                    {p.supplier && <span className="text-[8px] block mt-1" style={{ color: P.sub }}>Fornecedor: {p.supplier}</span>}
+                    {p.price != null && <span className="text-[8px] block" style={{ color: P.success }}>R$ {p.price.toFixed(2)}</span>}
                     {isLow && (
-                      <span className="text-[8px] mt-1 flex items-center gap-1" style={{ color: "#EF4444" }}>
+                      <span className="text-[8px] mt-1 flex items-center gap-1" style={{ color: P.error }}>
                         <AlertTriangle size={8} /> Estoque baixo!
                       </span>
                     )}
@@ -921,8 +924,8 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
                   onClick={() => setToolCatFilter(f)}
                   className="px-2.5 py-1.5 rounded-lg text-[9px] transition-all"
                   style={{
-                    background: toolCatFilter === f ? ACCENT : "var(--secondary)",
-                    color: toolCatFilter === f ? "#fff" : "var(--muted-foreground)",
+                    background: toolCatFilter === f ? ACCENT : P.card2,
+                    color: toolCatFilter === f ? "#fff" : P.sub,
                     fontWeight: toolCatFilter === f ? 500 : 300,
                   }}
                 >
@@ -938,8 +941,8 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
                     onClick={() => setToolStatusFilter(f)}
                     className="px-2 py-1 rounded-lg text-[8px] transition-all"
                     style={{
-                      background: toolStatusFilter === f ? (TOOL_STATUS_COLORS[f] || ACCENT) : "var(--secondary)",
-                      color: toolStatusFilter === f ? "#fff" : "var(--muted-foreground)",
+                      background: toolStatusFilter === f ? (TOOL_STATUS_COLORS[f] || ACCENT) : P.card2,
+                      color: toolStatusFilter === f ? "#fff" : P.sub,
                     }}
                   >
                     {f === "todas" ? "Todas" : TOOL_STATUS_LABELS[f] || f}
@@ -957,43 +960,43 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
           </div>
 
           {filteredTools.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-8 rounded-xl" style={{ background: "var(--card)", border: "1px dashed var(--border)" }}>
-              <Wrench size={32} style={{ color: "var(--muted-foreground)", opacity: 0.3 }} />
-              <p className="text-[11px] mt-2" style={{ color: "var(--muted-foreground)" }}>Nenhuma ferramenta encontrada</p>
+            <div className="flex flex-col items-center justify-center p-8 rounded-[18px]" style={{ background: P.card, border: `1px dashed ${P.border}` }}>
+              <Wrench size={32} style={{ color: P.sub, opacity: 0.3 }} />
+              <p className="text-[11px] mt-2" style={{ color: P.sub }}>Nenhuma ferramenta encontrada</p>
             </div>
           ) : (
             <div className="grid grid-cols-3 gap-3">
               {filteredTools.map((t) => {
                 const hasProblem = t.status !== "disponivel";
                 return (
-                  <div key={t.id} className="p-3 rounded-xl" style={{ background: "var(--card)", border: hasProblem ? "1px solid #EF4444" : "1px solid var(--border)" }}>
+                  <div key={t.id} className="p-3 rounded-[18px]" style={{ background: P.card, border: hasProblem ? `1px solid ${P.error}` : `1px solid ${P.border}` }}>
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: hasProblem ? "rgba(239,68,68,0.1)" : "rgba(217,119,6,0.1)" }}>
-                          <Wrench size={14} style={{ color: hasProblem ? "#EF4444" : ACCENT }} />
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: hasProblem ? "rgba(255,75,75,0.1)" : "rgba(255,181,71,0.1)" }}>
+                          <Wrench size={14} style={{ color: hasProblem ? P.error : ACCENT }} />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <span className="text-[10px] font-medium block truncate" style={{ color: "var(--foreground)" }}>{t.name}</span>
-                          <span className="text-[8px]" style={{ color: "var(--muted-foreground)" }}>{TOOL_CATEGORIES[t.category]}</span>
+                          <span className="text-[10px] font-medium block truncate" style={{ color: P.text }}>{t.name}</span>
+                          <span className="text-[8px]" style={{ color: P.sub }}>{TOOL_CATEGORIES[t.category]}</span>
                         </div>
                       </div>
                       <div className="flex gap-1 flex-shrink-0">
-                        <button onClick={() => handleEditTool(t)} style={{ color: "var(--muted-foreground)" }}><Edit size={10} /></button>
+                        <button onClick={() => handleEditTool(t)} style={{ color: P.sub }}><Edit size={10} /></button>
                         <button onClick={() => confirm({
                           title: "Excluir Ferramenta",
                           message: `Tem certeza que deseja excluir "${t.name}"? Esta ação não pode ser desfeita.`,
                           confirmLabel: "Excluir",
                           variant: "danger",
                           onConfirm: () => handleDeleteTool(t.id),
-                        })} style={{ color: "#C00018" }}><Trash2 size={10} /></button>
+                        })} style={{ color: P.primary }}><Trash2 size={10} /></button>
                       </div>
                     </div>
                     <div className="flex items-center justify-between text-[9px]">
-                      <span style={{ color: "var(--muted-foreground)" }}>Qtd: {t.quantity}</span>
+                      <span style={{ color: P.sub }}>Qtd: {t.quantity}</span>
                       {renderToolStatusBadge(t.status)}
                     </div>
-                    <span className="text-[8px] block mt-1" style={{ color: "var(--muted-foreground)" }}>Local: {t.location || "—"}</span>
-                    {t.notes && <span className="text-[8px] block" style={{ color: "var(--muted-foreground)" }}>{t.notes}</span>}
+                    <span className="text-[8px] block mt-1" style={{ color: P.sub }}>Local: {t.location || "—"}</span>
+                    {t.notes && <span className="text-[8px] block" style={{ color: P.sub }}>{t.notes}</span>}
                   </div>
                 );
               })}
@@ -1010,23 +1013,23 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
           {/* Peças em Falta */}
           <div style={CARD_STYLE}>
             <div className="flex items-center gap-2 mb-3">
-              <AlertTriangle size={14} style={{ color: "#EF4444" }} />
-              <span className="text-xs font-medium" style={{ color: "var(--foreground)" }}>Peças em Falta</span>
-              <span className="text-[9px] px-2 py-0.5 rounded-full" style={{ background: "rgba(239,68,68,0.1)", color: "#EF4444" }}>
+              <AlertTriangle size={14} style={{ color: P.error }} />
+              <span className="text-xs font-medium" style={{ color: P.text }}>Peças em Falta</span>
+              <span className="text-[9px] px-2 py-0.5 rounded-full" style={{ background: "rgba(255,75,75,0.1)", color: P.error }}>
                 {missingParts.length}
               </span>
             </div>
             {missingParts.length === 0 ? (
-              <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>Nenhuma peça em falta.</p>
+              <p className="text-[10px]" style={{ color: P.sub }}>Nenhuma peça em falta.</p>
             ) : (
               <div className="space-y-2">
                 {missingParts.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between py-2 border-b" style={{ borderColor: "var(--border)" }}>
+                  <div key={p.id} className="flex items-center justify-between py-2 border-b" style={{ borderColor: P.border }}>
                     <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <Package size={12} style={{ color: "#EF4444" }} />
+                      <Package size={12} style={{ color: P.error }} />
                       <div className="min-w-0 flex-1">
-                        <span className="text-[10px] block truncate" style={{ color: "var(--foreground)" }}>{p.name}</span>
-                        <span className="text-[8px]" style={{ color: "var(--muted-foreground)" }}>
+                        <span className="text-[10px] block truncate" style={{ color: P.text }}>{p.name}</span>
+                        <span className="text-[8px]" style={{ color: P.sub }}>
                           Falta: <strong>{p.minQuantity - p.quantity}</strong> {p.unit} · Atual: {p.quantity}/{p.minQuantity}
                           {p.supplier ? ` · Fornec: ${p.supplier}` : ""}
                           {p.price ? ` · R$ ${(p.price * (p.minQuantity - p.quantity)).toFixed(2)}` : ""}
@@ -1034,7 +1037,7 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
                       </div>
                     </div>
                     {p.supplier && (
-                      <span className="text-[8px] px-2 py-1 rounded-lg" style={{ background: "rgba(59,130,246,0.1)", color: "#3B82F6", whiteSpace: "nowrap" }}>
+                      <span className="text-[8px] px-2 py-1 rounded-lg" style={{ background: "rgba(77,163,255,0.1)", color: P.info, whiteSpace: "nowrap" }}>
                         {p.supplier}
                       </span>
                     )}
@@ -1047,23 +1050,23 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
           {/* Ferramentas Faltando */}
           <div style={CARD_STYLE}>
             <div className="flex items-center gap-2 mb-3">
-              <Wrench size={14} style={{ color: "#EAB308" }} />
-              <span className="text-xs font-medium" style={{ color: "var(--foreground)" }}>Ferramentas Faltando</span>
-              <span className="text-[9px] px-2 py-0.5 rounded-full" style={{ background: "rgba(234,179,8,0.1)", color: "#EAB308" }}>
+              <Wrench size={14} style={{ color: P.alert }} />
+              <span className="text-xs font-medium" style={{ color: P.text }}>Ferramentas Faltando</span>
+              <span className="text-[9px] px-2 py-0.5 rounded-full" style={{ background: "rgba(255,181,71,0.1)", color: P.alert }}>
                 {missingTools.length}
               </span>
             </div>
             {missingTools.length === 0 ? (
-              <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>Nenhuma ferramenta faltando.</p>
+              <p className="text-[10px]" style={{ color: P.sub }}>Nenhuma ferramenta faltando.</p>
             ) : (
               <div className="space-y-2">
                 {missingTools.map((t) => (
-                  <div key={t.id} className="flex items-center justify-between py-2 border-b" style={{ borderColor: "var(--border)" }}>
+                  <div key={t.id} className="flex items-center justify-between py-2 border-b" style={{ borderColor: P.border }}>
                     <div className="flex items-center gap-2">
-                      <Wrench size={12} style={{ color: "#EAB308" }} />
+                      <Wrench size={12} style={{ color: P.alert }} />
                       <div>
-                        <span className="text-[10px] block" style={{ color: "var(--foreground)" }}>{t.name}</span>
-                        <span className="text-[8px]" style={{ color: "var(--muted-foreground)" }}>{TOOL_CATEGORIES[t.category]} · {t.location || "—"}</span>
+                        <span className="text-[10px] block" style={{ color: P.text }}>{t.name}</span>
+                        <span className="text-[8px]" style={{ color: P.sub }}>{TOOL_CATEGORIES[t.category]} · {t.location || "—"}</span>
                       </div>
                     </div>
                     {renderToolStatusBadge(t.status)}
@@ -1078,7 +1081,7 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <ShoppingCart size={14} style={{ color: ACCENT }} />
-                <span className="text-xs font-medium" style={{ color: "var(--foreground)" }}>Lista de Compras</span>
+                <span className="text-xs font-medium" style={{ color: P.text }}>Lista de Compras</span>
               </div>
               <button
                 onClick={() => {
@@ -1100,30 +1103,30 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
             </div>
 
             {(missingParts.length + missingTools.length) === 0 ? (
-              <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>Nada a comprar. Estoque completo!</p>
+              <p className="text-[10px]" style={{ color: P.sub }}>Nada a comprar. Estoque completo!</p>
             ) : (
               <div className="space-y-2">
                 {missingParts.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between py-2 border-b" style={{ borderColor: "var(--border)" }}>
+                  <div key={p.id} className="flex items-center justify-between py-2 border-b" style={{ borderColor: P.border }}>
                     <div className="flex-1 min-w-0">
-                      <span className="text-[10px] block" style={{ color: "var(--foreground)" }}>{p.name}</span>
-                      <span className="text-[8px]" style={{ color: "var(--muted-foreground)" }}>
+                      <span className="text-[10px] block" style={{ color: P.text }}>{p.name}</span>
+                      <span className="text-[8px]" style={{ color: P.sub }}>
                         Qtd necessária: <strong>{p.minQuantity - p.quantity}</strong> {p.unit}
                         {p.supplier ? ` · Fornecedor: ${p.supplier}` : ""}
                       </span>
                     </div>
                     {p.price != null && (
-                      <span className="text-[9px]" style={{ color: "#22C55E" }}>
+                      <span className="text-[9px]" style={{ color: P.success }}>
                         R$ {(p.price * (p.minQuantity - p.quantity)).toFixed(2)}
                       </span>
                     )}
                   </div>
                 ))}
                 {missingTools.map((t) => (
-                  <div key={t.id} className="flex items-center justify-between py-2 border-b" style={{ borderColor: "var(--border)" }}>
+                  <div key={t.id} className="flex items-center justify-between py-2 border-b" style={{ borderColor: P.border }}>
                     <div>
-                      <span className="text-[10px] block" style={{ color: "var(--foreground)" }}>{t.name}</span>
-                      <span className="text-[8px]" style={{ color: "var(--muted-foreground)" }}>{TOOL_CATEGORIES[t.category]} · Substituir/Adquirir</span>
+                      <span className="text-[10px] block" style={{ color: P.text }}>{t.name}</span>
+                      <span className="text-[8px]" style={{ color: P.sub }}>{TOOL_CATEGORIES[t.category]} · Substituir/Adquirir</span>
                     </div>
                     {renderToolStatusBadge(t.status)}
                   </div>
@@ -1141,43 +1144,43 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
       {/* Add Repair Modal */}
       {showAddRepair && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.5)" }}>
-          <div className="w-96 p-6 rounded-xl" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+          <div className="w-96 p-6 rounded-[18px]" style={{ background: P.card, border: `1px solid ${P.border}` }}>
             <div className="flex items-center justify-between mb-4">
-              <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>Novo Conserto</span>
-              <button onClick={() => { setShowAddRepair(false); resetNewRepair(); }} style={{ color: "var(--muted-foreground)" }}><X size={16} /></button>
+              <span className="text-sm font-medium" style={{ color: P.text }}>Novo Conserto</span>
+              <button onClick={() => { setShowAddRepair(false); resetNewRepair(); }} style={{ color: P.sub }}><X size={16} /></button>
             </div>
             <div className="space-y-3">
               <div>
-                <label className="text-[10px] block mb-1" style={{ color: "var(--muted-foreground)" }}>Produto *</label>
-                <input value={newRepairProduct} onChange={(e) => setNewRepairProduct(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px]" style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)" }} placeholder="Ex: Fonte ATX" />
+                <label className="text-[10px] block mb-1" style={{ color: P.sub }}>Produto *</label>
+                <input value={newRepairProduct} onChange={(e) => setNewRepairProduct(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px]" style={{ background: P.card2, color: P.text, border: `1px solid ${P.border}` }} placeholder="Ex: Fonte ATX" />
               </div>
               <div>
-                <label className="text-[10px] block mb-1" style={{ color: "var(--muted-foreground)" }}>Problema *</label>
-                <textarea value={newRepairProblem} onChange={(e) => setNewRepairProblem(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px] resize-none" style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)", minHeight: "50px" }} placeholder="Descreva o problema..." />
+                <label className="text-[10px] block mb-1" style={{ color: P.sub }}>Problema *</label>
+                <textarea value={newRepairProblem} onChange={(e) => setNewRepairProblem(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px] resize-none" style={{ background: P.card2, color: P.text, border: `1px solid ${P.border}`, minHeight: "50px" }} placeholder="Descreva o problema..." />
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-[10px] block mb-1" style={{ color: "var(--muted-foreground)" }}>Cliente</label>
-                  <input value={newRepairClient} onChange={(e) => setNewRepairClient(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px]" style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)" }} placeholder="Nome" />
+                  <label className="text-[10px] block mb-1" style={{ color: P.sub }}>Cliente</label>
+                  <input value={newRepairClient} onChange={(e) => setNewRepairClient(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px]" style={{ background: P.card2, color: P.text, border: `1px solid ${P.border}` }} placeholder="Nome" />
                 </div>
                 <div>
-                  <label className="text-[10px] block mb-1" style={{ color: "var(--muted-foreground)" }}>Telefone</label>
-                  <input value={newRepairPhone} onChange={(e) => setNewRepairPhone(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px]" style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)" }} placeholder="(11) 99999-9999" />
+                  <label className="text-[10px] block mb-1" style={{ color: P.sub }}>Telefone</label>
+                  <input value={newRepairPhone} onChange={(e) => setNewRepairPhone(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px]" style={{ background: P.card2, color: P.text, border: `1px solid ${P.border}` }} placeholder="(11) 99999-9999" />
                 </div>
               </div>
               <div>
-                <label className="text-[10px] block mb-1" style={{ color: "var(--muted-foreground)" }}>Preço Estimado (R$)</label>
-                <input type="number" value={newRepairPrice} onChange={(e) => setNewRepairPrice(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px]" style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)" }} placeholder="150.00" />
+                <label className="text-[10px] block mb-1" style={{ color: P.sub }}>Preço Estimado (R$)</label>
+                <input type="number" value={newRepairPrice} onChange={(e) => setNewRepairPrice(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px]" style={{ background: P.card2, color: P.text, border: `1px solid ${P.border}` }} placeholder="150.00" />
               </div>
               <div>
-                <label className="text-[10px] block mb-1" style={{ color: "var(--muted-foreground)" }}>Observações</label>
-                <textarea value={newRepairNotes} onChange={(e) => setNewRepairNotes(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px] resize-none" style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)", minHeight: "50px" }} placeholder="Observações adicionais..." />
+                <label className="text-[10px] block mb-1" style={{ color: P.sub }}>Observações</label>
+                <textarea value={newRepairNotes} onChange={(e) => setNewRepairNotes(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px] resize-none" style={{ background: P.card2, color: P.text, border: `1px solid ${P.border}`, minHeight: "50px" }} placeholder="Observações adicionais..." />
               </div>
               <button
                 onClick={handleAddRepair}
                 disabled={!newRepairProduct.trim() || !newRepairProblem.trim()}
                 className="w-full py-2 rounded-lg text-[11px] font-medium"
-                style={{ background: (newRepairProduct.trim() && newRepairProblem.trim()) ? ACCENT : "var(--secondary)", color: (newRepairProduct.trim() && newRepairProblem.trim()) ? "#fff" : "var(--muted-foreground)" }}
+                style={{ background: (newRepairProduct.trim() && newRepairProblem.trim()) ? ACCENT : P.card2, color: (newRepairProduct.trim() && newRepairProblem.trim()) ? "#fff" : P.sub }}
               >
                 <Plus size={12} className="inline mr-1" /> Registrar Conserto
               </button>
@@ -1189,20 +1192,20 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
       {/* Add/Edit Part Modal */}
       {showAddPart && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.5)" }}>
-          <div className="w-96 p-6 rounded-xl" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+          <div className="w-96 p-6 rounded-[18px]" style={{ background: P.card, border: `1px solid ${P.border}` }}>
             <div className="flex items-center justify-between mb-4">
-              <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>{editPartId ? "Editar Peça" : "Nova Peça"}</span>
-              <button onClick={() => { setShowAddPart(false); setEditPartId(null); }} style={{ color: "var(--muted-foreground)" }}><X size={16} /></button>
+              <span className="text-sm font-medium" style={{ color: P.text }}>{editPartId ? "Editar Peça" : "Nova Peça"}</span>
+              <button onClick={() => { setShowAddPart(false); setEditPartId(null); }} style={{ color: P.sub }}><X size={16} /></button>
             </div>
             <div className="space-y-3">
               <div>
-                <label className="text-[10px] block mb-1" style={{ color: "var(--muted-foreground)" }}>Nome *</label>
-                <input value={newPartName} onChange={(e) => setNewPartName(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px]" style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)" }} placeholder="Ex: Resistor 10kΩ" />
+                <label className="text-[10px] block mb-1" style={{ color: P.sub }}>Nome *</label>
+                <input value={newPartName} onChange={(e) => setNewPartName(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px]" style={{ background: P.card2, color: P.text, border: `1px solid ${P.border}` }} placeholder="Ex: Resistor 10kΩ" />
               </div>
               <div>
-                <label className="text-[10px] block mb-1" style={{ color: "var(--muted-foreground)" }}>Código de Barras</label>
+                <label className="text-[10px] block mb-1" style={{ color: P.sub }}>Código de Barras</label>
                 <div className="flex gap-2">
-                  <input value={newPartBarcode} onChange={(e) => setNewPartBarcode(e.target.value)} className="flex-1 px-3 py-2 rounded-lg text-[11px]" style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)" }} placeholder="789..." />
+                  <input value={newPartBarcode} onChange={(e) => setNewPartBarcode(e.target.value)} className="flex-1 px-3 py-2 rounded-lg text-[11px]" style={{ background: P.card2, color: P.text, border: `1px solid ${P.border}` }} placeholder="789..." />
                   <button
                     type="button"
                     onClick={() => {
@@ -1217,23 +1220,23 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
                 </div>
               </div>
               <div>
-                <label className="text-[10px] block mb-1" style={{ color: "var(--muted-foreground)" }}>Categoria</label>
-                <select value={newPartCategory} onChange={(e) => setNewPartCategory(e.target.value as Part["category"])} className="w-full px-3 py-2 rounded-lg text-[11px]" style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)" }}>
+                <label className="text-[10px] block mb-1" style={{ color: P.sub }}>Categoria</label>
+                <select value={newPartCategory} onChange={(e) => setNewPartCategory(e.target.value as Part["category"])} className="w-full px-3 py-2 rounded-lg text-[11px]" style={{ background: P.card2, color: P.text, border: `1px solid ${P.border}` }}>
                   {Object.entries(PART_CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select>
               </div>
               <div className="grid grid-cols-3 gap-2">
                 <div>
-                  <label className="text-[10px] block mb-1" style={{ color: "var(--muted-foreground)" }}>Quantidade</label>
-                  <input type="number" value={newPartQty} onChange={(e) => setNewPartQty(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px]" style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)" }} placeholder="10" />
+                  <label className="text-[10px] block mb-1" style={{ color: P.sub }}>Quantidade</label>
+                  <input type="number" value={newPartQty} onChange={(e) => setNewPartQty(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px]" style={{ background: P.card2, color: P.text, border: `1px solid ${P.border}` }} placeholder="10" />
                 </div>
                 <div>
-                  <label className="text-[10px] block mb-1" style={{ color: "var(--muted-foreground)" }}>Estoque Mín.</label>
-                  <input type="number" value={newPartMin} onChange={(e) => setNewPartMin(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px]" style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)" }} placeholder="5" />
+                  <label className="text-[10px] block mb-1" style={{ color: P.sub }}>Estoque Mín.</label>
+                  <input type="number" value={newPartMin} onChange={(e) => setNewPartMin(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px]" style={{ background: P.card2, color: P.text, border: `1px solid ${P.border}` }} placeholder="5" />
                 </div>
                 <div>
-                  <label className="text-[10px] block mb-1" style={{ color: "var(--muted-foreground)" }}>Unidade</label>
-                  <select value={newPartUnit} onChange={(e) => setNewPartUnit(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px]" style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)" }}>
+                  <label className="text-[10px] block mb-1" style={{ color: P.sub }}>Unidade</label>
+                  <select value={newPartUnit} onChange={(e) => setNewPartUnit(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px]" style={{ background: P.card2, color: P.text, border: `1px solid ${P.border}` }}>
                     <option value="un">un</option>
                     <option value="metro">metro</option>
                     <option value="kg">kg</option>
@@ -1241,28 +1244,28 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
                 </div>
               </div>
               <div>
-                <label className="text-[10px] block mb-1" style={{ color: "var(--muted-foreground)" }}>Localização</label>
-                <input value={newPartLocation} onChange={(e) => setNewPartLocation(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px]" style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)" }} placeholder="Gaveta 3 / Estante A" />
+                <label className="text-[10px] block mb-1" style={{ color: P.sub }}>Localização</label>
+                <input value={newPartLocation} onChange={(e) => setNewPartLocation(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px]" style={{ background: P.card2, color: P.text, border: `1px solid ${P.border}` }} placeholder="Gaveta 3 / Estante A" />
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-[10px] block mb-1" style={{ color: "var(--muted-foreground)" }}>Fornecedor</label>
-                  <input value={newPartSupplier} onChange={(e) => setNewPartSupplier(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px]" style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)" }} placeholder="Fornecedor" />
+                  <label className="text-[10px] block mb-1" style={{ color: P.sub }}>Fornecedor</label>
+                  <input value={newPartSupplier} onChange={(e) => setNewPartSupplier(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px]" style={{ background: P.card2, color: P.text, border: `1px solid ${P.border}` }} placeholder="Fornecedor" />
                 </div>
                 <div>
-                  <label className="text-[10px] block mb-1" style={{ color: "var(--muted-foreground)" }}>Preço (R$)</label>
-                  <input type="number" value={newPartPrice} onChange={(e) => setNewPartPrice(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px]" style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)" }} placeholder="2.50" />
+                  <label className="text-[10px] block mb-1" style={{ color: P.sub }}>Preço (R$)</label>
+                  <input type="number" value={newPartPrice} onChange={(e) => setNewPartPrice(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px]" style={{ background: P.card2, color: P.text, border: `1px solid ${P.border}` }} placeholder="2.50" />
                 </div>
               </div>
               <div>
-                <label className="text-[10px] block mb-1" style={{ color: "var(--muted-foreground)" }}>Observações</label>
-                <textarea value={newPartNotes} onChange={(e) => setNewPartNotes(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px] resize-none" style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)", minHeight: "50px" }} />
+                <label className="text-[10px] block mb-1" style={{ color: P.sub }}>Observações</label>
+                <textarea value={newPartNotes} onChange={(e) => setNewPartNotes(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px] resize-none" style={{ background: P.card2, color: P.text, border: `1px solid ${P.border}`, minHeight: "50px" }} />
               </div>
               <button
                 onClick={editPartId ? handleUpdatePart : handleAddPart}
                 disabled={!newPartName.trim()}
                 className="w-full py-2 rounded-lg text-[11px] font-medium"
-                style={{ background: newPartName.trim() ? ACCENT : "var(--secondary)", color: newPartName.trim() ? "#fff" : "var(--muted-foreground)" }}
+                style={{ background: newPartName.trim() ? ACCENT : P.card2, color: newPartName.trim() ? "#fff" : P.sub }}
               >
                 <Plus size={12} className="inline mr-1" /> {editPartId ? "Atualizar Peça" : "Adicionar Peça"}
               </button>
@@ -1274,47 +1277,47 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
       {/* Add/Edit Tool Modal */}
       {showAddTool && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.5)" }}>
-          <div className="w-96 p-6 rounded-xl" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+          <div className="w-96 p-6 rounded-[18px]" style={{ background: P.card, border: `1px solid ${P.border}` }}>
             <div className="flex items-center justify-between mb-4">
-              <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>{editToolId ? "Editar Ferramenta" : "Nova Ferramenta"}</span>
-              <button onClick={() => { setShowAddTool(false); setEditToolId(null); }} style={{ color: "var(--muted-foreground)" }}><X size={16} /></button>
+              <span className="text-sm font-medium" style={{ color: P.text }}>{editToolId ? "Editar Ferramenta" : "Nova Ferramenta"}</span>
+              <button onClick={() => { setShowAddTool(false); setEditToolId(null); }} style={{ color: P.sub }}><X size={16} /></button>
             </div>
             <div className="space-y-3">
               <div>
-                <label className="text-[10px] block mb-1" style={{ color: "var(--muted-foreground)" }}>Nome *</label>
-                <input value={newToolName} onChange={(e) => setNewToolName(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px]" style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)" }} placeholder="Ex: Multímetro Digital" />
+                <label className="text-[10px] block mb-1" style={{ color: P.sub }}>Nome *</label>
+                <input value={newToolName} onChange={(e) => setNewToolName(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px]" style={{ background: P.card2, color: P.text, border: `1px solid ${P.border}` }} placeholder="Ex: Multímetro Digital" />
               </div>
               <div>
-                <label className="text-[10px] block mb-1" style={{ color: "var(--muted-foreground)" }}>Categoria</label>
-                <select value={newToolCategory} onChange={(e) => setNewToolCategory(e.target.value as ToolType["category"])} className="w-full px-3 py-2 rounded-lg text-[11px]" style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)" }}>
+                <label className="text-[10px] block mb-1" style={{ color: P.sub }}>Categoria</label>
+                <select value={newToolCategory} onChange={(e) => setNewToolCategory(e.target.value as ToolType["category"])} className="w-full px-3 py-2 rounded-lg text-[11px]" style={{ background: P.card2, color: P.text, border: `1px solid ${P.border}` }}>
                   {Object.entries(TOOL_CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-[10px] block mb-1" style={{ color: "var(--muted-foreground)" }}>Quantidade</label>
-                  <input type="number" value={newToolQty} onChange={(e) => setNewToolQty(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px]" style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)" }} placeholder="1" />
+                  <label className="text-[10px] block mb-1" style={{ color: P.sub }}>Quantidade</label>
+                  <input type="number" value={newToolQty} onChange={(e) => setNewToolQty(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px]" style={{ background: P.card2, color: P.text, border: `1px solid ${P.border}` }} placeholder="1" />
                 </div>
                 <div>
-                  <label className="text-[10px] block mb-1" style={{ color: "var(--muted-foreground)" }}>Status</label>
-                  <select value={newToolStatus} onChange={(e) => setNewToolStatus(e.target.value as ToolType["status"])} className="w-full px-3 py-2 rounded-lg text-[11px]" style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)" }}>
+                  <label className="text-[10px] block mb-1" style={{ color: P.sub }}>Status</label>
+                  <select value={newToolStatus} onChange={(e) => setNewToolStatus(e.target.value as ToolType["status"])} className="w-full px-3 py-2 rounded-lg text-[11px]" style={{ background: P.card2, color: P.text, border: `1px solid ${P.border}` }}>
                     {Object.entries(TOOL_STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                   </select>
                 </div>
               </div>
               <div>
-                <label className="text-[10px] block mb-1" style={{ color: "var(--muted-foreground)" }}>Localização</label>
-                <input value={newToolLocation} onChange={(e) => setNewToolLocation(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px]" style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)" }} placeholder="Caixa de ferramentas 1" />
+                <label className="text-[10px] block mb-1" style={{ color: P.sub }}>Localização</label>
+                <input value={newToolLocation} onChange={(e) => setNewToolLocation(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px]" style={{ background: P.card2, color: P.text, border: `1px solid ${P.border}` }} placeholder="Caixa de ferramentas 1" />
               </div>
               <div>
-                <label className="text-[10px] block mb-1" style={{ color: "var(--muted-foreground)" }}>Observações</label>
-                <textarea value={newToolNotes} onChange={(e) => setNewToolNotes(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px] resize-none" style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)", minHeight: "50px" }} />
+                <label className="text-[10px] block mb-1" style={{ color: P.sub }}>Observações</label>
+                <textarea value={newToolNotes} onChange={(e) => setNewToolNotes(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px] resize-none" style={{ background: P.card2, color: P.text, border: `1px solid ${P.border}`, minHeight: "50px" }} />
               </div>
               <button
                 onClick={editToolId ? handleUpdateTool : handleAddTool}
                 disabled={!newToolName.trim()}
                 className="w-full py-2 rounded-lg text-[11px] font-medium"
-                style={{ background: newToolName.trim() ? ACCENT : "var(--secondary)", color: newToolName.trim() ? "#fff" : "var(--muted-foreground)" }}
+                style={{ background: newToolName.trim() ? ACCENT : P.card2, color: newToolName.trim() ? "#fff" : P.sub }}
               >
                 <Plus size={12} className="inline mr-1" /> {editToolId ? "Atualizar Ferramenta" : "Adicionar Ferramenta"}
               </button>
@@ -1326,15 +1329,15 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
       {/* Add Part to Repair Modal */}
       {showAddPartToRepair && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.5)" }}>
-          <div className="w-96 p-6 rounded-xl" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+          <div className="w-96 p-6 rounded-[18px]" style={{ background: P.card, border: `1px solid ${P.border}` }}>
             <div className="flex items-center justify-between mb-4">
-              <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>Adicionar Peça ao Conserto</span>
-              <button onClick={() => { setShowAddPartToRepair(false); setSelectedPartToAdd(""); }} style={{ color: "var(--muted-foreground)" }}><X size={16} /></button>
+              <span className="text-sm font-medium" style={{ color: P.text }}>Adicionar Peça ao Conserto</span>
+              <button onClick={() => { setShowAddPartToRepair(false); setSelectedPartToAdd(""); }} style={{ color: P.sub }}><X size={16} /></button>
             </div>
             <div className="space-y-3">
               <div>
-                <label className="text-[10px] block mb-1" style={{ color: "var(--muted-foreground)" }}>Selecionar Peça</label>
-                <select value={selectedPartToAdd} onChange={(e) => setSelectedPartToAdd(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px]" style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)" }}>
+                <label className="text-[10px] block mb-1" style={{ color: P.sub }}>Selecionar Peça</label>
+                <select value={selectedPartToAdd} onChange={(e) => setSelectedPartToAdd(e.target.value)} className="w-full px-3 py-2 rounded-lg text-[11px]" style={{ background: P.card2, color: P.text, border: `1px solid ${P.border}` }}>
                   <option value="">Selecione uma peça...</option>
                   {parts.map((p) => (
                     <option key={p.id} value={p.id}>{p.name} ({p.quantity} {p.unit})</option>
@@ -1342,13 +1345,13 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
                 </select>
               </div>
               {parts.length === 0 && (
-                <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>Nenhuma peça cadastrada. Adicione peças primeiro.</p>
+                <p className="text-[10px]" style={{ color: P.sub }}>Nenhuma peça cadastrada. Adicione peças primeiro.</p>
               )}
               <button
                 onClick={handleAddPartToRepair}
                 disabled={!selectedPartToAdd}
                 className="w-full py-2 rounded-lg text-[11px] font-medium"
-                style={{ background: selectedPartToAdd ? ACCENT : "var(--secondary)", color: selectedPartToAdd ? "#fff" : "var(--muted-foreground)" }}
+                style={{ background: selectedPartToAdd ? ACCENT : P.card2, color: selectedPartToAdd ? "#fff" : P.sub }}
               >
                 <Plus size={12} className="inline mr-1" /> Vincular Peça
               </button>
@@ -1356,6 +1359,8 @@ export function AssistenteTecnicoWorkspace(_props: WorkspaceProps) {
           </div>
         </div>
       )}
-    </div>
+      </div>
+      </ScrollArea>
+    </PremiumRoot>
   );
 }

@@ -20,7 +20,7 @@ export function TextTab() {
           key={p.label}
           className="flex items-center justify-center cursor-pointer"
           onClick={() => addClip(p.label, p.bg)}
-          style={{ height: 48, background: p.bg, borderRadius: 4, border: "1px solid #30363D" }}
+          style={{ height: 48, background: p.bg, borderRadius: 6, border: "1px solid #1C1C1C" }}
         >
           <span style={{ fontSize: p.size, fontWeight: p.weight, color: "#fff", fontFamily: SANS, textShadow: "0 1px 4px rgba(0,0,0,0.4)" }}>{p.preview}</span>
         </div>

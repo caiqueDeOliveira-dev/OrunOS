@@ -2,10 +2,67 @@
  * Voice command detection — matches spoken text against predefined commands
  * and returns structured results. Supports PT/EN/ES.
  */
+export type VoiceCommandAction =
+  | "stop"
+  | "repeat"
+  | "send_whatsapp"
+  | "save"
+  | "cancel"
+  | "clear"
+  | "help"
+  | "open";
+
 export interface VoiceCommand {
   id: string;
   patterns: RegExp[];
-  action: "stop" | "repeat" | "send_whatsapp" | "save" | "cancel" | "clear" | "help";
+  action: VoiceCommandAction;
+}
+
+export type OpenTarget =
+  | "settings"
+  | "agents"
+  | "telegram"
+  | "whatsapp"
+  | "spotify"
+  | "calendar"
+  | "email"
+  | "memory"
+  | "files"
+  | "projects"
+  | "planner"
+  | "agentHub"
+  | "analytics";
+
+/** Keywords (PT/EN) that map a spoken phrase to an app/panel destination. */
+export const OPEN_TARGET_KEYWORDS: Record<OpenTarget, string[]> = {
+  settings: ["configurações", "configuracoes", "config", "ajustes", "preferências", "preferencias", "settings"],
+  agents: ["agentes", "assistentes", "agents"],
+  telegram: ["telegram"],
+  whatsapp: ["whatsapp", "zap"],
+  spotify: ["spotify", "música", "musica", "tocar música", "tocar musica"],
+  calendar: ["calendário", "calendario", "agenda"],
+  email: ["email", "e-mail", "e-mail", "correio"],
+  memory: ["memória", "memoria", "lembranças", "lembrancas"],
+  files: ["arquivos", "arquivo", "pastas", "pasta"],
+  projects: ["projetos", "workspaces", "workspace"],
+  planner: ["planner", "planejador", "planejar", "tarefas", "plano"],
+  agentHub: ["agent hub", "agente hub", "hub de agentes", "central de agentes", "central de agentes"],
+  analytics: ["analytics", "análises", "analises", "dashboard", "métricas", "metricas", "relatório", "relatorio"],
+};
+
+/**
+ * Extract which app/panel the user wants to open from the spoken text.
+ * Looks for the first keyword that appears after an "open" verb.
+ */
+export function extractOpenTarget(text: string): OpenTarget | null {
+  const normalized = text.toLowerCase().replace(/[^a-zà-ÿç\s]/g, " ").trim();
+  for (const target of Object.keys(OPEN_TARGET_KEYWORDS) as OpenTarget[]) {
+    for (const keyword of OPEN_TARGET_KEYWORDS[target]) {
+      const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      if (new RegExp(`\\b${escaped}\\b`, "i").test(normalized)) return target;
+    }
+  }
+  return null;
 }
 
 const COMMANDS: VoiceCommand[] = [
@@ -58,12 +115,21 @@ const COMMANDS: VoiceCommand[] = [
     ],
     action: "help",
   },
+  {
+    id: "open",
+    patterns: [
+      /\b(abrir|abra|abre o|abre a|abre|open)\b/i,
+    ],
+    action: "open",
+  },
 ];
 
 export interface CommandMatch {
   command: VoiceCommand;
   match: string;
   confidence: number;
+  /** Full normalized transcript the command was detected on. */
+  text: string;
 }
 
 /**
@@ -81,7 +147,7 @@ export function detectVoiceCommand(text: string): CommandMatch | null {
         // Confidence: longer match = higher confidence
         const confidence = Math.min(match[0].length / normalized.length, 1);
         if (!bestMatch || confidence > bestMatch.confidence) {
-          bestMatch = { command: cmd, match: match[0], confidence };
+          bestMatch = { command: cmd, match: match[0], confidence, text: normalized };
         }
       }
     }

@@ -28,6 +28,7 @@ const SYNC_TABLES = [
   "video_projects",
   "image3d_generations",
   "music_projects",
+  "app_events",
 ];
 
 // ── Load .env ────────────────────────────────────────────────────────────

@@ -107,7 +107,7 @@ export function AgentModelsPanel({ onClose, onBack }: { onClose: () => void; onB
               <div key={agent.name} className="py-2 border-b" style={{ borderColor: "var(--border)" }}>
                 <div className="flex items-center gap-2.5">
                   <Icon size={13} style={{ color: agent.special ? "#C00018" : "var(--muted-foreground)", flexShrink: 0 }} />
-                  <span className="text-xs w-24 flex-shrink-0 truncate" style={{ fontFamily: "'Sora', sans-serif", color: "var(--foreground)" }}>{agent.name}</span>
+                  <span className="text-xs w-24 flex-shrink-0 truncate" title={agent.name} style={{ fontFamily: "'Sora', sans-serif", color: "var(--foreground)" }}>{agent.persona}</span>
                   <select
                     value={override?.provider || "default"}
                     onChange={(e) => setAgentProvider(agent.name, e.target.value as OrunProvider | "default")}

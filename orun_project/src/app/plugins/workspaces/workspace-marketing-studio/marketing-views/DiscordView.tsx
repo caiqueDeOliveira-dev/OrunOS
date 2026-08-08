@@ -150,7 +150,7 @@ export function DiscordView() {
   };
 
   const statusColors: Record<string, string> = {
-    disconnected: "var(--muted-foreground)",
+    disconnected: "#A0A0A0",
     connecting: "#F59E0B",
     connected: "#22C55E",
     error: "#EF4444",
@@ -194,16 +194,16 @@ export function DiscordView() {
           </div>
         </WorkspaceCard>
 
-        <p className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>
+        <p className="text-[9px]" style={{ color: "#A0A0A0" }}>
           {t("Insira o token do seu bot Discord para gerenciar servidores e canais de marketing")}
         </p>
 
         {logs.length > 0 && (
           <div className="mt-2 p-2 rounded" style={{ background: "rgba(0,0,0,0.2)" }}>
-            <p className="text-[9px] font-medium mb-1" style={{ color: "var(--muted-foreground)" }}>{t("Log")}</p>
+            <p className="text-[9px] font-medium mb-1" style={{ color: "#A0A0A0" }}>{t("Log")}</p>
             <div className="space-y-0.5 max-h-32 overflow-y-auto ws-scrollbar">
               {logs.map((log, i) => (
-                <p key={i} className="text-[8px]" style={{ color: "var(--muted-foreground)", fontFamily: "'JetBrains Mono', monospace" }}>{log}</p>
+                <p key={i} className="text-[8px]" style={{ color: "#A0A0A0", fontFamily: "'JetBrains Mono', monospace" }}>{log}</p>
               ))}
             </div>
           </div>
@@ -224,7 +224,7 @@ export function DiscordView() {
           <WorkspaceBadge variant="green">{`${String(discord.guilds.length)} ${t("servidores")}`}</WorkspaceBadge>
         </div>
         <div className="flex gap-1">
-          <label className="flex items-center gap-1.5 text-[9px]" style={{ color: "var(--muted-foreground)" }}>
+          <label className="flex items-center gap-1.5 text-[9px]" style={{ color: "#A0A0A0" }}>
             <input
               type="checkbox"
               checked={discord.autoResponse}
@@ -239,7 +239,7 @@ export function DiscordView() {
 
       <div className="grid grid-cols-2 gap-2">
         <WorkspaceCard>
-          <p className="text-[9px] font-medium mb-1" style={{ color: "var(--muted-foreground)" }}>{t("Servidores")}</p>
+          <p className="text-[9px] font-medium mb-1" style={{ color: "#A0A0A0" }}>{t("Servidores")}</p>
           {discord.guilds.length === 0 ? (
             <WorkspaceEmptyState icon={<span style={{ fontSize: 14 }}>🏰</span>} message={t("Nenhum servidor")} />
           ) : (
@@ -250,8 +250,8 @@ export function DiscordView() {
                   onClick={() => handleSelectGuild(g.id)}
                   className="w-full text-left px-2 py-1.5 rounded text-[9px] transition-colors"
                   style={{
-                    background: discord.selectedGuildId === g.id ? "rgba(192,0,24,0.1)" : "transparent",
-                    color: discord.selectedGuildId === g.id ? "var(--foreground)" : "var(--muted-foreground)",
+                    background: discord.selectedGuildId === g.id ? "rgba(195,0,47,0.14)" : "transparent",
+                    color: discord.selectedGuildId === g.id ? "#FFFFFF" : "#A0A0A0",
                   }}
                 >
                   <span className="font-medium">{g.name}</span>
@@ -263,7 +263,7 @@ export function DiscordView() {
         </WorkspaceCard>
 
         <WorkspaceCard>
-          <p className="text-[9px] font-medium mb-1" style={{ color: "var(--muted-foreground)" }}>
+          <p className="text-[9px] font-medium mb-1" style={{ color: "#A0A0A0" }}>
             {selectedGuild ? `${t("Canais")} — ${selectedGuild.name}` : t("Canais")}
           </p>
           {!discord.selectedGuildId ? (
@@ -283,8 +283,8 @@ export function DiscordView() {
                   }}
                   className="w-full text-left px-2 py-1 rounded text-[9px] transition-colors"
                   style={{
-                    background: discord.selectedChannelId === ch.id ? "rgba(192,0,24,0.1)" : "transparent",
-                    color: discord.selectedChannelId === ch.id ? "var(--foreground)" : "var(--muted-foreground)",
+                    background: discord.selectedChannelId === ch.id ? "rgba(195,0,47,0.14)" : "transparent",
+                    color: discord.selectedChannelId === ch.id ? "#FFFFFF" : "#A0A0A0",
                   }}
                 >
                   # {ch.name}
@@ -296,7 +296,7 @@ export function DiscordView() {
       </div>
 
       <WorkspaceCard>
-        <p className="text-[9px] font-medium mb-1" style={{ color: "var(--muted-foreground)" }}>
+        <p className="text-[9px] font-medium mb-1" style={{ color: "#A0A0A0" }}>
           {selectedChannel ? `#${selectedChannel.name}` : t("Selecione um canal para enviar mensagem")}
         </p>
         <div className="space-y-2">
@@ -305,7 +305,7 @@ export function DiscordView() {
             onChange={(e) => setMessageText(e.target.value)}
             placeholder={t("Digite sua mensagem...")}
             className="w-full text-[10px] rounded-md px-2 py-1.5 resize-none"
-            style={{ background: "rgba(255,255,255,0.03)", border: "1px solid var(--border)", color: "var(--foreground)", minHeight: 50 }}
+            style={{ background: "rgba(255,255,255,0.03)", border: "1px solid #252525", color: "#FFFFFF", minHeight: 50 }}
             disabled={!discord.selectedChannelId}
           />
           <WorkspaceButton
@@ -321,10 +321,10 @@ export function DiscordView() {
 
       {logs.length > 0 && (
         <div className="p-2 rounded" style={{ background: "rgba(0,0,0,0.2)" }}>
-          <p className="text-[9px] font-medium mb-1" style={{ color: "var(--muted-foreground)" }}>{t("Log")}</p>
+          <p className="text-[9px] font-medium mb-1" style={{ color: "#A0A0A0" }}>{t("Log")}</p>
           <div className="space-y-0.5 max-h-24 overflow-y-auto ws-scrollbar">
             {logs.map((log, i) => (
-              <p key={i} className="text-[8px]" style={{ color: "var(--muted-foreground)", fontFamily: "'JetBrains Mono', monospace" }}>{log}</p>
+              <p key={i} className="text-[8px]" style={{ color: "#A0A0A0", fontFamily: "'JetBrains Mono', monospace" }}>{log}</p>
             ))}
           </div>
         </div>

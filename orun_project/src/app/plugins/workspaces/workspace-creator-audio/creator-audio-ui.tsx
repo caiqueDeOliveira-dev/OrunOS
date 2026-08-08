@@ -13,9 +13,9 @@ export function LevelMeter({ level, width = 6, height = 96 }: { level: number; w
         const active = i < filled;
         let bg = "rgba(255,255,255,0.04)";
         if (active) {
-          if (i >= bars - 2) bg = "#C00018";
-          else if (i >= bars - 4) bg = "#D4A017";
-          else bg = "#22C55E";
+          if (i >= bars - 2) bg = "#C3002F";
+          else if (i >= bars - 4) bg = "#FFB547";
+          else bg = "#00D26A";
         }
         return (
           <div key={i} style={{ width: "100%", height: `${100 / bars - 1}%`, borderRadius: 1, background: bg, transition: "background 0.06s", boxShadow: active ? `0 0 4px ${bg}30` : "none" }} />

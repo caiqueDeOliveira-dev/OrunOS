@@ -11,6 +11,7 @@ import { createPluginLogger } from "../../lib/logger";
 import { registerSystemActions, unregisterSystemActions, setConsoleStoreGetter } from "./system-actions";
 import { useTranslation } from "../../../../i18n/I18nProvider";
 import { usePersonalization, useWorkspaceNotes } from "../../../hooks/usePersonalization";
+import { P, PremiumRoot } from "../premium";
 
 const log = createPluginLogger("system-console");
 
@@ -97,18 +98,18 @@ function processCommand(input: string, t: TFunc): string {
 
 function ConsoleLineView({ line }: { line: ConsoleLine }) {
   const colorMap: Record<string, string> = {
-    input: "var(--foreground)",
-    output: "var(--muted-foreground)",
-    error: "#EF4444",
-    system: "#C00018",
+    input: P.text,
+    output: P.sub,
+    error: P.error,
+    system: P.primary,
   };
 
   return (
     <div className="flex gap-2 text-[11px] leading-relaxed" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-      <span className="select-none opacity-30" style={{ color: "var(--muted-foreground)" }}>
+      <span className="select-none opacity-30" style={{ color: P.sub }}>
         {line.type === "input" ? ">" : line.type === "error" ? "!" : "·"}
       </span>
-      <span style={{ color: colorMap[line.type] || "var(--muted-foreground)" }}>
+      <span style={{ color: colorMap[line.type] || P.sub }}>
         {line.text}
       </span>
     </div>
@@ -120,14 +121,14 @@ function ConsoleLineView({ line }: { line: ConsoleLine }) {
 function ResourceBar({ label, value, color }: { label: string; value: number; color: string }) {
   return (
     <div className="flex items-center gap-2 text-[9px]" style={{ fontFamily: "'Sora', sans-serif" }}>
-      <span className="w-8 text-right" style={{ color: "var(--muted-foreground)" }}>{label}</span>
+      <span className="w-8 text-right" style={{ color: P.sub }}>{label}</span>
       <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.05)" }}>
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{ width: `${Math.min(value, 100)}%`, background: color }}
         />
       </div>
-      <span className="w-8 text-right" style={{ color: "var(--muted-foreground)", fontFamily: "'JetBrains Mono', monospace" }}>
+      <span className="w-8 text-right" style={{ color: P.sub, fontFamily: "'JetBrains Mono', monospace" }}>
         {Math.round(value)}%
       </span>
     </div>
@@ -254,18 +255,18 @@ export function SystemWorkspace({ plugin, activeTab, onTabChange, onSendMessage,
   const diskUsage = useConsoleStore((s) => s.diskUsage);
 
   return (
-    <div className="flex flex-col h-full">
+    <PremiumRoot>
       {/* Greeting Header */}
-      <div className="flex items-center justify-between px-4 py-1" style={{ borderBottom: "1px solid var(--border)" }}>
-        <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>{greeting}, {userName}</span>
-        <div className="w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold" style={{ background: "#6B7280", color: "#fff" }}>{avatarInitials}</div>
+      <div className="flex items-center justify-between px-4 py-1" style={{ borderBottom: `1px solid ${P.border}` }}>
+        <span className="text-[10px]" style={{ color: P.sub }}>{greeting}, {userName}</span>
+        <div className="w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold" style={{ background: P.dim, color: "#fff" }}>{avatarInitials}</div>
       </div>
 
       {/* Resource Monitor Bar */}
-      <div className="px-4 py-2.5 border-b flex flex-col gap-1" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
-        <ResourceBar label={t("system_console_resource_cpu")} value={cpuUsage} color="#C00018" />
-        <ResourceBar label={t("system_console_resource_ram")} value={ramUsage} color="#EAB308" />
-        <ResourceBar label={t("system_console_resource_disk")} value={diskUsage} color="#3B82F6" />
+      <div className="px-4 py-2.5 border-b flex flex-col gap-1" style={{ borderColor: P.border, background: P.card }}>
+        <ResourceBar label={t("system_console_resource_cpu")} value={cpuUsage} color={P.primary} />
+        <ResourceBar label={t("system_console_resource_ram")} value={ramUsage} color={P.alert} />
+        <ResourceBar label={t("system_console_resource_disk")} value={diskUsage} color={P.info} />
       </div>
 
       {/* Terminal Output */}
@@ -281,17 +282,17 @@ export function SystemWorkspace({ plugin, activeTab, onTabChange, onSendMessage,
       </div>
 
       {/* Input */}
-      <form onSubmit={handleSubmit} className="flex items-center gap-2 px-4 py-2 border-t" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
-        <span className="text-[11px] select-none" style={{ fontFamily: "'JetBrains Mono', monospace", color: "#C00018" }}>
-          &gt;
-        </span>
+      <form onSubmit={handleSubmit} className="flex items-center gap-2 px-4 py-2 border-t" style={{ borderColor: P.border, background: P.card }}>
+      <span className="text-[11px] select-none" style={{ fontFamily: "'JetBrains Mono', monospace", color: P.primary }}>
+        &gt;
+      </span>
         <input
           ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           className="flex-1 bg-transparent outline-none text-[11px]"
-          style={{ fontFamily: "'JetBrains Mono', monospace", color: "var(--foreground)" }}
+          style={{ fontFamily: "'JetBrains Mono', monospace", color: P.text }}
           placeholder={t("system_console_placeholder")}
           spellCheck={false}
           autoComplete="off"
@@ -299,16 +300,16 @@ export function SystemWorkspace({ plugin, activeTab, onTabChange, onSendMessage,
       </form>
 
       {/* Notes */}
-      <div style={{ padding: "12px", borderRadius: "12px", background: "var(--card)", border: "1px solid var(--border)" }}>
-        <span className="text-xs font-medium mb-2 block" style={{ color: "var(--foreground)" }}>Notas Pessoais</span>
+      <div style={{ padding: "12px", borderRadius: "18px", background: P.card, border: `1px solid ${P.border}` }}>
+        <span className="text-xs font-medium mb-2 block" style={{ color: P.text }}>Notas Pessoais</span>
         <textarea
           value={notes}
           onChange={(e) => updateNotes(e.target.value)}
           className="w-full px-3 py-2 rounded-lg text-[10px] resize-none"
-          style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--border)", minHeight: "60px" }}
+          style={{ background: P.card2, color: P.text, border: `1px solid ${P.border}`, minHeight: "60px" }}
           placeholder="Suas anotações do sistema..."
         />
       </div>
-    </div>
+    </PremiumRoot>
   );
 }

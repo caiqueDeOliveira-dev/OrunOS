@@ -2,9 +2,10 @@
 //
 // Electron main process for Orun OS.
 
-const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, Notification, globalShortcut, shell, crashReporter } = require("electron");
+const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, Notification, globalShortcut, shell, crashReporter, protocol, net } = require("electron");
 const path = require("path");
 const fs = require("fs");
+const { pathToFileURL } = require("url");
 const { randomUUID } = require("crypto");
 const log = require("electron-log");
 
@@ -27,7 +28,17 @@ const supabaseSync = require("./sync-adapter.cjs");
 const toolsModule = require("./tools.cjs");
 const mcpClient = require("./mcp-client.cjs");
 const pluginSystem = require("./plugin-system.cjs");
+const { SkillManager } = require("./skill-manager.cjs");
 const rag = require("./rag.cjs");
+const memoryEngineModule = require("./memory-engine.cjs");
+const memoryConsolidator = require("./memory-consolidator.cjs");
+const knowledgeEngineModule = require("./knowledge-engine.cjs");
+const knowledgeSupabase = require("./knowledge-supabase.cjs");
+const plannerEngineModule = require("./planner-engine.cjs");
+const plannerSupabase = require("./planner-supabase.cjs");
+const memorySupabase = require("./memory-supabase.cjs");
+const { createAgentHub } = require("./agent-hub.cjs");
+const { createAnalytics } = require("./analytics.cjs");
 const secretStore = require("./secret-store.cjs");
 const agentProcessor = require("./agent-processor.cjs");
 const { responseCache } = require("./response-cache.cjs");
@@ -40,6 +51,7 @@ const waAutomation = require("./whatsapp-automation.cjs");
 const { autonomousLoop: autonomousLoopImpl } = require("./autonomous-loop.cjs");
 const { handleWhatsAppMessage: handleWhatsAppMessageImpl, saveNutritionToFile } = require("./whatsapp-handler.cjs");
 const { createBackgroundServices } = require("./background-services.cjs");
+const { createProactiveEvents } = require("./proactive.cjs");
 const { SpotifyClient } = require("./spotify-client.cjs");
 const { DiscordBot } = require("./discord-bot.cjs");
 const telegram = require("./telegram.cjs");
@@ -48,6 +60,15 @@ const { createTelegramAutomation } = require("./telegram-automation.cjs");
 const { registerFileSystemHandlers } = require("./file-system-handlers.cjs");
 const { startWebhookReceiver, stopWebhookReceiver, setEventHandler } = require("./webhook-receiver.cjs");
 const auditLog = require("./audit-log.cjs");
+
+// Must run BEFORE app.whenReady — registers the custom scheme as privileged so
+// fetch()/AudioWorklet.addModule() work over `orun-asset://` in production.
+protocol.registerSchemesAsPrivileged([
+  { scheme: "orun-asset", privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } },
+]);
+
+const distAssetsDir = path.join(__dirname, "..", "dist");
+const publicAssetsDir = path.join(__dirname, "..", "public");
 
 // ── Spotify & Discord instances ──────────────────────────────────────────────
 const spotify = new SpotifyClient();
@@ -91,6 +112,12 @@ const ipcRateLimiter = {
 };
 
 const isDev = !app.isPackaged;
+
+// Dev usa perfil separado (productName "Orun OS" colidiria com o app instalado,
+// que mantém locks nos caches — causa tela preta e falhas de cache/GPU).
+if (isDev) {
+  app.setPath("userData", path.join(app.getPath("appData"), "orun-os"));
+}
 
 const DEFAULT_AI_SETTINGS = {
   provider: "groq",
@@ -136,6 +163,9 @@ const AGENT_TOOL_PERMISSIONS = {
   Developer: [
     "read_file", "write_file", "edit_file", "list_files", "search_files",
     "search_content", "run_command", "web_fetch", "web_search",
+    "git_status", "git_log", "git_diff", "git_stash", "git_remote", "gh_pr",
+    "semgrep_scan", "library_docs",
+    "run_tests", "code_review",
     "memory_save", "memory_search", "rag_search", "trigger_agent", "open_workspace", "workspace_action",
   ],
   Designer: [
@@ -146,12 +176,12 @@ const AGENT_TOOL_PERMISSIONS = {
   Health: [
     "read_file", "write_file", "list_files",
     "memory_save", "memory_search", "rag_search",
-    "notify", "schedule_task", "trigger_agent", "web_search", "open_workspace", "workspace_action",
+    "notify", "schedule_task", "trigger_agent", "web_search", "get_weather", "open_workspace", "workspace_action",
   ],
   Finance: [
     "read_file", "write_file", "list_files",
     "memory_save", "memory_search", "rag_search",
-    "notify", "schedule_task", "trigger_agent", "web_search", "open_workspace", "workspace_action",
+    "notify", "schedule_task", "trigger_agent", "web_search", "get_weather", "open_workspace", "workspace_action",
   ],
   Teacher: [
     "read_file", "write_file", "list_files",
@@ -162,12 +192,12 @@ const AGENT_TOOL_PERMISSIONS = {
     "read_file", "write_file", "list_files",
     "generate_image", "publish_to_social",
     "memory_save", "memory_search", "rag_search",
-    "notify", "schedule_task", "trigger_agent", "web_search", "open_workspace", "workspace_action",
+    "notify", "schedule_task", "trigger_agent", "web_search", "get_weather", "open_workspace", "workspace_action",
   ],
   "Personal Assistant": [
     "read_file", "write_file", "list_files",
     "memory_save", "memory_search", "rag_search",
-    "notify", "schedule_task", "web_search", "web_fetch",
+    "notify", "schedule_task", "web_search", "web_fetch", "get_weather",
     "trigger_agent", "open_workspace", "workspace_action",
   ],
   Automation: [
@@ -178,7 +208,7 @@ const AGENT_TOOL_PERMISSIONS = {
   ],
   Automotive: [
     "web_search", "web_fetch", "memory_save", "memory_search", "rag_search",
-    "read_file", "list_files", "notify", "open_workspace", "workspace_action",
+    "read_file", "list_files", "notify", "get_weather", "open_workspace", "workspace_action",
   ],
   Juridico: [
     "read_file", "list_files",
@@ -187,7 +217,7 @@ const AGENT_TOOL_PERMISSIONS = {
   ],
   System: [
     "read_file", "write_file", "edit_file", "list_files", "search_files",
-    "search_content", "run_command", "web_fetch", "web_search",
+    "search_content", "run_command", "web_fetch", "web_search", "get_weather",
     "memory_save", "memory_search", "rag_search",
     "notify", "schedule_task", "trigger_agent",
     "clipboard_read", "clipboard_write", "screenshot",
@@ -197,12 +227,13 @@ const AGENT_TOOL_PERMISSIONS = {
   "Home IA": [
     "read_file", "list_files",
     "memory_save", "memory_search", "rag_search",
-    "notify", "schedule_task", "trigger_agent", "web_search",
+    "notify", "schedule_task", "trigger_agent", "web_search", "get_weather",
     "open_workspace", "workspace_action",
   ],
   "Cyber Security": [
     "read_file", "write_file", "list_files", "search_files",
     "search_content", "run_command", "web_fetch", "web_search",
+    "semgrep_scan",
     "memory_save", "memory_search", "rag_search",
     "notify", "schedule_task", "trigger_agent",
     "open_workspace", "workspace_action",
@@ -225,10 +256,17 @@ function getToolsForAgent(agentId) {
   });
 }
 let mainWindow;
+let skillManager = null;
+let memoryEngine = null;
+let knowledgeEngine = null;
+let plannerEngine = null;
+let agentHub = null;
+let analytics = null;
 let quickChatWindow = null;
 let tray = null;
 let isQuitting = false;
 let bgServices = null;
+let proactive = null;
 let syncIntervalId = null;
 let rateLimiterIntervalId = null;
 rateLimiterIntervalId = setInterval(() => ipcRateLimiter.cleanup(), 60000);
@@ -489,6 +527,8 @@ function buildSystemPrompt(basePrompt, agentId) {
     const override = db.getSetting("agentModels", {})[agentId];
     prompt = agentPrompts.promptFor(agentId, override?.systemPrompt);
   } else {
+    // Main chat (no agentId) — Hampton é a persona central por padrão.
+    prompt = (agentPrompts.personaBlock("Hampton") || "") + (basePrompt || "");
     // Apply language suffix based on user's language setting
     const lang = db.getSetting("language", "pt");
     const LANG_SUFFIXES = {
@@ -521,6 +561,228 @@ function syncEnqueue(tableName, row) {
   try { supabaseSync.enqueue(db.getDb(), tableName, row); } catch (e) { log.warn("[sync] enqueue failed:", e.message); }
 }
 
+/** Sumarizador do Memory Engine: transforma memórias de curto prazo em fatos de longo prazo. */
+async function memorySummarize({ agent, project, memories }) {
+  try {
+    const settings = resolveAISettings(agent);
+    const keys = secretStore.readSecretStore();
+    const apiKey = keys[settings.provider];
+    if (!apiKey) return null;
+    const list = memories.map((m) => `- ${m.content}`).join("\n");
+    const result = await aiRouter.routeChat({
+      provider: settings.provider,
+      model: settings.model,
+      baseUrl: settings.baseUrl,
+      apiKey,
+      messages: [
+        { role: "system", content: "Você é um sumarizador de memória de longo prazo. Produza somente o resumo, sem preâmbulo." },
+        { role: "user", content: `Resuma as memórias abaixo em um texto curto (máx 400 caracteres) com os fatos importantes e duradouros, em pt-BR. Escopo: ${[agent, project].filter(Boolean).join("/") || "global"}.\n\n${list}` },
+      ],
+    });
+    return result.text;
+  } catch (e) {
+    log.warn("[memory] consolidate summarize falhou:", e.message);
+    return null;
+  }
+}
+
+/** Sumarizador do Knowledge Engine: transforma commits + memórias do dia em diário markdown. */
+async function knowledgeSummarize({ date, commits, memories }) {
+  try {
+    const settings = resolveAISettings(null);
+    const keys = secretStore.readSecretStore();
+    const apiKey = keys[settings.provider];
+    if (!apiKey) return null;
+    const commitsText = (commits || []).join("\n");
+    const memoriesText = (memories || []).map((m) => `- ${m.content}`).join("\n");
+    const result = await aiRouter.routeChat({
+      provider: settings.provider,
+      model: settings.model,
+      baseUrl: settings.baseUrl,
+      apiKey,
+      messages: [
+        { role: "system", content: "Você é o redator do diário de desenvolvimento do Orun OS. Produza somente o markdown, sem preâmbulo." },
+        {
+          role: "user",
+          content: `Escreva o diário de ${date || "hoje"} em markdown com seções "## Destaques" e "## Notas". Máx 500 caracteres, pt-BR.\n\n## Commits\n${commitsText || "(nenhum)"}\n\n## Memórias\n${memoriesText || "(nenhuma)"}`,
+        },
+      ],
+    });
+    return result.text;
+  } catch (e) {
+    log.warn("[knowledge] diário summarize falhou:", e.message);
+    return null;
+  }
+}
+
+/** Extrai o primeiro array JSON do texto do modelo (robusto a markdown). */
+function parsePlanJson(text) {
+  if (!text) return [];
+  const start = text.indexOf("[");
+  const end = text.lastIndexOf("]");
+  if (start === -1 || end === -1 || end <= start) return [];
+  try {
+    const arr = JSON.parse(text.slice(start, end + 1));
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Planner: quebra um objetivo em subtarefas via LLM (JSON array). */
+async function plannerPlan(goal, context) {
+  try {
+    const settings = resolveAISettings(null);
+    const keys = secretStore.readSecretStore();
+    const apiKey = keys[settings.provider];
+    if (!apiKey) return [];
+    const result = await aiRouter.routeChat({
+      provider: settings.provider,
+      model: settings.model,
+      baseUrl: settings.baseUrl,
+      apiKey,
+      messages: [
+        {
+          role: "system",
+          content:
+            "Você é um planejador serial. Quebre o objetivo em subtarefas executáveis e responda SOMENTE com um JSON array, sem markdown. Cada item: {\"title\": string, \"description\": string, \"agent\": string|null, \"priority\": int 1-5, \"dependencies\": [índices das tarefas das quais depende, numerando de 0]}. Máx 8 tarefas.",
+        },
+        { role: "user", content: `Objetivo: ${goal}\n\nContexto adicional:\n${context || "(nenhum)"}` },
+      ],
+    });
+    return parsePlanJson(result.text);
+  } catch (e) {
+    log.warn("[planner] plan falhou:", e.message);
+    return [];
+  }
+}
+
+/** Planner: executa uma tarefa roteando para o agente indicado (ou IA central). */
+async function plannerExecute(task) {
+  try {
+    const settings = resolveAISettings(task.agent || null);
+    const keys = secretStore.readSecretStore();
+    const apiKey = keys[settings.provider];
+    if (!apiKey) return { ok: false, error: `sem chave para o provider ${settings.provider}` };
+    const system = task.agent
+      ? agentPrompts.promptFor(task.agent, null)
+      : "Você é um agente executor do Orun OS. Execute a tarefa e responda de forma objetiva e concisa.";
+    const result = await aiRouter.routeChat({
+      provider: settings.provider,
+      model: settings.model,
+      baseUrl: settings.baseUrl,
+      apiKey,
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: task.description || task.title },
+      ],
+    });
+    return { ok: true, result: result.text };
+  } catch (e) {
+    log.warn("[planner] execute falhou:", e.message);
+    return { ok: false, error: e.message };
+  }
+}
+
+// ── Agent Hub (Módulo 5 — colaboração serial) ───────────────────────────
+
+/** Extrai o primeiro JSON object com a chave `agent` (robusto a markdown). */
+function parseAgentDecision(text) {
+  if (!text) return { agent: null, reason: "" };
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start === -1 || end === -1 || end <= start) return { agent: null, reason: "" };
+  try {
+    const parsed = JSON.parse(text.slice(start, end + 1));
+    return {
+      agent: typeof parsed.agent === "string" && parsed.agent ? parsed.agent : null,
+      reason: String(parsed.reason || "").slice(0, 300),
+    };
+  } catch {
+    return { agent: null, reason: "" };
+  }
+}
+
+/** Monta o registry de agentes no schema único (persona/ferramentas/escopo/permissões). */
+function buildAgentRegistry() {
+  const agents = agentPrompts.DEFAULT_PROMPTS || {};
+  return Object.keys(agents).map((id) => {
+    const tools = AGENT_TOOL_PERMISSIONS[id] || null; // null = todas
+    return {
+      id,
+      name: id,
+      personaName: agentPrompts.agentPersonaName(id),
+      persona: agents[id],
+      tools: tools,
+      memoryScope: id,
+      permissions: tools,
+    };
+  });
+}
+
+/** Passo 1 — Central (Hampton/System) decide o especialista. */
+async function hubRoute(request, context) {
+  try {
+    const settings = resolveAISettings(null);
+    const keys = secretStore.readSecretStore();
+    const apiKey = keys[settings.provider];
+    if (!apiKey) return { agent: null, reason: `sem chave para o provider ${settings.provider}` };
+    const names = buildAgentRegistry().map((a) => a.id).join(", ");
+    const result = await aiRouter.routeChat({
+      provider: settings.provider,
+      model: settings.model,
+      baseUrl: settings.baseUrl,
+      apiKey,
+      messages: [
+        {
+          role: "system",
+          content:
+            "Você é a inteligência central (Hampton) do Orun OS. Dada a requisição do usuário, decida qual agente especialista deve executá-la, ou null se você mesmo deve responder diretamente. Responda SOMENTE com um JSON object, sem markdown: {\"agent\": string|null, \"reason\": string}. Agentes disponíveis: " +
+            names + ". Escolha o mais adequado pelo nome/domínio; se a requisição for simples ou não mapear, use null.",
+        },
+        { role: "user", content: `Requisição: ${request}\n\nContexto adicional:\n${context || "(nenhum)"}` },
+      ],
+    });
+    return parseAgentDecision(result.text);
+  } catch (e) {
+    log.warn("[agent-hub] route falhou:", e.message);
+    return { agent: null, reason: "" };
+  }
+}
+
+/** Passo 2 — Especialista (ou central) executa a requisição. */
+async function hubExecute(agent, request, context) {
+  try {
+    const settings = resolveAISettings(agent || null);
+    const keys = secretStore.readSecretStore();
+    const apiKey = keys[settings.provider];
+    if (!apiKey) return { ok: false, error: `sem chave para o provider ${settings.provider}` };
+    const system = agent
+      ? agentPrompts.promptFor(agent, null)
+      : "Você é a inteligência central do Orun OS. Responda à requisição de forma objetiva e concisa, em português.";
+    const messages = [
+      { role: "system", content: system },
+      { role: "user", content: context ? `${request}\n\nContexto:\n${context}` : request },
+    ];
+    const result = await aiRouter.routeChat({
+      provider: settings.provider,
+      model: settings.model,
+      baseUrl: settings.baseUrl,
+      apiKey,
+      messages,
+    });
+    return { ok: true, result: result.text };
+  } catch (e) {
+    log.warn(`[agent-hub] execute falhou (${agent}):`, e.message);
+    return { ok: false, error: e.message };
+  }
+}
+
+/** Passo 3 — Escalação: central assume quando o especialista falha. */
+async function hubEscalate(request, context, error) {
+  return hubExecute(null, `${request}\n\n(Nota: o especialista falhou com: ${error}. Assuma você e resolva.)`, context);
+}
+
 // ── Autonomous loop ─────────────────────────────────────────────────────
 
 /** Delegate to extracted module, passing context dependencies. */
@@ -550,10 +812,22 @@ function registerIpcHandlers() {
     spotify, discordBot, telegram, telegramAutomation,
   };
   Object.defineProperty(ctx, "mainWindow", { get: () => mainWindow, enumerable: true });
+  Object.defineProperty(ctx, "skillManager", { get: () => skillManager, enumerable: true });
+  Object.defineProperty(ctx, "memoryEngine", { get: () => memoryEngine, enumerable: true });
+  Object.defineProperty(ctx, "knowledgeEngine", { get: () => knowledgeEngine, enumerable: true });
+  Object.defineProperty(ctx, "plannerEngine", { get: () => plannerEngine, enumerable: true });
+  Object.defineProperty(ctx, "agentHub", { get: () => agentHub, enumerable: true });
+  Object.defineProperty(ctx, "analytics", { get: () => analytics, enumerable: true });
 
   require("./ipc/ai-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/settings-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/data-handlers.cjs").register(ipcMain, ctx);
+  require("./ipc/skill-handlers.cjs").register(ipcMain, ctx);
+  require("./ipc/knowledge-handlers.cjs").register(ipcMain, ctx);
+  require("./ipc/planner-handlers.cjs").register(ipcMain, ctx);
+  require("./ipc/agent-hub-handlers.cjs").register(ipcMain, ctx);
+  require("./ipc/analytics-handlers.cjs").register(ipcMain, ctx);
+  require("./ipc/memory-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/media-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/home-assistant-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/security-handlers.cjs").register(ipcMain, ctx);
@@ -839,8 +1113,27 @@ app.on("second-instance", (_event, argv) => {
 
 app.whenReady().then(() => {
   log.info("Orun OS starting", { version: app.getVersion(), isDev });
-  secretStore.init(app, fs);
   logger.window.info("Orun OS starting", { version: app.getVersion(), isDev });
+
+  secretStore.init(app, fs);
+
+  // Custom `orun-asset://` protocol: serves bundled renderer assets (Silero VAD
+  // model/worklet, ONNX WASM) over file:// environments where fetch() and
+  // AudioWorklet.addModule() are blocked by Chromium. Dev (http://localhost:5173)
+  // does not need it.
+  protocol.handle("orun-asset", (request) => {
+    try {
+      const url = new URL(request.url);
+      const rel = decodeURIComponent(url.pathname).replace(/^\/+/, "");
+      const candidates = [path.join(distAssetsDir, rel), path.join(publicAssetsDir, rel)];
+      const filePath = candidates.find((c) => fs.existsSync(c));
+      if (!filePath) return new Response("Not found", { status: 404 });
+      return net.fetch(pathToFileURL(filePath).toString());
+    } catch (err) {
+      log.error("[orun-asset] protocol error:", err.message);
+      return new Response("Internal error", { status: 500 });
+    }
+  });
 
   // Initialize encryption module and decrypt DB if encrypted
   dbEncryption.init(app);
@@ -885,7 +1178,46 @@ app.whenReady().then(() => {
   toolsModule.setAllowedRoots([app.getPath("userData"), app.getPath("documents"), app.getPath("desktop"), app.getPath("home")]);
   rag.init(app.getPath("userData"), db.getSetting("ollama", {}).baseUrl);
   pluginSystem.init(app.getPath("userData"));
+  skillManager = new SkillManager(app.getPath("userData"), { runtime: pluginSystem });
+  skillManager.init();
   pluginSystem.loadAll();
+  skillManager.reload();
+  memoryEngine = memoryEngineModule.createMemoryEngine({
+    filePath: path.join(app.getPath("userData"), "memory-engine.json"),
+    embed: (text) => rag.getEmbedding(text),
+    cloud: memorySupabase,
+    summarize: memorySummarize,
+    logger,
+  });
+  memoryConsolidator.init({ memoryEngine, logger });
+  knowledgeEngine = knowledgeEngineModule.createKnowledgeEngine({
+    filePath: path.join(app.getPath("userData"), "knowledge-engine.json"),
+    cloud: knowledgeSupabase,
+    summarize: knowledgeSummarize,
+    logger,
+  });
+  plannerEngine = plannerEngineModule.createPlannerEngine({
+    filePath: path.join(app.getPath("userData"), "planner-engine.json"),
+    cloud: plannerSupabase,
+    plan: plannerPlan,
+    executeTask: plannerExecute,
+    logger,
+  });
+  agentHub = createAgentHub({
+    registry: buildAgentRegistry(),
+    route: hubRoute,
+    execute: hubExecute,
+    escalate: hubEscalate,
+  });
+  analytics = createAnalytics({
+    db: db.getDb(),
+    telemetry,
+    syncEnqueue,
+    getPlanner: () => plannerEngine,
+    getMemory: () => memoryEngine,
+    getKnowledge: () => knowledgeEngine,
+    getSkills: () => (skillManager ? skillManager.list() : []),
+  });
   waAutomation.loadKeywordRules(app.getPath("userData"));
   // Restore N8N webhook URL from settings
   const waCfg = db.getSetting("whatsapp", {});
@@ -1127,6 +1459,28 @@ app.whenReady().then(() => {
   bgServices = createBackgroundServices({ app, db, log, mainWindow: { isDestroyed: () => mainWindow?.isDestroyed(), isVisible: () => mainWindow?.isVisible(), show: () => mainWindow?.show(), focus: () => mainWindow?.focus(), webContents: { send: (...a) => mainWindow?.webContents.send(...a) } } });
   bgServices.start();
 
+  // ── Proactive events (boot greeting + Spotify watcher) ──────────────
+  proactive = createProactiveEvents({
+    log,
+    getDb: () => db,
+    getSpotifyClient: () => spotify,
+    sendToRenderer: (payload) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.show();
+        mainWindow.focus();
+        mainWindow.webContents.send("voice-overlay:show");
+        mainWindow.webContents.send("voice-overlay:proactive", payload);
+      }
+    },
+  });
+  const windowLoaded = mainWindow && !mainWindow.isDestroyed()
+    ? new Promise((resolve) => {
+        if (!mainWindow.webContents.isLoading()) resolve();
+        else mainWindow.webContents.once("did-finish-load", () => resolve());
+      })
+    : Promise.resolve();
+  proactive.start({ windowLoadedPromise: windowLoaded });
+
   app.on("activate", () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });
 
@@ -1153,6 +1507,9 @@ app.on("before-quit", () => {
 
   // Stop background services (wake word + Piper + STT)
   if (bgServices) { bgServices.stop(); bgServices = null; }
+
+  // Stop proactive events
+  if (proactive) { proactive.stop(); proactive = null; }
 
   // Stop MCP server processes
   try { mcpClient.stopAll && mcpClient.stopAll(); } catch { /* ignore */ }

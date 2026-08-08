@@ -58,7 +58,7 @@ async function runAgentTask(agentName) {
   const apiKey = deps.getSecret(provider);
   const systemPrompt = agentPrompts.promptFor(agentName, override?.systemPrompt);
 
-  const userPrompt = buildUserPrompt(agentName, db);
+  const userPrompt = await buildUserPrompt(agentName, db);
 
   // Use autonomous loop for agents that need tools (Marketing, Designer)
   const needsTools = agentName === "Marketing" || agentName === "Designer";
@@ -90,7 +90,7 @@ async function runAgentTask(agentName) {
   return finalText;
 }
 
-function buildUserPrompt(agentName, db) {
+async function buildUserPrompt(agentName, db) {
   const today = new Date().toISOString().slice(0, 10);
   const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
 
@@ -149,16 +149,58 @@ function buildUserPrompt(agentName, db) {
       const nutritionToday = db.getDailyNutrition(today);
       const calTotal = nutritionToday.totals?.calories || 0;
 
+      let financeBlock = "";
+      if (typeof db.getDailyFinance === "function") {
+        try {
+          const fin = db.getDailyFinance(yesterday);
+          if (fin.totals && (fin.totals.expenses > 0 || fin.totals.income > 0)) {
+            financeBlock = `\n\nFINANÇAS DE ONTEM (${yesterday}):\n` +
+              `Receitas: R$ ${(fin.totals.income || 0).toFixed(2)}\n` +
+              `Despesas: R$ ${(fin.totals.expenses || 0).toFixed(2)}\n` +
+              `Saldo do dia: R$ ${(fin.balance || 0).toFixed(2)}\n` +
+              `Despesas listadas:\n` +
+              (fin.entries || []).map((e) => `- ${e.description}: R$ ${(e.amount || 0).toFixed(2)}${e.category ? ` (${e.category})` : ""}`).join("\n");
+          }
+        } catch (e) {
+          deps.log.warn(`[scheduler] finance digest failed: ${e.message}`);
+        }
+      }
+
+      let weatherBlock = "";
+      const weatherLocation = db.getSetting ? db.getSetting("weatherLocation") : null;
+      if (weatherLocation) {
+        try {
+          const w = await require("./weather-tools.cjs").getWeather({ location: weatherLocation, days: 1 });
+          if (w.ok) {
+            const c = w.current;
+            const d = w.forecast[0] || {};
+            weatherBlock = `\n\nCLIMA EM ${w.location.toUpperCase()} (${w.units}):\n` +
+              `Agora: ${c.temperature != null ? `${c.temperature}°` : "—"} (sensação ${c.feelsLike != null ? `${c.feelsLike}°` : "—"}), ${c.weather}\n` +
+              `Umidade: ${c.humidity != null ? `${c.humidity}%` : "—"} · Vento: ${c.windSpeed != null ? `${c.windSpeed}` : "—"}\n` +
+              `Hoje: mín ${d.min != null ? `${d.min}°` : "—"} / máx ${d.max != null ? `${d.max}°` : "—"} · ` +
+              `${d.weather}${d.precipitationChance != null ? ` · chuva ${d.precipitationChance}%` : ""}` +
+              (d.sunrise && d.sunset ? ` · nascer ${d.sunrise.split("T")[1] || d.sunrise} / pôr ${d.sunset.split("T")[1] || d.sunset}` : "");
+          } else {
+            deps.log.warn(`[scheduler] weather digest failed: ${w.error}`);
+          }
+        } catch (e) {
+          deps.log.warn(`[scheduler] weather digest error: ${e.message}`);
+        }
+      }
+
       return `Prepare o resumo diário do usuário para hoje (${today}).\n\n` +
         `AGENDA DE HOJE:\n${agendaList}\n\n` +
-        `DADOS DE SAÚDE:\n${weightInfo}\nCalorias registradas hoje: ${Math.round(calTotal)}kcal\n\n` +
-        `INSTRUÇÕES:\n` +
-        `1. Resuma a agenda do dia de forma clara e objetiva\n` +
-        `2. Lembre de compromissos importantes\n` +
-        `3. Dê uma dica motivacional do dia\n` +
-        `4. Se houver dados de peso/nutrição, comente brevemente\n` +
-        `5. Seja direto e útil, como um assistente pessoal\n` +
-        `6. Responda em português do Brasil`;
+        `DADOS DE SAÚDE:\n${weightInfo}\nCalorias registradas hoje: ${Math.round(calTotal)}kcal\n` +
+        financeBlock +
+        weatherBlock +
+        `\n\nINSTRUÇÕES:\n` +
+        `1. Abra com um resumo do clima de hoje (dica de roupa se necessário)\n` +
+        `2. Resuma a agenda do dia de forma clara e objetiva\n` +
+        `3. Mencione as finanças de ontem de forma breve (gastos/saldo)\n` +
+        `4. Dê uma dica motivacional do dia\n` +
+        `5. Se houver dados de peso/nutrição, comente brevemente\n` +
+        `6. Seja direto e útil, como um assistente pessoal\n` +
+        `7. Responda em português do Brasil`;
     }
 
     case "Health": {

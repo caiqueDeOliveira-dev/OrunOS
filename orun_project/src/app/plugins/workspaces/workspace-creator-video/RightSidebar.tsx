@@ -16,9 +16,9 @@ export function RightSidebar() {
   const isText = clip?.type === "text";
 
   return (
-    <div className="flex flex-col shrink-0 overflow-y-auto"
-      style={{ width: 200, background: "var(--card, #161B22)", borderLeft: "1px solid var(--border, #21262D)", padding: 10, scrollbarWidth: "thin", scrollbarColor: "#30363D transparent" }}>
-      <div style={{ fontSize: 10, color: "#C9D1D9", fontFamily: SANS, fontWeight: 700, marginBottom: 4 }}>
+    <div className="hs-scroll flex flex-col shrink-0 overflow-y-auto"
+      style={{ width: 200, background: "#0A0A0C", borderLeft: "1px solid #252525", padding: 10, scrollbarWidth: "thin", scrollbarColor: "#1C1C1C transparent" }}>
+      <div style={{ fontSize: 10, color: "#FFFFFF", fontFamily: SANS, fontWeight: 700, marginBottom: 4 }}>
         {clip ? clip.name : t("creator_video_title")}
       </div>
 

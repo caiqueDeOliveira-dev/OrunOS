@@ -17,3 +17,11 @@ PLAN.md
 agent_config.json
 db.cjs
 social-media-pages/
+
+# Lint report temp artifacts
+lint-errors-report.md
+lint-report*.json
+lint-report*.txt
+tmp_lint_output.json
+tmp_parse_lint.cjs
+scripts/parse_lint.cjs

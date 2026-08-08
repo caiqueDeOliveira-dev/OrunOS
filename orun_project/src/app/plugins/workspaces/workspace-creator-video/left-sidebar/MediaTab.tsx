@@ -27,12 +27,12 @@ export function MediaTab() {
     <div className="flex flex-col gap-2">
       <button
         style={{
-          width: "100%", height: 28, background: "#C00018", color: "#fff",
-          border: "none", borderRadius: 4, fontSize: 10, fontFamily: SANS,
-          fontWeight: 600, cursor: "pointer",
+          width: "100%", height: 28, background: "#C3002F", color: "#fff",
+          border: "none", borderRadius: 6, fontSize: 10, fontFamily: SANS,
+          fontWeight: 600, cursor: "pointer", boxShadow: "0 0 10px rgba(195,0,47,0.3)",
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = "#E00020"; }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = "#C00018"; }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(195,0,47,0.8)"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = "#C3002F"; }}
         onClick={() => fileInputRef.current?.click()}
       >
         + {t("importar") ?? "Importar"}
@@ -45,13 +45,13 @@ export function MediaTab() {
           if (!files) return;
           pushUndo();
           const state = useVideoStore.getState();
-          let offset = state.clips.reduce((max, c) => Math.max(max, c.startFrame + c.durationFrames), 0);
+          const offset = state.clips.reduce((max, c) => Math.max(max, c.startFrame + c.durationFrames), 0);
           const newClips = Array.from(files).map((f, i) => {
             const isVideo = f.type.startsWith("video/");
             const clip: VideoClip = {
               id: `c${Date.now()}_${i}`, trackIndex: isVideo ? 0 : 1,
               name: f.name.replace(/\.[^.]+$/, ""),
-              color: isVideo ? "#E04040" : "#7B2FBE",
+              color: isVideo ? "#C3002F" : "#8B5CF6",
               startFrame: offset + i * FPS, durationFrames: 10 * FPS,
               type: isVideo ? "video" : "audio",
             };
@@ -68,8 +68,8 @@ export function MediaTab() {
             className="flex flex-col cursor-pointer"
             onClick={() => addClip(item.label.replace(/\.[^.]+$/, ""), "video", item.color)}
             style={{
-              borderRadius: 4, overflow: "hidden",
-              border: "1px solid #21262D",
+              borderRadius: 6, overflow: "hidden",
+              border: "1px solid #141414",
               transition: "border-color 0.15s",
             }}
           >
@@ -80,11 +80,11 @@ export function MediaTab() {
                 display: "flex", alignItems: "center", justifyContent: "center",
               }}
             >
-              <span style={{ fontSize: 16, opacity: 0.3, color: "#C9D1D9" }}>&#9654;</span>
+              <span style={{ fontSize: 16, opacity: 0.3, color: "#FFFFFF" }}>&#9654;</span>
             </div>
-            <div style={{ padding: "3px 4px", background: "#0D1117" }}>
-              <div style={{ fontSize: 8, color: "#C9D1D9", fontFamily: SANS, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.label}</div>
-              <div style={{ fontSize: 7, color: "#484F58", fontFamily: MONO }}>{item.dur}</div>
+            <div style={{ padding: "3px 4px", background: "#0A0A0C" }}>
+              <div style={{ fontSize: 8, color: "#FFFFFF", fontFamily: SANS, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.label}</div>
+              <div style={{ fontSize: 7, color: "#5C5C5C", fontFamily: MONO }}>{item.dur}</div>
             </div>
           </div>
         ))}

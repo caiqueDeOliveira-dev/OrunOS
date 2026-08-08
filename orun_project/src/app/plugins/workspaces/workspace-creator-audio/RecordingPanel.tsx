@@ -54,7 +54,7 @@ export function RecordingPanel() {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 20, padding: "8px 16px", height: "100%" }}>
       {/* Record button */}
-      <button onClick={toggleRecord} style={{ width: 40, height: 40, borderRadius: "50%", background: isRecording ? ACCENT : "rgba(255,255,255,0.06)", border: `2px solid ${isRecording ? ACCENT : "rgba(255,255,255,0.1)"}`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: isRecording ? `0 0 16px ${ACCENT}60` : "none", transition: "all 0.15s" }}>
+      <button onClick={toggleRecord} style={{ width: 40, height: 40, borderRadius: "50%", background: isRecording ? ACCENT : "#141414", border: `2px solid ${isRecording ? ACCENT : "#383838"}`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: isRecording ? `0 0 16px ${ACCENT}60` : "none", transition: "all 0.15s" }}>
         <div style={{ width: 14, height: 14, borderRadius: isRecording ? 3 : "50%", background: "#fff", transition: "border-radius 0.15s" }} />
       </button>
 
@@ -71,7 +71,7 @@ export function RecordingPanel() {
         <span style={{ fontSize: 8, color: TEXT_DIM, fontFamily: FONT_LABEL, letterSpacing: 0.5, textTransform: "uppercase" }}>{t("creator_audio_format")}</span>
         <div style={{ display: "flex", gap: 3 }}>
           {(["WAV", "MP3", "FLAC"] as const).map((f) => (
-            <button key={f} onClick={() => useDJStore.setState({ recordFormat: f })} style={{ height: 20, padding: "0 8px", borderRadius: 3, border: "none", fontSize: 8, fontFamily: FONT_MONO, fontWeight: 600, cursor: "pointer", background: recordFormat === f ? ACCENT : "rgba(255,255,255,0.06)", color: recordFormat === f ? "#fff" : TEXT_DIM, transition: "all 0.1s" }}>
+            <button key={f} onClick={() => useDJStore.setState({ recordFormat: f })} style={{ height: 20, padding: "0 8px", borderRadius: 6, border: "none", fontSize: 8, fontFamily: FONT_MONO, fontWeight: 600, cursor: "pointer", background: recordFormat === f ? ACCENT : "#141414", color: recordFormat === f ? "#fff" : TEXT_DIM, transition: "all 0.1s" }}>
               {f}
             </button>
           ))}
@@ -83,7 +83,7 @@ export function RecordingPanel() {
         <span style={{ fontSize: 8, color: TEXT_DIM, fontFamily: FONT_LABEL, letterSpacing: 0.5, textTransform: "uppercase" }}>{t("creator_audio_quality")}</span>
         <div style={{ display: "flex", gap: 3 }}>
           {(["Baixa", "Média", "Alta"] as const).map((q) => (
-            <button key={q} onClick={() => useDJStore.setState({ recordQuality: q })} style={{ height: 20, padding: "0 8px", borderRadius: 3, border: "none", fontSize: 8, fontFamily: FONT_LABEL, fontWeight: 600, cursor: "pointer", background: recordQuality === q ? GREEN : "rgba(255,255,255,0.06)", color: recordQuality === q ? "#000" : TEXT_DIM, transition: "all 0.1s" }}>
+            <button key={q} onClick={() => useDJStore.setState({ recordQuality: q })} style={{ height: 20, padding: "0 8px", borderRadius: 6, border: "none", fontSize: 8, fontFamily: FONT_LABEL, fontWeight: 600, cursor: "pointer", background: recordQuality === q ? GREEN : "#141414", color: recordQuality === q ? "#000" : TEXT_DIM, transition: "all 0.1s" }}>
               {q}
             </button>
           ))}
@@ -93,10 +93,10 @@ export function RecordingPanel() {
       <div style={{ width: 1, height: 40, background: BORDER }} />
 
       {/* Export / Import buttons */}
-      <button style={{ height: 30, padding: "0 14px", borderRadius: 4, border: "none", fontSize: 9, fontFamily: FONT_LABEL, fontWeight: 600, cursor: "pointer", background: GREEN, color: "#000", letterSpacing: 0.5, textTransform: "uppercase" }} onClick={handleExport}>
-        {t("creator_audio_export")}
+      <button style={{ height: 30, padding: "0 14px", borderRadius: 6, border: "none", fontSize: 9, fontFamily: FONT_LABEL, fontWeight: 600, cursor: "pointer", background: GREEN, color: "#000", letterSpacing: 0.5, textTransform: "uppercase", boxShadow: "0 0 12px #00D26A33" }} onClick={handleExport}>
+        {t("creator_audio_export") || "Export"}
       </button>
-      <button style={{ height: 30, padding: "0 14px", borderRadius: 4, border: `1px solid ${BORDER}`, fontSize: 9, fontFamily: FONT_LABEL, fontWeight: 600, cursor: "pointer", background: "rgba(255,255,255,0.06)", color: TEXT_MED, letterSpacing: 0.5, textTransform: "uppercase" }} onClick={handleImport}>
+      <button style={{ height: 30, padding: "0 14px", borderRadius: 6, border: `1px solid ${BORDER}`, fontSize: 9, fontFamily: FONT_LABEL, fontWeight: 600, cursor: "pointer", background: "#141414", color: TEXT_MED, letterSpacing: 0.5, textTransform: "uppercase" }} onClick={handleImport}>
         {t("creator_audio_import")}
       </button>
     </div>

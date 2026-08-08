@@ -42,44 +42,44 @@
   --sidebar-ring: #C0001A;
 }
 
-/* ── Dark theme (deep blacks) ─────────────────────────────────────── */
+/* ── Dark theme (premium black + blood red) ─────────────────────── */
 .dark {
-  --background: #0A0A0C;
-  --foreground: #E8E8EC;
-  --card: #121215;
-  --card-foreground: #E8E8EC;
-  --popover: #121215;
-  --popover-foreground: #E8E8EC;
-  --primary: #D4203A;
+  --background: #050505;
+  --foreground: #FFFFFF;
+  --card: #141414;
+  --card-foreground: #FFFFFF;
+  --popover: #141414;
+  --popover-foreground: #FFFFFF;
+  --primary: #C3002F;
   --primary-foreground: #FFFFFF;
-  --secondary: #1A1A1E;
-  --secondary-foreground: #D4D4D8;
-  --muted: #1A1A1E;
-  --muted-foreground: #8A8A94;
-  --accent: #222226;
-  --accent-foreground: #E8E8EC;
-  --destructive: #D4203A;
+  --secondary: #0A0A0C;
+  --secondary-foreground: #A0A0A0;
+  --muted: #0A0A0C;
+  --muted-foreground: #A0A0A0;
+  --accent: #1C1C1C;
+  --accent-foreground: #FFFFFF;
+  --destructive: #C3002F;
   --destructive-foreground: #FFFFFF;
-  --border: #333338;
-  --input: #1A1A1E;
-  --input-background: #1A1A1E;
+  --border: #252525;
+  --input: #1C1C1C;
+  --input-background: #1C1C1C;
   --switch-background: #2A2A30;
-  --ring: #D4203A;
+  --ring: #C3002F;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --chart-1: #D4203A;
+  --chart-1: #C3002F;
   --chart-2: #FF4D5E;
-  --chart-3: #A01020;
-  --chart-4: #8A8A94;
-  --chart-5: #616168;
+  --chart-3: #8A0014;
+  --chart-4: #A0A0A0;
+  --chart-5: #5C5C5C;
   --sidebar: #08080A;
-  --sidebar-foreground: #E8E8EC;
-  --sidebar-primary: #D4203A;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-primary: #C3002F;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #121215;
-  --sidebar-accent-foreground: #E8E8EC;
+  --sidebar-accent: #141414;
+  --sidebar-accent-foreground: #FFFFFF;
   --sidebar-border: #1E1E24;
-  --sidebar-ring: #D4203A;
+  --sidebar-ring: #C3002F;
 }
 
 /* ── Light theme (explicit class) ─────────────────────────────────── */
@@ -239,39 +239,39 @@
 .prose th, .prose td { border: 1px solid var(--border); padding: 0.4em 0.75em; text-align: left; }
 .prose th { background: var(--secondary); font-weight: 600; }
 
-/* ── Workspace typography classes ────────────────────────────────── */
-.ws-title { font-size: 13px; font-weight: 600; font-family: 'Sora', sans-serif; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted-foreground); }
-.ws-subtitle { font-size: 12px; font-weight: 500; color: var(--foreground); }
-.ws-body { font-size: 12px; color: var(--foreground); }
-.ws-label { font-size: 10px; font-family: 'Sora', sans-serif; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted-foreground); }
-.ws-mono { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--foreground); }
-.ws-small { font-size: 10px; color: var(--muted-foreground); }
+/* ── Workspace typography classes (premium dark) ─────────────────── */
+.ws-title { font-size: 13px; font-weight: 600; font-family: 'Sora', sans-serif; text-transform: uppercase; letter-spacing: 0.05em; color: #A0A0A0; }
+.ws-subtitle { font-size: 12px; font-weight: 500; color: #FFFFFF; }
+.ws-body { font-size: 12px; color: #FFFFFF; }
+.ws-label { font-size: 10px; font-family: 'Sora', sans-serif; text-transform: uppercase; letter-spacing: 0.08em; color: #A0A0A0; }
+.ws-mono { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: #FFFFFF; }
+.ws-small { font-size: 10px; color: #A0A0A0; }
 
-/* ── Workspace utility classes ──────────────────────────────────── */
-.ws-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); }
-.ws-card-hover { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); transition: all 0.15s ease; }
-.ws-card-hover:hover { border-color: var(--ring); box-shadow: 0 0 0 1px rgba(192,0,24,0.08); }
+/* ── Workspace utility classes (premium dark) ───────────────────── */
+.ws-card { background: #141414; border: 1px solid #252525; border-radius: 18px; }
+.ws-card-hover { background: #141414; border: 1px solid #252525; border-radius: 18px; transition: all 0.15s ease; }
+.ws-card-hover:hover { border-color: rgba(195,0,47,0.55); box-shadow: 0 0 18px rgba(195,0,47,0.14); }
 .ws-button { padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 500; transition: all 0.15s ease; cursor: pointer; }
-.ws-button-primary { background: var(--primary); color: var(--primary-foreground); }
+.ws-button-primary { background: #C3002F; color: #FFFFFF; }
 .ws-button-primary:hover { opacity: 0.9; transform: scale(1.02); }
-.ws-button-ghost { background: transparent; color: var(--muted-foreground); }
-.ws-button-ghost:hover { background: rgba(255,255,255,0.05); color: var(--foreground); }
-.ws-input { padding: 6px 10px; border-radius: 8px; font-size: 12px; background: var(--input); border: 1px solid var(--border); color: var(--foreground); outline: none; transition: border-color 0.15s ease; }
-.ws-input:focus { border-color: var(--ring); }
+.ws-button-ghost { background: transparent; color: #A0A0A0; }
+.ws-button-ghost:hover { background: rgba(255,255,255,0.05); color: #FFFFFF; }
+.ws-input { padding: 6px 10px; border-radius: 8px; font-size: 12px; background: #0A0A0C; border: 1px solid #252525; color: #FFFFFF; outline: none; transition: border-color 0.15s ease; }
+.ws-input:focus { border-color: #C3002F; }
 .ws-section { padding: 16px; }
-.ws-divider { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
-.ws-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 32px 16px; text-align: center; color: var(--muted-foreground); }
+.ws-divider { border: none; border-top: 1px solid #252525; margin: 8px 0; }
+.ws-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 32px 16px; text-align: center; color: #A0A0A0; }
 .ws-badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 500; font-family: 'JetBrains Mono', monospace; }
-.ws-badge-red { background: rgba(192,0,24,0.12); color: var(--primary); }
-.ws-badge-green { background: rgba(34,197,94,0.12); color: #22C55E; }
-.ws-badge-yellow { background: rgba(245,158,11,0.12); color: #F59E0B; }
-.ws-badge-blue { background: rgba(59,130,246,0.12); color: #3B82F6; }
+.ws-badge-red { background: rgba(195,0,47,0.12); color: #C3002F; }
+.ws-badge-green { background: rgba(0,210,106,0.12); color: #00D26A; }
+.ws-badge-yellow { background: rgba(255,181,71,0.12); color: #FFB547; }
+.ws-badge-blue { background: rgba(77,163,255,0.12); color: #4DA3FF; }
 
 /* ── Scrollbar styles for workspaces ────────────────────────────── */
-.ws-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+.ws-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
 .ws-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.ws-scrollbar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
-.ws-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
+.ws-scrollbar::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 99px; }
+.ws-scrollbar::-webkit-scrollbar-thumb:hover { background: #3a3a3a; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

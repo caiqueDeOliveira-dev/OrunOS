@@ -9,7 +9,7 @@ interface UseTTSOptions {
 
 function splitSentences(text: string): string[] {
   const abbrevPattern = /\b(?:Dr|Sr|Sra|Prof|Av|Ex|Inst|Eng|Arq|Adv|Dept|Gov|Sen|Dep|Pref)\.$/i;
-  const sentenceRegex = /[^.!?…]+[.!?…]+["'\)\]]*\s*/g;
+  const sentenceRegex = /[^.!?…]+[.!?…]+["')\]]*\s*/g;
   const chunks: string[] = [];
   let match: RegExpExecArray | null;
 
@@ -45,6 +45,17 @@ export function useTTS({ spokenUpToRef }: UseTTSOptions) {
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const ttsCacheRef = useRef<Map<string, { audioBase64: string; mime: string }>>(new Map());
   const mountedRef = useRef(true);
+  const speakSessionRef = useRef(0);
+  const ttsActiveRef = useRef(0);
+
+  /** Tell the main process when TTS audio is playing so the wake-word
+   *  service can drop echo-triggered false positives (mic hearing the
+   *  assistant's own voice). */
+  const notifyTtsState = useCallback((playing: boolean) => {
+    if (isElectron && (window as any).orun?.voiceOverlay?.setTtsState) {
+      (window as any).orun.voiceOverlay.setTtsState(playing);
+    }
+  }, []);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -67,63 +78,89 @@ export function useTTS({ spokenUpToRef }: UseTTSOptions) {
       currentAudioRef.current.currentTime = 0;
       currentAudioRef.current = null;
     }
-  }, []);
+    ttsActiveRef.current = 0;
+    notifyTtsState(false);
+  }, [notifyTtsState]);
 
-  /** Queues text for TTS — splits into sentences and enqueues each one. */
+  /** Queues text for TTS — splits into sentences, pre-synthesizes all of them
+   *  in parallel, then plays them in order. Sentences after the first are ready
+   *  by the time the current one finishes → near-streaming playback. */
   const speak = useCallback((text: string) => {
     if (!isElectron || !speechEnabled || !text.trim()) return;
     const v = ttsSettingsRef.current;
     if (!v?.engine || !v?.voiceId) return;
+    const session = speakSessionRef.current;
 
     const sentences = splitSentences(text);
-    for (const sentence of sentences) {
-      audioQueueRef.current = audioQueueRef.current.then(async () => {
-        try {
-          const cacheKey = `${v.engine}:${v.voiceId}:${sentence}`;
-          let cached = ttsCacheRef.current.get(cacheKey);
-          let audioBase64: string, mime: string;
+    const synthesized = sentences.map(async (sentence) => {
+      const cacheKey = `${v.engine}:${v.voiceId}:${sentence}`;
+      const cached = ttsCacheRef.current.get(cacheKey);
+      if (cached) return { audioBase64: cached.audioBase64, mime: cached.mime };
 
-          if (cached) {
-            audioBase64 = cached.audioBase64;
-            mime = cached.mime;
-          } else {
-            const result = await window.orun.tts.synthesize(v.engine as OrunTTSEngine, v.voiceId, sentence);
-            audioBase64 = result.audioBase64;
-            mime = result.mime;
-            if (result.fallbackFrom) {
-              window.dispatchEvent(new CustomEvent("tts:fallback", { detail: { from: result.fallbackFrom, to: result.engine } }));
-            }
-            if (ttsCacheRef.current.size > 200) {
-              const firstKey = ttsCacheRef.current.keys().next().value;
-              if (firstKey) ttsCacheRef.current.delete(firstKey);
-            }
-            ttsCacheRef.current.set(cacheKey, { audioBase64, mime });
-          }
+      const result = await window.orun.tts.synthesize(v.engine as OrunTTSEngine, v.voiceId, sentence);
+      if (result.fallbackFrom) {
+        window.dispatchEvent(new CustomEvent("tts:fallback", { detail: { from: result.fallbackFrom, to: result.engine } }));
+      }
+      if (ttsCacheRef.current.size > 200) {
+        const firstKey = ttsCacheRef.current.keys().next().value;
+        if (firstKey) ttsCacheRef.current.delete(firstKey);
+      }
+      ttsCacheRef.current.set(cacheKey, { audioBase64: result.audioBase64, mime: result.mime });
+      return { audioBase64: result.audioBase64, mime: result.mime };
+    });
 
-          await new Promise<void>((resolve) => {
-            const audio = new Audio(`data:${mime};base64,${audioBase64}`);
-            currentAudioRef.current = audio;
-            audio.onended = () => { currentAudioRef.current = null; resolve(); };
-            audio.onerror = () => { currentAudioRef.current = null; resolve(); };
-            audio.play().catch(() => resolve());
-          });
-        } catch {
-          currentAudioRef.current = null;
+    Promise.all(synthesized)
+      .then((items) => {
+        // If stopTTS() was called while synthesizing, drop the whole batch.
+        if (speakSessionRef.current !== session || !mountedRef.current) return;
+
+        const finishOne = () => {
+          ttsActiveRef.current = Math.max(0, ttsActiveRef.current - 1);
+          if (ttsActiveRef.current === 0) notifyTtsState(false);
+        };
+
+        if (items.length > 0) {
+          ttsActiveRef.current += items.length;
+          notifyTtsState(true);
         }
-      });
-    }
-  }, [speechEnabled]);
+        for (const { audioBase64, mime } of items) {
+          audioQueueRef.current = audioQueueRef.current.then(async () => {
+            if (speakSessionRef.current !== session || !mountedRef.current) {
+              finishOne();
+              return;
+            }
+            try {
+              await new Promise<void>((resolve) => {
+                const audio = new Audio(`data:${mime};base64,${audioBase64}`);
+                currentAudioRef.current = audio;
+                audio.onended = () => { currentAudioRef.current = null; resolve(); };
+                audio.onerror = () => { currentAudioRef.current = null; resolve(); };
+                audio.play().catch(() => resolve());
+              });
+            } catch {
+              currentAudioRef.current = null;
+            } finally {
+              finishOne();
+            }
+          });
+        }
+      })
+      .catch(() => {});
+  }, [speechEnabled, notifyTtsState]);
 
   /** Stop all TTS audio (called when user starts speaking) */
   const stopTTS = useCallback(() => {
+    speakSessionRef.current += 1; // invalidates any in-flight speak batch
     if (currentAudioRef.current) {
       currentAudioRef.current.pause();
       currentAudioRef.current.currentTime = 0;
       currentAudioRef.current = null;
     }
     audioQueueRef.current = Promise.resolve();
+    ttsActiveRef.current = 0;
+    notifyTtsState(false);
     spokenUpToRef.current = 0;
-  }, [spokenUpToRef]);
+  }, [spokenUpToRef, notifyTtsState]);
 
   const speakIncremental = useCallback((fullTextSoFar: string) => {
     const rest = fullTextSoFar.slice(spokenUpToRef.current);

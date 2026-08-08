@@ -38,14 +38,18 @@ EN_VOICES = [
 ALL_VOICES = PT_VOICES + EN_VOICES
 
 
-def synthesize_edge(text, voice):
+def synthesize_edge(text, voice, rate=None):
     """Synthesize text using edge-tts. Returns MP3 bytes."""
     import edge_tts
 
     if voice not in ALL_VOICES:
         voice = DEFAULT_VOICE
 
-    communicate = edge_tts.Communicate(text, voice)
+    kwargs = {}
+    if rate:
+        kwargs["rate"] = rate
+
+    communicate = edge_tts.Communicate(text, voice, **kwargs)
     chunks = []
     for chunk in communicate.stream_sync():
         if chunk["type"] == "audio":
@@ -55,43 +59,87 @@ def synthesize_edge(text, voice):
     return b"".join(chunks)
 
 
+def stream_edge(text, voice, rate=None):
+    """Stream edge-tts audio chunks incrementally (yields audio bytes)."""
+    import edge_tts
+
+    if voice not in ALL_VOICES:
+        voice = DEFAULT_VOICE
+
+    kwargs = {}
+    if rate:
+        kwargs["rate"] = rate
+
+    communicate = edge_tts.Communicate(text, voice, **kwargs)
+    sent = 0
+    for chunk in communicate.stream_sync():
+        if chunk["type"] == "audio":
+            sent += len(chunk["data"])
+            yield chunk["data"]
+    if sent == 0:
+        raise RuntimeError("Edge TTS produced no audio")
+
+
 @app.route("/api/tts", methods=["POST"])
 def tts():
-    """POST { "text": "...", "voice": "pt-BR-FranciscaNeural" } -> MP3 audio."""
+    """POST { "text": "...", "voice": "...", "rate": "+0%" } -> MP3 audio (streamed)."""
     data = request.get_json(silent=True) or {}
     text = data.get("text", "").strip()
     if not text:
         return jsonify({"error": "No text provided"}), 400
     voice = data.get("voice") or DEFAULT_VOICE
+    rate = data.get("rate")
 
-    try:
+    def generate():
         start = time.time()
-        audio_bytes = synthesize_edge(text, voice)
-        elapsed = time.time() - start
-        print(f"[edge] Synthesized {len(audio_bytes)} bytes in {elapsed:.1f}s (voice={voice})", flush=True)
-        return Response(audio_bytes, mimetype="audio/mpeg", headers={
-            "X-Voice": voice,
-        })
-    except Exception as e:
-        print(f"[edge] Synthesis error: {e}", flush=True)
-        return jsonify({"error": str(e)}), 500
+        total = 0
+        try:
+            for chunk in stream_edge(text, voice, rate):
+                total += len(chunk)
+                yield chunk
+            elapsed = time.time() - start
+            print(f"[edge] Streamed {total} bytes in {elapsed:.1f}s (voice={voice})", flush=True)
+        except Exception as e:
+            print(f"[edge] Synthesis error: {e}", flush=True)
+            yield f'{{"error": "{e}"}}'.encode()
+
+    return Response(generate(), mimetype="audio/mpeg", headers={
+        "X-Voice": voice,
+        "X-Accel-Buffering": "no",
+    })
 
 
 @app.route("/v1/audio/speech", methods=["POST"])
 def openai_compat():
-    """OpenAI-compatible TTS endpoint: POST { "input": "...", "voice": "..." } -> MP3."""
+    """OpenAI-compatible TTS endpoint: POST { "input": "...", "voice": "..." } -> MP3 (streamed)."""
     data = request.get_json(silent=True) or {}
     text = data.get("input", "").strip()
     if not text:
         return jsonify({"error": "No input provided"}), 400
     voice = data.get("voice") or DEFAULT_VOICE
 
-    try:
-        audio_bytes = synthesize_edge(text, voice)
-        return Response(audio_bytes, mimetype="audio/mpeg")
-    except Exception as e:
-        print(f"[edge] Synthesis error: {e}", flush=True)
-        return jsonify({"error": str(e)}), 500
+    # OpenAI "speed" (0.25–4.0) maps to edge-tts rate ("+50%" == speed 1.5)
+    speed = data.get("speed")
+    rate = None
+    if speed:
+        try:
+            pct = int(round((float(speed) - 1.0) * 100))
+            rate = f"{pct:+d}%"
+        except (TypeError, ValueError):
+            rate = None
+
+    def generate():
+        try:
+            for chunk in stream_edge(text, voice, rate):
+                yield chunk
+        except Exception as e:
+            print(f"[edge] Synthesis error: {e}", flush=True)
+            yield f'{{"error": "{e}"}}'.encode()
+
+    return Response(generate(), mimetype="audio/mpeg", headers={
+        "X-Voice": voice,
+        "X-Accel-Buffering": "no",
+    })
 
 
 @app.route("/voices", methods=["GET"])
@@ -123,4 +171,4 @@ if __name__ == "__main__":
     print(f"[edge] Edge TTS server on http://{args.host}:{args.port}")
     print(f"[edge] API: POST http://localhost:{args.port}/api/tts")
     print(f"[edge] Default voice: {DEFAULT_VOICE}")
-    app.run(host=args.host, port=args.port, debug=False)
+    app.run(host=args.host, port=args.port, debug=False, threaded=True)

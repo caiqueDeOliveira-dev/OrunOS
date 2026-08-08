@@ -4,7 +4,7 @@ export function PanKnob({ value, onChange }: { value: number; onChange: (v: numb
     <div
       style={{
         width: 24, height: 24, borderRadius: "50%",
-        background: "#0D1117", border: "1px solid #30363D",
+        background: "#0A0A0C", border: "1px solid #1C1C1C",
         position: "relative", cursor: "pointer",
       }}
       onClick={(e) => {
@@ -21,7 +21,7 @@ export function PanKnob({ value, onChange }: { value: number; onChange: (v: numb
       <div
         style={{
           position: "absolute", top: "50%", left: "50%",
-          width: 2, height: 8, background: "#C9D1D9",
+          width: 2, height: 8, background: "#FFFFFF",
           borderRadius: 1, transformOrigin: "center top",
           transform: `translate(-50%, 0) rotate(${angle}deg)`,
         }}

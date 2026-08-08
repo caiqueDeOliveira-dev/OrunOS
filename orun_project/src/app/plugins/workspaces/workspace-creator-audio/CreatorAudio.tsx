@@ -3,6 +3,7 @@ import type { WorkspaceProps } from "../../types";
 import { AIFloatingPrompt } from "../../components/AIFloatingPrompt";
 import { registerCreatorAudioActions, unregisterCreatorAudioActions, cleanupAudioEngine, getAudioEngine } from "./audio-engine";
 import { useDJStore, pushAudioUndo } from "./creator-audio-store";
+import { PremiumRoot } from "../premium";
 import { TopBar } from "./TopBar";
 import { BottomBar } from "./BottomBar";
 import { DeckPanel } from "./DeckPanel";
@@ -88,7 +89,7 @@ export function CreatorAudio({ plugin, activeTab, onTabChange, onSendMessage, la
   }, []);
 
   return (
-    <div className="flex flex-col w-full h-full overflow-hidden" style={{ background: "var(--background)" }}>
+    <PremiumRoot>
       <TopBar />
       <div className="flex-[7] flex p-1.5 gap-1.5 min-h-0">
         <DeckPanel deck="A" />
@@ -98,6 +99,6 @@ export function CreatorAudio({ plugin, activeTab, onTabChange, onSendMessage, la
       <LowerSection />
       <BottomBar />
       <AIFloatingPrompt onSendMessage={onSendMessage} label="Perguntar à IA" />
-    </div>
+    </PremiumRoot>
   );
 }

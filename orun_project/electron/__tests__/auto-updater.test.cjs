@@ -93,8 +93,8 @@ describe("auto-updater", () => {
     expect(autoUpdater.checkForUpdates).toHaveBeenCalledTimes(1);
     expect(autoUpdater.setFeedURL).toHaveBeenCalledWith({
       provider: "github",
-      owner: "grupo-orun",
-      repo: "orun-os",
+      owner: "caiqueDeOliveira-dev",
+      repo: "OrunOS",
     });
   });
 

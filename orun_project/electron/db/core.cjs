@@ -274,6 +274,16 @@ function init(userDataPath, encryptionKey) {
       source TEXT NOT NULL DEFAULT 'app',
       created_at INTEGER NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS app_events (
+      id TEXT PRIMARY KEY,
+      user_id TEXT,
+      device_id TEXT,
+      type TEXT NOT NULL,
+      agent TEXT,
+      detail TEXT,
+      created_at INTEGER NOT NULL
+    );
   `);
 
   const cols = db.prepare(`PRAGMA table_info(conversations)`).all();
@@ -294,6 +304,8 @@ function init(userDataPath, encryptionKey) {
     CREATE INDEX IF NOT EXISTS idx_music_date ON music_projects(date);
     CREATE INDEX IF NOT EXISTS idx_agenda_date ON daily_agenda(date);
     CREATE INDEX IF NOT EXISTS idx_marketing_date ON marketing_log(date);
+    CREATE INDEX IF NOT EXISTS idx_app_events_type ON app_events(type);
+    CREATE INDEX IF NOT EXISTS idx_app_events_created ON app_events(created_at);
   `);
 
   // ── Schema versioning ─────────────────────────────────────────────

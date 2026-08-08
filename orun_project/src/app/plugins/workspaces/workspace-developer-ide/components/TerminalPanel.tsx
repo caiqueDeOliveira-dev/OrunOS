@@ -133,17 +133,17 @@ export function TerminalPanel() {
   }, [activeTerminal]);
 
   return (
-    <div className="flex flex-col h-full" style={{ background: "var(--background, #0D1117)" }}>
-      <div className="flex items-center border-b shrink-0 overflow-x-auto scrollbar-hide" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
+    <div className="flex flex-col h-full" style={{ background: "#050505" }}>
+      <div className="flex items-center border-b shrink-0 overflow-x-auto hs-scroll" style={{ borderColor: "#252525", background: "#141414" }}>
         {terminalTabs.map((tab) => (
           <div
             key={tab.id}
             className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] cursor-pointer border-r shrink-0"
             style={{
-              borderColor: "var(--border)",
-              background: tab.id === activeTerminal ? "var(--background)" : "transparent",
-              color: tab.id === activeTerminal ? "var(--foreground)" : "var(--muted-foreground)",
-              borderBottom: tab.id === activeTerminal ? "2px solid #C00018" : "2px solid transparent",
+              borderColor: "#252525",
+              background: tab.id === activeTerminal ? "#050505" : "transparent",
+              color: tab.id === activeTerminal ? "#FFFFFF" : "#A0A0A0",
+              borderBottom: tab.id === activeTerminal ? "2px solid #C3002F" : "2px solid transparent",
             }}
             onClick={() => useIDEStore.setState({ activeTerminal: tab.id })}
           >
@@ -163,20 +163,20 @@ export function TerminalPanel() {
       </div>
       <div
         ref={(el) => { scrollRefs.current[activeTerminal] = el; }}
-        className="flex-1 overflow-y-auto scrollbar-hide p-2 font-mono text-[10px]"
-        style={{ background: "var(--background)" }}
+        className="flex-1 overflow-y-auto hs-scroll p-2 font-mono text-[10px]"
+        style={{ background: "#050505" }}
         onClick={() => {
           const inputEl = document.querySelector(`[data-terminal-input="${activeTerminal}"]`) as HTMLInputElement;
           inputEl?.focus();
         }}
       >
         {activeLines.length === 0 && (
-          <div className="text-[10px] py-1" style={{ color: "var(--muted-foreground)" }}>Terminal cleared</div>
+          <div className="text-[10px] py-1" style={{ color: "#A0A0A0" }}>Terminal cleared</div>
         )}
         {activeLines.map((line) => (
           <div key={line.id} className="py-[1px] leading-[1.4]" style={{
             fontFamily: "'JetBrains Mono', monospace",
-            color: line.type === "input" ? "#C00018" : line.type === "error" ? "#EF4444" : "#22C55E",
+            color: line.type === "input" ? "#C3002F" : line.type === "error" ? "#EF4444" : "#22C55E",
             whiteSpace: "pre-wrap",
             wordBreak: "break-all",
           }}>
@@ -184,14 +184,14 @@ export function TerminalPanel() {
           </div>
         ))}
         <div className="flex items-center gap-1.5 mt-1">
-          <span style={{ color: "#C00018", fontFamily: "'JetBrains Mono', monospace", fontSize: 10 }}>$</span>
+          <span style={{ color: "#C3002F", fontFamily: "'JetBrains Mono', monospace", fontSize: 10 }}>$</span>
           <input
             data-terminal-input={activeTerminal}
             value={inputVal}
             onChange={(e) => setInputs((prev) => ({ ...prev, [activeTerminal]: e.target.value }))}
             onKeyDown={(e) => { if (e.key === "Enter") executeCommand(inputVal); }}
             className="flex-1 bg-transparent outline-none text-[10px]"
-            style={{ color: "var(--foreground)", fontFamily: "'JetBrains Mono', monospace" }}
+            style={{ color: "#FFFFFF", fontFamily: "'JetBrains Mono', monospace" }}
             placeholder="Type a command..."
           />
         </div>

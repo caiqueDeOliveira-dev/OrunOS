@@ -79,7 +79,7 @@ const actions = {
       y: typeof params.y === "number" ? params.y : 100 + Math.random() * 100,
       width: typeof params.width === "number" ? params.width : 120,
       height: typeof params.height === "number" ? params.height : 120,
-      fill: String(params.fill || "#C00018"),
+      fill: String(params.fill || "#C3002F"),
       rotation: 0, opacity: 1, name: type,
     };
     if (type === "text") {

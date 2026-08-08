@@ -13,6 +13,7 @@ const log = require("electron-log");
 const logger = require("./logger.cjs");
 const { getErrorMessage } = require("./error-messages.cjs");
 const auditLog = require("./audit-log.cjs");
+const developerTools = require("./developer-tools.cjs");
 
 // ── Rate limiter (simple in-memory) ────────────────────────────────────
 const agentRateLimiter = {
@@ -581,6 +582,163 @@ const TOOL_DEFINITIONS = [
       parameters: { type: "object", properties: {} },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "git_status",
+      description: "Show the current git branch and working-tree status of the repo (modified/added/deleted/untracked files). Run inside the project repo.",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "git_log",
+      description: "Show recent commit history (one line per commit: short hash + subject).",
+      parameters: {
+        type: "object",
+        properties: {
+          n: { type: "number", description: "Max commits to show (default 15, max 100)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "git_diff",
+      description: "Show the diff of the working tree (default), of a single ref (base), or between two refs (base..head). Use to review changes before committing.",
+      parameters: {
+        type: "object",
+        properties: {
+          base: { type: "string", description: "Git ref to diff against (branch, tag, commit hash). Omit for working-tree diff." },
+          head: { type: "string", description: "Second ref for a base..head range (optional)." },
+          path: { type: "string", description: "Optional file/subdir filter (comma-separated for several)." },
+          staged: { type: "boolean", description: "Diff the staged (index) changes instead of the working tree." },
+          stat: { type: "boolean", description: "Show a compact diffstat instead of the full diff." },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "git_stash",
+      description: "Stash management: list existing stashes, create one (push), or restore the latest (pop).",
+      parameters: {
+        type: "object",
+        properties: {
+          action: { type: "string", enum: ["list", "push", "pop"], description: "Stash action (default list)." },
+          message: { type: "string", description: "Label for the stash (used with push)." },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "semgrep_scan",
+      description: "Run a Semgrep static-analysis scan over the project (or a subdirectory) to find security/quality issues before shipping. Requires semgrep installed.",
+      parameters: {
+        type: "object",
+        properties: {
+          dir: { type: "string", description: "Subdirectory to scan (default: workspace root)." },
+          pattern: { type: "string", description: "Semgrep pattern or rule expression to scan for (comma-separated allowed)." },
+          config: { type: "string", description: "Semgrep config (built-in ruleset or rules file, comma-separated allowed)." },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "library_docs",
+      description: "Fetch up-to-date documentation/snippets for a library from Context7. Call with libraryName + query to resolve the library first; the result gives a libraryId to call again for the actual doc snippets.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Natural-language question about what you're trying to do." },
+          libraryName: { type: "string", description: "Library name to resolve (e.g. 'react', 'express', 'better-sqlite3'). Omit if libraryId is provided." },
+          libraryId: { type: "string", description: "Resolved Context7 library ID (e.g. '/facebook/react'). Use the ID returned by a search call." },
+          type: { type: "string", enum: ["json", "txt"], description: "Response format (default json)." },
+        },
+        required: ["query"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_weather",
+      description: "Get the current weather and forecast for a city using Open-Meteo (free, no API key). Returns current conditions (temperature, feels like, humidity, wind, condition) plus an N-day forecast (min/max, chance of rain, sunrise/sunset).",
+      parameters: {
+        type: "object",
+        properties: {
+          location: { type: "string", description: "City name, optionally with country, e.g. 'São Paulo' or 'Lisboa, Portugal'." },
+          days: { type: "number", description: "Forecast days (1-7, default 3)." },
+          units: { type: "string", enum: ["metric", "imperial"], description: "Temperature units (default metric)." },
+        },
+        required: ["location"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "git_remote",
+      description: "List git remotes of the repo (name, URL, fetch/push).",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "gh_pr",
+      description: "GitHub PRs via gh CLI: list open PRs, create one (--fill by default), or view a specific PR. Requires gh installed and authenticated.",
+      parameters: {
+        type: "object",
+        properties: {
+          action: { type: "string", enum: ["list", "create", "view"], description: "PR action (default list)." },
+          base: { type: "string", description: "Base branch for the PR (used with create)." },
+          head: { type: "string", description: "Head branch (defaults to current branch) for create." },
+          title: { type: "string", description: "PR title (used with create)." },
+          body: { type: "string", description: "PR body (used with create)." },
+          number: { type: "number", description: "PR number (used with view)." },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "run_tests",
+      description: "Run the project's test suite (Test Generator). Auto-detects the framework (vitest/jest/mocha/npm test, pytest, go test, cargo test) in the workspace or subdirectory and returns pass/fail counts + tail of the output. Use after writing/editing code to verify it stays green.",
+      parameters: {
+        type: "object",
+        properties: {
+          dir: { type: "string", description: "Subdirectory containing the project to test (default: workspace root)." },
+          command: { type: "string", description: "Optional override test command (space-separated args). Example: 'vitest run'." },
+          file: { type: "string", description: "Optional: run a single test file (vitest/jest/mocha/pytest only)." },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "code_review",
+      description: "One-shot review bundle for a code review: changed files (git status), the diff (working tree or between refs), and optionally a semgrep scan. Returns the material for the agent to write the review. Requires a git repo.",
+      parameters: {
+        type: "object",
+        properties: {
+          base: { type: "string", description: "Base ref to diff against (e.g. main)." },
+          head: { type: "string", description: "Head ref (default: working tree)." },
+          staged: { type: "boolean", description: "Only include staged changes." },
+          includeSemgrep: { type: "boolean", description: "Also run a semgrep scan over the workspace (default false)." },
+        },
+      },
+    },
+  },
 ];
 
 // ── Tool implementations ────────────────────────────────────────────────
@@ -869,6 +1027,7 @@ const SENSITIVE_TOOL_ACTIONS = {
   web_search: ["network_request"],
   publish_to_social: ["network_request"],
   generate_image: ["api_key_access", "network_request"],
+  git_stash: ["git_write"],
 };
 
 function buildAuditDetails(name, args) {
@@ -1113,6 +1272,40 @@ async function executeToolRaw(name, args) {
     case "spotify_get_now_playing": {
       const { handleSpotifyAction } = require("./ipc/spotify-handlers.cjs");
       return await handleSpotifyAction("get_now_playing", {});
+    }
+    case "git_status": {
+      return developerTools.gitStatus(getWorkspaceDir());
+    }
+    case "git_log": {
+      return developerTools.gitLog(getWorkspaceDir(), args.n);
+    }
+    case "git_diff": {
+      return developerTools.gitDiff(getWorkspaceDir(), args);
+    }
+    case "git_stash": {
+      return developerTools.gitStash(getWorkspaceDir(), args);
+    }
+    case "git_remote": {
+      return developerTools.gitRemote(getWorkspaceDir());
+    }
+    case "gh_pr": {
+      return developerTools.ghPr(getWorkspaceDir(), args);
+    }
+    case "run_tests": {
+      return developerTools.runTests(getWorkspaceDir(), args);
+    }
+    case "code_review": {
+      return developerTools.codeReview(getWorkspaceDir(), args);
+    }
+    case "semgrep_scan": {
+      return developerTools.semgrepScan(getWorkspaceDir(), args);
+    }
+    case "library_docs": {
+      return await developerTools.libraryDocs(getWorkspaceDir(), args);
+    }
+    case "get_weather": {
+      const weatherTools = require("./weather-tools.cjs");
+      return await weatherTools.getWeather(args);
     }
     default: return { error: `Unknown tool: ${name}` };
   }

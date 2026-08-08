@@ -1,9 +1,11 @@
 import { useRef, useCallback, useEffect, useState } from "react";
 import { VoiceActivityDetector, type VADEvent } from "../voice/vad";
+import { createSileroVAD, type SileroVADHandle } from "../voice/silero-vad";
 import { detectVoiceCommand, stripCommand, type CommandMatch } from "../voice/voice-commands";
 import { saveRecording, type VoiceRecording } from "../voice/voice-history";
 import { transcribeWhisper, createBrowserSTT, type WhisperConfig } from "../voice/whisper-stt";
 import { attachNoiseSuppression } from "../voice/noise-suppression";
+import { blobToCleanWav } from "../voice/audio-clean";
 
 interface SpeechRecognitionEvent extends Event {
   resultIndex: number;
@@ -57,8 +59,11 @@ interface UseVoiceOptions {
   saveHistory?: boolean;
   /** Use noise suppression AudioWorklet */
   noiseSuppression?: boolean;
-  /** Delay (ms) after user stops speaking before sending to AI (default 1200) */
+  /** Delay (ms) after user stops speaking before sending to AI (default 600) */
   responseDelay?: number;
+  /** Only interrupt the AI when the user's speech persists past a 250ms hold
+   * window (avoids cutting TTS on coughs/echo blips). Default true. */
+  sustainedInterrupt?: boolean;
   /** i18n translation function */
   t?: (key: string) => string;
 }
@@ -77,7 +82,8 @@ export function useVoice({
   externalHamptonState,
   saveHistory = true,
   noiseSuppression = true,
-  responseDelay = 1200,
+  responseDelay = 600,
+  sustainedInterrupt = true,
   t,
 }: UseVoiceOptions) {
   // ── State ────────────────────────────────────────────────────────
@@ -94,6 +100,7 @@ export function useVoice({
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const vadRef = useRef<VoiceActivityDetector | null>(null);
+  const sileroVadRef = useRef<SileroVADHandle | null>(null);
   const wakeRecognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const recordingStartRef = useRef(0);
   const volumeIntervalRef = useRef<ReturnType<typeof setInterval>>();
@@ -102,13 +109,34 @@ export function useVoice({
   const browserSTTRef = useRef<{ start: () => void; stop: () => void } | null>(null);
   const noiseSupCtxRef = useRef<AudioContext | null>(null);
   const smartDelayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Re-entrancy guard: startRecording is async and only sets mediaRecorderRef
+  // AFTER awaiting getUserMedia. Without this, two concurrent calls (e.g. the
+  // conversational auto-mic timer + a barge-in that fires in the same window)
+  // both pass `if (mediaRecorderRef.current) return` and create overlapping
+  // recorders/VADs — the loser's stream leaks and the state machine sticks on
+  // "listening" forever, re-triggering the auto-mic → infinite loop.
+  const startingRef = useRef(false);
+
+  // Barge-in monitor: while the AI is speaking (conversational mode) a light VAD
+  // keeps listening; if the user talks over the AI it interrupts TTS and records.
+  const bargeInRef = useRef<{
+    stream: MediaStream;
+    cleaned?: MediaStream;
+    ctx: AudioContext;
+    noiseCtx?: AudioContext | null;
+    analyser: AnalyserNode;
+    vad: VoiceActivityDetector;
+  } | null>(null);
+  const bargeInActiveRef = useRef(false);
+  const bargeInHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const BARGE_IN_HOLD_MS = 250;
 
   // Conversational mode: track hamptonState properly via useState
   const [hamptonState, setHamptonState] = useState<"idle" | "listening" | "thinking" | "speaking">("idle");
 
   // Keep refs for closures
-  const configRef = useRef({ whisperConfig, saveHistory, conversationalMode, responseDelay });
-  configRef.current = { whisperConfig, saveHistory, conversationalMode, responseDelay };
+  const configRef = useRef({ whisperConfig, saveHistory, conversationalMode, responseDelay, noiseSuppression, sustainedInterrupt });
+  configRef.current = { whisperConfig, saveHistory, conversationalMode, responseDelay, noiseSuppression, sustainedInterrupt };
   const tRef = useRef(t);
   tRef.current = t;
 
@@ -120,8 +148,32 @@ export function useVoice({
     setHamptonState(s);
   }, [onStateChange]);
 
+  // ── Barge-in monitor helpers ─────────────────────────────────────
+  const stopBargeInMonitor = useCallback((handoff = false) => {
+    const b = bargeInRef.current;
+    bargeInRef.current = null;
+    bargeInActiveRef.current = false;
+    if (bargeInHoldTimerRef.current) {
+      clearTimeout(bargeInHoldTimerRef.current);
+      bargeInHoldTimerRef.current = null;
+    }
+    if (!b) return;
+    try { b.vad.stop(); } catch { /* already stopped */ }
+    if (!handoff) {
+      // Not handing off to a recorder — release everything.
+      b.stream.getTracks().forEach((t) => t.stop());
+      b.ctx.close().catch(() => {});
+      b.noiseCtx?.close().catch(() => {});
+      if (streamRef.current === b.stream) streamRef.current = null;
+      if (audioContextRef.current === b.ctx) audioContextRef.current = null;
+      if (noiseSupCtxRef.current === b.noiseCtx) noiseSupCtxRef.current = null;
+      if (analyserRef.current === b.analyser) analyserRef.current = null;
+    }
+  }, []);
+
   // ── Cleanup ──────────────────────────────────────────────────────
   const cleanup = useCallback(() => {
+    stopBargeInMonitor(false);
     if (smartDelayTimerRef.current) {
       clearTimeout(smartDelayTimerRef.current);
       smartDelayTimerRef.current = null;
@@ -142,6 +194,10 @@ export function useVoice({
       vadRef.current.stop();
       vadRef.current = null;
     }
+    if (sileroVadRef.current) {
+      sileroVadRef.current.destroy();
+      sileroVadRef.current = null;
+    }
     if (browserSTTRef.current) {
       browserSTTRef.current.stop();
       browserSTTRef.current = null;
@@ -152,7 +208,7 @@ export function useVoice({
     setVolume(0);
     setPartialTranscript("");
     if (volumeIntervalRef.current) clearInterval(volumeIntervalRef.current);
-  }, []);
+  }, [stopBargeInMonitor]);
 
   // ── Get audio stream + analyser ──────────────────────────────────
   const getStream = useCallback(async () => {
@@ -180,19 +236,23 @@ export function useVoice({
       console.error("[voice] CRITICAL: getUserMedia returned NO audio tracks!");
     }
 
-    // Apply noise suppression worklet if enabled
-    let recordStream = stream;
+    // Apply noise suppression worklet — used ONLY for VAD analysis. The recorder
+    // MUST capture the RAW stream: recording an AudioWorklet's MediaStreamDestination
+    // produces a corrupt WebM (invalid EBML header) that STT rejects.
+    let cleanedStream: MediaStream | undefined;
     if (noiseSuppression) {
       try {
-        const { cleanedStream, ctx, ready } = await attachNoiseSuppression(stream);
+        const { cleanedStream: cleaned, ctx, ready } = await attachNoiseSuppression(stream);
         await ready;
         noiseSupCtxRef.current = ctx;
-        // Use cleaned stream for recording but keep original for VAD
-        recordStream = cleanedStream;
+        cleanedStream = cleaned;
       } catch (err) {
         console.warn("[voice] noise suppression failed, using raw stream:", err);
       }
     }
+
+    // ALWAYS record the raw stream (valid WebM guaranteed)
+    const recordStream = stream;
 
     streamRef.current = stream;
 
@@ -211,7 +271,7 @@ export function useVoice({
     source.connect(analyser);
     analyserRef.current = analyser;
 
-    return { rawStream: stream, recordStream };
+    return { rawStream: stream, recordStream, cleanedStream };
   }, [noiseSuppression]);
 
   // ── Volume analyser ──────────────────────────────────────────────
@@ -252,58 +312,48 @@ export function useVoice({
       return;
     }
 
-    // Try Whisper STT if configured, with auto-detect fallback
-    const cfg = configRef.current.whisperConfig;
-    const sttUrls = [cfg?.baseUrl, "http://localhost:8080"].filter(Boolean) as string[];
-
-    for (const url of sttUrls) {
-      try {
-        let result: { text: string; language?: string };
-        if (window.orun?.stt?.transcribe) {
-          const blobMimeType = audioBlob.type || "audio/webm";
-          const arrayBuffer = await audioBlob.arrayBuffer();
-          const bytes = new Uint8Array(arrayBuffer);
-          let binary = "";
-          const chunkSize = 8192;
-          for (let i = 0; i < bytes.length; i += chunkSize) {
-            binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunkSize)));
-          }
-          const audioBase64 = btoa(binary);
-          console.log("[voice] IPC STT: calling", url, "audioSize=", audioBase64.length);
-          result = await window.orun.stt.transcribe({ baseUrl: url, audioBase64, mimeType: blobMimeType, language: cfg?.language || "pt" });
-          console.log("[voice] IPC STT result:", JSON.stringify(result));
-        } else {
-          result = await transcribeWhisper(audioBlob, { baseUrl: url, language: cfg?.language || "pt" });
-        }
-        if (result.text?.trim()) {
-          onTranscript(result.text.trim());
-          if (configRef.current.saveHistory) {
-            const rec = await saveRecording(audioBlob, result.text, duration, result.language);
-            setLastRecording(rec);
-          }
-          return;
-        }
-      } catch (err) {
-        console.warn("[voice] STT failed on", url, ":", err);
+    // Clean the audio BEFORE sending: decode to PCM, apply noise gate when
+    // enabled, re-encode as 16kHz mono WAV. Recording the raw stream produces a
+    // valid WebM, but converting to WAV here guarantees STT compatibility (and
+    // skips ffmpeg conversion in the local server entirely).
+    let cleanBlob = audioBlob;
+    let cleanMime = mimeType;
+    try {
+      cleanBlob = await blobToCleanWav(audioBlob, configRef.current.noiseSuppression);
+      if (cleanBlob.type === "audio/wav") {
+        cleanMime = "audio/wav";
+      } else {
+        console.warn("[voice] audio decode failed, sending original as", cleanBlob.type, "size", cleanBlob.size);
       }
+    } catch (err) {
+      console.warn("[voice] audio clean failed, sending original:", err);
     }
 
-    // Cloud fallback: Groq distil-whisper (rápido, pt-BR) quando o servidor local falhou
+    // STT order: Groq cloud (whisper-large-v3-turbo) FIRST — fast (~1s) and
+    // accurate for natural pt-BR speech — then the local faster-whisper server
+    // (good but slower on CPU and less robust to casual speech), then browser
+    // SpeechRecognition. If no Groq key exists, transcribeGroq throws quickly
+    // and we fall through to the local server.
+    const toBase64 = async () => {
+      const arrayBuffer = await cleanBlob.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+      let binary = "";
+      const chunkSize = 8192;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunkSize)));
+      }
+      return btoa(binary);
+    };
+
+    const cfg = configRef.current.whisperConfig;
+
     if (window.orun?.stt?.transcribeGroq) {
       try {
-        const blobMimeType = audioBlob.type || "audio/webm";
-        const arrayBuffer = await audioBlob.arrayBuffer();
-        const bytes = new Uint8Array(arrayBuffer);
-        let binary = "";
-        const chunkSize = 8192;
-        for (let i = 0; i < bytes.length; i += chunkSize) {
-          binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunkSize)));
-        }
-        const audioBase64 = btoa(binary);
-        console.log("[voice] Groq STT fallback (distil-whisper), audioSize=", audioBase64.length);
+        const audioBase64 = await toBase64();
+        console.log("[voice] Groq STT (whisper-large-v3-turbo), audioSize=", audioBase64.length);
         const result = await window.orun.stt.transcribeGroq({
           audioBase64,
-          mimeType: blobMimeType,
+          mimeType: cleanMime,
           language: cfg?.language || "pt",
         });
         if (result?.text?.trim() && !result.error) {
@@ -316,7 +366,34 @@ export function useVoice({
         }
         if (result?.error) console.warn("[voice] Groq STT:", result.error);
       } catch (err) {
-        console.warn("[voice] Groq STT failed:", err);
+        console.warn("[voice] Groq STT failed, falling back to local:", err);
+      }
+    }
+
+    // Local Whisper fallback
+    const sttUrls = [cfg?.baseUrl, "http://127.0.0.1:8080"].filter(Boolean) as string[];
+
+    for (const url of sttUrls) {
+      try {
+        let result: { text: string; language?: string };
+        if (window.orun?.stt?.transcribe) {
+          const audioBase64 = await toBase64();
+          console.log("[voice] IPC STT: calling", url, "audioSize=", audioBase64.length);
+          result = await window.orun.stt.transcribe({ baseUrl: url, audioBase64, mimeType: cleanMime, language: cfg?.language || "pt" });
+          console.log("[voice] IPC STT result:", JSON.stringify(result));
+        } else {
+          result = await transcribeWhisper(cleanBlob, { baseUrl: url, language: cfg?.language || "pt" });
+        }
+        if (result.text?.trim()) {
+          onTranscript(result.text.trim());
+          if (configRef.current.saveHistory) {
+            const rec = await saveRecording(audioBlob, result.text, duration, result.language);
+            setLastRecording(rec);
+          }
+          return;
+        }
+      } catch (err) {
+        console.warn("[voice] STT failed on", url, ":", err);
       }
     }
 
@@ -334,14 +411,35 @@ export function useVoice({
   }, [onTranscript, onCommand, updateState]);
 
   // ── Start recording with VAD + STT ──────────────────────────────
-  const startRecording = useCallback(async () => {
-    if (mediaRecorderRef.current) return;
+  const startRecording = useCallback(async (reuse = false) => {
+    if (startingRef.current || mediaRecorderRef.current) return;
+    startingRef.current = true;
 
     // Stop TTS if playing (interrupt)
     onStopTTS?.();
 
     try {
-      const { rawStream, recordStream } = await getStream();
+      let rawStream: MediaStream;
+      let recordStream: MediaStream;
+      let cleanedStream: MediaStream | undefined;
+
+      if (reuse && bargeInRef.current) {
+        // Reuse the mic stream already opened by the barge-in monitor so we don't
+        // lose the first syllables of the interruption ("pa-ra..."). Stop the
+        // monitor's VAD loop but keep the tracks alive for the recorder.
+        rawStream = bargeInRef.current.stream;
+        recordStream = bargeInRef.current.stream;
+        cleanedStream = bargeInRef.current.cleaned;
+        try { bargeInRef.current.vad.stop(); } catch { /* already stopped */ }
+        bargeInRef.current = null;
+        bargeInActiveRef.current = false;
+      } else {
+        const res = await getStream();
+        rawStream = res.rawStream;
+        recordStream = res.recordStream;
+        cleanedStream = res.cleanedStream;
+      }
+
       const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
         ? "audio/webm;codecs=opus"
         : MediaRecorder.isTypeSupported("audio/webm")
@@ -375,31 +473,65 @@ export function useVoice({
 
       mediaRecorderRef.current = recorder;
       recorder.start(250); // 250ms timeslices for faster data flow
+      startingRef.current = false;
       setIsRecording(true);
       updateState("listening");
       startVolumeAnalyser();
 
       // Start VAD for precise speech detection (no time limit — VAD auto-stops)
+      // Adaptive silence: short commands send fast (~0.6s), long statements keep
+      // up to 1.8s of pause room. Adaptive noise floor ignores ambient hum.
       const vad = new VoiceActivityDetector({
         speechThreshold: 0.025,
         silenceThreshold: 0.008,
-        silenceDuration: 2500,
+        silenceDuration: 1800,
         hangover: 500,
         minSpeechDuration: 300,
+        adaptiveFloor: true,
+        adaptiveSilence: { base: 600, max: 1800, perSecond: 120 },
       });
 
-      vad.start(rawStream, (event: VADEvent) => {
-        if (event.type === "speech_end") {
-          // Smart delay: wait a few seconds after user stops speaking
-          // This gives them time to continue if they paused briefly
-          smartDelayTimerRef.current = setTimeout(() => {
-            if (mediaRecorderRef.current?.state === "recording") {
-              mediaRecorderRef.current.stop();
-            }
-          }, configRef.current.responseDelay);
+      // Shared end-of-speech action: wait responseDelay, then stop the recorder.
+      let sileroUpgraded = false;
+      const stopViaVad = () => {
+        smartDelayTimerRef.current = setTimeout(() => {
+          if (mediaRecorderRef.current?.state === "recording") {
+            mediaRecorderRef.current.stop();
+          }
+        }, configRef.current.responseDelay);
+      };
+
+      // Feed VAD the noise-suppressed stream when available — background noise
+      // would otherwise keep energy above the silence threshold and prevent
+      // speech_end from ever firing (auto-send never happens).
+      vad.start(cleanedStream ?? rawStream, (event: VADEvent) => {
+        if (event.type === "speech_end" && !sileroUpgraded) {
+          stopViaVad();
         }
       });
       vadRef.current = vad;
+
+      // Silero VAD upgrade (async): the trained model is far more accurate than
+      // RMS. RMS runs immediately so end-of-speech works from the first syllable;
+      // Silero replaces it as soon as the model loads. On any failure the RMS
+      // VAD stays active (additive, never a blocker).
+      const sileroCtx = audioContextRef.current;
+      if (sileroCtx) {
+        createSileroVAD(cleanedStream ?? rawStream, sileroCtx, {
+          onSpeechStart: () => {},
+          onSpeechEnd: () => stopViaVad(),
+        }).then((silero) => {
+          if (!silero || !mediaRecorderRef.current || sileroUpgraded) {
+            silero?.destroy();
+            return;
+          }
+          sileroUpgraded = true;
+          try { vadRef.current?.stop(); } catch { /* already stopped */ }
+          vadRef.current = null;
+          sileroVadRef.current = silero;
+          silero.start().catch(() => {});
+        }).catch(() => {});
+      }
 
       // Start browser STT for real-time transcription
       const browserSTT = createBrowserSTT(
@@ -423,6 +555,7 @@ export function useVoice({
 
     } catch (err) {
       console.error("[voice] failed to start:", err);
+      startingRef.current = false;
       updateState("idle");
       cleanup();
     }
@@ -441,6 +574,10 @@ export function useVoice({
     if (vadRef.current) {
       vadRef.current.stop();
       vadRef.current = null;
+    }
+    if (sileroVadRef.current) {
+      sileroVadRef.current.destroy();
+      sileroVadRef.current = null;
     }
     if (mediaRecorderRef.current?.state === "recording") {
       mediaRecorderRef.current.stop();
@@ -530,7 +667,9 @@ export function useVoice({
             transcript.includes("oie orun") ||
             transcript.includes("hey orun") ||
             transcript.includes("hampton") ||
-            transcript.includes("oi hampton")
+            transcript.includes("oi hampton") ||
+            transcript.includes("ampton") ||
+            transcript.includes("amton")
           ) {
             recognition.stop();
             setIsWakeListening(false);
@@ -577,6 +716,61 @@ export function useVoice({
     };
   }, [wakeWordEnabled, wakeWord]);
 
+  // ── Barge-in: listen while the AI speaks ─────────────────────────
+  // While conversational mode is on and the AI is speaking, run a light VAD on
+  // the mic. If the user talks over the AI: stop TTS immediately, then start
+  // recording (reusing the already-open stream) so the interruption is captured.
+  const startBargeInMonitor = useCallback(async () => {
+    if (!configRef.current.conversationalMode) return;
+    if (mediaRecorderRef.current) return; // already recording
+    if (bargeInRef.current) return; // already monitoring
+
+    try {
+      const { rawStream, cleanedStream } = await getStream();
+      const ctx = audioContextRef.current;
+      const analyser = analyserRef.current;
+      const noiseCtx = noiseSupCtxRef.current;
+      if (!ctx || !analyser) {
+        rawStream.getTracks().forEach((t) => t.stop());
+        return;
+      }
+
+      const vad = new VoiceActivityDetector({
+        speechThreshold: 0.035, // a bit higher than recording VAD — avoid self-trigger from TTS echo
+        silenceThreshold: 0.012,
+        silenceDuration: 1200,
+        hangover: 250,
+        minSpeechDuration: 200,
+        adaptiveFloor: true,
+      });
+      bargeInRef.current = { stream: rawStream, cleaned: cleanedStream, ctx, noiseCtx, analyser, vad };
+      bargeInActiveRef.current = true;
+
+      vad.start(cleanedStream ?? rawStream, (event: VADEvent) => {
+        // User started talking over the AI. With sustainedInterrupt on, hold
+        // for a short window and only interrupt if speech persists (a cough or
+        // TTS echo blip shorter than the hold is ignored). Otherwise interrupt
+        // immediately — startRecording stops TTS and reuses the open stream.
+        if (event.type === "speech_start" && bargeInActiveRef.current) {
+          if (configRef.current.sustainedInterrupt) {
+            bargeInHoldTimerRef.current = setTimeout(() => {
+              if (bargeInActiveRef.current) startRecordingRef.current(true);
+            }, BARGE_IN_HOLD_MS);
+          } else {
+            startRecordingRef.current(true);
+          }
+        } else if (event.type === "speech_end" && bargeInActiveRef.current) {
+          if (bargeInHoldTimerRef.current) {
+            clearTimeout(bargeInHoldTimerRef.current);
+            bargeInHoldTimerRef.current = null;
+          }
+        }
+      });
+    } catch {
+      // Mic unavailable mid-speech — skip barge-in this time.
+    }
+  }, [getStream, stopBargeInMonitor]);
+
   // ── Conversational mode: auto-mic after AI finishes speaking ────
   const prevHamptonState = useRef<"idle" | "listening" | "thinking" | "speaking">("idle");
   const wasSpeakingRef = useRef(false);
@@ -584,6 +778,29 @@ export function useVoice({
   // Use external state from parent (HomeScreen) when available — this reflects
   // useChat's direct onHamptonStateChange calls that bypass useVoice's local state
   const effectiveHamptonState = externalHamptonState ?? hamptonState;
+
+  // Keep stateRef in sync with the authoritative display state. useChat drives
+  // the state via onHamptonStateChange (externalHamptonState), which does NOT go
+  // through updateState — processAudio leaves stateRef on "thinking" and nothing
+  // else clears it, so the auto-mic (below) and wake-word guards (which require
+  // stateRef.current === "idle") never fire → the mic never re-opens after the
+  // first reply and the conversation can't continue.
+  useEffect(() => {
+    if (externalHamptonState) stateRef.current = externalHamptonState;
+  }, [externalHamptonState]);
+
+  // Barge-in: arm the mic monitor while the AI is speaking.
+  useEffect(() => {
+    if (!configRef.current.conversationalMode) {
+      stopBargeInMonitor(false);
+      return;
+    }
+    if (effectiveHamptonState === "speaking") {
+      startBargeInMonitor();
+    } else {
+      stopBargeInMonitor(false);
+    }
+  }, [effectiveHamptonState, startBargeInMonitor, stopBargeInMonitor]);
 
   useEffect(() => {
     if (!conversationalMode) return;
@@ -598,7 +815,7 @@ export function useVoice({
       wasSpeakingRef.current = false;
       const timer = setTimeout(() => {
         if (stateRef.current === "idle") {
-          startRecording();
+          startRecordingRef.current();
         }
       }, 800);
       return () => clearTimeout(timer);
@@ -610,7 +827,7 @@ export function useVoice({
     }
 
     prevHamptonState.current = effectiveHamptonState;
-  }, [conversationalMode, effectiveHamptonState, startRecording]);
+  }, [conversationalMode, effectiveHamptonState]);
 
   // Cleanup on unmount
   useEffect(() => () => cleanup(), [cleanup]);

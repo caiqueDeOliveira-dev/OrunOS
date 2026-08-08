@@ -23,8 +23,8 @@ export function CompositingSection() {
 
       <PropRow label={t("creator_video_opacity")}>
         <div className="flex items-center gap-2">
-          <input type="range" min={0} max={100} value={opacity} onChange={(e) => useVideoStore.setState({ opacity: Number(e.target.value) })} className="flex-1" style={{ accentColor: "#C00018", height: 3 }} />
-          <span style={{ fontSize: 9, fontFamily: MONO, color: "#8B949E", minWidth: 28, textAlign: "right" }}>{opacity}%</span>
+          <input type="range" min={0} max={100} value={opacity} onChange={(e) => useVideoStore.setState({ opacity: Number(e.target.value) })} className="flex-1" style={{ accentColor: "#C3002F", height: 3 }} />
+          <span style={{ fontSize: 9, fontFamily: MONO, color: "#A0A0A0", minWidth: 28, textAlign: "right" }}>{opacity}%</span>
         </div>
       </PropRow>
     </>

@@ -12,7 +12,7 @@ export function MixerCenter() {
   const crossfader = useDJStore((s) => s.crossfader);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", borderRadius: 10, background: "linear-gradient(180deg, #181C28 0%, #0E111A 100%)", border: `1px solid rgba(255,255,255,0.08)`, boxShadow: "0 8px 32px rgba(0,0,0,0.6)", overflow: "hidden", minWidth: 0, flex: 1 }}>
+    <div style={{ display: "flex", flexDirection: "column", borderRadius: 12, background: "linear-gradient(180deg, #101013 0%, #0A0A0C 100%)", border: "1px solid #252525", boxShadow: "0 8px 32px rgba(0,0,0,0.6)", overflow: "hidden", minWidth: 0, flex: 1 }}>
       {/* Mixer header */}
       <div style={{ padding: "6px 8px", borderBottom: `1px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(0,0,0,0.3)" }}>
         <span style={{ fontSize: 9, color: GREEN, fontFamily: FONT_MONO, fontWeight: 700 }}>NEON VU METERS</span>
@@ -23,7 +23,7 @@ export function MixerCenter() {
       </div>
 
       {/* Channel strips */}
-      <div style={{ flex: 1, display: "flex", overflow: "hidden", background: "rgba(0,0,0,0.2)" }}>
+      <div className="hs-scroll" style={{ flex: 1, display: "flex", overflowX: "auto", overflowY: "hidden", background: "rgba(0,0,0,0.2)" }}>
         {channels.map((ch) => (
           <ChannelStrip key={ch.id} ch={ch} />
         ))}
@@ -45,7 +45,7 @@ export function MixerCenter() {
           <div style={{ display: "flex", justifyContent: "space-between", width: "100%", alignItems: "center" }}>
             <span style={{ fontSize: 10, color: ACCENT, fontFamily: FONT_LABEL, fontWeight: 900, textShadow: `0 0 8px ${ACCENT}` }}>DECK A</span>
             <span style={{ fontSize: 8, color: TEXT_DIM, fontFamily: FONT_LABEL, letterSpacing: 1.5, fontWeight: 700 }}>CROSSFADER</span>
-            <span style={{ fontSize: 10, color: "#3B82F6", fontFamily: FONT_LABEL, fontWeight: 900, textShadow: "0 0 8px #3B82F6" }}>DECK B</span>
+            <span style={{ fontSize: 10, color: "#4DA3FF", fontFamily: FONT_LABEL, fontWeight: 900, textShadow: "0 0 8px #4DA3FF" }}>DECK B</span>
           </div>
           <input
             type="range"
@@ -53,7 +53,7 @@ export function MixerCenter() {
             max={100}
             value={Math.round((crossfader + 1) * 50)}
             onChange={(e) => useDJStore.setState({ crossfader: (Number(e.target.value) / 50) - 1 })}
-            style={{ width: "100%", height: 6, accentColor: crossfader <= 0 ? ACCENT : "#3B82F6", cursor: "pointer" }}
+            style={{ width: "100%", height: 6, accentColor: crossfader <= 0 ? ACCENT : "#4DA3FF", cursor: "pointer" }}
           />
         </div>
       </div>

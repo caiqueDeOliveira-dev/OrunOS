@@ -18,6 +18,7 @@ import { useVoiceSettings } from "./hooks/useVoiceSettings";
 import { AgentCardSkeleton } from "./components/Skeleton";
 import { ChatView } from "./components/ChatView";
 import { WorkspaceView } from "./components/WorkspaceView";
+import { HomeHampton } from "./plugins/workspaces/workspace-home-ia/HomeHampton";
 import { PluginSettings } from "./plugins/PluginSettings";
 import { ProfilePanel } from "./components/ProfilePanel";
 import { TelegramPanel } from "./components/TelegramPanel";
@@ -48,7 +49,6 @@ const WORKSPACE_PLUGINS = [
   () => import("./plugins/workspaces/workspace-cyber-security"),
 ];
 
-const HamptonAvatar = lazy(() => import("./components/HamptonAvatar").then(m => ({ default: m.HamptonAvatar })));
 const HamptonWolf = lazy(() => import("./components/HamptonWolf").then(m => ({ default: m.HamptonWolf })));
 const SettingsPanel = lazy(() => import("./components/SettingsPanel").then(m => ({ default: m.SettingsPanel })));
 const AgentModelsPanel = lazy(() => import("./components/AgentModelsPanel").then(m => ({ default: m.AgentModelsPanel })));
@@ -64,6 +64,10 @@ const FilesPanel = lazy(() => import("./components/FilesPanel").then(m => ({ def
 const SchedulesPanel = lazy(() => import("./components/SchedulesPanel").then(m => ({ default: m.SchedulesPanel })));
 const SocialMediaPanel = lazy(() => import("./components/SocialMediaPanel").then(m => ({ default: m.SocialMediaPanel })));
 const MemoryPanel = lazy(() => import("./components/MemoryPanel").then(m => ({ default: m.MemoryPanel })));
+const SkillsPanel = lazy(() => import("./components/SkillsPanel").then(m => ({ default: m.SkillsPanel })));
+const PlannerPanel = lazy(() => import("./components/PlannerPanel").then(m => ({ default: m.PlannerPanel })));
+const AgentHubPanel = lazy(() => import("./components/AgentHubPanel").then(m => ({ default: m.AgentHubPanel })));
+const AnalyticsPanel = lazy(() => import("./components/AnalyticsPanel").then(m => ({ default: m.AnalyticsPanel })));
 const CommandPalette = lazy(() => import("./components/CommandPalette").then(m => ({ default: m.CommandPalette })));
 const ExportPanel = lazy(() => import("./components/ExportPanel").then(m => ({ default: m.ExportPanel })));
 const AgentPage = lazy(() => import("./components/AgentPage").then(m => ({ default: m.AgentPage })));
@@ -195,6 +199,7 @@ export function HomeScreen() {
     externalHamptonState: hamptonState,
     noiseSuppression: voiceSettings.noiseSuppression,
     responseDelay: voiceSettings.responseDelay,
+    sustainedInterrupt: voiceSettings.sustainedInterrupt,
     t,
   });
 
@@ -260,6 +265,78 @@ export function HomeScreen() {
     };
     window.addEventListener("workspace:open", handler);
     return () => window.removeEventListener("workspace:open", handler);
+  }, [nav]);
+
+  // Route voice "open <app>" commands to the right panel/workspace
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { target } = (e as CustomEvent).detail || {};
+      if (!target) return;
+      switch (target) {
+        case "settings":
+          nav.setSettingsOpen(true);
+          break;
+        case "agents":
+          nav.setAgentsOpen(true);
+          nav.setActiveNav("agents");
+          break;
+        case "telegram":
+          nav.setSettingsOpen(false);
+          setTelegramOpen(true);
+          break;
+        case "whatsapp":
+          nav.setSettingsOpen(false);
+          nav.setWhatsappOpen(true);
+          break;
+        case "calendar":
+          nav.setCalendarOpen(true);
+          nav.setActiveNav("calendar");
+          break;
+        case "email":
+          nav.setEmailOpen(true);
+          nav.setActiveNav("email");
+          break;
+        case "memory":
+          nav.setMemoryOpen(true);
+          nav.setActiveNav("memory");
+          break;
+        case "skills":
+          nav.setSkillsOpen(true);
+          nav.setActiveNav("skills");
+          break;
+        case "planner":
+          nav.setPlannerOpen(true);
+          nav.setActiveNav("planner");
+          break;
+        case "agentHub":
+          nav.setAgentHubOpen(true);
+          nav.setActiveNav("agentHub");
+          break;
+        case "analytics":
+          nav.setAnalyticsOpen(true);
+          nav.setActiveNav("analytics");
+          break;
+        case "files":
+          nav.setFilesOpen(true);
+          nav.setActiveNav("files");
+          break;
+        case "projects":
+          nav.setProjectsOpen(true);
+          nav.setActiveNav("projects");
+          break;
+        default:
+          break;
+      }
+    };
+    window.addEventListener("voice:open", handler);
+    return () => window.removeEventListener("voice:open", handler);
+  }, [nav]);
+
+  // Abrir o seletor de vozes a partir do widget compacto de voz
+  useEffect(() => {
+    const handler = () => nav.setVoicesOpen(true);
+    window.addEventListener("voice:openVoices", handler);
+    return () => window.removeEventListener("voice:openVoices", handler);
   }, [nav]);
 
   const isStreaming = hamptonState === "speaking" || hamptonState === "thinking";
@@ -331,6 +408,10 @@ export function HomeScreen() {
           {nav.projectsOpen && <ProjectsPanel onClose={() => { nav.setProjectsOpen(false); nav.setActiveNav("home"); }} />}
           {nav.filesOpen && <FilesPanel onClose={() => { nav.setFilesOpen(false); nav.setActiveNav("home"); }} />}
           {nav.memoryOpen && <MemoryPanel onClose={() => { nav.setMemoryOpen(false); nav.setActiveNav("home"); }} />}
+          {nav.skillsOpen && <SkillsPanel onClose={() => { nav.setSkillsOpen(false); nav.setActiveNav("home"); }} />}
+          {nav.plannerOpen && <PlannerPanel onClose={() => { nav.setPlannerOpen(false); nav.setActiveNav("home"); }} />}
+          {nav.agentHubOpen && <AgentHubPanel onClose={() => { nav.setAgentHubOpen(false); nav.setActiveNav("home"); }} />}
+          {nav.analyticsOpen && <AnalyticsPanel onClose={() => { nav.setAnalyticsOpen(false); nav.setActiveNav("home"); }} />}
           {nav.socialMediaOpen && <SocialMediaPanel onClose={() => { nav.setSocialMediaOpen(false); nav.setActiveNav("home"); }} onSelectAgent={(name) => { nav.setSocialMediaOpen(false); nav.setActiveNav("home"); handleSelectAgent(name); }} />}
           {nav.exportImportOpen && <ExportPanel onClose={() => nav.setExportImportOpen(false)} />}
           {nav.activityOpen && <ActivityLog onClose={() => { nav.setActivityOpen(false); nav.setActiveNav("home"); }} />}
@@ -402,9 +483,19 @@ export function HomeScreen() {
           <div className="flex-1 flex flex-col overflow-hidden pb-12">
             <AnimatePresence mode="wait">
               {!chat.chatMode ? (
-                <motion.div className="flex-1 flex items-center justify-center" animate={konamiSpinning ? { rotate: 360, scale: [1, 1.15, 1] } : {}} transition={{ duration: 0.8 }}>
+                <motion.div className="flex-1 flex items-center justify-center relative overflow-hidden" animate={konamiSpinning ? { rotate: 360, scale: [1, 1.15, 1] } : {}} transition={{ duration: 0.8 }}>
+                  <div
+                    className="absolute pointer-events-none"
+                    style={{
+                      width: 720,
+                      height: 720,
+                      borderRadius: "50%",
+                      background: "radial-gradient(circle, rgba(195,0,47,0.12) 0%, rgba(195,0,47,0.05) 40%, transparent 70%)",
+                      boxShadow: "0 0 120px rgba(195,0,47,0.06)",
+                    }}
+                  />
                   <Suspense fallback={null}>
-                    <HamptonAvatar state={hamptonState} />
+                    <HomeHampton state={hamptonState} image="./LogoIA.png" size={230} />
                   </Suspense>
                 </motion.div>
               ) : (
@@ -413,7 +504,7 @@ export function HomeScreen() {
                   hamptonState={hamptonState}
                   isStreaming={isStreaming}
                   isLoadingMessages={chat.isLoadingMessages}
-                  activeAgentName={chat.activeAgent}
+                  activeAgentName={currentAgent?.persona || chat.activeAgent}
                   onStopStreaming={chat.stopStreaming}
                   onEditMessage={chat.editMessage}
                   onRegenerate={chat.regenerate}

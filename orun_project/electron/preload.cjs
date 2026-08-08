@@ -48,7 +48,7 @@ contextBridge.exposeInMainWorld("orun", {
      * Callbacks: onToolCall({id,name,arguments}), onToolResult({id,name,result}),
      *            onDone(fullText), onError(message)
      */
-    autonomous(messages, { onToolCall, onToolResult, onChunk, onDone, onError, agentId } = {}) {
+    autonomous(messages, { onToolCall, onToolResult, onChunk, onDone, onError, agentId, voiceMode } = {}) {
   const requestId = crypto.randomUUID();
       const tcChannel = `ai:autonomous:tool-call:${requestId}`;
       const trChannel = `ai:autonomous:tool-result:${requestId}`;
@@ -76,7 +76,7 @@ contextBridge.exposeInMainWorld("orun", {
       ipcRenderer.on(textChannel, handleText);
       ipcRenderer.on(doneChannel, handleDone);
       ipcRenderer.on(errorChannel, handleError);
-      ipcRenderer.send("ai:autonomous", { requestId, messages, agentId });
+      ipcRenderer.send("ai:autonomous", { requestId, messages, agentId, voiceMode });
 
       return function stop() {
         if (finished) return;
@@ -357,6 +357,59 @@ contextBridge.exposeInMainWorld("orun", {
     unload: (id) => ipcRenderer.invoke("plugins:unload", id),
     loadAll: () => ipcRenderer.invoke("plugins:load-all"),
   },
+  skills: {
+    list: () => ipcRenderer.invoke("skills:list"),
+    details: (id) => ipcRenderer.invoke("skills:details", { id }),
+    install: (srcDir, force) => ipcRenderer.invoke("skills:install", { srcDir, force }),
+    installDialog: () => ipcRenderer.invoke("skills:install-dialog"),
+    uninstall: (id, force) => ipcRenderer.invoke("skills:uninstall", { id, force }),
+    setEnabled: (id, enabled) => ipcRenderer.invoke("skills:set-enabled", { id, enabled }),
+    reload: () => ipcRenderer.invoke("skills:reload"),
+    tools: () => ipcRenderer.invoke("skills:tools"),
+    dir: () => ipcRenderer.invoke("skills:dir"),
+    openDir: () => ipcRenderer.invoke("skills:open-dir"),
+  },
+  memory: {
+    save: (entry) => ipcRenderer.invoke("memory:save", entry),
+    search: (opts) => ipcRenderer.invoke("memory:search", opts),
+    inject: (opts) => ipcRenderer.invoke("memory:inject", opts),
+    consolidate: (opts) => ipcRenderer.invoke("memory:consolidate", opts),
+    remove: (id) => ipcRenderer.invoke("memory:remove", { id }),
+    stats: () => ipcRenderer.invoke("memory:stats"),
+    list: () => ipcRenderer.invoke("memory:list"),
+  },
+  knowledge: {
+    save: (doc) => ipcRenderer.invoke("knowledge:save", doc),
+    changelog: (opts) => ipcRenderer.invoke("knowledge:changelog", opts),
+    diary: (opts) => ipcRenderer.invoke("knowledge:diary", opts),
+    adr: (opts) => ipcRenderer.invoke("knowledge:adr", opts),
+    list: (opts) => ipcRenderer.invoke("knowledge:list", opts),
+    get: (id) => ipcRenderer.invoke("knowledge:get", { id }),
+    remove: (id) => ipcRenderer.invoke("knowledge:remove", { id }),
+    stats: () => ipcRenderer.invoke("knowledge:stats"),
+  },
+  planner: {
+    create: (opts) => ipcRenderer.invoke("planner:create", opts),
+    list: (opts) => ipcRenderer.invoke("planner:list", opts),
+    get: (id) => ipcRenderer.invoke("planner:get", { id }),
+    update: (id, patch) => ipcRenderer.invoke("planner:update", { id, patch }),
+    next: (goalId) => ipcRenderer.invoke("planner:next", { goalId }),
+    run: (goalId) => ipcRenderer.invoke("planner:run", { goalId }),
+    plan: (goal, context) => ipcRenderer.invoke("planner:plan", { goal, context }),
+    review: (goalId) => ipcRenderer.invoke("planner:review", { goalId }),
+    stats: () => ipcRenderer.invoke("planner:stats"),
+  },
+  agentHub: {
+    list: () => ipcRenderer.invoke("agent-hub:list"),
+    get: (id) => ipcRenderer.invoke("agent-hub:get", { id }),
+    route: (request, context) => ipcRenderer.invoke("agent-hub:route", { request, context }),
+    delegate: (request, context, agent) => ipcRenderer.invoke("agent-hub:delegate", { request, context, agent }),
+  },
+  analytics: {
+    summary: () => ipcRenderer.invoke("analytics:summary"),
+    system: () => ipcRenderer.invoke("analytics:system"),
+    event: (ev) => ipcRenderer.invoke("analytics:event", ev),
+  },
   sync: {
     status: () => ipcRenderer.invoke("sync:status"),
     trigger: () => ipcRenderer.invoke("sync:trigger"),
@@ -401,6 +454,14 @@ contextBridge.exposeInMainWorld("orun", {
       const listener = () => handler();
       ipcRenderer.on("voice-overlay:show", listener);
       return () => ipcRenderer.removeListener("voice-overlay:show", listener);
+    },
+    onProactive: (handler) => {
+      const listener = (_e, payload) => handler(payload);
+      ipcRenderer.on("voice-overlay:proactive", listener);
+      return () => ipcRenderer.removeListener("voice-overlay:proactive", listener);
+    },
+    setTtsState: (playing) => {
+      ipcRenderer.send("voice:tts-state", { playing: !!playing });
     },
   },
   quickChat: {

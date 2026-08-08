@@ -5,6 +5,7 @@ import { useMarketingStore } from "./marketing-store";
 import { usePersonalization } from "../../../hooks/usePersonalization";
 import { AIFloatingPrompt } from "../../components/AIFloatingPrompt";
 import { WorkspaceSkeleton } from "../../components/WorkspaceSkeleton";
+import { PremiumRoot, ScrollArea } from "../premium";
 import { CampaignsView } from "./marketing-views/CampaignsView";
 import { CalendarView } from "./marketing-views/CalendarView";
 import { ABTestsView } from "./marketing-views/ABTestsView";
@@ -41,47 +42,49 @@ export function MarketingWorkspace({ plugin, activeTab, onTabChange, onSendMessa
   if (loading) return <WorkspaceSkeleton lines={5} />;
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto scrollbar-hide" role="main" aria-label="Marketing Studio">
-      <div className="flex items-center justify-between px-4 py-1">
-        <span className="text-xs font-medium" style={{ fontFamily: "'Sora', sans-serif", color: "var(--foreground)" }}>
-          {greeting || "Olá"}, {userName || "usuário"}
-        </span>
-        <div className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold" style={{ background: "#EC4899", color: "#fff" }} aria-label={avatarInitials || "User"}>
-          {avatarInitials || "U"}
+    <PremiumRoot>
+      <ScrollArea>
+        <div className="flex items-center justify-between px-4 py-1">
+          <span className="text-xs font-medium" style={{ fontFamily: "'Sora', sans-serif", color: "#FFFFFF" }}>
+            {greeting || "Olá"}, {userName || "usuário"}
+          </span>
+          <div className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold" style={{ background: "#EC4899", color: "#fff" }} aria-label={avatarInitials || "User"}>
+            {avatarInitials || "U"}
+          </div>
         </div>
-      </div>
 
-      <div className="flex items-center gap-1 px-4 py-2 border-b" style={{ borderColor: "var(--border)" }} role="tablist" aria-label="Views">
-        {VIEWS.map((v) => (
-          <button
-            key={v.key}
-            onClick={() => setActiveView(v.key)}
-            className="px-3 py-1.5 rounded-md text-[10px] tracking-wider uppercase transition-all"
-            role="tab"
-            aria-selected={activeView === v.key}
-            style={{
-              fontFamily: "'Sora', sans-serif",
-              fontWeight: activeView === v.key ? 500 : 300,
-              color: activeView === v.key ? "var(--foreground)" : "var(--muted-foreground)",
-              background: activeView === v.key ? "rgba(192,0,24,0.08)" : "transparent",
-            }}
-          >
-            {v.label}
-          </button>
-        ))}
-      </div>
+        <div className="flex items-center gap-1 px-4 py-2 border-b" style={{ borderColor: "#252525" }} role="tablist" aria-label="Views">
+          {VIEWS.map((v) => (
+            <button
+              key={v.key}
+              onClick={() => setActiveView(v.key)}
+              className="px-3 py-1.5 rounded-md text-[10px] tracking-wider uppercase transition-all"
+              role="tab"
+              aria-selected={activeView === v.key}
+              style={{
+                fontFamily: "'Sora', sans-serif",
+                fontWeight: activeView === v.key ? 500 : 300,
+                color: activeView === v.key ? "#FFFFFF" : "#A0A0A0",
+                background: activeView === v.key ? "rgba(195,0,47,0.14)" : "transparent",
+              }}
+            >
+              {v.label}
+            </button>
+          ))}
+        </div>
 
-      <div role="tabpanel" aria-label={activeView}>
-        {activeView === "campaigns" && <CampaignsView />}
-        {activeView === "calendar" && <CalendarView />}
-        {activeView === "abtests" && <ABTestsView />}
-        {activeView === "analytics" && <AnalyticsView />}
-        {activeView === "schedule" && <ScheduleView />}
-        {activeView === "discord" && <DiscordView />}
-      </div>
+        <div role="tabpanel" aria-label={activeView}>
+          {activeView === "campaigns" && <CampaignsView />}
+          {activeView === "calendar" && <CalendarView />}
+          {activeView === "abtests" && <ABTestsView />}
+          {activeView === "analytics" && <AnalyticsView />}
+          {activeView === "schedule" && <ScheduleView />}
+          {activeView === "discord" && <DiscordView />}
+        </div>
 
-      <MarketingNotes />
+        <MarketingNotes />
+      </ScrollArea>
       <AIFloatingPrompt onSendMessage={onSendMessage} label="Perguntar à IA" />
-    </div>
+    </PremiumRoot>
   );
 }

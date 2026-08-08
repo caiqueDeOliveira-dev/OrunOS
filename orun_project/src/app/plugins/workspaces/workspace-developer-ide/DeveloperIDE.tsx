@@ -5,6 +5,7 @@ import { registerDeveloperActions, unregisterDeveloperActions, setIDEStoreGetter
 import { usePersonalization, useWorkspaceNotes, useWorkspaceGoals, useWorkspaceStats } from "../../../hooks/usePersonalization";
 import { Terminal } from "lucide-react";
 import { AIFloatingPrompt } from "../../components/AIFloatingPrompt";
+import { P, PremiumRoot } from "../premium";
 import { ActivityBar } from "./components/ActivityBar";
 import { FileExplorer } from "./components/FileExplorer";
 import { SearchPanel } from "./components/SearchPanel";
@@ -74,23 +75,23 @@ export function DeveloperIDE({ plugin, activeTab, onTabChange, onSendMessage, la
   }, [activeSidebarTab]);
 
   return (
-    <div className="flex flex-col h-full" style={{ background: "var(--background)" }}>
+    <PremiumRoot>
       <div className="flex flex-1 min-h-0">
         <ActivityBar activeTab={activeSidebarTab} onTabChange={handleSidebarTabChange} onToggleTerminal={handleToggleTerminal} />
 
         {sidebarVisible && (
-          <div className="border-r shrink-0 overflow-hidden flex flex-col ws-scrollbar" style={{ borderColor: "var(--border)", background: "var(--card)", width: sidebarWidth }}>
+          <div className="border-r shrink-0 overflow-hidden flex flex-col ws-scrollbar" style={{ borderColor: P.border, background: P.card, width: sidebarWidth }}>
             {renderSidebarContent()}
           </div>
         )}
 
         <div className="flex-1 flex flex-col min-w-0">
-          <div className="flex-1 min-h-0 overflow-hidden" style={{ background: "var(--background)" }}>
+          <div className="flex-1 min-h-0 overflow-hidden" style={{ background: P.bg }}>
             <CodeEditor />
           </div>
 
           {showTerminal && (
-            <div className="border-t shrink-0 flex flex-col" style={{ borderColor: "var(--border)", height: terminalHeight }}>
+            <div className="border-t shrink-0 flex flex-col" style={{ borderColor: P.border, height: terminalHeight }}>
               <div className="flex-1 min-h-0">
                 <TerminalPanel />
               </div>
@@ -101,7 +102,7 @@ export function DeveloperIDE({ plugin, activeTab, onTabChange, onSendMessage, la
             <button
               onClick={handleToggleTerminal}
               className="border-t py-1 text-[9px] tracking-wider uppercase hover:bg-white/[0.02] transition-colors"
-              style={{ borderColor: "var(--border)", color: "var(--muted-foreground)", fontFamily: "'Sora', sans-serif" }}
+              style={{ borderColor: P.border, color: P.sub, fontFamily: "'Sora', sans-serif" }}
             >
               <Terminal size={10} className="inline mr-1" /> Show Terminal
             </button>
@@ -113,6 +114,6 @@ export function DeveloperIDE({ plugin, activeTab, onTabChange, onSendMessage, la
 
       <StatusBar />
       <AIFloatingPrompt onSendMessage={onSendMessage} />
-    </div>
+    </PremiumRoot>
   );
 }

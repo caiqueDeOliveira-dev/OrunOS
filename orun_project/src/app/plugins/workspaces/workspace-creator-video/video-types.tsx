@@ -75,33 +75,33 @@ export const TOTAL_SECONDS = 204;
 export const TOTAL_FRAMES = TOTAL_SECONDS * FPS;
 
 export const TRACK_CONFIG = [
-  { name: "\u{1F4F9} V\u00eddeo", color: "#E04040", controls: "eye-lock" as const },
-  { name: "\u{1F3B5} M\u00fasica", color: "#7B2FBE", controls: "solo-mute" as const },
-  { name: "\u{1F3A4} Narra\u00e7\u00e3o", color: "#2D9B5A", controls: "solo-mute" as const },
-  { name: "\u270F\uFE0F Texto", color: "#D4A017", controls: "eye" as const },
+  { name: "\u{1F4F9} V\u00eddeo", color: "#C3002F", controls: "eye-lock" as const },
+  { name: "\u{1F3B5} M\u00fasica", color: "#8B5CF6", controls: "solo-mute" as const },
+  { name: "\u{1F3A4} Narra\u00e7\u00e3o", color: "#00D26A", controls: "solo-mute" as const },
+  { name: "\u270F\uFE0F Texto", color: "#FFB547", controls: "eye" as const },
 ];
 
 export const MEDIA_TABS = ["M\u00eddia", "Texto", "Efeitos", "Transi\u00e7\u00f5es"];
 
 export const MEDIA_ITEMS_GRID = [
-  { label: "Intro.mp4", color: "#1a1a2e", ratio: "16/9" as const, dur: "0:12" },
-  { label: "BRoll 01.mp4", color: "#1a3a5e", ratio: "16/9" as const, dur: "0:34" },
-  { label: "BRoll 02.mp4", color: "#1a4e2a", ratio: "16/9" as const, dur: "0:22" },
-  { label: "Close-up.mp4", color: "#5e3a1a", ratio: "16/9" as const, dur: "0:08" },
+  { label: "Intro.mp4", color: "#161616", ratio: "16/9" as const, dur: "0:12" },
+  { label: "BRoll 01.mp4", color: "#141A22", ratio: "16/9" as const, dur: "0:34" },
+  { label: "BRoll 02.mp4", color: "#12221A", ratio: "16/9" as const, dur: "0:22" },
+  { label: "Close-up.mp4", color: "#221A14", ratio: "16/9" as const, dur: "0:08" },
 ];
 
 export const TEXT_PRESETS = [
-  { label: "T\u00edtulo", preview: "T\u00cdTULO", bg: "#C00018", weight: 800, size: 13 },
-  { label: "Subt\u00edtulo", preview: "SUB", bg: "#2D7FF9", weight: 700, size: 11 },
-  { label: "Legenda", preview: "Legenda", bg: "#30363D", weight: 400, size: 9 },
+  { label: "T\u00edtulo", preview: "T\u00cdTULO", bg: "#C3002F", weight: 800, size: 13 },
+  { label: "Subt\u00edtulo", preview: "SUB", bg: "#4DA3FF", weight: 700, size: 11 },
+  { label: "Legenda", preview: "Legenda", bg: "#1C1C1C", weight: 400, size: 9 },
 ];
 
 export const EFFECTS = [
-  { label: "S\u00e9pia", color: "#A0703C" },
-  { label: "Vivido", color: "#D04040" },
-  { label: "Frio", color: "#4080D0" },
-  { label: "Cinematic", color: "#2A1F3D" },
-  { label: "VHS", color: "#8B6914" },
+  { label: "S\u00e9pia", color: "#C49A6C" },
+  { label: "Vivido", color: "#C3002F" },
+  { label: "Frio", color: "#4DA3FF" },
+  { label: "Cinematic", color: "#8B5CF6" },
+  { label: "VHS", color: "#FFB547" },
 ];
 
 export const TRANSITIONS = [
@@ -112,10 +112,12 @@ export const TRANSITIONS = [
   { label: "Glitch", arrow: "\u26A1" },
 ];
 
-export const ACCENT = "var(--accent, #C00018)";
-export const STRIP = "var(--secondary, #161D2A)";
-export const BORDER = "var(--border)";
-export const TEXT_DIM = "var(--muted-foreground)";
+export const ACCENT = "#C3002F";
+export const STRIP = "#0A0A0C";
+export const BORDER = "#252525";
+export const TEXT_DIM = "#5C5C5C";
+export const TEXT_MED = "#A0A0A0";
+export const TEXT_BRI = "#FFFFFF";
 export const MONO = "'JetBrains Mono', monospace";
 export const SANS = "'Sora', sans-serif";
 
@@ -125,29 +127,29 @@ export const btnBase: React.CSSProperties = {
   justifyContent: "center",
   background: "transparent",
   border: "none",
-  color: "var(--muted-foreground, #8B949E)",
+  color: TEXT_MED,
   cursor: "pointer",
-  borderRadius: 3,
+  borderRadius: 6,
   transition: "all 0.12s",
 };
 
 export const inputStyle: React.CSSProperties = {
   width: "100%",
   height: 22,
-  background: "var(--secondary, #0D1117)",
-  border: "1px solid var(--border, #30363D)",
-  borderRadius: 3,
+  background: "#141414",
+  border: "1px solid #383838",
+  borderRadius: 6,
   padding: "0 5px",
   fontSize: 10,
   fontFamily: MONO,
-  color: "var(--foreground, #C9D1D9)",
+  color: TEXT_BRI,
   outline: "none",
   boxSizing: "border-box",
 };
 
 export const labelStyle: React.CSSProperties = {
   fontSize: 9,
-  color: "var(--muted-foreground, #8B949E)",
+  color: TEXT_MED,
   fontFamily: SANS,
   marginBottom: 2,
   display: "block",

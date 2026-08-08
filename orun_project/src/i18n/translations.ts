@@ -180,6 +180,18 @@ type TranslationKeys = {
   settingsNoiseSuppressionDesc: string;
   settingsResponseDelay: string;
   settingsResponseDelayDesc: string;
+  settingsSustainedInterrupt: string;
+  settingsSustainedInterruptDesc: string;
+  settingsProactiveGreeting: string;
+  settingsProactiveGreetingDesc: string;
+  settingsProactiveSpotify: string;
+  settingsProactiveSpotifyDesc: string;
+  settingsProactiveApps: string;
+  settingsProactiveAppsDesc: string;
+  settingsTtsPriority: string;
+  settingsTtsPriorityDesc: string;
+  settingsTtsPriorityLocalFirst: string;
+  settingsTtsPriorityCloudFirst: string;
   settingsWhatsAppSection: string;
   settingsWhatsAppDesc: string;
   settingsPersonaSection: string;
@@ -1478,6 +1490,18 @@ export const translations: Record<Language, TranslationKeys> = {
     settingsNoiseSuppressionDesc: "Remove ruído de fundo durante gravação",
     settingsResponseDelay: "Delay de Resposta",
     settingsResponseDelayDesc: "Espera após parar de falar antes de enviar à IA",
+    settingsSustainedInterrupt: "Interrupção com Fala Sustentada",
+    settingsSustainedInterruptDesc: "Só interrompe o Orun se você falar por mais de 250ms (evita cortes por tosses/eco)",
+    settingsProactiveGreeting: "Saudação ao ligar",
+    settingsProactiveGreetingDesc: "Hampton fala e pergunta como pode ajudar quando o computador é iniciado",
+    settingsProactiveSpotify: "Reação ao tocar música",
+    settingsProactiveSpotifyDesc: "Hampton pergunta o que você quer ouvir quando o Spotify começa a tocar",
+    settingsProactiveApps: "Reação a aplicativos",
+    settingsProactiveAppsDesc: "Hampton pergunta se precisa de ajuda quando você abre o VSCode, navegador, Explorador, terminal e outros",
+    settingsTtsPriority: "Prioridade de Fallback TTS",
+    settingsTtsPriorityDesc: "Ordem dos motores ao sintetizar voz quando o principal falha",
+    settingsTtsPriorityLocalFirst: "Local primeiro (gratuito)",
+    settingsTtsPriorityCloudFirst: "Cloud primeiro (qualidade)",
     settingsWhatsAppSection: "WhatsApp",
     settingsWhatsAppDesc: "Configurar roteamento de mensagens",
     settingsPersonaSection: "Persona da IA",
@@ -2781,6 +2805,18 @@ export const translations: Record<Language, TranslationKeys> = {
     settingsNoiseSuppressionDesc: "Remove background noise during recording",
     settingsResponseDelay: "Response Delay",
     settingsResponseDelayDesc: "Wait after stopping speech before sending to AI",
+    settingsSustainedInterrupt: "Sustained Speech Interrupt",
+    settingsSustainedInterruptDesc: "Only interrupts Orun if you speak for over 250ms (avoids cuts from coughs/echo)",
+    settingsProactiveGreeting: "Startup greeting",
+    settingsProactiveGreetingDesc: "Hampton greets and offers help when the computer boots",
+    settingsProactiveSpotify: "React when music plays",
+    settingsProactiveSpotifyDesc: "Hampton asks what you want to listen to when Spotify starts playing",
+    settingsProactiveApps: "React to apps",
+    settingsProactiveAppsDesc: "Hampton offers help when you open VSCode, a browser, File Explorer, terminal and others",
+    settingsTtsPriority: "TTS Fallback Priority",
+    settingsTtsPriorityDesc: "Engine order when synthesizing voice if the primary fails",
+    settingsTtsPriorityLocalFirst: "Local first (free)",
+    settingsTtsPriorityCloudFirst: "Cloud first (quality)",
     settingsWhatsAppSection: "WhatsApp",
     settingsWhatsAppDesc: "Configure message routing",
     settingsPersonaSection: "AI Persona",
@@ -4083,6 +4119,18 @@ export const translations: Record<Language, TranslationKeys> = {
     settingsNoiseSuppressionDesc: "Elimina el ruido de fondo durante la grabación",
     settingsResponseDelay: "Retraso de Respuesta",
     settingsResponseDelayDesc: "Espera después de dejar de hablar antes de enviar a la IA",
+    settingsSustainedInterrupt: "Interrupción con Habla Sostenida",
+    settingsSustainedInterruptDesc: "Solo interrumpe a Orun si hablas más de 250ms (evita cortes por tos/eco)",
+    settingsProactiveGreeting: "Saludo al encender",
+    settingsProactiveGreetingDesc: "Hampton saluda y ofrece ayuda cuando el ordenador se inicia",
+    settingsProactiveSpotify: "Reaccionar al reproducir música",
+    settingsProactiveSpotifyDesc: "Hampton pregunta qué quieres escuchar cuando Spotify empieza a sonar",
+    settingsProactiveApps: "Reaccionar a aplicaciones",
+    settingsProactiveAppsDesc: "Hampton ofrece ayuda al abrir VSCode, navegador, Explorador, terminal y otros",
+    settingsTtsPriority: "Prioridad de Fallback TTS",
+    settingsTtsPriorityDesc: "Orden de los motores al sintetizar voz si el principal falla",
+    settingsTtsPriorityLocalFirst: "Local primero (gratis)",
+    settingsTtsPriorityCloudFirst: "Cloud primero (calidad)",
     settingsWhatsAppSection: "WhatsApp",
     settingsWhatsAppDesc: "Configurar enrutamiento de mensajes",
     settingsPersonaSection: "Persona de la IA",
@@ -5386,6 +5434,18 @@ export const translations: Record<Language, TranslationKeys> = {
     settingsNoiseSuppressionDesc: "Supprime le bruit de fond pendant l'enregistrement",
     settingsResponseDelay: "Délai de Réponse",
     settingsResponseDelayDesc: "Attendre après avoir arrêté de parler avant d'envoyer à l'IA",
+    settingsSustainedInterrupt: "Interruption par Parole Soutenue",
+    settingsSustainedInterruptDesc: "N'interrompt Orun que si vous parlez plus de 250ms (évite les coupes par toux/écho)",
+    settingsProactiveGreeting: "Salutation au démarrage",
+    settingsProactiveGreetingDesc: "Hampton salue et propose son aide au démarrage de l'ordinateur",
+    settingsProactiveSpotify: "Réagir quand la musique joue",
+    settingsProactiveSpotifyDesc: "Hampton demande ce que vous voulez écouter quand Spotify commence à jouer",
+    settingsProactiveApps: "Réagir aux applications",
+    settingsProactiveAppsDesc: "Hampton propose son aide à l'ouverture de VSCode, navigateur, Explorateur, terminal et autres",
+    settingsTtsPriority: "Priorité de Fallback TTS",
+    settingsTtsPriorityDesc: "Ordre des moteurs lors de la synthèse vocale si le principal échoue",
+    settingsTtsPriorityLocalFirst: "Local d'abord (gratuit)",
+    settingsTtsPriorityCloudFirst: "Cloud d'abord (qualité)",
     settingsWhatsAppSection: "WhatsApp",
     settingsWhatsAppDesc: "Configurer le routage des messages",
     settingsPersonaSection: "Persona de l'IA",

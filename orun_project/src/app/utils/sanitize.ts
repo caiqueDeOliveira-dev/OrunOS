@@ -11,6 +11,7 @@ export function sanitizeText(text: string): string {
     .replace(/on\w+\s*=\s*[^\s>]+/gi, "")
     .replace(/javascript\s*:/gi, "")
     .replace(/<[^>]*>/g, "")
+    // eslint-disable-next-line no-control-regex -- strips C0 control chars (keeps \t \n \r)
     .replace(/[\0-\x08\x0B\x0C\x0E-\x1F]/g, "")
     .trim();
 }
@@ -21,6 +22,7 @@ export function sanitizeFileName(name: string): string {
     .slice(0, MAX_FILE_NAME_LENGTH)
     .replace(/\.\./g, "")
     .replace(/[/\\:<>"|?*]/g, "")
+    // eslint-disable-next-line no-control-regex -- strips all C0 control chars from file names
     .replace(/[\0-\x1F]/g, "")
     .trim();
 }

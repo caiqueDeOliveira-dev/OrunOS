@@ -15,18 +15,48 @@ function setLevel(level) {
   minLevel = typeof level === "number" ? level : (LEVELS[level] ?? LEVELS.DEBUG);
 }
 
+// ── Secret masking ───────────────────────────────────────────────────────────
+// Avoids leaking API keys / tokens / passwords into log files.
+const SECRET_KEY_RE = /(api[_-]?key|secret|token|password|passwd|authorization|auth|cookie|private[_-]?key|client[_-]?secret|service[_-]?role|access[_-]?token|refresh[_-]?token|bearer)/i;
+const TOKEN_RE = /\b(sk-[A-Za-z0-9_-]{8,}|gh[pousr]_[A-Za-z0-9]{10,}|xox[baprs]-[A-Za-z0-9-]{8,})\b/g;
+const BEARER_RE = /(bearer|token)\s+[A-Za-z0-9._~+\-/]{8,}/gi;
+const QUERY_KEY_RE = /([?&](?:api[_-]?key|key|token|secret|access_token|password)=)[^&\s"']+/gi;
+
+function redactText(input) {
+  if (typeof input !== "string") return input;
+  return input
+    .replace(TOKEN_RE, (m) => m.slice(0, 3) + "***")
+    .replace(BEARER_RE, "$1 ***")
+    .replace(QUERY_KEY_RE, "$1***");
+}
+
+function sanitize(value, key = "") {
+  if (typeof value === "string") {
+    if (SECRET_KEY_RE.test(key)) return "***";
+    return redactText(value);
+  }
+  if (Array.isArray(value)) return value.map((v) => sanitize(v, key));
+  if (value && typeof value === "object") {
+    const out = {};
+    for (const [k, v] of Object.entries(value)) out[k] = sanitize(v, k);
+    return out;
+  }
+  return value;
+}
+
 // ── Core logging ─────────────────────────────────────────────────────────────
 function emit(level, category, message, data = {}) {
   if (LEVELS[level] < minLevel) return;
+  const safeData = sanitize(data);
   const entry = {
     ts: new Date().toISOString(),
     level,
     cat: category,
-    msg: message,
-    ...data,
+    msg: redactText(message),
+    ...safeData,
   };
   const line = `[${entry.ts}] [${level}] [${entry.cat}] ${entry.msg}`;
-  const extra = Object.keys(data).length > 0 ? " " + JSON.stringify(data) : "";
+  const extra = Object.keys(safeData).length > 0 ? " " + JSON.stringify(safeData) : "";
 
   switch (level) {
     case "DEBUG": log.debug(line + extra); break;
@@ -91,7 +121,7 @@ function span(name, attrs = {}) {
       emit("ERROR", "trace", `✗ ${name} failed`, {
         spanId,
         durationMs,
-        error: error.message || String(error),
+        error: redactText(error.message || String(error)),
         ...attrs,
       });
       return durationMs;
@@ -112,6 +142,6 @@ function time(label) {
 }
 
 module.exports = {
-  setLevel, emit, span, time, createCategory,
+  setLevel, emit, span, time, createCategory, redactText, sanitize,
   ai, db, ipc, tools, auth, sync, wa, plugin, mcp, tts, stt, sched, window, perf, security,
 };

@@ -88,6 +88,75 @@ function VoiceToggle({ settingKey, defaultValue }: { settingKey: string; default
   );
 }
 
+// ── Response Delay Slider ──────────────────────────────────────────────
+
+function ResponseDelaySlider() {
+  const [delay, setDelay] = useState(1200);
+
+  useEffect(() => {
+    window.orun?.settings?.get<{ responseDelay?: number }>("voice").then((v) => {
+      if (v && typeof v.responseDelay === "number") setDelay(v.responseDelay);
+    }).catch((err: unknown) => console.warn("[IPC error]", err));
+  }, []);
+
+  const handleChange = (value: number) => {
+    setDelay(value);
+    window.orun?.settings?.get("voice").then((existing: any) => {
+      window.orun?.settings?.set("voice", { ...(existing || {}), responseDelay: value });
+    }).catch((err: unknown) => console.warn("[IPC error]", err));
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      <input
+        type="range" min="500" max="5000" step="250" value={delay}
+        className="flex-1 h-1"
+        onChange={(e) => handleChange(Number(e.target.value))}
+      />
+      <span className="text-[9px] w-10 text-right" style={{ fontFamily: "'JetBrains Mono', monospace", color: "var(--muted-foreground)" }}>
+        {(delay / 1000).toFixed(1)}s
+      </span>
+    </div>
+  );
+}
+
+// ── TTS Fallback Priority Select ───────────────────────────────────────
+
+function TtsPrioritySelect({ t }: { t: (key: string) => string }) {
+  const [mode, setMode] = useState<"local-first" | "cloud-first">("local-first");
+
+  useEffect(() => {
+    window.orun?.settings?.get<"local-first" | "cloud-first">("ttsFallbackPriority").then((v) => {
+      if (v === "cloud-first" || v === "local-first") setMode(v);
+    }).catch((err: unknown) => console.warn("[IPC error]", err));
+  }, []);
+
+  const handleChange = (value: "local-first" | "cloud-first") => {
+    setMode(value);
+    window.orun?.settings?.set("ttsFallbackPriority", value).catch((err: unknown) => console.warn("[IPC error]", err));
+  };
+
+  return (
+    <div className="flex gap-1">
+      {(["local-first", "cloud-first"] as const).map((m) => (
+        <button
+          key={m}
+          onClick={() => handleChange(m)}
+          className="px-2 py-1 rounded-md text-[9px] transition-all"
+          style={{
+            background: mode === m ? "#8B5CF6" : "var(--secondary)",
+            color: mode === m ? "#fff" : "var(--muted-foreground)",
+            fontFamily: "'Sora', sans-serif",
+            border: "1px solid var(--border)",
+          }}
+        >
+          {m === "local-first" ? t("settingsTtsPriorityLocalFirst") : t("settingsTtsPriorityCloudFirst")}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // ── Google Settings ────────────────────────────────────────────────────
 function GoogleSettings({ t }: { t: (key: string) => string }) {
   const [clientId, setClientId] = useState("");
@@ -119,7 +188,9 @@ function GoogleSettings({ t }: { t: (key: string) => string }) {
       if ("error" in authResult || !authResult.url) {
         setLoading(false); return;
       }
-      (window as any).orun?.shell?.openExternal?.(authResult.url) || window.open(authResult.url, "_blank");
+      const openExternal = (window as any).orun?.shell?.openExternal;
+      if (openExternal) openExternal(authResult.url);
+      else window.open(authResult.url, "_blank");
       let attempts = 0;
       const interval = setInterval(async () => {
         attempts++;
@@ -245,7 +316,9 @@ function SpotifySettings({ t }: { t: (key: string) => string }) {
         return;
       }
       // Use shell.openExternal for system browser (Electron window.open creates a new BrowserWindow)
-      (window as any).orun?.shell?.openExternal?.(authResult.url) || window.open(authResult.url, "_blank");
+      const openExternal = (window as any).orun?.shell?.openExternal;
+      if (openExternal) openExternal(authResult.url);
+      else window.open(authResult.url, "_blank");
       let attempts = 0;
       const interval = setInterval(async () => {
         attempts++;
@@ -1265,6 +1338,9 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
                     <div className="mt-1 px-3 py-2 rounded-lg text-[9px]" style={{ background: "rgba(139,92,246,0.06)", border: "1px solid rgba(139,92,246,0.15)", fontFamily: "'Sora', sans-serif", color: "var(--muted-foreground)" }}>
                       {t("settings_tts_fallback_info")}
                     </div>
+                    <SettingRow label={t("settingsTtsPriority")} description={t("settingsTtsPriorityDesc")}>
+                      <TtsPrioritySelect t={t} />
+                    </SettingRow>
                   </Section>
                 )}
 
@@ -1277,14 +1353,19 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
                     <VoiceToggle settingKey="noiseSuppression" defaultValue={true} />
                   </SettingRow>
                   <SettingRow label={t("settingsResponseDelay")} description={t("settingsResponseDelayDesc")}>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="range" min="500" max="5000" step="250" defaultValue="1200"
-                        className="flex-1 h-1"
-                        onChange={(e) => window.orun?.settings?.set("voice", { ...(window as any).__voiceSettings || {}, responseDelay: Number(e.target.value) })}
-                      />
-                      <span className="text-[9px] w-10 text-right" style={{ fontFamily: "'JetBrains Mono', monospace", color: "var(--muted-foreground)" }}>1.2s</span>
-                    </div>
+                    <ResponseDelaySlider />
+                  </SettingRow>
+                  <SettingRow label={t("settingsSustainedInterrupt")} description={t("settingsSustainedInterruptDesc")}>
+                    <VoiceToggle settingKey="sustainedInterrupt" defaultValue={true} />
+                  </SettingRow>
+                  <SettingRow label={t("settingsProactiveGreeting")} description={t("settingsProactiveGreetingDesc")}>
+                    <VoiceToggle settingKey="proactiveGreeting" defaultValue={true} />
+                  </SettingRow>
+                  <SettingRow label={t("settingsProactiveSpotify")} description={t("settingsProactiveSpotifyDesc")}>
+                    <VoiceToggle settingKey="proactiveSpotify" defaultValue={true} />
+                  </SettingRow>
+                  <SettingRow label={t("settingsProactiveApps")} description={t("settingsProactiveAppsDesc")}>
+                    <VoiceToggle settingKey="proactiveApps" defaultValue={true} />
                   </SettingRow>
                 </Section>
 

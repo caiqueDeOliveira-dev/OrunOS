@@ -13,14 +13,14 @@ interface TrackDef {
 }
 
 const TRACKS: TrackDef[] = [
-  { id: "kick", label: "KICK", color: "#FF4444", shortcut: "1" },
-  { id: "snare", label: "SNARE", color: "#FF8800", shortcut: "2" },
-  { id: "hihat", label: "HIHAT", color: "#FFCC00", shortcut: "3" },
-  { id: "clap", label: "CLAP", color: "#44BB44", shortcut: "4" },
-  { id: "tom", label: "TOM", color: "#44BBFF", shortcut: "5" },
-  { id: "cymbal", label: "CYMBAL", color: "#8888FF", shortcut: "6" },
-  { id: "rim", label: "RIM", color: "#FF66AA", shortcut: "7" },
-  { id: "perc", label: "PERC", color: "#AA66FF", shortcut: "8" },
+  { id: "kick", label: "KICK", color: "#C3002F", shortcut: "1" },
+  { id: "snare", label: "SNARE", color: "#FFB547", shortcut: "2" },
+  { id: "hihat", label: "HIHAT", color: "#FF4B4B", shortcut: "3" },
+  { id: "clap", label: "CLAP", color: "#00D26A", shortcut: "4" },
+  { id: "tom", label: "TOM", color: "#4DA3FF", shortcut: "5" },
+  { id: "cymbal", label: "CYMBAL", color: "#8B5CF6", shortcut: "6" },
+  { id: "rim", label: "RIM", color: "#FFB547", shortcut: "7" },
+  { id: "perc", label: "PERC", color: "#00D26A", shortcut: "8" },
 ];
 
 const STEPS = 16;
@@ -106,12 +106,12 @@ export function StepSequencer() {
   const isSoloActive = soloTracks.size > 0;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", padding: 8, gap: 6, overflow: "auto" }}>
+    <div className="hs-scroll" style={{ display: "flex", flexDirection: "column", height: "100%", padding: 8, gap: 6, overflow: "auto" }}>
       {/* Toolbar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <button onClick={() => setPlaying(!playing)}
-            style={{ padding: "4px 14px", borderRadius: 4, fontSize: 9, fontWeight: 600, border: "none", cursor: "pointer", background: playing ? "#FF4444" : ACCENT, color: "#FFF" }}>
+            style={{ padding: "4px 14px", borderRadius: 6, fontSize: 9, fontWeight: 600, border: "none", cursor: "pointer", background: playing ? "#FF4B4B" : ACCENT, color: "#FFF", boxShadow: playing ? "0 0 10px #FF4B4B55" : "0 0 10px #C3002F33" }}>
             {playing ? "⏹ STOP" : "▶ PLAY"}
           </button>
           <button onClick={clearPattern} style={{ padding: "2px 8px", borderRadius: 3, fontSize: 8, border: `1px solid ${BORDER}`, cursor: "pointer", background: STRIP, color: TEXT_DIM }}>CLEAR</button>
@@ -162,9 +162,9 @@ export function StepSequencer() {
               }} />
               <span style={{ color: isMuted ? TEXT_DIM : "#FFF" }}>{track.label}</span>
               <button onClick={() => toggleMute(track.id)}
-                style={{ marginLeft: "auto", background: "none", border: "none", color: isMuted ? "#FF4444" : TEXT_DIM, cursor: "pointer", fontSize: 7 }}>M</button>
+                style={{ marginLeft: "auto", background: "none", border: "none", color: isMuted ? "#FF4B4B" : TEXT_DIM, cursor: "pointer", fontSize: 7 }}>M</button>
               <button onClick={() => toggleSolo(track.id)}
-                style={{ background: "none", border: "none", color: isSolo ? "#FFCC00" : TEXT_DIM, cursor: "pointer", fontSize: 7 }}>S</button>
+                style={{ background: "none", border: "none", color: isSolo ? "#FFB547" : TEXT_DIM, cursor: "pointer", fontSize: 7 }}>S</button>
             </div>
 
             {/* Steps */}
