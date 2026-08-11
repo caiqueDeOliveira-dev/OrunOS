@@ -4,7 +4,7 @@ Compatible with OpenAI /v1/audio/transcriptions API format.
 Uses faster-whisper for fast local inference.
 
 Usage:
-    python stt_server.py [--port 8080] [--model base] [--device cpu]
+    python stt_server.py [--port 8090] [--model base] [--device cpu]
 
 First run downloads the model (~150MB for base).
 """
@@ -195,7 +195,7 @@ def health():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Orun OS Whisper STT Server")
-    parser.add_argument("--port", type=int, default=8080, help="Server port (default: 8080)")
+    parser.add_argument("--port", type=int, default=8090, help="Server port (default: 8090)")
     parser.add_argument(
         "--model", type=str, default="base",
         help="Whisper model: tiny, base, small, medium, large-v3, distil-large-v3 (default: base)",

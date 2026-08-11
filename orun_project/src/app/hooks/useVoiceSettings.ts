@@ -33,12 +33,12 @@ export function useVoiceSettings(): VoiceSettings {
       if (v?.engine === "whisper" && v?.baseUrl) {
         setWhisperUrl(v.baseUrl);
       } else {
-        window.orun.stt.testConnection("http://127.0.0.1:8080")
+        window.orun.stt.testConnection("http://127.0.0.1:8090")
           .then((result: any) => {
             if (!mountedRef.current) return;
             if (result?.ok) {
-              setWhisperUrl("http://127.0.0.1:8080");
-              window.orun?.settings?.set("stt", { engine: "whisper", baseUrl: "http://127.0.0.1:8080", model: "small", device: "cpu", computeType: "int8" }).catch((err: unknown) => console.warn("[IPC error]", err));
+              setWhisperUrl("http://127.0.0.1:8090");
+              window.orun?.settings?.set("stt", { engine: "whisper", baseUrl: "http://127.0.0.1:8090", model: "small", device: "cpu", computeType: "int8" }).catch((err: unknown) => console.warn("[IPC error]", err));
             }
           })
           .catch((err: unknown) => console.warn("[IPC error]", err));

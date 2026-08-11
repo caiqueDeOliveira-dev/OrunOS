@@ -6,13 +6,23 @@ Contexto persistente carregado em toda sessão. Não apague este arquivo.
 
 Este diretório é o **Orun OS desktop** (`orun_project/`). É o projeto mais avançado e serve de **referência/base** para todo o ecossistema Orun. Vários projetos relacionados vivem FORA deste workspace — caminhos absolutos abaixo.
 
+## Objetivo final: o SO Orun
+
+O objetivo do usuário é transformar o ecossistema Orun em um **sistema operacional completo e profissional** — o **SO Orun** — baseado em **web/Electron** (shell com janelas/taskbar/launcher hospedando os programas do ecossistema), NÃO um kernel Linux. Documento-mãe: `orun_project/docs/so-orun-roadmap.md`. Ordem de fases: **A** = completar os projetos na metade (OrunVS → OrunTV → Orun Shield) → **B** = shell do SO → **C** = apps nativos incorporados → **D** = distribuição (build único + Orun Store). Todos os apps usam o mesmo Supabase compartilhado.
+
 ## Repositórios
 
 | Projeto | Caminho | Stack | O que é |
 | --- | --- | --- | --- |
-| Orun OS (desktop) | `C:\Users\Caiqu\OneDrive\Desktop\orun-os\orun_project` | Electron 31, React 18.3, Vite 6, Tailwind 4, TypeScript | App desktop multi-agente, workspace plugin-based, WhatsApp/Telegram/Discord, voz (TTS/STT/wake word), Spotify, n8n, sync Supabase. v0.6.3 |
-| Orun Mobile (monorepo) | `C:\Users\Caiqu\Downloads\orun-monorepo_1\orun-monorepo` | Expo/React Native, Supabase, Deno Edge Functions | App mobile (expo-router), design system, `supabase-sync` (sync engine + ai-relay/telegram/whatsapp webhooks), `whatsapp-baileys`. Branch `master` |
-| Orun-Core | `C:\Users\Caiqu\OneDrive\Desktop\Orun-Core` | TypeScript | Core compartilhado: `getSupabaseClient` (aceita `transport` WebSocket p/ Electron), hub `devices`/`commands`, etc. v0.1.2 |
+| Orun OS (desktop) | `C:\Users\Caiqu\OneDrive\Desktop\orun-os\orun_project` | Electron 31, React 18.3, Vite 6, Tailwind 4, TypeScript | App desktop multi-agente, workspace plugin-based, WhatsApp/Telegram/Discord, voz (TTS/STT/wake word), Spotify, n8n, sync Supabase. **v0.6.8** (referência/base do SO) |
+| Orun Mobile (monorepo) | `C:\Users\Caiqu\Downloads\orun-monorepo_1\orun-monorepo` | Expo/React Native, Supabase, Deno Edge Functions | App mobile (expo-router), design system, `supabase-sync` (sync engine + ai-relay/telegram/whatsapp webhooks), `whatsapp-baileys`, **home-app** (tablet smarthome). Branch `master` |
+| Orun-Core | `C:\Users\Caiqu\OneDrive\Desktop\Orun-Core` | TypeScript | Core compartilhado: `getSupabaseClient` (aceita `transport` WebSocket p/ Electron), hub `devices`/`commands`, satélites (`home`/`tv`/`shield`). v0.1.2 — 60 testes |
+| OrunVS | `C:\Users\Caiqu\OneDrive\Desktop\OrunVS` | VS Code extension, TS | Chat IA multi-provider, fallback chain, memória local, skills, **client MCP stdio + catálogo on-demand**. **v0.3.4** — 87 testes, VSIX instalado |
+| OrunTV | `C:\Users\Caiqu\Downloads\oruntv_2\oruntv` | Jellyfin + Sonarr/Radarr/Prowlarr/Bazarr/qBittorrent; apps dashboard/desktop/mobile/tizen | Media stack completo. v0.1.0 — em refinamento |
+| Orun Shield | `C:\Users\Caiqu\Downloads\Orun Shield\orun-security-suite` | 6 pacotes TS (shield-core, sentinela-agent, shield-mobile, system-optimizer) + 2 integrações Electron | Suíte de segurança (~115+ testes). v0.1.0 — em refinamento |
+| Orun Auth | zip `Downloads\Orun Auth.zip` / `Orun Auth_1.zip` | TS (pacote puro `@orun/identity`), vitest, Deno Edge Functions | Identidade/auth centralizado (OAuth, billing Stripe, MFA, LGPD). **bruto v0.1.0** — 71/71 testes, pronto p/ refinar/integrar |
+| Orun Files | zip `Downloads\orun-files.zip` | Electron, JS puro, Gemini API, electron-store, chokidar | Gerenciador de arquivos com IA (busca semântica, organização, preview). **bruto v0.1.0** — pronto p/ refinar |
+| Orun Design | `C:\Users\Caiqu\Downloads\Orun Design\orum-project` | Backend Node + frontend HTML/CSS/JS puro | (Em avaliação) |
 
 ## Supabase compartilhado (TODOS os apps usam o mesmo projeto)
 

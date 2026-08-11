@@ -219,8 +219,11 @@ async function connect(userData) {
     for (const msg of messages) {
       if (!msg.message) continue;
       const jid = msg.key.remoteJid;
+      const senderJid = msg.key.participant || jid;
+      const fromMe = Boolean(msg.key.fromMe);
       const isImage = Boolean(msg.message.imageMessage);
-      const text = msg.message.conversation || msg.message.extendedTextMessage?.text || msg.message.imageMessage?.caption || "";
+      const isAudio = Boolean(msg.message.audioMessage);
+      const text = msg.message.conversation || msg.message.extendedTextMessage?.text || msg.message.imageMessage?.caption || msg.message.audioMessage?.contextInfo?.quotedMessage?.conversation || "";
 
       if (jid?.endsWith("@g.us")) {
         const groupName = msg.message.groupMetadata?.subject || msg.pushName || null;
@@ -237,7 +240,35 @@ async function connect(userData) {
         }
       }
 
-      listeners.onMessage({ jid, text, imageBase64, fromMe: msg.key.fromMe });
+      let audioBase64 = null;
+      let audioMime = null;
+      let audioDuration = null;
+      if (isAudio) {
+        try {
+          const buffer = await downloadMediaMessage(msg, "buffer", {});
+          audioBase64 = buffer.toString("base64");
+          audioMime = msg.message.audioMessage?.mimetype || "audio/ogg; codecs=opus";
+          audioDuration = msg.message.audioMessage?.seconds || null;
+        } catch (err) {
+          logger.wa.warn("[whatsapp] audio download failed:", err.message);
+        }
+      }
+
+      const msgTimestamp = Number.isInteger(msg.messageTimestamp) ? msg.messageTimestamp * 1000 : (msg.messageTimestamp?.low ? msg.messageTimestamp.low * 1000 : Date.now());
+
+      listeners.onMessage({
+        jid,
+        senderJid,
+        senderName: msg.pushName || null,
+        text,
+        imageBase64,
+        audioBase64,
+        audioMime,
+        audioDuration,
+        fromMe,
+        externalMessageId: msg.key.id || null,
+        timestamp: msgTimestamp,
+      });
     }
   });
 
@@ -249,6 +280,20 @@ async function sendMessage(jid, text) {
   if (!sock || currentStatus !== "connected") throw new Error("WhatsApp is not connected.");
   try {
     await sock.sendMessage(jid, { text });
+  } catch (err) {
+    if (err.message?.includes("Connection Closed") || err.message?.includes("not connected")) {
+      currentStatus = "disconnected";
+      listeners.onStatus(currentStatus);
+      throw new Error("WhatsApp connection lost. Reconnecting...");
+    }
+    throw err;
+  }
+}
+
+async function sendAudioMessage(jid, buffer, mime = "audio/ogg; codecs=opus", ptt = true) {
+  if (!sock || currentStatus !== "connected") throw new Error("WhatsApp is not connected.");
+  try {
+    await sock.sendMessage(jid, { audio: buffer, mimetype: mime, ptt });
   } catch (err) {
     if (err.message?.includes("Connection Closed") || err.message?.includes("not connected")) {
       currentStatus = "disconnected";
@@ -276,4 +321,4 @@ async function sendTestMessage(jid, agentName) {
   await sock.sendMessage(jid, { text: msg });
 }
 
-module.exports = { connect, disconnect, sendMessage, getStatus, setListeners, listGroups, sendTestMessage, autoConnect: connect, setAutoConnect: (enabled) => { autoConnectEnabled = enabled; } };
+module.exports = { connect, disconnect, sendMessage, sendAudioMessage, getStatus, setListeners, listGroups, sendTestMessage, autoConnect: connect, setAutoConnect: (enabled) => { autoConnectEnabled = enabled; } };

@@ -197,7 +197,16 @@ export function useChat({ t, onHamptonStateChange, speak, speakIncremental, spea
               setMessages(p => p.map(m => (m.id === replyId ? { ...m, content: streamedText } : m)));
               speakIncrementalRef.current(streamedText);
             },
-            onDone: async (fullText) => {
+            onDone: async (donePayload) => {
+              const silent = typeof donePayload === "object" && donePayload !== null && (donePayload as { silent?: boolean })?.silent === true;
+              const fullText = silent ? "" : (typeof donePayload === "string" ? donePayload : String(donePayload?.text ?? ""));
+              if (silent) {
+                // Execução silenciosa: a ação foi executada via tool; mantém os
+                // chips de tool call como feedback, mas sem texto e sem TTS.
+                onHamptonStateChange("idle");
+                cancelStreamRef.current = null;
+                return;
+              }
               setMessages(p => {
                 const exists = p.some(m => m.id === replyId);
                 return exists ? p.map(m => (m.id === replyId ? { ...m, content: fullText } : m)) : [...p, { id: replyId, role: "hampton", content: fullText }];
@@ -232,7 +241,14 @@ export function useChat({ t, onHamptonStateChange, speak, speakIncremental, spea
               setMessages(p => p.map(m => (m.id === replyId ? { ...m, content: streamedText } : m)));
               speakIncrementalRef.current(streamedText);
             },
-            onDone: async (fullText) => {
+            onDone: async (donePayload) => {
+              const silent = typeof donePayload === "object" && donePayload !== null && (donePayload as { silent?: boolean })?.silent === true;
+              const fullText = silent ? "" : (typeof donePayload === "string" ? donePayload : String(donePayload?.text ?? ""));
+              if (silent) {
+                cancelStreamRef.current = null;
+                onHamptonStateChange("idle");
+                return;
+              }
               speakRemainderRef.current(fullText);
               if (activeConvoIdRef.current) await window.orun.conversations.addMessage(activeConvoIdRef.current, { id: replyId, role: "assistant", content: fullText });
               cancelStreamRef.current = null;

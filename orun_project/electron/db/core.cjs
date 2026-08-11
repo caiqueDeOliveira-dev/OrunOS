@@ -1,11 +1,74 @@
 const path = require("path");
 const fs = require("fs");
 const logger = require("../logger.cjs");
+
+/**
+ * Backend SQLite injetável. Em produção usa better-sqlite3(-multiple-ciphers)
+ * compilado para o ABI do Electron. Nos testes do vitest (Node do sistema,
+ * ABI diferente), ORUN_SQLITE_BACKEND=node:sqlite usa o SQLite nativo do Node
+ * com um adapter de API compatível (prepare/run/get/all/exec/transaction).
+ */
 let Database;
-try {
-  Database = require("better-sqlite3-multiple-ciphers");
-} catch {
-  Database = require("better-sqlite3");
+if (process.env.ORUN_SQLITE_BACKEND === "node:sqlite") {
+  Database = createNodeSqliteAdapter();
+} else {
+  try {
+    Database = require("better-sqlite3-multiple-ciphers");
+  } catch {
+    Database = require("better-sqlite3");
+  }
+}
+
+function createNodeSqliteAdapter() {
+  const { DatabaseSync } = require("node:sqlite");
+  class NodeStmt {
+    constructor(inner, sql) {
+      this._inner = inner.prepare(sql);
+    }
+    run(...args) {
+      const r = this._inner.run(...args);
+      return { changes: Number(r.changes || 0), lastInsertRowid: r.lastInsertRowid };
+    }
+    get(...args) {
+      const row = this._inner.get(...args);
+      return row === undefined ? undefined : row;
+    }
+    all(...args) {
+      return this._inner.all(...args);
+    }
+  }
+  return class NodeDatabase {
+    constructor(file) {
+      this._inner = new DatabaseSync(file);
+    }
+    exec(sql) {
+      this._inner.exec(sql);
+      return this;
+    }
+    prepare(sql) {
+      return new NodeStmt(this._inner, sql);
+    }
+    pragma(sql) {
+      try { this._inner.exec(`PRAGMA ${sql}`); } catch { /* pragma opcional */ }
+      return this;
+    }
+    transaction(fn) {
+      return (...args) => {
+        this._inner.exec("BEGIN");
+        try {
+          const out = fn(...args);
+          this._inner.exec("COMMIT");
+          return out;
+        } catch (err) {
+          try { this._inner.exec("ROLLBACK"); } catch { /* ignore */ }
+          throw err;
+        }
+      };
+    }
+    close() {
+      try { this._inner.close(); } catch { /* ignore */ }
+    }
+  };
 }
 
 let db;
@@ -308,6 +371,9 @@ function init(userDataPath, encryptionKey) {
     CREATE INDEX IF NOT EXISTS idx_app_events_created ON app_events(created_at);
   `);
 
+  // ── Camada de identidade/workspace (users, profiles, identities, workspaces, agent_channels) ──
+  require("./identity.cjs").ensureSchema();
+
   // ── Schema versioning ─────────────────────────────────────────────
   db.exec(`CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL, applied_at INTEGER NOT NULL)`);
   const currentVersion = getSchemaVersion();
@@ -458,6 +524,13 @@ function getUsageRange(startDate, endDate) {
   return db.prepare("SELECT * FROM usage WHERE date >= ? AND date <= ? ORDER BY date ASC").all(startDate, endDate);
 }
 
+/** Hook de teste: fecha o banco atual e zera o singleton (permite init() fresco). */
+function _resetDbForTests() {
+  try { if (db) db.close(); } catch { /* ignore */ }
+  db = null;
+  currentDbPath = null;
+}
+
 module.exports = {
   init,
   getDb,
@@ -476,4 +549,5 @@ module.exports = {
   recordTTSUsage,
   getTTSUsageToday,
   getUsageRange,
+  _resetDbForTests,
 };

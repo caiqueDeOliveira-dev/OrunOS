@@ -167,6 +167,8 @@ type TranslationKeys = {
   settingsThemeSystem: string;
   settingsFalAiNote: string;
   settingsFalAiPlaceholder: string;
+  settingsMinimaxNote: string;
+  settingsMinimaxPlaceholder: string;
   settingsSaved: string;
   settingsHome: string;
   settingsTabAI: string;
@@ -1336,6 +1338,30 @@ type TranslationKeys = {
   evidence_photos: string;
   evidence_videos: string;
   evidence_documents: string;
+
+  // Profiles & Workspaces
+  settingsTabProfiles: string;
+  profilesUsersTitle: string;
+  profilesUsersDesc: string;
+  profilesPendingTitle: string;
+  profilesPendingDesc: string;
+  profilesNoPending: string;
+  profilesName: string;
+  profilesCompleteOnboarding: string;
+  profilesLinkIdentity: string;
+  profilesSelectUser: string;
+  profilesChannelsTitle: string;
+  profilesChannelsDesc: string;
+  profilesChannelAgent: string;
+  profilesChannelGroup: string;
+  profilesVoiceTitle: string;
+  profilesVoiceDesc: string;
+  profilesVoiceEnabled: string;
+  profilesVoiceModeAuto: string;
+  profilesVoiceModeText: string;
+  profilesVoiceModeAudio: string;
+  profilesNoData: string;
+  profilesConfirm: string;
 };
 
 export const translations: Record<Language, TranslationKeys> = {
@@ -1477,6 +1503,8 @@ export const translations: Record<Language, TranslationKeys> = {
     settingsThemeSystem: "Sistema",
     settingsFalAiNote: "(para geração de imagens)",
     settingsFalAiPlaceholder: "chave da API Fal.ai",
+    settingsMinimaxNote: "(para geração de vídeos com MiniMax-H3)",
+    settingsMinimaxPlaceholder: "chave da API MiniMax",
     settingsSaved: "Configurações salvas",
     settingsHome: "Início",
     settingsTabAI: "IA & Modelo",
@@ -1497,7 +1525,7 @@ export const translations: Record<Language, TranslationKeys> = {
     settingsProactiveSpotify: "Reação ao tocar música",
     settingsProactiveSpotifyDesc: "Hampton pergunta o que você quer ouvir quando o Spotify começa a tocar",
     settingsProactiveApps: "Reação a aplicativos",
-    settingsProactiveAppsDesc: "Hampton pergunta se precisa de ajuda quando você abre o VSCode, navegador, Explorador, terminal e outros",
+    settingsProactiveAppsDesc: "Hampton pergunta se precisa de ajuda quando você abre o VSCode, navegador, Explorador, terminal e outros (desativado por padrão)",
     settingsTtsPriority: "Prioridade de Fallback TTS",
     settingsTtsPriorityDesc: "Ordem dos motores ao sintetizar voz quando o principal falha",
     settingsTtsPriorityLocalFirst: "Local primeiro (gratuito)",
@@ -2652,6 +2680,29 @@ export const translations: Record<Language, TranslationKeys> = {
     evidence_photos: "Fotos",
     evidence_videos: "Vídeos",
     evidence_documents: "Documentos",
+
+    settingsTabProfiles: "Perfis e Workspaces",
+    profilesUsersTitle: "Usuários",
+    profilesUsersDesc: "Pessoas que interagem com os agentes do Orun.",
+    profilesPendingTitle: "Identidades em onboarding",
+    profilesPendingDesc: "Remetentes de WhatsApp/Telegram ainda sem usuário vinculado.",
+    profilesNoPending: "Nenhuma identidade pendente.",
+    profilesName: "Nome",
+    profilesCompleteOnboarding: "Concluir onboarding",
+    profilesLinkIdentity: "Vincular a usuário",
+    profilesSelectUser: "Selecionar usuário",
+    profilesChannelsTitle: "Canais dos agentes",
+    profilesChannelsDesc: "Grupos/canais externos (WhatsApp, Telegram) → agente.",
+    profilesChannelAgent: "Agente",
+    profilesChannelGroup: "Canal/Grupo",
+    profilesVoiceTitle: "Voz por agente",
+    profilesVoiceDesc: "Resposta de voz no WhatsApp (áudio → áudio).",
+    profilesVoiceEnabled: "Voz habilitada",
+    profilesVoiceModeAuto: "Automático (áudio→áudio, texto→texto)",
+    profilesVoiceModeText: "Sempre texto",
+    profilesVoiceModeAudio: "Sempre áudio",
+    profilesNoData: "Nenhum registro.",
+    profilesConfirm: "Confirmar",
   },
 
   en: {
@@ -2792,6 +2843,8 @@ export const translations: Record<Language, TranslationKeys> = {
     settingsThemeSystem: "System",
     settingsFalAiNote: "(for image generation)",
     settingsFalAiPlaceholder: "Fal.ai API key (for Social Media images)",
+    settingsMinimaxNote: "(for MiniMax-H3 video generation)",
+    settingsMinimaxPlaceholder: "MiniMax API key",
     settingsSaved: "Saved!",
     settingsHome: "Home",
     settingsTabAI: "AI & Model",
@@ -2812,7 +2865,7 @@ export const translations: Record<Language, TranslationKeys> = {
     settingsProactiveSpotify: "React when music plays",
     settingsProactiveSpotifyDesc: "Hampton asks what you want to listen to when Spotify starts playing",
     settingsProactiveApps: "React to apps",
-    settingsProactiveAppsDesc: "Hampton offers help when you open VSCode, a browser, File Explorer, terminal and others",
+    settingsProactiveAppsDesc: "Hampton offers help when you open VSCode, a browser, File Explorer, terminal and others (off by default)",
     settingsTtsPriority: "TTS Fallback Priority",
     settingsTtsPriorityDesc: "Engine order when synthesizing voice if the primary fails",
     settingsTtsPriorityLocalFirst: "Local first (free)",
@@ -3966,6 +4019,29 @@ export const translations: Record<Language, TranslationKeys> = {
     evidence_photos: "Photos",
     evidence_videos: "Videos",
     evidence_documents: "Documents",
+
+    settingsTabProfiles: "Profiles & Workspaces",
+    profilesUsersTitle: "Users",
+    profilesUsersDesc: "People interacting with Orun agents.",
+    profilesPendingTitle: "Onboarding identities",
+    profilesPendingDesc: "WhatsApp/Telegram senders without a linked user yet.",
+    profilesNoPending: "No pending identities.",
+    profilesName: "Name",
+    profilesCompleteOnboarding: "Complete onboarding",
+    profilesLinkIdentity: "Link to user",
+    profilesSelectUser: "Select user",
+    profilesChannelsTitle: "Agent channels",
+    profilesChannelsDesc: "External groups/channels (WhatsApp, Telegram) → agent.",
+    profilesChannelAgent: "Agent",
+    profilesChannelGroup: "Channel/Group",
+    profilesVoiceTitle: "Per-agent voice",
+    profilesVoiceDesc: "Voice replies on WhatsApp (audio → audio).",
+    profilesVoiceEnabled: "Voice enabled",
+    profilesVoiceModeAuto: "Automatic (audio→audio, text→text)",
+    profilesVoiceModeText: "Always text",
+    profilesVoiceModeAudio: "Always audio",
+    profilesNoData: "No records.",
+    profilesConfirm: "Confirm",
   },
 
   es: {
@@ -4106,6 +4182,8 @@ export const translations: Record<Language, TranslationKeys> = {
     settingsThemeSystem: "Sistema",
     settingsFalAiNote: "(para generar imágenes)",
     settingsFalAiPlaceholder: "Clave Fal.ai (para imágenes en Social Media)",
+    settingsMinimaxNote: "(para generación de vídeos con MiniMax-H3)",
+    settingsMinimaxPlaceholder: "Clave MiniMax",
     settingsSaved: "¡Guardado!",
     settingsHome: "Inicio",
     settingsTabAI: "IA y Modelo",
@@ -4126,7 +4204,7 @@ export const translations: Record<Language, TranslationKeys> = {
     settingsProactiveSpotify: "Reaccionar al reproducir música",
     settingsProactiveSpotifyDesc: "Hampton pregunta qué quieres escuchar cuando Spotify empieza a sonar",
     settingsProactiveApps: "Reaccionar a aplicaciones",
-    settingsProactiveAppsDesc: "Hampton ofrece ayuda al abrir VSCode, navegador, Explorador, terminal y otros",
+    settingsProactiveAppsDesc: "Hampton ofrece ayuda al abrir VSCode, navegador, Explorador, terminal y otros (desactivado por defecto)",
     settingsTtsPriority: "Prioridad de Fallback TTS",
     settingsTtsPriorityDesc: "Orden de los motores al sintetizar voz si el principal falla",
     settingsTtsPriorityLocalFirst: "Local primero (gratis)",
@@ -5281,6 +5359,29 @@ export const translations: Record<Language, TranslationKeys> = {
     evidence_photos: "Fotos",
     evidence_videos: "Videos",
     evidence_documents: "Documentos",
+
+    settingsTabProfiles: "Perfiles y Espacios de Trabajo",
+    profilesUsersTitle: "Usuarios",
+    profilesUsersDesc: "Personas que interactúan con los agentes de Orun.",
+    profilesPendingTitle: "Identidades en onboarding",
+    profilesPendingDesc: "Remitentes de WhatsApp/Telegram sin usuario vinculado todavía.",
+    profilesNoPending: "Sin identidades pendientes.",
+    profilesName: "Nombre",
+    profilesCompleteOnboarding: "Completar onboarding",
+    profilesLinkIdentity: "Vincular a usuario",
+    profilesSelectUser: "Seleccionar usuario",
+    profilesChannelsTitle: "Canales de agentes",
+    profilesChannelsDesc: "Grupos/canales externos (WhatsApp, Telegram) → agente.",
+    profilesChannelAgent: "Agente",
+    profilesChannelGroup: "Canal/Grupo",
+    profilesVoiceTitle: "Voz por agente",
+    profilesVoiceDesc: "Respuesta de voz en WhatsApp (audio → audio).",
+    profilesVoiceEnabled: "Voz habilitada",
+    profilesVoiceModeAuto: "Automático (audio→audio, texto→texto)",
+    profilesVoiceModeText: "Siempre texto",
+    profilesVoiceModeAudio: "Siempre audio",
+    profilesNoData: "Sin registros.",
+    profilesConfirm: "Confirmar",
   },
 
   fr: {
@@ -5421,6 +5522,8 @@ export const translations: Record<Language, TranslationKeys> = {
     settingsThemeSystem: "Système",
     settingsFalAiNote: "(pour la génération d'images)",
     settingsFalAiPlaceholder: "Clé API Fal.ai (pour les images Social Media)",
+    settingsMinimaxNote: "(pour la génération de vidéos avec MiniMax-H3)",
+    settingsMinimaxPlaceholder: "Clé API MiniMax",
     settingsSaved: "Enregistré !",
     settingsHome: "Accueil",
     settingsTabAI: "IA et Modèle",
@@ -5441,7 +5544,7 @@ export const translations: Record<Language, TranslationKeys> = {
     settingsProactiveSpotify: "Réagir quand la musique joue",
     settingsProactiveSpotifyDesc: "Hampton demande ce que vous voulez écouter quand Spotify commence à jouer",
     settingsProactiveApps: "Réagir aux applications",
-    settingsProactiveAppsDesc: "Hampton propose son aide à l'ouverture de VSCode, navigateur, Explorateur, terminal et autres",
+    settingsProactiveAppsDesc: "Hampton propose son aide à l'ouverture de VSCode, navigateur, Explorateur, terminal et autres (désactivé par défaut)",
     settingsTtsPriority: "Priorité de Fallback TTS",
     settingsTtsPriorityDesc: "Ordre des moteurs lors de la synthèse vocale si le principal échoue",
     settingsTtsPriorityLocalFirst: "Local d'abord (gratuit)",
@@ -6597,5 +6700,28 @@ export const translations: Record<Language, TranslationKeys> = {
     evidence_photos: "Photos",
     evidence_videos: "Vidéos",
     evidence_documents: "Documents",
+
+    settingsTabProfiles: "Profils et Espaces de Travail",
+    profilesUsersTitle: "Utilisateurs",
+    profilesUsersDesc: "Personnes qui interagissent avec les agents Orun.",
+    profilesPendingTitle: "Identités en onboarding",
+    profilesPendingDesc: "Expéditeurs WhatsApp/Telegram sans utilisateur lié.",
+    profilesNoPending: "Aucune identité en attente.",
+    profilesName: "Nom",
+    profilesCompleteOnboarding: "Terminer l'onboarding",
+    profilesLinkIdentity: "Lier à un utilisateur",
+    profilesSelectUser: "Sélectionner un utilisateur",
+    profilesChannelsTitle: "Canaux des agents",
+    profilesChannelsDesc: "Groupes/canaux externes (WhatsApp, Telegram) → agent.",
+    profilesChannelAgent: "Agent",
+    profilesChannelGroup: "Canal/Groupe",
+    profilesVoiceTitle: "Voix par agent",
+    profilesVoiceDesc: "Réponse vocale sur WhatsApp (audio → audio).",
+    profilesVoiceEnabled: "Voix activée",
+    profilesVoiceModeAuto: "Automatique (audio→audio, texte→texte)",
+    profilesVoiceModeText: "Toujours texte",
+    profilesVoiceModeAudio: "Toujours audio",
+    profilesNoData: "Aucun enregistrement.",
+    profilesConfirm: "Confirmer",
   },
 };

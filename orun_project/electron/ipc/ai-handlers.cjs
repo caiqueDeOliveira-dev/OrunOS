@@ -5,6 +5,7 @@ const log = require("electron-log");
 const { responseCache } = require("../response-cache.cjs");
 const providerHealth = require("../provider-health.cjs");
 const { getErrorMessage, getErrorTitle } = require("../error-messages.cjs");
+const { isSilentReply, SILENT_MARKER } = require("../silent-mode.cjs");
 
 function register(ipcMain, ctx) {
   const {
@@ -97,7 +98,8 @@ function register(ipcMain, ctx) {
       telemetry.trace("ai:chat-stream", Date.now() - tStreamStart, { provider: settings.provider, model: settings.model });
       telemetry.counter("ai:chat-stream:success");
       if (ctx.analytics) ctx.analytics.logEvent({ type: "ai:chat-stream", agent: agentId || "hampton", detail: `${settings.provider} ${settings.model}` });
-      send(`ai:chat-stream:done:${requestId}`, finalText);
+      if (isSilentReply(finalText)) { log.info(`[ai:chat-stream] silent exec agent=${agentId || "hampton"}`); send(`ai:chat-stream:done:${requestId}`, { silent: true, text: "" }); }
+      else send(`ai:chat-stream:done:${requestId}`, finalText);
     } catch (err) {
       activeStreamRequests.delete(requestId);
       telemetry.counter("ai:chat-stream:error");
@@ -111,7 +113,8 @@ function register(ipcMain, ctx) {
           activeStreamRequests.delete(requestId);
           agentProcessor.recordUsageSafely(fallback.provider, result.usage);
           const finalText = agentProcessor.processAgentReply(agentId, await agentProcessor.processActions(result.text));
-          send(`ai:chat-stream:done:${requestId}`, finalText);
+          if (isSilentReply(finalText)) { log.info(`[ai:chat-stream] silent exec agent=${agentId || "hampton"} (fallback)`); send(`ai:chat-stream:done:${requestId}`, { silent: true, text: "" }); }
+          else send(`ai:chat-stream:done:${requestId}`, finalText);
           return;
         } catch (fallbackErr) {
           activeStreamRequests.delete(requestId);
@@ -157,6 +160,13 @@ function register(ipcMain, ctx) {
       const finalText = await autonomousLoop({ messages, agentId, sender, requestId, cancelledRef, voiceMode });
       activeAutonomousRequests.delete(requestId);
       if (finalText === null) return; // cancelled
+      if (isSilentReply(finalText)) {
+        // Execução silenciosa: a ação foi executada via tool, o usuário não precisa
+        // de resposta falada/texto. Não cacheia para que repetições re-executem.
+        log.info(`[ai:autonomous] silent exec agent=${agentId || "hampton"} marker=${SILENT_MARKER}`);
+        send(`ai:autonomous:done:${requestId}`, { silent: true, text: "" });
+        return;
+      }
       responseCache.set(messages[messages.length - 1]?.content || "", agentId, finalText, voiceMode ? "voice" : "text");
       log.info(`[ai:autonomous] done agent=${agentId || "hampton"} len=${finalText.length}`);
       const processed = agentProcessor.processAgentReply(agentId, await agentProcessor.processActions(finalText));

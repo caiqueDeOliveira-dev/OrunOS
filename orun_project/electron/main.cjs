@@ -20,6 +20,7 @@ const whatsapp = require("./whatsapp.cjs");
 const scheduler = require("./scheduler.cjs");
 const videoEditor = require("./video-editor.cjs");
 const image3d = require("./image-3d.cjs");
+const videoGenerator = require("./video-generator.cjs");
 const socialMedia = require("./social-media.cjs");
 const musicProducer = require("./music-producer.cjs");
 const homeAssistant = require("./home-assistant.cjs");
@@ -166,11 +167,12 @@ const AGENT_TOOL_PERMISSIONS = {
     "git_status", "git_log", "git_diff", "git_stash", "git_remote", "gh_pr",
     "semgrep_scan", "library_docs",
     "run_tests", "code_review",
+    "pdf_inspect",
     "memory_save", "memory_search", "rag_search", "trigger_agent", "open_workspace", "workspace_action",
   ],
   Designer: [
     "read_file", "write_file", "list_files", "search_files",
-    "generate_image", "web_fetch", "web_search",
+    "generate_image", "generate_video", "web_fetch", "web_search",
     "memory_save", "memory_search", "rag_search", "trigger_agent", "open_workspace", "workspace_action",
   ],
   Health: [
@@ -190,7 +192,7 @@ const AGENT_TOOL_PERMISSIONS = {
   ],
   Marketing: [
     "read_file", "write_file", "list_files",
-    "generate_image", "publish_to_social",
+    "generate_image", "generate_video", "publish_to_social",
     "memory_save", "memory_search", "rag_search",
     "notify", "schedule_task", "trigger_agent", "web_search", "get_weather", "open_workspace", "workspace_action",
   ],
@@ -211,7 +213,7 @@ const AGENT_TOOL_PERMISSIONS = {
     "read_file", "list_files", "notify", "get_weather", "open_workspace", "workspace_action",
   ],
   Juridico: [
-    "read_file", "list_files",
+    "read_file", "list_files", "pdf_inspect",
     "memory_save", "memory_search", "rag_search",
     "notify", "schedule_task", "trigger_agent", "web_search", "web_fetch", "open_workspace", "workspace_action",
   ],
@@ -549,6 +551,9 @@ function buildSystemPrompt(basePrompt, agentId) {
     const devWs = db.getSetting("developerWorkspace", null) || path.join(app.getPath("desktop"), "hello");
     prompt = prompt.split("{DEVELOPER_WORKSPACE}").join(devWs);
   }
+  if (prompt) {
+    prompt += require("./silent-mode.cjs").silentPromptBlock();
+  }
   const n8nCfg = db.getSetting("n8n", {});
   const actions = db.getSetting("automationActions", []);
   if (!n8nCfg.autoTrigger || !actions.length) return prompt;
@@ -787,9 +792,11 @@ async function hubEscalate(request, context, error) {
 
 /** Delegate to extracted module, passing context dependencies. */
 function autonomousLoop(opts) {
+  const { isSilentReply } = require("./silent-mode.cjs");
   return autonomousLoopImpl(opts, {
     aiRouter, toolsModule, mcpClient, pluginSystem, responseCache, agentProcessor,
     logger, secretStore, resolveAISettings, buildSystemPrompt, getToolsForAgent, log,
+    isSilentReply,
   });
 }
 
@@ -835,6 +842,7 @@ function registerIpcHandlers() {
   require("./ipc/spotify-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/discord-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/google-handlers.cjs").register(ipcMain, ctx);
+  require("./ipc/identity-handlers.cjs").register(ipcMain, ctx);
 
   // File system handlers (evidence management)
   registerFileSystemHandlers(ipcMain, ctx);
@@ -1067,12 +1075,13 @@ function agentForJid(jid) {
   })();
 }
 
-function handleWhatsAppMessage({ jid, text, imageBase64, fromMe }) {
-  return handleWhatsAppMessageImpl({ jid, text, imageBase64, fromMe }, {
+function handleWhatsAppMessage(payload) {
+  return handleWhatsAppMessageImpl(payload, {
     db, aiRouter, agentProcessor, secretStore, whatsapp, waAutomation,
     buildSystemPrompt, resolveAISettings, log,
     saveNutritionToFile: (text) => saveNutritionToFile(text, app.getPath("userData"), log),
     getErrorMessage,
+    memoryEngine,
   });
 }
 
@@ -1173,7 +1182,14 @@ app.whenReady().then(() => {
   db.setSetting("appPath", process.cwd());
   registerIpcHandlers();
   agentProcessor.init({ db, agentPrompts, n8n, syncEnqueue });
-  toolsModule.init(app.getPath("userData"), { db, socialMedia, image3d, readSecretStore: secretStore.readSecretStore });
+  const identityResolver = require("./identity-resolver.cjs");
+  try {
+    identityResolver.syncAgentChannelsFromLegacy(db);
+    identityResolver.ensureSystemEntities(db);
+  } catch (err) {
+    log.warn("[identity] init failed:", err.message);
+  }
+  toolsModule.init(app.getPath("userData"), { db, socialMedia, image3d, videoGenerator, readSecretStore: secretStore.readSecretStore });
   logger.tools.info("Tools module initialized");
   toolsModule.setAllowedRoots([app.getPath("userData"), app.getPath("documents"), app.getPath("desktop"), app.getPath("home")]);
   rag.init(app.getPath("userData"), db.getSetting("ollama", {}).baseUrl);

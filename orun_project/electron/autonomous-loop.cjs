@@ -171,7 +171,11 @@ async function autonomousLoop({ messages, agentId, sender, requestId, cancelledR
       }
 
       if (lastUserMsg && finalText) {
-        responseCache.set(lastUserMsg, agentId, finalText, voiceMode ? "voice" : "text");
+        // Não cacheia execução silenciosa — senão repetir o comando retornaria
+        // apenas o marcador do cache em vez de re-executar a ação.
+        if (!ctx.isSilentReply || !ctx.isSilentReply(finalText)) {
+          responseCache.set(lastUserMsg, agentId, finalText, voiceMode ? "voice" : "text");
+        }
       }
       logDone(i + 1, 0);
       return finalText;

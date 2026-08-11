@@ -59,9 +59,12 @@ export interface OrunAgentModelOverride {
   baseUrl?: string;
 }
 
+/** Payload do onDone: string normal ou objeto de execução silenciosa (ação executada via tool, sem resposta). */
+export type OrunDonePayload = string | { silent?: boolean; text?: string };
+
 interface OrunStreamCallbacks {
   onChunk?: (delta: string) => void;
-  onDone?: (fullText: string) => void;
+  onDone?: (fullText: OrunDonePayload) => void;
   onError?: (message: string) => void;
   agentId?: string;
 }
@@ -82,7 +85,12 @@ interface OrunAutonomousCallbacks {
   onToolCall?: (tc: OrunToolCall) => void;
   onToolResult?: (tr: OrunToolResult) => void;
   onChunk?: (delta: string) => void;
-  onDone?: (fullText: string) => void;
+  /**
+   * Recebe o texto final. Quando a resposta foi uma EXECUÇÃO SILENCIOSA (o agente
+   * executou uma ação direta via tool e não precisa responder), recebe
+   * `{ silent: true, text: "" }` — o chamador não deve falar nem mostrar texto.
+   */
+  onDone?: (fullText: OrunDonePayload) => void;
   onError?: (message: string) => void;
   agentId?: string;
   /** When true, the assistant replies in short spoken-friendly sentences (voice overlay). */
@@ -651,6 +659,18 @@ interface OrunAPI {
     truncateFrom: (conversationId: string, messageId: string) => Promise<boolean>;
     importConversation: (id: string, messages: any[]) => Promise<{ success: boolean; error?: string }>;
   };
+  identity: {
+    listUsers: () => Promise<OrunUser[]>;
+    listIdentities: (opts?: { pendingOnly?: boolean }) => Promise<OrunUserIdentity[]>;
+    listWorkspaces: () => Promise<OrunWorkspace[]>;
+    listChannels: (opts?: { enabledOnly?: boolean }) => Promise<OrunAgentChannel[]>;
+    setChannel: (args: { provider: string; externalChannelId: string; agent: string; name?: string }) => Promise<OrunAgentChannel>;
+    setChannelEnabled: (args: { provider: string; externalChannelId: string; enabled: boolean }) => Promise<OrunAgentChannel>;
+    completeOnboarding: (args: { identityId: string; name: string; workspaceName?: string }) => Promise<{ userId: string; profileId: string; workspaceId: string; identityId: string; status: string }>;
+    linkIdentity: (args: { identityId: string; userId: string }) => Promise<{ userId: string; identityId: string; workspaceId: string | null }>;
+    getVoiceSettings: (agentId: string) => Promise<OrunAgentVoiceSettings | null>;
+    setVoiceSettings: (agentId: string, patch: Partial<OrunAgentVoiceSettings>) => Promise<OrunAgentVoiceSettings>;
+  };
   n8n: {
     listWorkflows: () => Promise<{ id: string; name: string; active: boolean }[]>;
     testConnection: (cfg?: OrunN8nConfig) => Promise<{ ok: boolean; error?: string; workflowCount?: number }>;
@@ -1132,6 +1152,53 @@ interface OrunDiscordChannel {
 }
 
 declare global {
+  interface OrunUser {
+    id: string;
+    name: string;
+    created_at: number;
+    updated_at: number;
+  }
+
+  interface OrunUserIdentity {
+    id: string;
+    user_id: string | null;
+    provider: string;
+    provider_user_id: string;
+    phone_number: string | null;
+    display_name: string | null;
+    verified: number;
+    created_at: number;
+    updated_at: number;
+  }
+
+  interface OrunWorkspace {
+    id: string;
+    owner_user_id: string;
+    name: string;
+    type: "PERSONAL" | "SHARED" | "SYSTEM";
+    created_at: number;
+    updated_at: number;
+  }
+
+  interface OrunAgentChannel {
+    id: string;
+    provider: string;
+    external_channel_id: string;
+    agent: string;
+    name: string | null;
+    enabled: number;
+    created_at: number;
+    updated_at: number;
+  }
+
+  interface OrunAgentVoiceSettings {
+    enabled: boolean;
+    voiceProvider: string | null;
+    voiceId: string | null;
+    language: string;
+    responseMode: "AUTO" | "ALWAYS_TEXT" | "ALWAYS_AUDIO";
+  }
+
   interface Window {
     orun: OrunAPI;
   }

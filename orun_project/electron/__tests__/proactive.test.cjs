@@ -1,4 +1,4 @@
-const { resolveAppKey, APP_PROMPTS } = require("../proactive.cjs");
+const { resolveAppKey, isAppWindow, APP_PROMPTS } = require("../proactive.cjs");
 
 describe("proactive resolveAppKey", () => {
   it("maps VSCode and VSCode Insiders", () => {
@@ -40,5 +40,21 @@ describe("proactive resolveAppKey", () => {
       expect(typeof APP_PROMPTS[key]).toBe("string");
       expect(APP_PROMPTS[key].length).toBeGreaterThan(10);
     }
+  });
+});
+
+describe("proactive isAppWindow (desktop/shell guard)", () => {
+  it("ignores shell/desktop windows with no title (Win+D)", () => {
+    expect(isAppWindow("explorer", "")).toBe(false);
+    expect(isAppWindow("explorer", "  ")).toBe(false);
+    expect(isAppWindow("progman", "")).toBe(false);
+    expect(isAppWindow("explorer", null)).toBe(false);
+    expect(isAppWindow("explorer", undefined)).toBe(false);
+  });
+
+  it("accepts real app windows that have a title", () => {
+    expect(isAppWindow("explorer", "Downloads")).toBe(true);
+    expect(isAppWindow("code", "projeto - Visual Studio Code")).toBe(true);
+    expect(isAppWindow("chrome", "Google")).toBe(true);
   });
 });

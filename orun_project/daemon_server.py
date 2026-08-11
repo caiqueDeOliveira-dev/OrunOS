@@ -3,7 +3,7 @@ Orun OS — Daemon unificado de voz (STT + TTS + Wake num processo só).
 
 Substitui os 3 subprocessos (stt_server.py, edge_tts_server.py,
 wake_word_service.py) por um único processo que:
-  - Serve STT em :8080  (POST /v1/audio/transcriptions — compatível OpenAI)
+  - Serve STT em :8090  (POST /v1/audio/transcriptions — compatível OpenAI)
   - Serve TTS em :5003  (POST /api/tts e /v1/audio/speech — streaming)
   - Roda a detecção de wake word "OK Orun" em thread própria, sinalizando o
     app Electron via TCP em :8081 (mesmo protocolo do wake_word_service.py)
@@ -12,7 +12,7 @@ Subsistemas são lazy-loaded: se uma dependência faltar, aquele endpoint
 retorna 503 com mensagem clara em vez de derrubar o daemon inteiro.
 
 Uso:
-    python daemon_server.py [--stt-port 8080] [--tts-port 5003]
+    python daemon_server.py [--stt-port 8090] [--tts-port 5003]
                             [--wake-port 8081] [--wake-token ""]
                             [--model small] [--device cpu] [--compute-type int8]
 """
@@ -132,7 +132,7 @@ def serve(app, port, host="127.0.0.1"):
 
 def main():
     parser = argparse.ArgumentParser(description="Orun OS Daemon unificado de voz")
-    parser.add_argument("--stt-port", type=int, default=8080)
+    parser.add_argument("--stt-port", type=int, default=8090)
     parser.add_argument("--tts-port", type=int, default=5003)
     parser.add_argument("--wake-port", type=int, default=8081)
     parser.add_argument("--wake-token", type=str, default="")

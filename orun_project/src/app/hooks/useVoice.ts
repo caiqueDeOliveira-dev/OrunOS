@@ -371,7 +371,7 @@ export function useVoice({
     }
 
     // Local Whisper fallback
-    const sttUrls = [cfg?.baseUrl, "http://127.0.0.1:8080"].filter(Boolean) as string[];
+    const sttUrls = [cfg?.baseUrl, "http://127.0.0.1:8090"].filter(Boolean) as string[];
 
     for (const url of sttUrls) {
       try {

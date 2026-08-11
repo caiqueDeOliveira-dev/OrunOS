@@ -10,6 +10,18 @@ function createBackgroundServices({ app, db, log, mainWindow }) {
   const { randomBytes } = require("crypto");
   const pythonCmd = process.platform === "win32" ? "python" : "python3";
 
+  // Resolve the Python service scripts for both dev and packaged layouts.
+  // Dev: scripts live in the project root (../ from electron/).
+  // Packaged: electron-builder copies them to resources/python/ (extraResources)
+  // — Python cannot execute a script from inside app.asar, so they MUST live
+  // outside the asar in process.resourcesPath.
+  function pythonScript(name) {
+    if (app.isPackaged) {
+      return path.join(process.resourcesPath, "python", name);
+    }
+    return path.join(__dirname, "..", name);
+  }
+
   // ── Wake Word Service ──────────────────────────────────────────────
   let wakeWordProcess = null;
   let wakeWordServer = null;
@@ -93,7 +105,7 @@ function createBackgroundServices({ app, db, log, mainWindow }) {
   function startWakeWordService() {
     if (wakeWordProcess) return;
 
-    const scriptPath = path.join(__dirname, "..", "wake_word_service.py");
+    const scriptPath = pythonScript("wake_word_service.py");
     if (!fs.existsSync(scriptPath)) {
       log.warn("[wake] wake_word_service.py not found at", scriptPath);
       return;
@@ -133,8 +145,9 @@ function createBackgroundServices({ app, db, log, mainWindow }) {
 
     // Use 127.0.0.1, NOT localhost: no Windows "localhost" can resolve to ::1
     // first, and a Docker/other service listening on ::1:8080 would hijack the
-    // wake-word STT requests (STT server binds only to 127.0.0.1).
-    const sttUrl = db.getSetting("stt", {})?.baseUrl || "http://127.0.0.1:8080";
+    // wake-word STT requests (STT server binds only to 127.0.0.1). Port 8090
+    // (not 8080): the oruntv Docker stack's qbittorrent binds 0.0.0.0:8080.
+    const sttUrl = db.getSetting("stt", {})?.baseUrl || "http://127.0.0.1:8090";
     wakeWordProcess = spawn(pythonCmd, [scriptPath, "--port", String(WAKE_PORT), "--stt-url", sttUrl, "--token", WAKE_TOKEN, "--verbose"], {
       stdio: ["ignore", "pipe", "pipe"],
       detached: false,
@@ -189,7 +202,7 @@ function createBackgroundServices({ app, db, log, mainWindow }) {
 
   function startEdgeTtsServer() {
     if (edgeProcess) return;
-    const scriptPath = path.join(__dirname, "..", "edge_tts_server.py");
+    const scriptPath = pythonScript("edge_tts_server.py");
     if (!fs.existsSync(scriptPath)) return;
 
     edgeProcess = spawn(pythonCmd, [scriptPath, "--port", String(EDGE_PORT)], {
@@ -218,7 +231,7 @@ function createBackgroundServices({ app, db, log, mainWindow }) {
 
   function startPiperServer() {
     if (piperProcess) return;
-    const scriptPath = path.join(__dirname, "..", "piper_server.py");
+    const scriptPath = pythonScript("piper_server.py");
     if (!fs.existsSync(scriptPath)) return;
 
     piperProcess = spawn(pythonCmd, [scriptPath, "--port", String(PIPER_PORT)], {
@@ -247,11 +260,13 @@ function createBackgroundServices({ app, db, log, mainWindow }) {
 
   // ── Whisper STT Server ─────────────────────────────────────────────
   let sttProcess = null;
-  const STT_PORT = 8080;
+  // Porta 8090 (não 8080): o stack Docker oruntv (qbittorrent) ocupa 0.0.0.0:8080,
+  // o que impede o bind em 127.0.0.1:8080. 8090 fica livre para o STT.
+  const STT_PORT = 8090;
 
   function startSttServer() {
     if (sttProcess) return;
-    const scriptPath = path.join(__dirname, "..", "stt_server.py");
+    const scriptPath = pythonScript("stt_server.py");
     if (!fs.existsSync(scriptPath)) return;
 
     const sttCfg = db.getSetting("stt", {}) || {};
@@ -293,7 +308,7 @@ function createBackgroundServices({ app, db, log, mainWindow }) {
 
   function startDaemon() {
     if (daemonProcess) return;
-    const scriptPath = path.join(__dirname, "..", "daemon_server.py");
+    const scriptPath = pythonScript("daemon_server.py");
     if (!fs.existsSync(scriptPath)) return;
 
     const sttCfg = db.getSetting("stt", {}) || {};
@@ -344,7 +359,7 @@ function createBackgroundServices({ app, db, log, mainWindow }) {
 
   function startKokoroServer() {
     if (kokoroProcess) return;
-    const scriptPath = path.join(__dirname, "..", "kokoro_server.py");
+    const scriptPath = pythonScript("kokoro_server.py");
     if (!fs.existsSync(scriptPath)) return;
 
     kokoroProcess = spawn(pythonCmd, [scriptPath, "--port", String(KOKORO_PORT)], {

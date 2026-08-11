@@ -10,6 +10,7 @@ import { startSound, stopSound, setVolume, stopAll, getActiveSounds, AMBIENT_SOU
 import { ThemeToggle } from "./ThemeToggle";
 import { EncryptionToggle } from "./EncryptionToggle";
 import { AutoBackup } from "../services/autoBackup";
+import { ProfilesPanel } from "./ProfilesPanel";
 
 const PROVIDER_INFO: Record<OrunProvider, { label: string; kind: "local" | "cloud"; defaultModel: string; note?: string }> = {
   ollama: { label: "Ollama", kind: "local", defaultModel: "llama3.1" },
@@ -823,13 +824,14 @@ function AmbientSoundsSection({ t }: { t: (key: string) => string }) {
 
 // ── Tab Navigation ──────────────────────────────────────────────────────
 
-type SettingsTab = "ai" | "integrations" | "appearance" | "system";
+type SettingsTab = "ai" | "integrations" | "appearance" | "system" | "profiles";
 
 const getTabs = (t: (key: string) => string): { id: SettingsTab; label: string; icon: React.ElementType }[] => [
   { id: "ai", label: t("settingsTabAI"), icon: Bot },
   { id: "integrations", label: t("settingsTabIntegrations"), icon: Plug },
   { id: "appearance", label: t("settingsTabAppearance"), icon: Palette },
   { id: "system", label: t("settingsTabSystem"), icon: Cpu },
+  { id: "profiles", label: t("settingsTabProfiles"), icon: Users },
 ];
 
 // ── Keyboard Shortcut Builder ───────────────────────────────────────────
@@ -1365,7 +1367,7 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
                     <VoiceToggle settingKey="proactiveSpotify" defaultValue={true} />
                   </SettingRow>
                   <SettingRow label={t("settingsProactiveApps")} description={t("settingsProactiveAppsDesc")}>
-                    <VoiceToggle settingKey="proactiveApps" defaultValue={true} />
+                    <VoiceToggle settingKey="proactiveApps" defaultValue={false} />
                   </SettingRow>
                 </Section>
 
@@ -1390,6 +1392,64 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
                       }}
                       className="px-3 py-2 rounded-lg text-[10px]"
                       style={{ background: "#9B59B6", color: "#fff" }}
+                    >
+                      {t("settingsSave")}
+                    </button>
+                  </div>
+                </Section>
+
+                {/* MiniMax-H3 */}
+                <Section title={`MiniMax-H3 ${t("settingsMinimaxNote")}`} icon={Sparkles} accent="#7B1FA2">
+                  <div className="flex gap-2">
+                    <input
+                      type="password" id="minimax-key-input"
+                      placeholder={t("settingsMinimaxPlaceholder")}
+                      className="flex-1 px-3 py-2 rounded-lg text-[11px] outline-none"
+                      style={{ background: "var(--secondary)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+                    />
+                    <button
+                      onClick={async () => {
+                        const input = document.getElementById("minimax-key-input") as HTMLInputElement;
+                        if (input?.value.trim()) {
+                          await window.orun.settings.setApiKey("minimax", input.value.trim());
+                          input.value = "";
+                          input.placeholder = t("settingsSaved");
+                          setTimeout(() => { input.placeholder = t("settingsMinimaxPlaceholder"); }, 2000);
+                        }
+                      }}
+                      className="px-3 py-2 rounded-lg text-[10px]"
+                      style={{ background: "#7B1FA2", color: "#fff" }}
+                    >
+                      {t("settingsSave")}
+                    </button>
+                  </div>
+                </Section>
+
+                {/* Firecrawl */}
+                <Section title="Firecrawl" icon={Sparkles} accent="#E8544D">
+                  <p className="text-[11px] mb-2" style={{ color: "var(--muted)" }}>
+                    Web search e scrape com markdown limpo para as tools de web. Opcional — sem chave,
+                    as tools usam DuckDuckGo/HTTP direto.
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      type="password" id="firecrawl-key-input"
+                      placeholder="fc-... (api.firecrawl.dev)"
+                      className="flex-1 px-3 py-2 rounded-lg text-[11px] outline-none"
+                      style={{ background: "var(--secondary)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+                    />
+                    <button
+                      onClick={async () => {
+                        const input = document.getElementById("firecrawl-key-input") as HTMLInputElement;
+                        if (input?.value.trim()) {
+                          await window.orun.settings.setApiKey("firecrawl", input.value.trim());
+                          input.value = "";
+                          input.placeholder = t("settingsSaved");
+                          setTimeout(() => { input.placeholder = "fc-... (api.firecrawl.dev)"; }, 2000);
+                        }
+                      }}
+                      className="px-3 py-2 rounded-lg text-[10px]"
+                      style={{ background: "#E8544D", color: "#fff" }}
                     >
                       {t("settingsSave")}
                     </button>
@@ -1723,6 +1783,12 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
                   )}
                   {updateStatus?.status === "error" && <p className="text-[9px] mt-1" style={{ color: "#C00018" }}>{updateStatus.message}</p>}
                 </Section>
+              </motion.div>
+            )}
+            {/* ── Profiles Tab ────────────────────────────── */}
+            {activeTab === "profiles" && (
+              <motion.div key="profiles" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.15 }}>
+                <ProfilesPanel t={t} />
               </motion.div>
             )}
           </AnimatePresence>

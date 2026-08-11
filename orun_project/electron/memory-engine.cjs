@@ -15,9 +15,14 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 
-/** Chave composta única de uma memória (identidade do upsert). */
-function makeId(scopeAgent, scopeProject, key) {
-  return [scopeAgent || "", scopeProject || "", key].join("::");
+/** Chave composta única de uma memória (identidade do upsert).
+ *  Escopo completo: workspace + user + agent + project + conversation + key.
+ *  Retrocompatível: sem escopos novos, mantém o formato antigo
+ *  [agent][project][key] (preserva ids de memórias existentes). */
+function makeId(scopeAgent, scopeProject, key, scopeWorkspace, scopeUser, scopeConversation) {
+  const extra = [scopeWorkspace, scopeUser, scopeConversation].filter(Boolean);
+  if (extra.length === 0) return [scopeAgent || "", scopeProject || "", key].join("::");
+  return [scopeWorkspace || "", scopeUser || "", scopeAgent || "", scopeProject || "", scopeConversation || "", key].join("::");
 }
 
 function cosineSimilarity(a, b) {
@@ -77,9 +82,12 @@ function createMemoryEngine(opts = {}) {
     return store.save(records);
   }
 
-  function scopeMatches(record, scopeAgent, scopeProject) {
+  function scopeMatches(record, scopeAgent, scopeProject, scopeWorkspace, scopeUser, scopeConversation) {
     if (scopeAgent && record.scopeAgent && record.scopeAgent !== scopeAgent) return false;
     if (scopeProject && record.scopeProject && record.scopeProject !== scopeProject) return false;
+    if (scopeWorkspace && record.workspaceId && record.workspaceId !== scopeWorkspace) return false;
+    if (scopeUser && record.userId && record.userId !== scopeUser) return false;
+    if (scopeConversation && record.conversationId && record.conversationId !== scopeConversation) return false;
     return true;
   }
 
@@ -101,11 +109,11 @@ function createMemoryEngine(opts = {}) {
    * chave composta e espelha para a nuvem quando há embedding.
    */
   async function save(entry = {}) {
-    const { key, content, tags = [], scopeAgent = null, scopeProject = null, source = "manual" } = entry;
+    const { key, content, tags = [], scopeAgent = null, scopeProject = null, source = "manual", workspaceId = null, userId = null, conversationId = null } = entry;
     if (typeof key !== "string" || !key.trim()) return { ok: false, error: "key é obrigatório" };
     if (typeof content !== "string" || !content.trim()) return { ok: false, error: "content é obrigatório" };
 
-    const id = makeId(scopeAgent, scopeProject, key);
+    const id = makeId(scopeAgent, scopeProject, key, workspaceId, userId, conversationId);
     const records = load();
     const idx = records.findIndex((r) => r.id === id);
     const existing = idx >= 0 ? records[idx] : null;
@@ -126,6 +134,9 @@ function createMemoryEngine(opts = {}) {
       tags,
       scopeAgent: scopeAgent || null,
       scopeProject: scopeProject || null,
+      workspaceId: workspaceId || null,
+      userId: userId || null,
+      conversationId: conversationId || null,
       source,
       embedding: Array.isArray(embedding) ? embedding : null,
       created_at: existing ? existing.created_at : now,
@@ -149,11 +160,11 @@ function createMemoryEngine(opts = {}) {
    * Memórias globais (sem escopo) aparecem em qualquer escopo; memórias
    * escopadas só no seu escopo. Acessos incrementam `access_count`.
    */
-  async function search({ query, scopeAgent = null, scopeProject = null, topK = 5, threshold = 0 }) {
+  async function search({ query, scopeAgent = null, scopeProject = null, topK = 5, threshold = 0, workspaceId = null, userId = null, conversationId = null }) {
     const q = (query || "").trim();
     if (!q) return { results: [], method: "empty" };
 
-    const records = load().filter((r) => scopeMatches(r, scopeAgent, scopeProject));
+    const records = load().filter((r) => scopeMatches(r, scopeAgent, scopeProject, workspaceId, userId, conversationId));
     if (records.length === 0) return { results: [], method: "empty" };
 
     const queryEmbedding = await Promise.resolve(embed(q)).catch(() => null);
@@ -199,8 +210,8 @@ function createMemoryEngine(opts = {}) {
   }
 
   /** Gera o bloco <memorias_relevantes> para append no system prompt. */
-  async function injectForPrompt({ query, scopeAgent = null, scopeProject = null, topK = 5, maxChars = 1500 }) {
-    const { results } = await search({ query, scopeAgent, scopeProject, topK });
+  async function injectForPrompt({ query, scopeAgent = null, scopeProject = null, topK = 5, maxChars = 1500, workspaceId = null, userId = null, conversationId = null }) {
+    const { results } = await search({ query, scopeAgent, scopeProject, topK, workspaceId, userId, conversationId });
     if (results.length === 0) return "";
 
     const lines = results.map((r) => {

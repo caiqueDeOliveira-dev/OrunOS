@@ -89,7 +89,7 @@ const AGENT_TOOL_PERMISSIONS = {
   ],
   Designer: [
     "read_file", "write_file", "list_files", "search_files",
-    "generate_image", "web_fetch", "web_search",
+    "generate_image", "generate_video", "web_fetch", "web_search",
     "memory_save", "memory_search", "rag_search", "trigger_agent", "open_workspace", "workspace_action",
   ],
   Health: [
@@ -109,7 +109,7 @@ const AGENT_TOOL_PERMISSIONS = {
   ],
   Marketing: [
     "read_file", "write_file", "list_files",
-    "generate_image", "publish_to_social",
+    "generate_image", "generate_video", "publish_to_social",
     "memory_save", "memory_search", "rag_search",
     "notify", "schedule_task", "trigger_agent", "web_search", "open_workspace", "workspace_action",
   ],
@@ -145,7 +145,7 @@ const AGENT_TOOL_PERMISSIONS = {
   ],
   Creator: [
     "read_file", "write_file", "list_files", "search_files",
-    "generate_image", "web_search", "web_fetch",
+    "generate_image", "generate_video", "web_search", "web_fetch",
     "memory_save", "memory_search",
     "notify", "open_workspace", "workspace_action",
   ],
@@ -343,7 +343,7 @@ describe("Tool permissions integrity", () => {
     "memory_save", "memory_search", "rag_search",
     "notify", "schedule_task", "trigger_agent",
     "clipboard_read", "clipboard_write", "screenshot",
-    "publish_to_social", "generate_image", "open_workspace", "workspace_action",
+    "publish_to_social", "generate_image", "generate_video", "open_workspace", "workspace_action",
     "spotify_play", "spotify_search", "spotify_get_playlists", "spotify_get_now_playing",
   ];
 

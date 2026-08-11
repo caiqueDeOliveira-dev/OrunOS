@@ -4,7 +4,7 @@
     "description": "Orun OS — a personal AI desktop assistant with local and cloud model support.",
     "author": "Grupo Orun Soluções Tecnológicas",
     "private": true,
-    "version": "0.6.7",
+    "version": "0.6.9",
     "type": "module",
     "main": "electron/main.cjs",
     "scripts": {
@@ -131,6 +131,32 @@
             "dist/**/*",
             "electron/**/*",
             "!electron/__tests__/**"
+        ],
+        "extraResources": [
+            {
+                "from": "daemon_server.py",
+                "to": "python/daemon_server.py"
+            },
+            {
+                "from": "wake_word_service.py",
+                "to": "python/wake_word_service.py"
+            },
+            {
+                "from": "stt_server.py",
+                "to": "python/stt_server.py"
+            },
+            {
+                "from": "edge_tts_server.py",
+                "to": "python/edge_tts_server.py"
+            },
+            {
+                "from": "piper_server.py",
+                "to": "python/piper_server.py"
+            },
+            {
+                "from": "kokoro_server.py",
+                "to": "python/kokoro_server.py"
+            }
         ],
         "directories": {
             "output": "release"

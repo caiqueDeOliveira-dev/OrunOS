@@ -1,15 +1,47 @@
 # Orun OS — Complete System Prompt
 
+## Objetivo: o SO Orun
+
+O objetivo final do usuário é transformar o ecossistema Orun em um **sistema operacional completo e profissional — o SO Orun**. É baseado em **web/Electron** (um shell com janelas, taskbar e launcher que hospeda os programas do ecossistema), NÃO um kernel Linux. Documento-mãe: `orun_project/docs/so-orun-roadmap.md`.
+
+Ordem de fases: **A** = completar os projetos na metade (OrunVS → OrunTV → Orun Shield) → **B** = shell do SO (window manager/taskbar/launcher) → **C** = apps nativos incorporados → **D** = distribuição (build único + Orun Store). Todos os apps usam o mesmo Supabase compartilhado (`kmfmeewibravdsxemzuj`). O desktop (este projeto) é a referência/base e o shell futuro do SO.
+
 ## Overview
 Orun OS is a **desktop AI operating system** built with Electron + React + Vite. It runs as a native Windows/macOS/Linux app, featuring a multi-agent AI system with autonomous tool-calling, WhatsApp/Telegram/Discord/Email integrations, voice interaction (TTS/STT/wake word), social media publishing, Google Calendar/Gmail sync, Spotify control, and a plugin-based workspace system. Part of the **Orun ecosystem** (desktop + mobile monorepo + Orun-Core + Supabase shared project); the desktop is the reference base for all of them.
 
-- **Version**: 0.6.6
+- **Version**: 0.6.8
 - **Stack**: Electron 31, React 18.3, Vite 6, Tailwind CSS 4, TypeScript
 - **AI Providers**: OpenCodeZen (primary), Groq, OpenRouter (fallback chain); Ollama local-only; GitHub Models retired (410); DeepSeek/PaLM reachable via OpenCodeZen proxy
 - **DB**: SQLite (local) + Supabase/PostgreSQL (cloud sync, push-first, same shared project used by mobile/core: ref `kmfmeewibravdsxemzuj`)
 - **Language**: Portuguese (pt-BR) default, English/Spanish/French supported
 - **Repo**: all code in `orun_project/` subdirectory
-- **Docs**: `docs/roadmap-v1.md` (plataforma), `docs/voice-roadmap.md` (voz) — curados, atualizados por sessão
+- **Docs**: `docs/roadmap-v1.md` (plataforma), `docs/voice-roadmap.md` (voz), `docs/so-orun-roadmap.md` (visão SO) — curados, atualizados por sessão
+
+---
+
+## Ecossistema de Projetos Orun
+
+O objetivo final do ecossistema é o **SO Orun** (ver `orun_project/docs/so-orun-roadmap.md`): um sistema operacional completo e profissional baseado em web/Electron (shell com janelas/taskbar/launcher hospedando os programas do ecossistema), NÃO um kernel Linux. Ordem de fases: **A** = completar os projetos na metade (**OrunVS → OrunTV → Orun Shield**) → **B** = shell do SO → **C** = apps nativos incorporados → **D** = distribuição (build único + Orun Store).
+
+Todos os apps usam o **mesmo Supabase compartilhado** (`kmfmeewibravdsxemzuj`) e o mesmo conjunto de agentes/prompts.
+
+### Catálogo de projetos
+
+| # | Projeto | Status | Caminho | Stack | O que é |
+|---|---------|--------|---------|-------|---------|
+| 1 | **Orun OS (desktop)** | **v0.6.8** — referência/base | `C:\Users\Caiqu\OneDrive\Desktop\orun-os\orun_project` | Electron 31, React 18.3, Vite 6, Tailwind 4, TS | App desktop multi-agente, workspace plugin-based, WhatsApp/Telegram/Discord, voz, Spotify, n8n, sync Supabase |
+| 2 | **Orun Mobile (monorepo)** | ativo — 211 testes | `C:\Users\Caiqu\Downloads\orun-monorepo_1\orun-monorepo` (branch `master`) | Expo/React Native, Supabase, Deno Edge Functions | App mobile (expo-router), design system Neon/Glass, `supabase-sync` (sync engine + ai-relay/telegram/whatsapp webhooks), `whatsapp-baileys`, **home-app** (tablet smarthome) |
+| 3 | **Orun-Core** | v0.1.2 — 60 testes | `C:\Users\Caiqu\OneDrive\Desktop\Orun-Core` | TypeScript | Core compartilhado: `getSupabaseClient` (transport WebSocket p/ Electron), hub `devices`/`commands`, satélites (`home`, `tv`, `shield`) |
+| 4 | **OrunVS** | **v0.3.4** — 87 testes, VSIX instalado | `C:\Users\Caiqu\OneDrive\Desktop\OrunVS` | VS Code extension, TS | Extensão VS Code com chat IA multi-provider (OpenCodeZen/Gemini/Groq/OpenRouter/DeepSeek/HF/Ollama), fallback chain, memória local, skills, **client MCP stdio + catálogo on-demand** |
+| 5 | **OrunTV** | v0.1.0 — em refinamento | `C:\Users\Caiqu\Downloads\oruntv_2\oruntv` | Jellyfin + Sonarr/Radarr/Prowlarr/Bazarr/qBittorrent; apps dashboard/desktop/mobile/tizen; packages core/shared-logic | Media stack completo + `OrunTV ROBO\meu_robote.py` (Playwright extrai `.m3u8/.mpd/.mp4`) |
+| 6 | **Orun Shield** | v0.1.0 — em refinamento | `C:\Users\Caiqu\Downloads\Orun Shield\orun-security-suite` | 6 pacotes TS (shield-core: ClamAV/VirusTotal/YARA/Sentinela/firewall; sentinela-agent: IA NLP; shield-mobile; system-optimizer: winget/brew/apt) + 2 integrações Electron; ~115+ testes | Suíte de segurança (proteção, otimização, monitoramento) |
+| 7 | **Orun Home (home-app)** | ativo — APK via EAS | `packages/home-app` no monorepo | Expo SDK 54, RN, expo-router, zustand, supabase-js | App tablet smarthome (landscape): dashboard, dispositivos, cenários, automações, assistente (agente Home IA), satélite `home` do hub; HA opcional |
+| 8 | **Orun Auth (@orun/identity)** | **bruto (v0.1.0) — pronto p/ refinar** | zip `Downloads\Orun Auth.zip` / `Orun Auth_1.zip` | TS (pacote puro), vitest, Deno Edge Functions | Camada centralizada de identidade/auth do ecossistema: sign in/up/out, OAuth, magic link, refresh, storage seguro por plataforma (electron/expo/webcrypto), SessionRegistry multi-device, Turnstile, **billing Stripe + entitlements/paywalls**, licenciamento offline (JWT), MFA/TOTP, audit log, LGPD (export/delete), passkeys (beta). 5 Edge Functions (`create-checkout-session`, `stripe-webhook`, `issue-license`, `export-user-data`, `delete-account`). Código testado (71/71) aguardando integração — **não integrado nos apps ainda** |
+| 9 | **Orun Files** | **bruto (v0.1.0) — pronto p/ refinar** | zip `Downloads\orun-files.zip` | Electron, JS puro, Gemini API (`text-embedding-004` + `gemini-2.0-flash`), electron-store, chokidar, pdf-parse | Gerenciador de arquivos com IA: busca semântica (embeddings + cosseno, fallback textual), organização automática (plano de mover, nada executa sem confirmação), preview universal, indexação com chokidar. MVP funcional; roadmap: extração de conteúdo real (PDF/OCR/transcrição), batching de embeddings, undo, empacotamento electron-builder, modo assistente |
+| 10 | **Orun Design** | bruto — em avaliação | `C:\Users\Caiqu\Downloads\Orun Design\orum-project` | Backend Node (`orum-prospect-backend` 0.1.0) + frontend HTML/CSS/JS puro | (Em avaliação — verificar com o usuário se faz parte do catálogo) |
+| — | **Orun TV / Orun Shield (roteiro original)** | adiado | — | TBD | Adiado "pra depois" — **reaberto** pela visão SO (OrunTV e Orun Shield voltaram como projetos ativos) |
+
+> **Nota**: Orun Auth e Orun Files estão **bruto** (v0.1.0, entregues via zip) — o código existe e é funcional, mas **precisa de refinamento**: integração nos apps reais (Auth), extração de conteúdo + batching + undo + empacotamento (Files), alinhamento de identidade visual e de API keys com o restante do ecossistema.
 
 ---
 
@@ -366,6 +398,99 @@ npm run lint            # ESLint
 ---
 
 ## Work Log
+
+### 2026-08-10 (tarde) — Trending monthly: passada registrada + AGORA #34 (mattpocock/skills) e #35 (code-review-graph) executados
+
+**Passada mensal (`since=monthly`, 21 repos) registrada** em `docs/skills-mcps-futuro.md` — novos **#34–#45** + descartados mensais; re-trendings (t3code #26, TencentDB #29, reverse-skill #31, book-to-skill) mantidos com status registrado:
+- **FUTURO novos**: DeepTutor (Teacher), open-seo (Marketing), worldmonitor (app Fase C), archify (diagramas, complementa #9/#12), OpenCut (app vídeo Fase C), pi (autonomous-loop), speech-to-speech (voz), cangjie-skill (Knowledge Engine), orca (Agent Hub paralelo), hallmark (anti-AI-slop p/ Designer/Developer).
+- **Descartados mensais**: OmniRoute (gateway middleman + privacidade), jcode, kimi-code, pi-web, awesome-llm-apps, book-to-skill (re-trending).
+
+**#34 mattpocock/skills ADOTADO (minerado)** — clonado em `%TEMP%\opencode\mattpocock-skills` (35 skills: engenharia/produtividade/misc/in-progress). O que foi para o ecossistema:
+- `skills/developer/SKILL.md`: **Code Review** com eixos **Padrões-vs-Spec** (independentes, nunca mesclados) + baseline de **12 smells de Fowler** (pin do diff three-dot; repo documentado vence o baseline; smells = judgement call; pular o que tooling enforça); **Test Generator → TDD red-green** (seams pré-combinados, anti-padrões acoladado-à-implementação/tautológico/slicing-horizontal, **mock só em fronteiras de sistema**, fatias verticais, refactor fora do loop); **Debugging** com gate de **loop red-capable** (sem hipótese antes do comando que reproduz o bug), 3–5 hipóteses falsificáveis ranqueadas (`Se X, então Y`), `[DEBUG-<tag>]` para cleanup, regressão só em **seam correto** (sem seam = o achado), hipótese correta no commit; novas seções **Deep modules** (teste de deleção, interface = superfície de teste, 1/2 adapters, injete dependências) e **Merge conflicts** (resolver por intenção, nunca `--abort`, typecheck→tests→format); spec ganhou **tickets de fatia vertical** + **expand–contract**.
+- `electron/agent-prompts.cjs` (Developer): `CODE REVIEW QUALITY` com os dois eixos + 12 smells; novo bloco **`TDD`**; `ENGINEERING DISCIPLINE` debugging reescrito p/ red-capable loop + hipóteses falsificáveis + `[DEBUG-]` + seam correto; spec com fatias verticais + expand–contract.
+- `skills/suporte/SKILL.md`: seção **"Engajamento de suporte (método)"** — reproduzir antes de teorizar, triage com verificação da alegação, questionário estruturado (grillar o envio), re-pitch de mensagens confusas, handoff compacto, passos guiados (wizard).
+- `skills/assistente-tecnico/SKILL.md`: regras de diagnóstico — reproduzir sintoma, **loop de teste tight** (medição que reproduz o defeito), uma variável por vez, passos manuais um a um.
+
+**#35 code-review-graph ADOTADO (MCP opcional documentado)** — eleva o #20; clonado em `%TEMP%\opencode\code-review-graph` (MIT, Python, v2.3.7). Avaliação: spawn stdio bate com `mcp-client.cjs` (que **não passa `cwd`** → `--repo` obrigatório); Windows first-class (uvx/`uv` instalado); local-only sem API key; grafo SQLite tree-sitter (`build_or_update_graph_tool`). Config documentada em `skills/developer/SKILL.md` (Settings → MCP, **off por default** — processo Python residente): `{ name, command: "uvx", args: ["code-review-graph","serve","--repo",…,"--tools", "build_or_update_graph_tool,get_minimal_context_tool,detect_changes_tool,get_review_context_tool,get_impact_radius_tool,query_graph_tool"] }`; `--tools` exclui `refactor_tool`/`apply_refactor_tool`/`embed_graph_tool` (edição fica nas tools nativas); sem filtro ≈ 8k tokens de descrição. Não substitui `code_review`/`semgrep_scan` — é a camada de *impact tracing* (blast-radius cross-file).
+
+**Verificação**: `node --check` agent-prompts.cjs ✓; typecheck ✓; **npm test 889 ✓ / 9 skipped** (inalterado — mudanças são prompt/skill/docs, sem código de runtime). Docs atualizados: `skills-mcps-futuro.md` (#34/#35 ✅, #20 superado, passada mensal registrada) e este work log.
+
+### 2026-08-10 — PDF inspector (#27) adotado como tool JS + google/skills (#28) verificado e descartado
+
+**#27 firecrawl/pdf-inspector → tool nativa `pdf_inspect`** (heurística em Node puro, sem Rust/CLI):
+- `electron/pdf-inspector.cjs` (novo, zero deps): `inspectPdf` classifica **text/mixed/scanned/unknown** (espelha a heurística do pdf-inspector Rust), `hasTextLayer`, páginas (`/MediaBox`), contagem de imagens/fontes, preview; `extractPdfText` extrai texto via regex de operadores `Tj`/`TJ` com decodificação de literais (`\(`, `\)`, `\\`, `\nnn`) e **infla streams FlateDecode via `zlib` nativo**. Limites: 64MB/arquivo, 8MB/stream; filtros não-Flate não decodificados (classificação segue heurística).
+- `electron/tools.cjs`: tool def `pdf_inspect` (args `path`, `extract_text`, `text_limit`) + dispatcher com `resolveAgentPath`/`isPathAllowed`; retorna `{ok, classification, pages, imageCount, fontCount, textOps, hasTextLayer, textPreview, text?}`.
+- `electron/main.cjs`: `pdf_inspect` adicionado a `AGENT_TOOL_PERMISSIONS.Developer` e `.Juridico` (leitura de PDFs legais).
+- `skills/developer/SKILL.md`: cabeçalho + Referência rápida com `pdf_inspect`.
+- Testes: `electron/__tests__/pdf-inspector.test.cjs` — **8 testes** (texto puro, FlateDecode comprimido, escaneado sem camada de texto, TJ array, escapes, arquivo ausente/não-PDF). Suite: **889 ✓ / 9 skipped** (era 881); `node --check` ✓; typecheck limpo. Smoke via dispatcher real validado (classificação + extração ponta a ponta).
+- **Encaixe futuro:** Orun Files (extração de conteúdo real de PDF) e Knowledge Engine (ingestão) podem chamar `pdf_inspect`/`extractPdfText`. OCR de escaneados continua pendente.
+
+**#28 google/skills → REVISADO, sem adoção**:
+- Repo clonado em `%TEMP%\opencode\google-skills` (depth 1): **a premissa do #28 estava errada — o repo NÃO tem skills de Google Workspace** (Gmail/Calendar/Sheets/Docs). Categorias reais: `ads/`, `analytics/`, `cloud/` (SecOps, Vertex AI/Agent Platform, BigQuery, GKE, Firebase). Nada a minerar para o Personal Assistant (integração Gmail/Calendar já via `google-client.cjs`).
+- Referência registrada (sem adoção): `skills/cloud/gemini-api/SKILL.md` (padrões de function calling/structured output/embeddings/caching no SDK `@google/genai` — útil p/ `ai-router.cjs`/`rag` no futuro) e `detection-engineering-coverage-evaluation` (SecOps corporativo, fora de escopo).
+- `docs/skills-mcps-futuro.md`: #27 → **✅ IMPLEMENTADO**, #28 → **⚠️ REVISADO (sem adoção)**.
+
+### 2026-08-10 — Ferramentas de web upgrçadeadas (Firecrawl) + disciplina de engenharia do Developer (agent-skills)
+
+**Firecrawl integrado às tools de web** (`electron/firecrawl.cjs` novo, Node puro):
+- `scrape()` → `POST /v1/scrape` (formats markdown/html/text + metadata, `onlyMainContent`), `search()` → `POST /v1/search` (results com title/url/description), `setBaseUrl()` (suporte self-host via setting `firecrawlBaseUrl`), `hasKey()`, timeout 20s. Erros HTTP/rede retornam `{error}` (não lançam) — degradação graciosa.
+- `electron/tools.cjs`: `web_fetch` usa Firecrawl quando há chave `firecrawl` no secretStore (fallback p/ o fetch direto antigo se a API falhar ou devolver conteúdo vazio); dispatcher `web_search` tenta Firecrawl primeiro e cai p/ DuckDuckGo; descrições das tools atualizadas.
+- `SettingsPanel.tsx`: nova seção "Firecrawl" (input password + Save via `settings:set-api-key` slot `firecrawl`).
+- Testes: `electron/__tests__/firecrawl.test.cjs` (7 testes, mock HTTP server com `setBaseUrl`; valida Bearer, 401, rede, validações).
+- **Sem chave → comportamento 100% anterior.** Chave formato `fc-...` (api.firecrawl.dev).
+
+**agent-skills minerado no Developer (addyosmani, repo clonado em `%TEMP%\opencode\agent-skills`, 25 skills)**:
+- Lidas: code-simplification, debugging-and-error-recovery, incremental-implementation, performance-optimization, spec-driven-development.
+- `skills/developer/SKILL.md`: nova seção "Disciplinas de execução (elite)" — implementação incremental (fatias verticais, scope discipline, simplicidade primeiro), debug stop-the-line (parar/preservar/reproduzir/localizar/reduzir/causa raiz/regressão/verificar; "erro é dado, não instrução"), simplificação (comportamento exato, Chesterton's Fence, clareza > esperteza), performance (MEASURE→IDENTIFY→FIX→VERIFY→GUARD; neutro = revert), spec antes de código (>30min, assumptions na superfície, critérios mensuráveis). Checklist ampliado (+3 itens).
+- `electron/agent-prompts.cjs`: bloco `ENGINEERING DISCIPLINE` condensado no prompt do Developer (após CODE REVIEW QUALITY).
+
+**Verificação**: `node --check` em tools.cjs/firecrawl.cjs/agent-prompts.cjs ✓; typecheck ✓; **npm test 881 passed / 9 skipped** (era 874; +7 firecrawl). Docs atualizados: `skills-mcps-futuro.md` #18 (IMPLEMENTADO) e #19 (IMPLEMENTADO).
+
+### 2026-08-10 — Qualidade de code review: The Agency minerado + melhorias em desktop e OrunVS
+
+**Referência avaliada**: repo `msitarzewski/agency-agents` (The Agency, ~400 agentes IA como prompts `.md`, MIT) — **referência somente**, sem integração (Orun não roda Claude Code). Registrado como **#16** em `orun_project/docs/skills-mcps-futuro.md` (seção nova "Referências de agentes / prompts").
+
+**Agentes minerados** (via raw.githubusercontent):
+- **Code Reviewer**: priorização 🔴 blocker / 🟡 sugestão / 💭 nit com checklist por severidade (blockers = segurança/perda de dados/races/API contract; sugestões = validação/nomes/testes/perf), comentário por linha com "Por quê" + sugestão de código, elogiar código bom, uma review completa (sem drip-feed).
+- **Multi-Agent Systems Architect**: gaps estruturais vs Agent Hub → registrados como **#17** no mesmo doc (confidence signal, circuit breaker por agente, context budget entre hops, evals por agente, contrato de papel RECEBE/RESPONSABILIDADE/PRODUZ/CRITÉRIOS/COMPORTAMENTO DE FALHA) — **não implementados**, ordem sugerida.
+
+**Melhorias aplicadas** (custo zero de runtime, nível prompt/skill):
+- `orun_project/skills/developer/SKILL.md` — seção "Code Review (workflow elite)" reescrita: 5 dimensões (correção/segurança/manutenibilidade/performance/testes) + edge cases, convenções e código morto; marcadores 🔴/🟡/💭 com checklist por severidade; formato de comentário concreto ("Por quê" + código); sugerir não exigir; elogiar código bom; uma review completa; perguntar se intenção ambígua; JSON final mantido.
+- `orun_project/electron/agent-prompts.cjs` — prompt do Developer ganhou bloco "CODE REVIEW QUALITY" com as mesmas regras (marcadores, formato de comentário, praise, uma review completa, perguntar se ambíguo).
+- `OrunVS/skills/code-review/SKILL.md` — mesmo upgrade (5 dimensões + edge cases/convenções/código morto, marcadores de prioridade, formato de comentário "Por quê + Sugestão", elogiar bom código, uma review completa, perguntar se ambíguo). CHANGELOG [Unreleased] atualizado.
+
+**Verificação**: desktop **874 ✓ / 9 skipped** (suíte completa); OrunVS `test:core` **96 ✓**; `node --check` em `agent-prompts.cjs` ✓.
+
+### 2026-08-09 — Mobile: 3 bugs de chat corrigidos + Orun Home sem aparência simulada (monorepo)
+
+**Mobile-app — bugs do chat** (`packages/mobile-app`):
+- **Scroll subindo/descendo**: auto-scroll disparava por `messages.length` (mudava ao carregar histórico) + FlatList sem `maintainVisibleContentPosition` + slicing `displayedMessages` com `displayCount` inconsistente. Fix em `app/(tabs)/chat.tsx` e `app/chat/[agentId].tsx`: removidos `PAGE_SIZE`/`displayCount`/`displayedMessages`; auto-scroll por `lastMessageIdRef` (só quando a última msg muda e usuário está no fim); `maintainVisibleContentPosition={{ minIndexForVisible: 0 }}`; `onEndReached={loadMore}`; `ListHeaderComponent` com botão "Carregar mais" (sem contagem restante).
+- **Chat cortado na metade**: `NeonBackground` era fechado antes do FlatList/ChatInput (ficavam fora do fundo). Fix: fundo envolve header + FlatList + ChatInput + modais.
+- **"Barra de mudo" sobreposta**: não existe — grep `mudo|mute|silenc` sem resultados no mobile-app; `ChatInput` não tem botão mudo; as barras eram o `ListHeaderComponent` e a barra de erro do `ProviderPicker` (corrigidas junto).
+- `MarkdownRenderer.tsx:250`: `JSX.Element[]` → `React.ReactElement[]` (erro TS2503 com React 19). Typecheck ✓ + mobile **117 testes ✓**.
+
+**Orun Home "profissional/pronto"** (`packages/home-app`) — sem Home Assistant (usuário não tem HA; PC não pode ser HA):
+- `HomeConfig.mode: "local" | "ha"` (removido `"simulated"`); default = **local (tablet/satélite = fonte de dados)**.
+- `homeStore.ts`: `normalizeConfig()` migra config persistida antiga (`simulated`→`local`); `saveConfig` não força `simulated`; `connected` só em modo `ha`.
+- `homeAssistant.ts`: `testConnection` seta `mode:"ha"` + `connected` (não reverte para simulado).
+- `index.tsx` (dashboard): subtítulo por fonte ("Controlado por este tablet via satelite Orun" / "Conectado ao Home Assistant"). `dispositivos.tsx`: badge "Local"/"Home Assistant"/"HA sem conexao".
+- `sistema.tsx`: seção "Fonte de dados" com segmented **Local (tablet)**/Home Assistant; modo local mostra card explicativo (HA = integração avançada e opcional); host+token+"Salvar e testar" só no modo HA. Alertas sem texto "simulado".
+- Contrato satélite (`executeCommand`) intocado — não referencia `config.mode`. Typecheck home-app ✓ (sem suite de testes própria).
+
+### 2026-08-09 — Orun Home (tablet smarthome): pacote `home-app` no monorepo + APK via EAS Build
+
+**App tablet smarthome criado** — novo pacote `packages/home-app` no monorepo (`C:\Users\Caiqu\Downloads\orun-monorepo_1\orun-monorepo`), espelho do workspace Home IA do desktop:
+- **Stack**: Expo SDK 54, React Native, expo-router, zustand + AsyncStorage (estado local simulado), supabase-js, expo-screen-orientation, @react-native-community/slider.
+- **Tema**: paleta `P` portada do `premium.tsx` do desktop (`src/theme/premium.ts` — bg `#050505`, primary `#C3002F`, etc.).
+- **Estado**: `homeStore.ts` — 4 cômodos/17 dispositivos mock, 4 automações, 4 cenas; ações toggle/setBrightness/setTemperature/lock/runAutomation/activateScene.
+- **Serviços**: `satelliteController.ts` (satélite `home` do hub — heartbeat 30s + poll 5s, executa as 9 ações do contrato desktop, fallback offline), `homeAssistant.ts` (REST opcional), `chatService.ts` (agente Home IA via ai-relay, seed `0005`), `supabaseClient.ts`, `authStore.ts`.
+- **7 telas**: dashboard (3 colunas), dispositivos, cenários, automações, assistente (chat Home IA), sistema (config HA + status satélite + trava landscape), +not-found. Landscape fullscreen (trava runtime) — decisão do usuário.
+- **Hub estendido**: Orun-Core ganhou `home` em `DeviceType`/`SatelliteTarget`/`SATELLITE_ACTIONS` + migration `0007_ecosystem.sql` com checks `'home'` (bloco idempotente). Migration **`0012_home_satellite.sql`** (supabase-sync) **aplicada no banco real** — checks validados, upsert device `home` + command `target='home'` OK.
+- **Verificado**: home-app typecheck ✓, Orun-Core 60 testes ✓ + dist regenerado, supabase-sync/whatsapp-baileys ✓.
+
+**APK gerado via EAS Build** — `eas init` criou o projeto `@caique.o.castaldeli.dev/orun-home` (id `1426e091-0702-47ad-9703-482e85529e2c`); `eas.json` espelhando o mobile-app (profile `preview` injeta `EXPO_PUBLIC_SUPABASE_URL`/`ANON_KEY`); `app.config.ts` ganhou `extra.eas.projectId`. Build Android preview **FINISHED** (~11 min, keystore em cloud). **APK baixado: `C:\Users\Caiqu\Downloads\orun-home-preview.apk` (73,48 MB)** — instalar no tablet via "fontes desconhecidas". Package `com.orun.home`, expira 2026-08-23.
+
+**Pendências**: validação ao vivo no tablet (landscape, chat Home IA, `sendCommand({target:"home",...})` do desktop/mobile com heartbeats em `devices` + ack em `commands`).
 
 ### 2026-08-08 — Voz: TTS edge no dev, STT Groq-first e Proatividade (saudação de boot + reação ao Spotify)
 
@@ -783,5 +908,18 @@ Aprovado pelo usuário ("pode dar nome aos 17 agentes"). Os **IDs técnicos não
 **Verificação**: `node --check` nos 2 `.cjs` ✓; typecheck ✓; **822 testes ✓ / 9 skipped** (era 817); lint 0 erros (warnings pré-existentes).
 
 **Notas / próximos**: manter `AGENT_PERSONA_LORE` (main) e `constants.ts` (renderer) em sincronia ao renomear; `AgentHubPanel` exibe `personaName` que só aparece quando o app é reiniciado (vem do backend). Ideias futuras: mostrar a identidade completa no tooltip/AgentPage, e considerar personas nos prompts do mobile (ai-relay lê `persona_prompt` do banco — atualizar só se desejado).
+
+### 2026-08-10 — OrunVS v0.3.3+v0.3.4: client MCP stdio + catálogo on-demand (commitado, VSIX instalado)
+
+Continuação do Módulo 7 / Fase A do SO (OrunVS). Adicionado suporte a **MCP** na extensão, todos os servidores **dormentes por padrão** com ativação **sob demanda** pela IA:
+
+- **Client MCP próprio** (`src/mcp.ts`, módulo puro sem `vscode`): JSON-RPC 2.0 sobre stdio, `initialize` `2024-11-05`, `tools/list`/`tools/call`, buffer de linha, pending Map, timeout 15s, `shell` no Windows p/ `npx`, nomes `server__tool`, `normalizarConfigsMCP`, `blocoFerramentasMCP`.
+- **`src/core.ts`**: `AcaoTipo` += `MCP_CALL`; `parseAcoes` extrai `[MCP_CALL]` (tool obrigatória, args JSON opcional); `MCP_INSTRUCOES`; `enriquecerSystemPrompt(base, {memorias, skills, mcp})` injeta o bloco MCP só quando não-vazio.
+- **Catálogo curado** (`src/mcp-catalog.ts`): 12 servidores (git, github, context7, fetch, tavily, sequential-thinking, postgres, supabase, docker, penpot, filesystem, playwright); `resolverCatalogoConfig` com placeholders `{workspace}`/`{setting:orunvs.chave}`; `montarBlocoCatalogo` (rodando / dormente "inicia ao usar" / desativado "NÃO chame").
+- **`src/chatprovider.ts`**: `_chamarMCP` on-demand (valida allowlist `orunvs.mcpAtivos`, avisa config faltante, sobe o processo no 1º `[MCP_CALL]`, cacheia); `stopMCP` no `deactivate()`.
+- **Settings**: `orunvs.mcpHabilitado` (true), `orunvs.mcpAtivos` (default `[]`), `orunvs.mcpServers` (custom, on-demand), chaves `githubToken`/`tavilyKey`/`postgresConnectionString`/`supabaseAccessToken`/`supabaseProjectRef`.
+- **Verificação**: typecheck ✓; **87 testes ✓** (novos `mcp.test.ts` 12 + `mcp-catalog.test.ts` 9); bundle ✓; **VSIX `orunvs-0.3.4.vsix` gerado e instalado**; **commit `8f7eeca`** (main, 17 arquivos, +1735/−12; incluiu v0.3.2/v0.3.3 pendentes: memória/skills/verificações/MCP) — working tree limpo.
+- **Config do usuário**: `orunvs.mcpAtivos` = todos os 12; chaves `githubToken`/`tavilyKey`/`supabaseAccessToken`/`postgresConnectionString` preenchidas no `settings.json` do VS Code (DIRECT_URL do desktop). Falta só Reload Window.
+- **Catálogo de projetos atualizado** neste arquivo: adicionados **Orun Auth** (`@orun/identity`, bruto v0.1.0, 71/71 testes, 5 Edge Functions, pronto p/ refinar/integrar) e **Orun Files** (bruto v0.1.0, Electron + Gemini, busca semântica/organização/preview, pronto p/ refinar). Orun Design listado como "em avaliação".
 
 

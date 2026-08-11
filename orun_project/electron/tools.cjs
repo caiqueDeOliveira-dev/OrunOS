@@ -14,6 +14,7 @@ const logger = require("./logger.cjs");
 const { getErrorMessage } = require("./error-messages.cjs");
 const auditLog = require("./audit-log.cjs");
 const developerTools = require("./developer-tools.cjs");
+const firecrawl = require("./firecrawl.cjs");
 
 // ── Rate limiter (simple in-memory) ────────────────────────────────────
 const agentRateLimiter = {
@@ -298,7 +299,7 @@ const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "web_fetch",
-      description: "Fetch content from a URL. Returns page text or markdown.",
+      description: "Fetch content from a URL. Returns page text or markdown. Uses Firecrawl (clean markdown) when a key is configured, plain fetch otherwise.",
       parameters: {
         type: "object",
         properties: {
@@ -411,6 +412,28 @@ const TOOL_DEFINITIONS = [
   {
     type: "function",
     function: {
+      name: "generate_video",
+      description: "Generate a video using MiniMax-H3 (API v2). Text-to-video, image-to-video (first/last frame), or reference-to-video (up to 9 images, 3 clips, 3 audio tracks). Async task — polls until done. Requires the MiniMax API key set in Settings → API Keys.",
+      parameters: {
+        type: "object",
+        properties: {
+          prompt: { type: "string", description: "Detailed text description of the video to generate (required, max 7000 chars)" },
+          resolution: { type: "string", description: "Video resolution", enum: ["768P", "2K"] },
+          duration: { type: "number", description: "Duration in seconds (4-15)", enum: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] },
+          ratio: { type: "string", description: "Aspect ratio. Required for text-to-video (not 'adaptive'); ignored (adaptive) for image-to-video.", enum: ["adaptive", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"] },
+          firstFrameUrl: { type: "string", description: "Image URL for image-to-video first frame (mutually exclusive with reference_*)", },
+          lastFrameUrl: { type: "string", description: "Image URL for image-to-video last frame (mutually exclusive with reference_*)" },
+          referenceImageUrls: { type: "array", items: { type: "string" }, description: "Reference image URLs (reference-to-video, max 9)" },
+          referenceVideoUrls: { type: "array", items: { type: "string" }, description: "Reference video URLs (reference-to-video, max 3, 2-15s each)" },
+          referenceAudioUrls: { type: "array", items: { type: "string" }, description: "Reference audio URLs (reference-to-video, max 3, 2-15s each)" },
+        },
+        required: ["prompt"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "trigger_agent",
       description: "Trigger another agent to perform a task. Useful for inter-agent automation (e.g., when Health logs a meal, trigger Marketing to create content).",
       parameters: {
@@ -427,7 +450,7 @@ const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "web_search",
-      description: "Search the web for information. Returns search results with titles, URLs, and snippets. Use this when you need to find current information, news, or any web content.",
+      description: "Search the web for information. Returns search results with titles, URLs, and snippets. Uses Firecrawl search when a key is configured, DuckDuckGo otherwise. Use this when you need to find current information, news, or any web content.",
       parameters: {
         type: "object",
         properties: {
@@ -739,6 +762,23 @@ const TOOL_DEFINITIONS = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "pdf_inspect",
+      description:
+        "Inspect a PDF file (path relative to the developer workspace): returns page count, classification (text/mixed/scanned/unknown), whether it has a selectable text layer, and a text preview. Use extract_text=true to get the full extracted text. Ideal before summarizing or quoting PDF content.",
+      parameters: {
+        type: "object",
+        properties: {
+          path: { type: "string", description: "Path to the PDF file (relative to the workspace or absolute)" },
+          extract_text: { type: "boolean", description: "If true, also return the full extracted text (default false)" },
+          text_limit: { type: "number", description: "Max characters of extracted text to return (default 8000)" },
+        },
+        required: ["path"],
+      },
+    },
+  },
 ];
 
 // ── Tool implementations ────────────────────────────────────────────────
@@ -936,6 +976,29 @@ function runCommand(args) {
 }
 
 async function webFetch(args) {
+  const keys = ctx && ctx.readSecretStore ? ctx.readSecretStore() : {};
+  if (firecrawl.hasKey(keys)) {
+    try {
+      const baseUrlSetting = (ctx?.db?.getSetting && ctx.db.getSetting("firecrawlBaseUrl", "")) || "";
+      if (baseUrlSetting) firecrawl.setBaseUrl(baseUrlSetting);
+      const res = await firecrawl.scrape(args.url, { formats: [args.format === "html" ? "html" : "markdown"], onlyMainContent: true }, keys.firecrawl);
+      if (res.ok) {
+        const content = args.format === "html" ? res.html : res.markdown;
+        if (content) {
+          if (content.length > 30000) return { engine: "firecrawl", content: content.slice(0, 30000) + "\n... [truncated]" };
+          return { engine: "firecrawl", content };
+        }
+      }
+      // Firecrawl falhou ou retornou conteúdo vazio → fallback para o fetch direto.
+      return fallbackWebFetch(args);
+    } catch (err) {
+      return fallbackWebFetch(args);
+    }
+  }
+  return fallbackWebFetch(args);
+}
+
+async function fallbackWebFetch(args) {
   try {
     const content = await fetchUrl(args.url, args.format || "text");
     if (content.length > 30000) return { content: content.slice(0, 30000) + "\n... [truncated]" };
@@ -1017,8 +1080,39 @@ async function generateImage(args) {
   }
 }
 
-// ── Audit log integration ──────────────────────────────────────────────
+async function generateVideo(args) {
+  if (!ctx?.videoGenerator) {
+    return { error: "Video generation module not initialized. Restart Orun OS." };
+  }
+  const keys = ctx.readSecretStore ? ctx.readSecretStore() : {};
+  const minimaxKey = keys.minimax || keys.minimaxApiKey;
+  if (!minimaxKey) {
+    return {
+      error:
+        "MiniMax API key não configurada. Adicione a chave MiniMax em Settings → API Keys (campo MiniMax). " +
+        "A geração de vídeo MiniMax-H3 é um serviço pago por segundo de vídeo.",
+    };
+  }
+  try {
+    const result = await ctx.videoGenerator.generateVideoAndWait(args, minimaxKey, { baseUrl: args.baseUrl });
+    if (result.ok) {
+      return {
+        ok: true,
+        videoUrl: result.videoUrl,
+        taskId: result.taskId,
+        model: result.model,
+        duration: args.duration || 5,
+        resolution: args.resolution || "768P",
+        ratio: args.ratio || "16:9",
+      };
+    }
+    return { error: result.error || "MiniMax-H3 generation failed" };
+  } catch (err) {
+    return { error: `MiniMax-H3: ${err.message || err}` };
+  }
+}
 
+// ── Audit log integration ──────────────────────────────────────────────
 const SENSITIVE_TOOL_ACTIONS = {
   write_file: ["write_file"],
   edit_file: ["write_file"],
@@ -1027,6 +1121,7 @@ const SENSITIVE_TOOL_ACTIONS = {
   web_search: ["network_request"],
   publish_to_social: ["network_request"],
   generate_image: ["api_key_access", "network_request"],
+  generate_video: ["api_key_access", "network_request"],
   git_stash: ["git_write"],
 };
 
@@ -1045,6 +1140,8 @@ function buildAuditDetails(name, args) {
       return { platform: args.platform, text: (args.text || "").slice(0, 100) };
     case "generate_image":
       return { prompt: (args.prompt || "").slice(0, 100), model: args.model || "default" };
+    case "generate_video":
+      return { prompt: (args.prompt || "").slice(0, 100), resolution: args.resolution || "768P", duration: args.duration || 5 };
     default:
       return {};
   }
@@ -1122,8 +1219,21 @@ async function executeToolRaw(name, args) {
     case "schedule_task": return scheduleTask(args);
     case "publish_to_social": return publishToSocial(args);
     case "generate_image": return generateImage(args);
+    case "generate_video": return generateVideo(args);
     case "web_search": {
       const { query, numResults = 5 } = args;
+      const keys = ctx && ctx.readSecretStore ? ctx.readSecretStore() : {};
+      if (firecrawl.hasKey(keys)) {
+        try {
+          const baseUrlSetting = (ctx?.db?.getSetting && ctx.db.getSetting("firecrawlBaseUrl", "")) || "";
+          if (baseUrlSetting) firecrawl.setBaseUrl(baseUrlSetting);
+          const res = await firecrawl.search(query, { limit: numResults }, keys.firecrawl);
+          if (res.results) return res;
+          // Firecrawl falhou (rede/API/quota) → fallback DuckDuckGo.
+        } catch (err) {
+          // Firecrawl lançou → fallback DuckDuckGo.
+        }
+      }
       try {
         const https = require("https");
         const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
@@ -1162,6 +1272,19 @@ async function executeToolRaw(name, args) {
         const { clipboard } = require("electron");
         return { text: clipboard.readText() || "" };
       } catch (e) { return { error: e.message }; }
+    }
+    case "pdf_inspect": {
+      const pdfInspector = require("./pdf-inspector.cjs");
+      const filePath = resolveAgentPath(args.path);
+      if (!isPathAllowed(filePath)) return { error: "Access denied: path outside allowed workspace" };
+      const info = pdfInspector.inspectPdf(filePath);
+      if (info.error) return { error: info.error };
+      const out = { ...info };
+      if (args.extract_text) {
+        const ex = pdfInspector.extractPdfText(filePath, { limit: args.text_limit || 8000 });
+        if (ex.text) out.text = ex.text;
+      }
+      return out;
     }
     case "clipboard_write": {
       try {

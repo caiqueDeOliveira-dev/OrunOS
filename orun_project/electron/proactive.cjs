@@ -6,10 +6,11 @@
 //  - Apps: quando o usuário abre/fica em um app mapeado (VSCode, navegador,
 //    Explorador de Arquivos, terminal...), pergunta se precisa de ajuda.
 //
-// Gated por settings persistidos (defaults ligados):
-//  - proactiveGreeting (boolean)
-//  - proactiveSpotify (boolean)
-//  - proactiveApps (boolean)
+// Gated por settings persistidos:
+//  - proactiveGreeting (boolean, default ON)
+//  - proactiveSpotify (boolean, default ON)
+//  - proactiveApps (boolean, default OFF — perguntar ao abrir apps irrita; quem
+//    quiser pode reativar no Settings → Sistema de Voz)
 // Requer wake word habilitado (voz ativa) + TTS configurado para falar.
 
 const { spawn } = require("child_process");
@@ -73,6 +74,15 @@ function resolveAppKey(processName) {
   if (name.startsWith("code - insiders") || name === "code - insiders") return "code-insiders";
   if (name === "code" || name.startsWith("code ")) return "code";
   return PROCESS_TO_KEY[name] || null;
+}
+
+// Janelas do shell/desktop (ex.: Win+D / "Mostrar área de trabalho", taskbar,
+// Progman) têm MainWindowTitle vazio. NÃO são apps que o usuário "abriu":
+// ignorá-las evita o overlay de voz disparar sempre que o usuário minimiza e
+// restaura todos os apps (o desktop vira foreground e o `explorer.exe` sem
+// título era confundido com "abriu o Explorador de Arquivos").
+function isAppWindow(name, title) {
+  return !!title && typeof title === "string" && title.trim().length > 0;
 }
 
 const PS_SCRIPT = `
@@ -218,19 +228,27 @@ function createProactiveEvents({ log, getDb, getSpotifyClient, sendToRenderer })
 
   async function checkForegroundApp() {
     const db = getDb();
-    if (!db || db.getSetting("proactiveApps", true) === false) {
-      lastAppKey = null;
+    if (!db || db.getSetting("proactiveApps", false) === false) {
+      appPrimed = false;
       return;
     }
     const line = await requestForeground();
-    const name = (line || "").split("|")[0];
+    const [name, title] = (line || "").split("|");
+    // Ignora o desktop/shell (janela de foreground sem título — ex.: Win+D).
+    // Sem isso, minimizar e restaurar todos os apps fazia o desktop virar o
+    // foreground e o `explorer.exe` (sem título) era tratado como "abriu o
+    // Explorador de Arquivos", disparando o overlay de voz.
+    if (!isAppWindow(name, title)) return;
     const key = resolveAppKey(name);
-    if (!key) { lastAppKey = null; return; }
+    // Sticky: quando a janela fica desconhecida (ex.: app minimizado / Orun em
+    // primeiro plano), mantém o último app mapeado. Assim minimizar e voltar
+    // para o MESMO app não dispara nova pergunta.
+    if (!key) return;
     if (key === lastAppKey) return;
     lastAppKey = key;
     if (!appPrimed) { appPrimed = true; return; } // primeira amostra = baseline
-    const lastFire = appFireAt.get(key) || 0;
-    if (Date.now() - lastFire < APP_DEBOUNCE_MS) return;
+    // Dispara no máximo UMA vez por app por sessão (não re-pergunta depois de 10 min).
+    if (appFireAt.has(key)) return;
     appFireAt.set(key, Date.now());
     fire(APP_PROMPTS[key], "app:" + key);
   }
@@ -278,6 +296,7 @@ function createProactiveEvents({ log, getDb, getSpotifyClient, sendToRenderer })
 module.exports = {
   createProactiveEvents,
   resolveAppKey,
+  isAppWindow,
   APP_PROMPTS,
   PROACTIVE_DEBOUNCE_MS,
   BOOT_GREETING_DELAY_MS,

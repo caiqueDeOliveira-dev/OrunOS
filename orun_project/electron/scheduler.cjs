@@ -86,6 +86,11 @@ async function runAgentTask(agentName) {
   if (!convo) convo = db.createConversation(`${agentName}-${Date.now()}`, `${agentName} — daily`, agentName);
   db.addMessage(convo.id, { id: `${Date.now()}`, role: "assistant", content: finalText });
 
+  // Execução silenciosa: se o agente agendado executou uma ação direta e retornou
+  // apenas o marcador, não envia mensagem/notificação alguma.
+  const { isSilentReply } = require("./silent-mode.cjs");
+  if (isSilentReply(finalText)) return finalText;
+
   await deps.deliver(agentName, finalText);
   return finalText;
 }

@@ -3,7 +3,7 @@ Orun OS — Background Wake Word Service
 Listens for "OK Orun" (or variants) via mic, signals Electron to show voice overlay.
 
 Usage:
-    python wake_word_service.py [--port 8081] [--stt-url http://127.0.0.1:8080]
+    python wake_word_service.py [--port 8081] [--stt-url http://127.0.0.1:8090]
 
 Requires: sounddevice, numpy, requests (pip install sounddevice numpy requests)
 """
@@ -315,7 +315,7 @@ def main():
     global VERBOSE
     parser = argparse.ArgumentParser(description="Orun OS Wake Word Service")
     parser.add_argument("--port", type=int, default=8081, help="TCP port for Electron IPC (default: 8081)")
-    parser.add_argument("--stt-url", type=str, default="http://127.0.0.1:8080", help="STT server URL")
+    parser.add_argument("--stt-url", type=str, default="http://127.0.0.1:8090", help="STT server URL")
     parser.add_argument("--threshold", type=float, default=SILENCE_THRESHOLD, help="VAD energy threshold")
     parser.add_argument("--token", type=str, default="", help="Auth token for TCP IPC")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")

@@ -122,6 +122,18 @@ contextBridge.exposeInMainWorld("orun", {
     truncateFrom: (conversationId, messageId) => ipcRenderer.invoke("conversations:truncate-from", conversationId, messageId),
     importConversation: (id, messages) => ipcRenderer.invoke("data:import-conversation", { id, messages }),
   },
+  identity: {
+    listUsers: () => ipcRenderer.invoke("identity:list-users"),
+    listIdentities: (opts) => ipcRenderer.invoke("identity:list-identities", opts),
+    listWorkspaces: () => ipcRenderer.invoke("identity:list-workspaces"),
+    listChannels: (opts) => ipcRenderer.invoke("identity:list-channels", opts),
+    setChannel: (args) => ipcRenderer.invoke("identity:set-channel", args),
+    setChannelEnabled: (args) => ipcRenderer.invoke("identity:set-channel-enabled", args),
+    completeOnboarding: (args) => ipcRenderer.invoke("identity:complete-onboarding", args),
+    linkIdentity: (args) => ipcRenderer.invoke("identity:link-identity", args),
+    getVoiceSettings: (agentId) => ipcRenderer.invoke("identity:voice-settings", { agentId }),
+    setVoiceSettings: (agentId, patch) => ipcRenderer.invoke("identity:set-voice-settings", { agentId, patch }),
+  },
   n8n: {
     listWorkflows: () => ipcRenderer.invoke("n8n:list-workflows"),
     testConnection: (cfg) => ipcRenderer.invoke("n8n:test-connection", cfg),
