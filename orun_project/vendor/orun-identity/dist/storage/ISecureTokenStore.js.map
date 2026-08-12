@@ -1,0 +1,1 @@
+{"version":3,"file":"ISecureTokenStore.js","sourceRoot":"","sources":["../../src/storage/ISecureTokenStore.ts"],"names":[],"mappings":";;;AAuBa,QAAA,gBAAgB,GAAG;IAC9B,YAAY,EAAE,4BAA4B;IAC1C,aAAa,EAAE,6BAA6B;IAC5C,aAAa,EAAE,6BAA6B;IAC5C,SAAS,EAAE,yBAAyB;CAC5B,CAAC"}
