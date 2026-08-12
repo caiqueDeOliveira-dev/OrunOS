@@ -1,6 +1,8 @@
 node_modules/
 dist/
 !vendor/orun-identity/dist/
+!vendor/orun-shield-core/dist/
+!vendor/orun-system-optimizer/dist/
 release/
 build/*
 !build/icon.png

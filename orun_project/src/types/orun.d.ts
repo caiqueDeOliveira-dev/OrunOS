@@ -1087,6 +1087,42 @@ interface OrunAPI {
     deleteAccount: () => Promise<OrunAccountDeletionResult>;
     onStateChanged: (callback: (state: OrunAuthState) => void) => () => void;
   };
+  shield: {
+    startMonitoring: () => Promise<void>;
+    stopMonitoring: () => Promise<void>;
+    fullScan: (req: OrunShieldFullScanRequest) => Promise<OrunShieldFullScanResponse>;
+    getFindingsLog: () => Promise<OrunThreatFinding[]>;
+    checkClamAvAvailability: () => Promise<{ available: boolean; version?: string }>;
+    updateDefinitions: () => Promise<{ updated: boolean; log: string }>;
+    blockIp: (ip: string) => Promise<void>;
+    quarantineFinding: (finding: OrunThreatFinding) => Promise<OrunQuarantineActionResult>;
+    listQuarantine: () => Promise<OrunQuarantineEntry[]>;
+    restoreQuarantine: (id: string) => Promise<OrunQuarantineActionResult>;
+    deleteQuarantine: (id: string) => Promise<OrunQuarantineActionResult>;
+    analyzeFile: (filePath: string) => Promise<OrunFileAnalysisResult>;
+    getProcessTree: () => Promise<OrunProcessTreeNode[]>;
+    getDefenderStatus: () => Promise<OrunDefenderStatus>;
+    syncDefenderThreats: () => Promise<OrunThreatFinding[]>;
+    runDefenderQuickScan: () => Promise<{ success: boolean; error?: string }>;
+    updateDefenderSignatures: () => Promise<{ updated: boolean; error?: string }>;
+    onThreatDetected: (callback: (finding: OrunThreatFinding) => void) => () => void;
+    onScanStarted: (callback: (payload: { target: string; engine: string }) => void) => () => void;
+    onScanFinished: (callback: (result: OrunScanResult) => void) => () => void;
+    onError: (callback: (payload: { source: string; message: string }) => void) => () => void;
+  };
+  optimizer: {
+    scanDiskUsage: (path: string) => Promise<OrunDiskUsageScanResult>;
+    scanJunk: (req: OrunJunkScanRequest) => Promise<OrunJunkScanResult>;
+    moveToHolding: (req: OrunMoveToHoldingRequest) => Promise<OrunCleanupActionResult>;
+    moveManyToHolding: (reqs: OrunMoveToHoldingRequest[]) => Promise<OrunCleanupActionResult[]>;
+    listHolding: () => Promise<OrunPendingDeletionEntry[]>;
+    restoreFromHolding: (id: string) => Promise<OrunCleanupActionResult>;
+    deletePermanently: (id: string) => Promise<OrunCleanupActionResult>;
+    detectPackageManager: () => Promise<string | null>;
+    checkUpdates: () => Promise<OrunUpdateCheckResult | null>;
+    runUpdate: (packageId: string) => Promise<OrunUpdateActionResult>;
+    runUpdatesBatch: (packageIds: string[]) => Promise<OrunUpdateActionResult[]>;
+  };
   shell: {
     openExternal: (url: string) => Promise<void>;
   };
@@ -1287,6 +1323,161 @@ declare global {
     voiceId: string | null;
     language: string;
     responseMode: "AUTO" | "ALWAYS_TEXT" | "ALWAYS_AUDIO";
+  }
+
+  type OrunThreatSource =
+    | "clamav"
+    | "virustotal"
+    | "yara"
+    | "sentinel-process"
+    | "sentinel-network"
+    | "sentinel-fs"
+    | "integrity"
+    | "ransomware-heuristic"
+    | "windows-defender";
+
+  interface OrunThreatFinding {
+    id?: string;
+    source?: OrunThreatSource;
+    severity?: "info" | "low" | "medium" | "high" | "critical";
+    title?: string;
+    description?: string;
+    filePath?: string;
+    processName?: string;
+    pid?: number;
+    remoteAddress?: string;
+    sha256?: string;
+    ruleName?: string;
+    detectedAt?: string;
+    raw?: unknown;
+  }
+
+  interface OrunScanResult {
+    engine?: string;
+    filesScanned?: number;
+    infected?: number;
+    found?: string[];
+    findings?: OrunThreatFinding[];
+    error?: string;
+    durationMs?: number;
+    [key: string]: unknown;
+  }
+
+  interface OrunShieldFullScanRequest {
+    targetPath: string;
+    recursive?: boolean;
+  }
+
+  interface OrunShieldFullScanResponse {
+    clamav?: OrunScanResult;
+    yara?: OrunThreatFinding[];
+  }
+
+  interface OrunQuarantineEntry {
+    id: string;
+    originalPath: string;
+    fileName: string;
+    quarantinedAt: string;
+    sizeBytes?: number;
+    source?: OrunThreatSource;
+    reason?: string;
+  }
+
+  interface OrunQuarantineActionResult {
+    success: boolean;
+    error?: string;
+    id?: string;
+    originalPath?: string;
+  }
+
+  interface OrunFileAnalysisResult {
+    filePath?: string;
+    sha256?: string;
+    sizeBytes?: number;
+    entropy?: number;
+    suspiciousStrings?: string[];
+    indicators?: unknown[];
+    [key: string]: unknown;
+  }
+
+  interface OrunProcessTreeNode {
+    pid: number;
+    ppid: number | null;
+    name: string;
+    cpuPercent?: number;
+    memoryBytes?: number;
+    children?: OrunProcessTreeNode[];
+  }
+
+  interface OrunDefenderStatus {
+    available?: boolean;
+    realtimeProtection?: boolean;
+    signatureAgeDays?: number;
+    definitionsVersion?: string;
+    [key: string]: unknown;
+  }
+
+  interface OrunDiskUsageScanResult {
+    path?: string;
+    totalBytes?: number;
+    freeBytes?: number;
+    entries?: unknown[];
+    [key: string]: unknown;
+  }
+
+  interface OrunJunkScanRequest {
+    path: string;
+    isDownloadsFolder?: boolean;
+  }
+
+  interface OrunJunkCandidate {
+    path: string;
+    sizeBytes: number;
+    category?: string;
+    reason?: string;
+  }
+
+  interface OrunJunkScanResult {
+    path?: string;
+    candidates?: OrunJunkCandidate[];
+    totalSizeBytes?: number;
+    [key: string]: unknown;
+  }
+
+  type OrunMoveToHoldingRequest = OrunJunkCandidate | { path: string; sizeBytes: number };
+
+  interface OrunCleanupActionResult {
+    success: boolean;
+    error?: string;
+    id?: string;
+    originalPath?: string;
+  }
+
+  interface OrunPendingDeletionEntry {
+    id: string;
+    originalPath: string;
+    fileName: string;
+    movedAt: string;
+    sizeBytes?: number;
+    category?: string;
+  }
+
+  interface OrunUpdateCheckResult {
+    packages?: Array<{
+      id: string;
+      name: string;
+      currentVersion?: string;
+      latestVersion?: string;
+      manager?: string;
+    }>;
+    [key: string]: unknown;
+  }
+
+  interface OrunUpdateActionResult {
+    success: boolean;
+    error?: string;
+    packageId?: string;
+    output?: string;
   }
 
   interface Window {

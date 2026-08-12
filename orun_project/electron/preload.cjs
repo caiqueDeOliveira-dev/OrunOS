@@ -657,6 +657,58 @@ contextBridge.exposeInMainWorld("orun", {
       return () => ipcRenderer.removeListener("auth:state-changed", handler);
     },
   },
+  shield: {
+    startMonitoring: () => ipcRenderer.invoke("shield:start-monitoring"),
+    stopMonitoring: () => ipcRenderer.invoke("shield:stop-monitoring"),
+    fullScan: (req) => ipcRenderer.invoke("shield:full-scan", req),
+    getFindingsLog: () => ipcRenderer.invoke("shield:get-findings-log"),
+    checkClamAvAvailability: () => ipcRenderer.invoke("shield:check-clamav-availability"),
+    updateDefinitions: () => ipcRenderer.invoke("shield:update-definitions"),
+    blockIp: (ip) => ipcRenderer.invoke("shield:block-ip", ip),
+    quarantineFinding: (finding) => ipcRenderer.invoke("shield:quarantine-finding", finding),
+    listQuarantine: () => ipcRenderer.invoke("shield:list-quarantine"),
+    restoreQuarantine: (id) => ipcRenderer.invoke("shield:restore-quarantine", id),
+    deleteQuarantine: (id) => ipcRenderer.invoke("shield:delete-quarantine", id),
+    analyzeFile: (filePath) => ipcRenderer.invoke("shield:analyze-file", filePath),
+    getProcessTree: () => ipcRenderer.invoke("shield:get-process-tree"),
+    getDefenderStatus: () => ipcRenderer.invoke("shield:get-defender-status"),
+    syncDefenderThreats: () => ipcRenderer.invoke("shield:sync-defender-threats"),
+    runDefenderQuickScan: () => ipcRenderer.invoke("shield:defender-quick-scan"),
+    updateDefenderSignatures: () => ipcRenderer.invoke("shield:defender-update-signatures"),
+    onThreatDetected: (callback) => {
+      const handler = (_e, finding) => callback(finding);
+      ipcRenderer.on("shield:event:threat-detected", handler);
+      return () => ipcRenderer.removeListener("shield:event:threat-detected", handler);
+    },
+    onScanStarted: (callback) => {
+      const handler = (_e, payload) => callback(payload);
+      ipcRenderer.on("shield:event:scan-started", handler);
+      return () => ipcRenderer.removeListener("shield:event:scan-started", handler);
+    },
+    onScanFinished: (callback) => {
+      const handler = (_e, result) => callback(result);
+      ipcRenderer.on("shield:event:scan-finished", handler);
+      return () => ipcRenderer.removeListener("shield:event:scan-finished", handler);
+    },
+    onError: (callback) => {
+      const handler = (_e, payload) => callback(payload);
+      ipcRenderer.on("shield:event:error", handler);
+      return () => ipcRenderer.removeListener("shield:event:error", handler);
+    },
+  },
+  optimizer: {
+    scanDiskUsage: (path) => ipcRenderer.invoke("optimizer:scan-disk-usage", path),
+    scanJunk: (req) => ipcRenderer.invoke("optimizer:scan-junk", req),
+    moveToHolding: (req) => ipcRenderer.invoke("optimizer:move-to-holding", req),
+    moveManyToHolding: (reqs) => ipcRenderer.invoke("optimizer:move-many-to-holding", reqs),
+    listHolding: () => ipcRenderer.invoke("optimizer:list-holding"),
+    restoreFromHolding: (id) => ipcRenderer.invoke("optimizer:restore-from-holding", id),
+    deletePermanently: (id) => ipcRenderer.invoke("optimizer:delete-permanently", id),
+    detectPackageManager: () => ipcRenderer.invoke("optimizer:detect-package-manager"),
+    checkUpdates: () => ipcRenderer.invoke("optimizer:check-updates"),
+    runUpdate: (packageId) => ipcRenderer.invoke("optimizer:run-update", packageId),
+    runUpdatesBatch: (packageIds) => ipcRenderer.invoke("optimizer:run-updates-batch", packageIds),
+  },
 });
 
 // Forward developer:file-written IPC to CustomEvent for DeveloperIDE

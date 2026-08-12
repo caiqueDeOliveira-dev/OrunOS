@@ -11,6 +11,8 @@ import { ThemeToggle } from "./ThemeToggle";
 import { EncryptionToggle } from "./EncryptionToggle";
 import { AutoBackup } from "../services/autoBackup";
 import { ProfilesPanel } from "./ProfilesPanel";
+import { ShieldPanel } from "./ShieldPanel";
+import { OptimizerPanel } from "./OptimizerPanel";
 
 const PROVIDER_INFO: Record<OrunProvider, { label: string; kind: "local" | "cloud"; defaultModel: string; note?: string }> = {
   ollama: { label: "Ollama", kind: "local", defaultModel: "llama3.1" },
@@ -824,7 +826,7 @@ function AmbientSoundsSection({ t }: { t: (key: string) => string }) {
 
 // ── Tab Navigation ──────────────────────────────────────────────────────
 
-type SettingsTab = "ai" | "integrations" | "appearance" | "system" | "profiles";
+type SettingsTab = "ai" | "integrations" | "appearance" | "system" | "profiles" | "shield" | "optimizer";
 
 const getTabs = (t: (key: string) => string): { id: SettingsTab; label: string; icon: React.ElementType }[] => [
   { id: "ai", label: t("settingsTabAI"), icon: Bot },
@@ -832,6 +834,8 @@ const getTabs = (t: (key: string) => string): { id: SettingsTab; label: string; 
   { id: "appearance", label: t("settingsTabAppearance"), icon: Palette },
   { id: "system", label: t("settingsTabSystem"), icon: Cpu },
   { id: "profiles", label: t("settingsTabProfiles"), icon: Users },
+  { id: "shield", label: t("settingsTabShield"), icon: Shield },
+  { id: "optimizer", label: t("settingsTabOptimizer"), icon: Sparkles },
 ];
 
 // ── Keyboard Shortcut Builder ───────────────────────────────────────────
@@ -1789,6 +1793,18 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
             {activeTab === "profiles" && (
               <motion.div key="profiles" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.15 }}>
                 <ProfilesPanel t={t} />
+              </motion.div>
+            )}
+            {/* ── Shield Tab ──────────────────────────────── */}
+            {activeTab === "shield" && (
+              <motion.div key="shield" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.15 }}>
+                <ShieldPanel />
+              </motion.div>
+            )}
+            {/* ── Optimizer Tab ───────────────────────────── */}
+            {activeTab === "optimizer" && (
+              <motion.div key="optimizer" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.15 }}>
+                <OptimizerPanel />
               </motion.div>
             )}
           </AnimatePresence>

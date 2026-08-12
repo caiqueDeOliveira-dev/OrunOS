@@ -1354,6 +1354,8 @@ type TranslationKeys = {
 
   // Profiles & Workspaces
   settingsTabProfiles: string;
+  settingsTabShield: string;
+  settingsTabOptimizer: string;
   profilesUsersTitle: string;
   profilesUsersDesc: string;
   profilesPendingTitle: string;
@@ -2708,6 +2710,8 @@ export const translations: Record<Language, TranslationKeys> = {
     evidence_documents: "Documentos",
 
     settingsTabProfiles: "Perfis e Workspaces",
+    settingsTabShield: "Shield",
+    settingsTabOptimizer: "Otimizador",
     profilesUsersTitle: "Usuários",
     profilesUsersDesc: "Pessoas que interagem com os agentes do Orun.",
     profilesPendingTitle: "Identidades em onboarding",
@@ -4060,6 +4064,8 @@ export const translations: Record<Language, TranslationKeys> = {
     evidence_documents: "Documents",
 
     settingsTabProfiles: "Profiles & Workspaces",
+    settingsTabShield: "Shield",
+    settingsTabOptimizer: "Optimizer",
     profilesUsersTitle: "Users",
     profilesUsersDesc: "People interacting with Orun agents.",
     profilesPendingTitle: "Onboarding identities",
@@ -5413,6 +5419,8 @@ export const translations: Record<Language, TranslationKeys> = {
     evidence_documents: "Documentos",
 
     settingsTabProfiles: "Perfiles y Espacios de Trabajo",
+    settingsTabShield: "Shield",
+    settingsTabOptimizer: "Optimizador",
     profilesUsersTitle: "Usuarios",
     profilesUsersDesc: "Personas que interactúan con los agentes de Orun.",
     profilesPendingTitle: "Identidades en onboarding",
@@ -6767,6 +6775,8 @@ export const translations: Record<Language, TranslationKeys> = {
     evidence_documents: "Documents",
 
     settingsTabProfiles: "Profils et Espaces de Travail",
+    settingsTabShield: "Shield",
+    settingsTabOptimizer: "Optimiseur",
     profilesUsersTitle: "Utilisateurs",
     profilesUsersDesc: "Personnes qui interagissent avec les agents Orun.",
     profilesPendingTitle: "Identités en onboarding",

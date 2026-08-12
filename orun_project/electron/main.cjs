@@ -42,6 +42,8 @@ const memorySupabase = require("./memory-supabase.cjs");
 const { createAgentHub } = require("./agent-hub.cjs");
 const { createAnalytics } = require("./analytics.cjs");
 const secretStore = require("./secret-store.cjs");
+const { initializeShield: initShield, shutdownShield } = require("./shield.cjs");
+const { initializeOptimizer: initOptimizer } = require("./optimizer.cjs");
 const agentProcessor = require("./agent-processor.cjs");
 const { responseCache } = require("./response-cache.cjs");
 const { initAutoUpdater } = require("./auto-updater.cjs");
@@ -1256,6 +1258,15 @@ app.whenReady().then(() => {
   createWindow();
   createTray();
   initAutoUpdater(mainWindow);
+  // Orun Shield + System Optimizer (motores vendored). Tudo opcional — se o
+  // pacote falhar ao carregar, o app segue como antes.
+  try {
+    initShield(mainWindow);
+    initOptimizer("shield-quarantine");
+    log.info("[shield] Orun Shield + Optimizer inicializados");
+  } catch (err) {
+    log.warn("[shield] init falhou (opcional):", err.message);
+  }
   providerHealth.startPeriodic((providerName) => secretStore.readSecretStore()[providerName]);
 
   // Try to restore DATABASE_URL from encrypted storage if .env is missing
@@ -1546,6 +1557,9 @@ app.on("before-quit", () => {
 
   // Disconnect WhatsApp
   try { whatsapp.disconnect && whatsapp.disconnect().catch(() => {}); } catch { /* ignore */ }
+
+  // Stop Orun Shield monitors (watchers de arquivo, intervals)
+  try { shutdownShield(); } catch { /* ignore */ }
 
   // Disconnect Spotify, Discord & Telegram
   try { spotify.stopCallbackServer(); } catch { /* ignore */ }

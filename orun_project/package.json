@@ -26,6 +26,8 @@
         "@fal-ai/client": "^1.10.1",
         "@orun/core": "github:caiqueDeOliveira-dev/Orun-Core#v0.1.2",
         "@orun/identity": "file:vendor/orun-identity",
+        "@orun/shield-core": "file:vendor/orun-shield-core",
+        "@orun/system-optimizer": "file:vendor/orun-system-optimizer",
         "@radix-ui/react-accordion": "1.2.3",
         "@radix-ui/react-alert-dialog": "1.1.6",
         "@radix-ui/react-aspect-ratio": "1.1.2",
@@ -131,7 +133,8 @@
         "files": [
             "dist/**/*",
             "electron/**/*",
-            "!electron/__tests__/**"
+            "!electron/__tests__/**",
+            "rules/**/*"
         ],
         "extraResources": [
             {
