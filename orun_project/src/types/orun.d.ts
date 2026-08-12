@@ -1071,6 +1071,25 @@ interface OrunAPI {
     deleteEvent: (id: string) => Promise<{ ok: boolean; error?: string }>;
     listCalendars: () => Promise<Array<{ id: string; summary: string; primary?: boolean }>>;
   };
+  auth: {
+    getState: () => Promise<OrunAuthState | null>;
+    signIn: (email: string, password: string) => Promise<OrunAuthState>;
+    signUp: (email: string, password: string, displayName?: string) => Promise<OrunAuthState>;
+    signOut: () => Promise<OrunAuthState>;
+    getOwner: () => Promise<OrunOwnerLink | null>;
+    listDevices: (tenantId: string) => Promise<OrunDevice[]>;
+    revokeDevice: (deviceId: string) => Promise<void>;
+    getLicense: () => Promise<OrunLicenseState>;
+    refreshLicense: () => Promise<OrunLicenseState>;
+    getEntitlements: (tenantId: string) => Promise<OrunEntitlements>;
+    startCheckout: (tenantId: string) => Promise<string>;
+    exportData: () => Promise<Record<string, unknown>>;
+    deleteAccount: () => Promise<OrunAccountDeletionResult>;
+    onStateChanged: (callback: (state: OrunAuthState) => void) => () => void;
+  };
+  shell: {
+    openExternal: (url: string) => Promise<void>;
+  };
 }
 
 interface OrunGmailMessage {
@@ -1152,6 +1171,77 @@ interface OrunDiscordChannel {
 }
 
 declare global {
+  interface OrunAuthState {
+    status: "loading" | "authenticated" | "unauthenticated" | "mfa_required";
+    user: OrunAuthUser | null;
+    activeTenant: { id: string; type: string; name: string; slug: string; ownerId: string } | null;
+    memberships: Array<{ id: string; userId: string; tenantId: string; role: string; joinedAt?: string }>;
+    accessToken: string | null;
+  }
+
+  interface OrunAuthUser {
+    id: string;
+    email: string | null;
+    displayName: string | null;
+    avatarUrl?: string | null;
+    mfaEnabled?: boolean;
+    createdAt?: string | number;
+    updatedAt?: string | number;
+  }
+
+  interface OrunOwnerLink {
+    supabaseUserId: string;
+    email: string | null;
+    displayName: string | null;
+    tenantId: string | null;
+    tenantSlug: string | null;
+    tenantName: string | null;
+    linkedAt: string;
+  }
+
+  interface OrunDevice {
+    id: string;
+    tenantId: string;
+    userId: string;
+    platform: string;
+    name: string;
+    fingerprint: string;
+    lastSeenAt: string;
+    revokedAt: string | null;
+    createdAt: string;
+  }
+
+  interface OrunLicenseState {
+    status: "valid" | "grace_period" | "expired" | "invalid_signature" | "missing" | "unavailable";
+    payload: {
+      tenantId: string;
+      deviceId: string;
+      planKey: string;
+      features: Record<string, unknown>;
+      issuedAt: number;
+      expiresAt: number;
+    } | null;
+    graceDaysRemaining?: number;
+  }
+
+  interface OrunEntitlements {
+    plan: { id: string; key: string; name: string; stripePriceId: string | null; maxDevices: number } | null;
+    subscription: {
+      id: string;
+      tenantId: string;
+      planId: string;
+      status: string;
+      currentPeriodEnd: string | null;
+      cancelAtPeriodEnd: boolean;
+    } | null;
+    isActive: boolean;
+    features: Record<string, unknown>;
+  }
+
+  type OrunAccountDeletionResult =
+    | { blocked: false }
+    | { blocked: true; reason: "sole_owner_of_organization"; message: string; blockedTenants: string[] };
+
   interface OrunUser {
     id: string;
     name: string;

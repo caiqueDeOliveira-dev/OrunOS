@@ -1,0 +1,18 @@
+{
+  "name": "@orun/identity",
+  "version": "0.1.0",
+  "description": "Camada centralizada de identidade e autenticação do ecossistema Orun OS",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "peerDependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "dependencies": {
+    "jose": "^5.9.0"
+  },
+  "peerDependenciesMeta": {
+    "react": { "optional": true }
+  },
+  "license": "ISC"
+}

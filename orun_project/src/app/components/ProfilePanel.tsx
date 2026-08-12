@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, User, Camera, Mic, Square, Trash2, Check } from "lucide-react";
+import { X, User, Camera, Mic, Square, Trash2, Check, LogOut, Monitor, ShieldOff, Download, Sparkles, RefreshCw } from "lucide-react";
 import { useTranslation } from "../../i18n/I18nProvider";
 import { VolumeVisualizer } from "./VolumeVisualizer";
 
@@ -241,6 +241,9 @@ export function ProfilePanel({ onClose }: ProfilePanelProps) {
             />
           </div>
 
+          {/* Conta Orun (Fase B) */}
+          <OrunAccountSection />
+
           {/* Voice Recording */}
           <div>
             <label className="text-[10px] tracking-wider uppercase block mb-2" style={{ fontFamily: "'Sora', sans-serif", color: "var(--muted-foreground)" }}>
@@ -312,5 +315,355 @@ export function ProfilePanel({ onClose }: ProfilePanelProps) {
         </div>
       </motion.div>
     </motion.div>
+  );
+}
+
+// ── Fase B: Conta Orun (dono + tenant + dispositivos conectados) ─────────
+
+function OrunAccountSection() {
+  const [authState, setAuthState] = useState<OrunAuthState | null | undefined>(undefined);
+  const [owner, setOwner] = useState<OrunOwnerLink | null>(null);
+  const [devices, setDevices] = useState<OrunDevice[]>([]);
+  const [deviceError, setDeviceError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const refreshDevices = useCallback(async (state: OrunAuthState | null | undefined) => {
+    if (state?.status !== "authenticated" || !state.activeTenant) return;
+    try {
+      const list = await window.orun.auth.listDevices(state.activeTenant.id);
+      setDevices(list);
+      setDeviceError(null);
+    } catch (err: any) {
+      setDevices([]);
+      setDeviceError(err?.message || "Não foi possível listar dispositivos.");
+    }
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const [state, ownerData] = await Promise.all([
+          window.orun.auth.getState(),
+          window.orun.auth.getOwner(),
+        ]);
+        if (!mounted) return;
+        setAuthState(state);
+        setOwner(ownerData);
+        if (state?.status === "authenticated") refreshDevices(state);
+      } catch {
+        if (mounted) setAuthState(null);
+      }
+    })();
+    const unsubscribe = window.orun.auth.onStateChanged((state) => {
+      if (!mounted) return;
+      setAuthState(state);
+      if (state.status === "authenticated") refreshDevices(state);
+      else setDevices([]);
+    });
+    return () => { mounted = false; unsubscribe(); };
+  }, [refreshDevices]);
+
+  const authenticated = authState?.status === "authenticated";
+  const email = authState?.user?.email ?? owner?.email ?? null;
+  const tenantName = authState?.activeTenant?.name ?? owner?.tenantName ?? null;
+
+  const signOut = async () => {
+    setBusy(true);
+    try {
+      await window.orun.auth.signOut();
+      setDevices([]);
+    } catch {
+      /* ignore */
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const revoke = async (deviceId: string) => {
+    setBusy(true);
+    try {
+      await window.orun.auth.revokeDevice(deviceId);
+      await refreshDevices(authState);
+    } catch (err: any) {
+      setDeviceError(err?.message || "Falha ao revogar dispositivo.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div>
+      <label className="text-[10px] tracking-wider uppercase block mb-2" style={{ fontFamily: "'Sora', sans-serif", color: "var(--muted-foreground)" }}>
+        Conta Orun
+      </label>
+      <div className="rounded-lg p-3 space-y-3" style={{ background: "var(--secondary)", border: "1px solid var(--border)" }}>
+        {!authenticated && !owner && (
+          <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+            Sem conta Orun — o app está em modo local.
+          </p>
+        )}
+
+        {!authenticated && owner && (
+          <div className="space-y-2">
+            <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+              Dono vinculado: <span style={{ color: "var(--foreground)" }}>{owner.email}</span> — sessão expirada.
+              Entre novamente na tela de login para reconectar.
+            </p>
+          </div>
+        )}
+
+        {authenticated && (
+          <>
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[12px] font-medium truncate" style={{ color: "var(--foreground)" }}>
+                  {email ?? authState?.user?.id}
+                </p>
+                {tenantName && (
+                  <p className="text-[10px] truncate" style={{ color: "var(--muted-foreground)" }}>
+                    Tenant ativo: {tenantName}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={signOut}
+                disabled={busy}
+                className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] transition-colors disabled:opacity-50"
+                style={{ background: "color-mix(in srgb, var(--destructive) 10%, transparent)", color: "var(--destructive)" }}
+              >
+                <LogOut size={11} /> Sair
+              </button>
+            </div>
+
+            <div>
+              <p className="text-[10px] tracking-wider uppercase mb-1.5" style={{ color: "var(--muted-foreground)" }}>
+                Dispositivos conectados
+              </p>
+              {devices.length === 0 && !deviceError && (
+                <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Nenhum dispositivo registrado.</p>
+              )}
+              {deviceError && (
+                <p className="text-[11px]" style={{ color: "var(--destructive)" }}>{deviceError}</p>
+              )}
+              <div className="space-y-1.5">
+                {devices.map((device) => (
+                  <div key={device.id} className="flex items-center gap-2 rounded-lg px-2 py-1.5" style={{ background: "var(--background)", border: "1px solid var(--border)" }}>
+                    <Monitor size={13} style={{ color: "var(--muted-foreground)", flexShrink: 0 }} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-medium truncate" style={{ color: "var(--foreground)" }}>
+                        {device.name} {device.platform === "desktop" ? "(este PC)" : `(${device.platform})`}
+                      </p>
+                      <p className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>
+                        Última vez: {new Date(device.lastSeenAt).toLocaleString()}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => revoke(device.id)}
+                      disabled={busy}
+                      className="p-1.5 rounded transition-colors disabled:opacity-50"
+                      title="Revogar"
+                      style={{ color: "var(--muted-foreground)" }}
+                    >
+                      <ShieldOff size={12} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <OrunBillingSection tenantId={authState?.activeTenant?.id} />
+
+            <OrunPrivacySection onDeleted={signOut} />
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function OrunBillingSection({ tenantId }: { tenantId?: string }) {
+  const [entitlements, setEntitlements] = useState<OrunEntitlements | null>(null);
+  const [license, setLicense] = useState<OrunLicenseState | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    if (!tenantId) return;
+    setError(null);
+    try {
+      const [ent, lic] = await Promise.all([
+        window.orun.auth.getEntitlements(tenantId),
+        window.orun.auth.getLicense(),
+      ]);
+      setEntitlements(ent);
+      setLicense(lic);
+    } catch (err: any) {
+      setError(err?.message || "Falha ao carregar plano.");
+    }
+  }, [tenantId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const upgrade = async () => {
+    if (!tenantId) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const url = await window.orun.auth.startCheckout(tenantId);
+      await window.orun.shell.openExternal(url);
+    } catch (err: any) {
+      if (err?.code === "stripe_not_configured") {
+        setError("Pagamento ainda não configurado. Em breve você poderá assinar o plano Pro.");
+      } else {
+        setError(err?.message || "Falha ao iniciar o checkout.");
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const refresh = async () => {
+    setBusy(true);
+    try {
+      const lic = await window.orun.auth.refreshLicense();
+      setLicense(lic);
+    } catch (err: any) {
+      setError(err?.message || "Falha ao renovar a licença.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const planKey = entitlements?.plan?.key ?? "desktop_free";
+  const isPro = planKey === "desktop_pro";
+  const licenseStatus = license?.status ?? "unavailable";
+
+  const statusLabel =
+    licenseStatus === "valid"
+      ? "Licença ativa"
+      : licenseStatus === "grace_period"
+        ? `Licença em carência (${license?.graceDaysRemaining ?? 0}d restantes)`
+        : licenseStatus === "expired"
+          ? "Licença expirada"
+          : licenseStatus === "invalid_signature"
+            ? "Licença inválida"
+            : "Licença não emitida";
+
+  return (
+    <div>
+      <p className="text-[10px] tracking-wider uppercase mb-1.5" style={{ color: "var(--muted-foreground)" }}>
+        Plano e licença
+      </p>
+      <div className="space-y-2">
+        <div className="rounded-lg px-2 py-1.5" style={{ background: "var(--background)", border: "1px solid var(--border)" }}>
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-[11px] font-medium" style={{ color: "var(--foreground)" }}>
+                {isPro ? "Orun Pro" : "Orun Free"}
+              </p>
+              <p className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>
+                Até {entitlements?.plan?.maxDevices ?? (isPro ? 3 : 1)} dispositivo(s) — {statusLabel}
+              </p>
+            </div>
+            <button
+              onClick={refresh}
+              disabled={busy}
+              className="shrink-0 p-1.5 rounded transition-colors disabled:opacity-50"
+              title="Renovar licença"
+              style={{ color: "var(--muted-foreground)" }}
+            >
+              <RefreshCw size={12} />
+            </button>
+          </div>
+        </div>
+
+        {!isPro && (
+          <button
+            onClick={upgrade}
+            disabled={busy}
+            className="w-full flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-colors disabled:opacity-50"
+            style={{ background: "color-mix(in srgb, var(--primary) 15%, transparent)", color: "var(--primary)" }}
+          >
+            <Sparkles size={11} /> Assinar Pro
+          </button>
+        )}
+
+        {error && <p className="text-[10px]" style={{ color: "var(--destructive)" }}>{error}</p>}
+      </div>
+    </div>
+  );
+}
+
+function OrunPrivacySection({ onDeleted }: { onDeleted: () => void }) {
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const exportData = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const data = await window.orun.auth.exportData();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `orun-dados-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      setError(err?.message || "Falha ao exportar seus dados.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const deleteAccount = async () => {
+    if (!window.confirm("Excluir permanentemente sua conta Orun e todos os seus dados? Essa ação não pode ser desfeita.")) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await window.orun.auth.deleteAccount();
+      if (result.blocked) {
+        setError(result.message);
+      } else {
+        onDeleted();
+      }
+    } catch (err: any) {
+      setError(err?.message || "Falha ao excluir a conta.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div>
+      <p className="text-[10px] tracking-wider uppercase mb-1.5" style={{ color: "var(--muted-foreground)" }}>
+        Meus dados (LGPD)
+      </p>
+      <div className="flex flex-col gap-2">
+        <button
+          onClick={exportData}
+          disabled={busy}
+          className="w-full flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] transition-colors disabled:opacity-50"
+          style={{ background: "var(--background)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+        >
+          <Download size={11} /> Exportar meus dados
+        </button>
+        <button
+          onClick={deleteAccount}
+          disabled={busy}
+          className="w-full flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] transition-colors disabled:opacity-50"
+          style={{ background: "color-mix(in srgb, var(--destructive) 10%, transparent)", color: "var(--destructive)" }}
+        >
+          <Trash2 size={11} /> Excluir minha conta
+        </button>
+        {error && <p className="text-[10px]" style={{ color: "var(--destructive)" }}>{error}</p>}
+      </div>
+    </div>
   );
 }

@@ -637,6 +637,26 @@ contextBridge.exposeInMainWorld("orun", {
     deleteEvent: (id) => ipcRenderer.invoke("calendar:delete-event", id),
     listCalendars: () => ipcRenderer.invoke("calendar:list-calendars"),
   },
+  auth: {
+    getState: () => ipcRenderer.invoke("auth:get-state"),
+    signIn: (email, password) => ipcRenderer.invoke("auth:sign-in", { email, password }),
+    signUp: (email, password, displayName) => ipcRenderer.invoke("auth:sign-up", { email, password, displayName }),
+    signOut: () => ipcRenderer.invoke("auth:sign-out"),
+    getOwner: () => ipcRenderer.invoke("auth:get-owner"),
+    listDevices: (tenantId) => ipcRenderer.invoke("auth:list-devices", tenantId),
+    revokeDevice: (deviceId) => ipcRenderer.invoke("auth:revoke-device", deviceId),
+    getLicense: () => ipcRenderer.invoke("auth:get-license"),
+    refreshLicense: () => ipcRenderer.invoke("auth:refresh-license"),
+    getEntitlements: (tenantId) => ipcRenderer.invoke("auth:get-entitlements", tenantId),
+    startCheckout: (tenantId) => ipcRenderer.invoke("auth:start-checkout", tenantId),
+    exportData: () => ipcRenderer.invoke("auth:export-data"),
+    deleteAccount: () => ipcRenderer.invoke("auth:delete-account"),
+    onStateChanged: (callback) => {
+      const handler = (_e, data) => callback(data);
+      ipcRenderer.on("auth:state-changed", handler);
+      return () => ipcRenderer.removeListener("auth:state-changed", handler);
+    },
+  },
 });
 
 // Forward developer:file-written IPC to CustomEvent for DeveloperIDE

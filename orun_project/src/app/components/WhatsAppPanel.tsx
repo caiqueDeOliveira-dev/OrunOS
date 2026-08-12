@@ -11,10 +11,23 @@ import type { OrunWhatsAppStatus } from "../../types/orun";
 
 function getAgentGroups(t: (key: string) => string) {
   return [
+    { id: "Hampton", label: t("agentCentralIntelligence"), color: "#805AD5", desc: t("whatsappHamptonDesc") },
+    { id: "Developer", label: t("agentCodeEngineering"), color: "#4299E1", desc: t("whatsappDeveloperDesc") },
+    { id: "Designer", label: t("agentDesignVisual"), color: "#ED64A6", desc: t("whatsappDesignerDesc") },
+    { id: "Creator", label: t("agentAudiovisualContent"), color: "#B83280", desc: t("whatsappCreatorDesc") },
     { id: "Health", label: t("schedulesHealth"), color: "#E53E3E", desc: t("whatsappHealthDesc") },
     { id: "Finance", label: t("schedulesFinance"), color: "#D69E2E", desc: t("whatsappFinanceDesc") },
-    { id: "Personal Assistant", label: t("schedulesPersonalAssistant"), color: "#4A5568", desc: t("whatsappAssistantDesc") },
+    { id: "Teacher", label: t("agentLearningLanguages"), color: "#48BB78", desc: t("whatsappTeacherDesc") },
     { id: "Marketing", label: t("schedulesMarketing"), color: "#D53F8C", desc: t("whatsappSocialDesc") },
+    { id: "Automation", label: t("agentAutomationBots"), color: "#9F7AEA", desc: t("whatsappAutomationDesc") },
+    { id: "Automotive", label: t("agentAutomotive"), color: "#ED8936", desc: t("whatsappAutomotiveDesc") },
+    { id: "System", label: t("agentOSConfig"), color: "#718096", desc: t("whatsappSystemDesc") },
+    { id: "Juridico", label: t("agentJuridico"), color: "#3182CE", desc: t("whatsappJuridicoDesc") },
+    { id: "AssistenteTecnico", label: t("agentAssistenteTecnico"), color: "#38A169", desc: t("whatsappAssistenteTecnicoDesc") },
+    { id: "Suporte", label: t("agentSuporte"), color: "#0BC5EA", desc: t("whatsappSuporteDesc") },
+    { id: "Personal Assistant", label: t("schedulesPersonalAssistant"), color: "#4A5568", desc: t("whatsappAssistantDesc") },
+    { id: "Home IA", label: t("agentHomeIA"), color: "#DD6B20", desc: t("whatsappHomeIADesc") },
+    { id: "Cyber Security", label: t("agentCyberSecurity"), color: "#2C5282", desc: t("whatsappCyberSecurityDesc") },
   ];
 }
 

@@ -11,8 +11,10 @@ const logger = require("./logger.cjs");
 let sock = null;
 let currentStatus = "disconnected";
 let listeners = { onStatus: () => {}, onQR: () => {}, onMessage: () => {} };
+let sentMessageIds = new Map(); // id -> timestamp (ecos da própria resposta, evita loop)
 let reconnectTimer = null;
 let reconnectAttempts = 0;
+let boot401Retried = false;
 const MAX_RECONNECT_ATTEMPTS = 15;
 let knownGroups = []; // [{ jid, name }]
 let userDataPath = "";
@@ -21,6 +23,18 @@ let watchdogTimer = null;
 
 function getStatus() {
   return currentStatus;
+}
+
+function trackSentMessage(key) {
+  const id = key?.key?.id || key?.id;
+  if (!id) return;
+  const now = Date.now();
+  if (sentMessageIds.size > 3000) {
+    for (const [k, ts] of sentMessageIds) {
+      if (now - ts > 600000) sentMessageIds.delete(k);
+    }
+  }
+  sentMessageIds.set(id, now);
 }
 
 function setListeners(l) {
@@ -149,6 +163,7 @@ async function connect(userData) {
     if (connection === "open") {
       currentStatus = "connected";
       reconnectAttempts = 0;
+      boot401Retried = false;
       logger.wa.info("[whatsapp] connected as", newSock.user?.id);
       listeners.onStatus(currentStatus, { selfJid: newSock.user?.id });
 
@@ -183,6 +198,17 @@ async function connect(userData) {
       logger.wa.info(`[whatsapp] connection closed: statusCode=${statusCode} loggedOut=${loggedOut} msg=${msg}`);
 
       if (loggedOut) {
+        // 401 durante o boot (socket nunca chegou a abrir) costuma ser conflito
+        // de sessão pós-restart/update: a sessão anterior ainda está viva no
+        // servidor. Dá UMA chance de reconexão antes de apagar as credenciais.
+        if (currentStatus === "connecting" && !boot401Retried) {
+          boot401Retried = true;
+          currentStatus = "reconnecting";
+          listeners.onStatus(currentStatus, { attempt: 1, maxAttempts: MAX_RECONNECT_ATTEMPTS, nextRetryMs: 8000 });
+          logger.wa.info("[whatsapp] 401 no boot (conflito de sessão pós-restart) — reconectando em 8s");
+          reconnectTimer = setTimeout(() => connect(userDataPath).catch(() => {}), 8000);
+          return;
+        }
         logger.wa.info("[whatsapp] logged out, cleaning auth");
         currentStatus = "disconnected";
         listeners.onStatus(currentStatus, { loggedOut });
@@ -221,6 +247,8 @@ async function connect(userData) {
       const jid = msg.key.remoteJid;
       const senderJid = msg.key.participant || jid;
       const fromMe = Boolean(msg.key.fromMe);
+      // Eco da própria resposta enviada pelo socket — ignora (evita loop).
+      if (fromMe && sentMessageIds.has(msg.key.id)) continue;
       const isImage = Boolean(msg.message.imageMessage);
       const isAudio = Boolean(msg.message.audioMessage);
       const text = msg.message.conversation || msg.message.extendedTextMessage?.text || msg.message.imageMessage?.caption || msg.message.audioMessage?.contextInfo?.quotedMessage?.conversation || "";
@@ -279,7 +307,8 @@ async function connect(userData) {
 async function sendMessage(jid, text) {
   if (!sock || currentStatus !== "connected") throw new Error("WhatsApp is not connected.");
   try {
-    await sock.sendMessage(jid, { text });
+    const result = await sock.sendMessage(jid, { text });
+    trackSentMessage(result);
   } catch (err) {
     if (err.message?.includes("Connection Closed") || err.message?.includes("not connected")) {
       currentStatus = "disconnected";
@@ -293,7 +322,8 @@ async function sendMessage(jid, text) {
 async function sendAudioMessage(jid, buffer, mime = "audio/ogg; codecs=opus", ptt = true) {
   if (!sock || currentStatus !== "connected") throw new Error("WhatsApp is not connected.");
   try {
-    await sock.sendMessage(jid, { audio: buffer, mimetype: mime, ptt });
+    const result = await sock.sendMessage(jid, { audio: buffer, mimetype: mime, ptt });
+    trackSentMessage(result);
   } catch (err) {
     if (err.message?.includes("Connection Closed") || err.message?.includes("not connected")) {
       currentStatus = "disconnected";
@@ -308,7 +338,12 @@ async function disconnect() {
   if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
   reconnectAttempts = MAX_RECONNECT_ATTEMPTS; // prevent auto-reconnect
   if (sock) {
-    try { await sock.logout(); } catch { /* already disconnected */ }
+    try {
+      // Fecha o WebSocket sem desautenticar a sessão (logout() derrubaria o
+      // pareamento e, com o restart do auto-update, gera 401/logout no boot).
+      if (typeof sock.ws?.close === "function") sock.ws.close();
+      if (sock.ev?.removeAllListeners) sock.ev.removeAllListeners();
+    } catch { /* already disconnected */ }
     sock = null;
   }
   currentStatus = "disconnected";

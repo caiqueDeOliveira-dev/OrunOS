@@ -26,6 +26,7 @@ const musicProducer = require("./music-producer.cjs");
 const homeAssistant = require("./home-assistant.cjs");
 const securityAudit = require("./security-audit.cjs");
 const supabaseSync = require("./sync-adapter.cjs");
+const auth = require("./auth.cjs");
 const toolsModule = require("./tools.cjs");
 const mcpClient = require("./mcp-client.cjs");
 const pluginSystem = require("./plugin-system.cjs");
@@ -813,6 +814,7 @@ function registerIpcHandlers() {
     activeStreamRequests, activeAutonomousRequests,
     telemetry,
     rateLimiter: ipcRateLimiter,
+    auth,
     syncEnqueue, resolveAISettings, buildSystemPrompt, getGlobalAISettings,
     autonomousLoop, isDev, log, app,
     agentRecommendedModels: AGENT_RECOMMENDED_MODELS,
@@ -835,6 +837,7 @@ function registerIpcHandlers() {
   require("./ipc/agent-hub-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/analytics-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/memory-handlers.cjs").register(ipcMain, ctx);
+  require("./ipc/auth-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/media-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/home-assistant-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/security-handlers.cjs").register(ipcMain, ctx);
@@ -1156,6 +1159,17 @@ app.whenReady().then(() => {
     } catch (err) {
       log.error("[db-encryption] Failed to decrypt database:", err.message);
     }
+  }
+
+  // Identidade Orun (Fase A): camada de autenticação opcional. Sem anon key
+  // no secret-store, o app segue exatamente como antes (login é opt-in).
+  try {
+    if (auth.init({ userDataPath, secretStore, db, safeStorageModule: require("electron").safeStorage, wsTransport: require("ws").WebSocket })) {
+      auth.initialize();
+      log.info("[auth] camada de autenticação inicializada");
+    }
+  } catch (err) {
+    log.warn("[auth] init falhou (opcional):", err.message);
   }
 
   try {

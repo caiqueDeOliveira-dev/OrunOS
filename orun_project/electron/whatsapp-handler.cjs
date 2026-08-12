@@ -216,7 +216,9 @@ async function handleWhatsAppMessage(payload, ctx) {
   } = ctx;
   const logg = getLogger(log);
 
-  if (fromMe) return; // nunca processar as próprias mensagens
+  // Mensagens do próprio dono (fromMe) agora são processadas normalmente —
+  // os ecos das respostas enviadas pelo socket são filtrados em whatsapp.cjs
+  // (trackSentMessage/sentMessageIds), evitando loop.
 
   const agentId = resolveAgent(payload, db, logg);
   if (!agentId) return;

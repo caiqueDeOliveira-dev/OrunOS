@@ -383,6 +383,106 @@
 - **virgiliojr94/book-to-skill** — re-trending do descartado semanal (livro PDF → skill Claude Code). Mantém-se descartado.
 - **Shubhamsaboo/awesome-llm-apps** — lista de 100+ apps RAG. Conteúdo de estudo, não adoção.
 
+### Curadoria `orun-os-repositorios-referencia.md` — 2026-08-12
+
+> Revisão do documento `Downloads\orun-os-repositorios-referencia.md` (curadoria de OSS de referência pro ecossistema).
+> Cruzado com o que o Orun já tem (Módulo 7/Developer, skills, Orun Shield, wake word próprio, sync Supabase,
+> Analytics nativo). Itens que fazem sentido → **#46–#59** (FUTURO, todos como referência, nenhum para incorporar
+> imediato — licenças AGPL/GPL são barreira para código comercial fechado). O restante → **Descartados** abaixo.
+
+### 46. Puter + OS.js — window managers web de referência — FUTURO (referência)
+- **O que é:** Puter ("Internet OS" no navegador, AGPL-3.0, window manager/apps modulares) e OS.js (desktop web em JS, mais maduro, modelo de "package manager" de apps). Nenhum serve para copiar (AGPL + vanilla JS/jQuery ≠ Electron+React+TS).
+- **Repos:** https://github.com/HeyPuter/puter · https://github.com/os-js/OS.js
+- **Quando valeria:** desenhar a **Fase B do SO Orun** (shell com window manager/taskbar/launcher) — estudar gerenciamento de janelas, sandboxing de apps, app launcher e IPC entre apps antes de implementar.
+- **Encaixe:** shell do SO (Fase B), `docs/so-orun-roadmap.md`.
+
+### 47. Automerge — CRDT de sync local-first — FUTURO (referência)
+- **O que é:** CRDT tipo JSON com merge automático e histórico Git-like; núcleo Rust, API JS estável (MIT/Apache-2.0). Yjs (CRDT de texto colaborativo, MIT) descartado separado.
+- **Repo:** https://github.com/automerge/automerge
+- **Quando valeria:** se o sync entre Desktop/Mobile/TV precisar ser **offline-first sem servidor de resolução de conflito** (hoje o `supabase-sync` centraliza via Supabase; Automerge seria para apps locais que sincronizam entre si, ex.: configurações `account`-scope sem conexão).
+- **Encaixe:** `supabase-sync`, `@orun/settings`/settings, futuros apps locais do SO.
+
+### 48. Umami + PostHog — analytics self-hosted / product analytics — FUTURO (gatilho: empresa/SaaS)
+- **O que é:** Umami (MIT, analytics privacy-first Node+Postgres) e PostHog (MIT, funis/feature flags/session replay). O desktop já tem **Analytics nativo** (`analytics.cjs` + `app_events`) para uso pessoal — estes seriam para telemetria de **produto** quando o Grupo Orun vender SaaS.
+- **Repos:** https://github.com/umami-software/umami · https://github.com/PostHog/posthog
+- **Quando valeria (gatilho):** quando o Orun virar produto vendido (ex.: Orun Beauty) e o painel nativo não bastar — Umami para visitas/marketing, PostHog para comportamento/retention/feature flags.
+- **Encaixe:** Analytics, futuros apps SaaS.
+
+### 49. Penpot + Figma-Context-MCP + open-design — stack de design do agente Designer — FUTURO
+- **O que é:** Penpot (MPL-2.0, alternativa Figma self-hosted, SVG/CSS/HTML, tem **server MCP**), open-design (local-first, prompt→protótipo HTML/PDF/PPTX/MP4), Figma-Context-MCP (MIT, ponte bidirecional com Figma).
+- **Repos:** https://github.com/penpot/penpot · https://github.com/nexu-io/open-design · https://github.com/GLips/Figma-Context-MCP
+- **Quando valeria:** quando o agente Designer evoluir de "gerar UI no workspace" para "ferramenta de design interna" — Penpot como substituição do Figma + MCP para IA; open-design como padrão de prompt→artefato; Figma-Context-MCP só se o usuário voltar a usar Figma.
+- **Encaixe:** Designer (agente), Fase C do SO (app de design), Skills. Three.js/R3F já usado (sem ação).
+
+### 50. ACE-Step + MusicGen — geração de música local — FUTURO (Creator/áudio)
+- **O que é:** ACE-Step (modelo modular de geração de música com UI estilo Suno/Spotify local) como motor principal + audiocraft/MusicGen (MIT, texto→música, fallback p/ trilhas instrumentais) + stable-audio-tools (trilhas ambiente, licença Stability). Roda local, sem assinatura.
+- **Repos:** https://github.com/ace-step/ace-step · https://github.com/facebookresearch/audiocraft · https://github.com/Stability-AI/stable-audio-tools
+- **Quando valeria:** quando o workspace de **áudio/Creator** pedir produção musical real (beats, trilhas) — checar licença de pesos (CC-BY-NC não é uso comercial).
+- **Encaixe:** Creator (áudio), agente Criativo.
+
+### 51. Firefly III — backend financeiro via API — FUTURO (agente Finance)
+- **O que é:** gerenciador financeiro pessoal com contabilidade de dupla entrada e API REST robusta (AGPL-3.0 — usar como **serviço externo via API**, nunca embutir código). Actual (MIT, envelope budgeting, mais leve) fica como alternativa.
+- **Repo:** https://github.com/firefly-iii/firefly-iii
+- **Quando valeria:** quando o agente Finance crescer de `finance_log` (registro) para contabilidade real — rodar Firefly self-hosted e o agente consulta/atualiza via API em vez de reinventar.
+- **Encaixe:** Finance (agente), `finance_log`.
+
+### 52. open-wearables + wger — dados de saúde/wearables — FUTURO (agente Health)
+- **O que é:** open-wearables (self-hosted, unifica Garmin/Whoop/Apple Health numa API única p/ IA) como principal; wger (AGPL, tracker de treino/nutrição via API) como backend de treino; SparkyFitness (referência do padrão "logar saúde por chat").
+- **Repos:** https://github.com/the-momentum/open-wearables · https://github.com/wger-project/wger
+- **Quando valeria:** quando o agente Health ganhar fontes reais de wearable ou o usuário adotar tracking de treino — API única evita integração por fabricante.
+- **Encaixe:** Health (agente), `health_log`.
+
+### 53. Postiz — publicação social via MCP — FUTURO (agente Marketing)
+- **O que é:** plataforma de agendamento social self-hosted (33 plataformas: X, IG, TikTok, LinkedIn, YouTube etc.) com **server MCP + CLI de agente** dedicado (AGPL-3.0 — serviço externo via MCP, não código). Mixpost (Laravel) descartado.
+- **Repo:** https://github.com/gitroomhq/postiz-app
+- **Quando valeria:** quando o Marketing passar de `marketing_log` para **publicação real cross-platform** — o MCP nativo deixa o agente publicar sem integração por rede social.
+- **Encaixe:** Marketing (agente), `marketing_log`.
+
+### 54. gitleaks + OWASP MSTG — segurança de dev e mobile — FUTURO (baixo custo)
+- **O que é:** gitleaks (MIT, detecta segredos vazados em commits/histórico git) e OWASP MSTG (guia/checklist de segurança mobile, CC). Semgrep já é nativo no Módulo 7.
+- **Repos:** https://github.com/gitleaks/gitleaks · https://github.com/OWASP/owasp-mstg
+- **Quando valeria:** gitleaks roda junto do Git Intelligence do Developer (previne vazar secrets no monorepo — hoje `.gitignore` cobre manualmente); MSTG para auditar o Orun Mobile antes de build de produção.
+- **Encaixe:** Developer (Módulo 7), Cyber Security, Orun Mobile.
+
+### 55. Strix — pentest autônomo (DAST) — FUTURO (Orun Shield, com cautela)
+- **O que é:** agentes autônomos de pentest que executam código, acham e validam vulnerabilidades com PoC real (OWASP Top 10+); Apache-2.0, exige Docker + chave de LLM. Complementa o Semgrep (SAST) com DAST.
+- **Repo:** https://github.com/usestrix/strix
+- **Quando valeria:** quando o **Orun Shield** ganhar a parte ofensiva — primeiro teste **local contra repo pequeno e fechado** (`@orun/identity`/`settings`), nunca em produção; depois GitHub Actions com diff scoping. Requer conforto com Docker (usuário ainda aprendendo).
+- **Encaixe:** Orun Shield, Cyber Security.
+
+### 56. openWakeWord — wake word custom para satélites — FUTURO (HomeLab/ESP32)
+- **O que é:** framework de detecção de wake word focado em performance (RPi3 roda 15-20 modelos simultâneos, Apache-2.0); wrapper `onnxruntime-web` permitiria wake word no Desktop sem binário nativo.
+- **Repo:** https://github.com/dscripka/openWakeWord
+- **Quando valeria:** treinar wake word customizado ("Hampton") para **satélites ESP32/HomeLab** do Orun Home; o desktop já tem wake word próprio (`wake_word_service.py`), então é só para os satélites embarcados.
+- **Encaixe:** Orun Home, Orun-Core (satélites), voz.
+
+### 57. Cline / OpenHands / SWE-agent / PR-Agent / MetaGPT — referências de coding agent — FUTURO (referência)
+- **O que é:** Cline (Apache-2.0, fluxo de aprovação por etapa no VS Code), OpenHands (MIT, loop editar→rodar→corrigir), SWE-agent (MIT, interface de comandos formal), PR-Agent/Qodo (AGPL, revisor de PR), MetaGPT (MIT, personas multi-agente). **Não adotar repos** — comparar padrões com o Módulo 7 já implementado (approval, code_review, semgrep, MCP code-review-graph #35, Context7).
+- **Repos:** cline/cline · All-Hands-AI/OpenHands · princeton-nlp/SWE-agent · Codium-ai/pr-agent · FoundationAgents/MetaGPT
+- **Quando valeria:** evoluir o Developer/OrunVS — garimpar UX de aprovação/sandboxing e loops de execução; PR-Agent para revisão de PR se o GitHub for além do `gh_pr` nativo.
+- **Encaixe:** Developer, OrunVS, Agent Hub, autonomous-loop.
+
+### 58. Hermes Agent — referência de auto-criação de skills + gateway — FUTURO (referência)
+- **O que é:** agente open-source com memória persistente, **criação automática de skills**, multi-plataforma, integração MCP (MIT). Não substitui o Hampton — dois padrões valem: (1) loop de auto-criação de skills quando o agente resolve algo difícil; (2) gateway multi-plataforma unificado (Telegram/Discord/Slack/WhatsApp num processo).
+- **Repo:** https://github.com/NousResearch/hermes-agent
+- **Quando valeria:** evoluir o `skill-manager.cjs` com criação de skills automática e avaliar consolidar o gateway de mensagens do desktop (hoje Telegram/Discord/WhatsApp separados).
+- **Encaixe:** skill-manager, agentes de mensageria.
+
+### 59. Wan / Hunyuan Video — geração de vídeo via ComfyUI — FUTURO (depende de VRAM)
+- **O que é:** modelos open de geração de vídeo (texto/imagem→vídeo) que rodam como custom nodes do ComfyUI (#25). Requer VRAM alta em 2026 — revisitar quando o HomeLab/servidor de IA tiver hardware.
+- **Quando valeria:** quando o Creator (vídeo) pedir geração local além do `video-generator.cjs` (MiniMax cloud já implementado) — plugar no mesmo ComfyUI usado para imagem evita infra duplicada. Checar licença de pesos por modelo.
+- **Encaixe:** Creator (vídeo), ComfyUI (#25).
+
+### Descartados (não faz sentido) — curadoria orun-os-repositorios-referencia 2026-08-12
+- **plausible/analytics** — AGPL + Elixir/ClickHouse, fora do stack (Node/Postgres); Umami (#48) cobre o caso.
+- **AUTOMATIC1111/stable-diffusion-webui** — redundante com ComfyUI (#25), AGPL, só prototipagem rápida.
+- **invoke-ai/InvokeAI** — alternativa mais "produto" ao ComfyUI, mas sem necessidade: ComfyUI (#25) já é o motor local do Designer; reavaliar só se o Orun Beauty precisar de uma UI polida p/ terceiros.
+- **yjs/yjs** — CRDT de texto colaborativo; só relevante se o Orun ganhar editor colaborativo (não há no roadmap). Automerge (#47) cobre o sync estrutural se precisar.
+- **activepieces/activepieces** — alternativa ao n8n (já em uso); nenhum fluxo atual exige o que o n8n não cobre.
+- **MixpostHQ/mixpost** — segunda opção ao Postiz (#53) em Laravel/PHP; Postiz via MCP é superior e suficiente.
+- **obsidian (como dependência)** — já documentado em `docs/obsidian-integration.md` + #10 (ferramenta externa, não entra no monorepo).
+- **Three.js / React Three Fiber** — já usado no desktop (Hampton sphere); sem ação nova.
+
 ---
 
 ## Regras de curadoria

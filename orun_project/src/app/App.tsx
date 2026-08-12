@@ -12,6 +12,7 @@ import { HomeScreen } from "./HomeScreen";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ChatSkeleton } from "./components/Skeleton";
 import Onboarding from "./components/Onboarding";
+import { AuthGate } from "./components/AuthGate";
 import { VoiceOverlay } from "./components/VoiceOverlay";
 import { QuickChat } from "./components/QuickChat";
 import { initWorkspaceActionListener, destroyWorkspaceActionListener } from "./plugins/lib/workspace-actions";
@@ -108,7 +109,9 @@ function MainApp() {
             >
               <ErrorBoundary>
                 <Suspense fallback={<ChatSkeleton />}>
-                  <HomeScreen />
+                  <AuthGate>
+                    <HomeScreen />
+                  </AuthGate>
                 </Suspense>
               </ErrorBoundary>
             </motion.div>

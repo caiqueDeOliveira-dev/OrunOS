@@ -370,6 +370,19 @@ type TranslationKeys = {
   whatsappTrainerDesc: string;
   whatsappAssistantDesc: string;
   whatsappSocialDesc: string;
+  whatsappHamptonDesc: string;
+  whatsappDeveloperDesc: string;
+  whatsappDesignerDesc: string;
+  whatsappCreatorDesc: string;
+  whatsappTeacherDesc: string;
+  whatsappAutomationDesc: string;
+  whatsappAutomotiveDesc: string;
+  whatsappSystemDesc: string;
+  whatsappJuridicoDesc: string;
+  whatsappAssistenteTecnicoDesc: string;
+  whatsappSuporteDesc: string;
+  whatsappHomeIADesc: string;
+  whatsappCyberSecurityDesc: string;
   whatsappTestSent: string;
   whatsappTestError: string;
   whatsappTestSendTo: string;
@@ -1706,6 +1719,19 @@ export const translations: Record<Language, TranslationKeys> = {
     whatsappTrainerDesc: "Treinos e atividades físicas",
     whatsappAssistantDesc: "Agenda e compromissos diários",
     whatsappSocialDesc: "Conteúdo para Instagram, TikTok e X",
+    whatsappHamptonDesc: "Coordena todos os agentes e respostas gerais",
+    whatsappDeveloperDesc: "Código, debugging e revisão de projetos",
+    whatsappDesignerDesc: "Design, artes e identidade visual",
+    whatsappCreatorDesc: "Áudio, vídeo e produção de conteúdo",
+    whatsappTeacherDesc: "Aulas, explicações e idiomas",
+    whatsappAutomationDesc: "Automações, bots e fluxos n8n",
+    whatsappAutomotiveDesc: "Veículos, manutenção e trânsito",
+    whatsappSystemDesc: "Diagnóstico e monitoramento do sistema",
+    whatsappJuridicoDesc: "Orientação jurídica e análise de contratos",
+    whatsappAssistenteTecnicoDesc: "Suporte técnico, consertos e diagnósticos",
+    whatsappSuporteDesc: "Primeiro atendimento e dúvidas gerais",
+    whatsappHomeIADesc: "Controle da casa e dispositivos",
+    whatsappCyberSecurityDesc: "Segurança, auditoria e proteção",
     whatsappTestSent: "Mensagem de teste enviada para {name}!",
     whatsappTestError: "Erro: {error}",
     whatsappTestSendTo: "Enviar mensagem de teste para {name}",
@@ -3045,6 +3071,19 @@ export const translations: Record<Language, TranslationKeys> = {
     whatsappTrainerDesc: "Workouts and physical activities",
     whatsappAssistantDesc: "Daily agenda and appointments",
     whatsappSocialDesc: "Content for Instagram, TikTok and X",
+    whatsappHamptonDesc: "Coordinates all agents and general replies",
+    whatsappDeveloperDesc: "Code, debugging and project review",
+    whatsappDesignerDesc: "Design, art and visual identity",
+    whatsappCreatorDesc: "Audio, video and content production",
+    whatsappTeacherDesc: "Lessons, explanations and languages",
+    whatsappAutomationDesc: "Automations, bots and n8n flows",
+    whatsappAutomotiveDesc: "Vehicles, maintenance and traffic",
+    whatsappSystemDesc: "System diagnostics and monitoring",
+    whatsappJuridicoDesc: "Legal guidance and contract analysis",
+    whatsappAssistenteTecnicoDesc: "Technical support, repairs and diagnostics",
+    whatsappSuporteDesc: "First contact and general questions",
+    whatsappHomeIADesc: "Smart home and device control",
+    whatsappCyberSecurityDesc: "Security, audit and protection",
     whatsappTestSent: "Test message sent to {name}!",
     whatsappTestError: "Error: {error}",
     whatsappTestSendTo: "Send test message to {name}",
@@ -4385,6 +4424,19 @@ export const translations: Record<Language, TranslationKeys> = {
     whatsappTrainerDesc: "Entrenamientos y actividades físicas",
     whatsappAssistantDesc: "Agenda y compromisos diarios",
     whatsappSocialDesc: "Contenido para Instagram, TikTok y X",
+    whatsappHamptonDesc: "Coordina todos los agentes y respuestas generales",
+    whatsappDeveloperDesc: "Código, depuración y revisión de proyectos",
+    whatsappDesignerDesc: "Diseño, arte e identidad visual",
+    whatsappCreatorDesc: "Audio, vídeo y producción de contenido",
+    whatsappTeacherDesc: "Clases, explicaciones e idiomas",
+    whatsappAutomationDesc: "Automatizaciones, bots y flujos n8n",
+    whatsappAutomotiveDesc: "Vehículos, mantenimiento y tráfico",
+    whatsappSystemDesc: "Diagnóstico y monitoreo del sistema",
+    whatsappJuridicoDesc: "Asesoría legal y análisis de contratos",
+    whatsappAssistenteTecnicoDesc: "Soporte técnico, reparaciones y diagnósticos",
+    whatsappSuporteDesc: "Primer contacto y dudas generales",
+    whatsappHomeIADesc: "Control del hogar y dispositivos",
+    whatsappCyberSecurityDesc: "Seguridad, auditoría y protección",
     whatsappTestSent: "Mensaje de prueba enviado a {name}!",
     whatsappTestError: "Error: {error}",
     whatsappTestSendTo: "Enviar mensaje de prueba a {name}",
@@ -5725,6 +5777,19 @@ export const translations: Record<Language, TranslationKeys> = {
     whatsappTrainerDesc: "Entraînements et activités physiques",
     whatsappAssistantDesc: "Agenda et rendez-vous quotidiens",
     whatsappSocialDesc: "Contenu pour Instagram, TikTok et X",
+    whatsappHamptonDesc: "Coordonne tous les agents et réponses générales",
+    whatsappDeveloperDesc: "Code, débogage et révision de projets",
+    whatsappDesignerDesc: "Design, art et identité visuelle",
+    whatsappCreatorDesc: "Audio, vidéo et production de contenu",
+    whatsappTeacherDesc: "Cours, explications et langues",
+    whatsappAutomationDesc: "Automatisations, bots et flux n8n",
+    whatsappAutomotiveDesc: "Véhicules, entretien et trafic",
+    whatsappSystemDesc: "Diagnostic et surveillance du système",
+    whatsappJuridicoDesc: "Conseil juridique et analyse de contrats",
+    whatsappAssistenteTecnicoDesc: "Assistance technique, réparations et diagnostics",
+    whatsappSuporteDesc: "Premier contact et questions générales",
+    whatsappHomeIADesc: "Contrôle de la maison et des appareils",
+    whatsappCyberSecurityDesc: "Sécurité, audit et protection",
     whatsappTestSent: "Message de test envoyé à {name} !",
     whatsappTestError: "Erreur : {error}",
     whatsappTestSendTo: "Envoyer un message de test à {name}",
