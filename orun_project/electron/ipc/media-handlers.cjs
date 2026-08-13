@@ -352,6 +352,10 @@ function register(ipcMain, ctx) {
     }
   });
 
+  ipcMain.handle("whatsapp:group-messages", (_event, { jid }) => {
+    try { return whatsapp.getGroupMessages(jid); } catch { return []; }
+  });
+
   // ── WhatsApp Automation handlers ──────────────────────────────────────
   const waAutomation = require("../whatsapp-automation.cjs");
 

@@ -81,6 +81,50 @@ type TranslationKeys = {
   navMemory: string;
   navAutomation: string;
   navFiles: string;
+  navGroupFeed: string;
+
+  // Group feed / Vigia de grupos
+  groupFeedTabFeed: string;
+  groupFeedTabWatch: string;
+  groupFeedTabDeals: string;
+  groupFeedSearchPlaceholder: string;
+  groupFeedAllGroups: string;
+  groupFeedClearHistory: string;
+  groupFeedMessages: string;
+  groupFeedGroups: string;
+  groupFeedLive: string;
+  groupFeedEmpty: string;
+  groupFeedWatchConfig: string;
+  groupFeedAiFilter: string;
+  groupFeedAiFilterDesc: string;
+  groupFeedAlertTargetWa: string;
+  groupFeedAlertTargetTg: string;
+  groupFeedAlertTargetDesc: string;
+  groupFeedSave: string;
+  groupFeedWatchedGroups: string;
+  groupFeedNoGroupsYet: string;
+  groupFeedWatchlist: string;
+  groupFeedWatchlistPlaceholder: string;
+  groupFeedAdd: string;
+  groupFeedNoTerms: string;
+  groupFeedTermAdded: string;
+  groupFeedAlertSent: string;
+  groupFeedAlertSaved: string;
+  groupFeedDealsTitle: string;
+  groupFeedDealsDesc: string;
+  groupFeedDealsEnable: string;
+  groupFeedDealsInterval: string;
+  groupFeedDealsRunNow: string;
+  groupFeedDealsLastRun: string;
+  groupFeedDealsNeverRun: string;
+  groupFeedDealsSaved: string;
+  groupFeedDealsDone: string;
+  groupFeedDealsNoKey: string;
+  groupFeedDealsNoWatchlist: string;
+  groupFeedDealsDisclaimer: string;
+  groupFeedDealsFirecrawl: string;
+  groupFeedHistoryCleared: string;
+  groupFeedBrowserWarning: string;
 
   // Sidebar
   sidebarHistory: string;
@@ -863,6 +907,9 @@ type TranslationKeys = {
   settings_api_key_saved: string;
   settings_api_key_desc: string;
   settings_api_key_placeholder: string;
+  settings_api_key_rotation_desc: string;
+  settings_api_key_max: string;
+  settings_api_key_remove: string;
   settings_fallback_provider_label: string;
   settings_fallback_provider_desc: string;
   settings_none: string;
@@ -1440,6 +1487,48 @@ export const translations: Record<Language, TranslationKeys> = {
     navMemory: "Memória",
     navAutomation: "Automação",
     navFiles: "Arquivos",
+    navGroupFeed: "Grupos",
+    groupFeedTabFeed: "Feed ao vivo",
+    groupFeedTabWatch: "Vigia",
+    groupFeedTabDeals: "Robô de promoções",
+    groupFeedSearchPlaceholder: "Buscar mensagens...",
+    groupFeedAllGroups: "Todos os grupos",
+    groupFeedClearHistory: "Limpar histórico",
+    groupFeedMessages: "mensagens",
+    groupFeedGroups: "grupos",
+    groupFeedLive: "AO VIVO",
+    groupFeedEmpty: "Nenhuma mensagem ainda. As mensagens dos grupos vigiados aparecerão aqui em tempo real.",
+    groupFeedWatchConfig: "Configuração do vigia",
+    groupFeedAiFilter: "Filtro de relevância com IA",
+    groupFeedAiFilterDesc: "Além da palavra-chave, o Personal Assistant confirma se a mensagem é realmente relevante antes de te avisar.",
+    groupFeedAlertTargetWa: "JID do seu número (ex: 55...@s.whatsapp.net)",
+    groupFeedAlertTargetTg: "Chat ID do Telegram para receber o alerta",
+    groupFeedAlertTargetDesc: "Vazio = usa o listenJid configurado no WhatsApp. Os alertas são enviados por WhatsApp ou Telegram.",
+    groupFeedSave: "Salvar",
+    groupFeedWatchedGroups: "Grupos vigiados",
+    groupFeedNoGroupsYet: "Nenhum grupo conhecido ainda. Conecte o WhatsApp/Telegram e receba mensagens para eles aparecerem aqui.",
+    groupFeedWatchlist: "Watchlist (termos a vigiar)",
+    groupFeedWatchlistPlaceholder: "Ex: cadeira gamer, rtx 5070, iphone 15...",
+    groupFeedAdd: "Adicionar",
+    groupFeedNoTerms: "Nenhum termo. Adicione itens que você quer acompanhar (ex: \"cadeira gamer\").",
+    groupFeedTermAdded: "Termo adicionado ao vigia",
+    groupFeedAlertSent: "Alerta enviado para você",
+    groupFeedAlertSaved: "Configuração de alerta salva",
+    groupFeedDealsTitle: "Robô de promoções na internet",
+    groupFeedDealsDesc: "Varre a internet buscando promoções dos itens da sua watchlist e te envia os resultados.",
+    groupFeedDealsEnable: "Ativar robô periódico",
+    groupFeedDealsInterval: "Intervalo (horas):",
+    groupFeedDealsRunNow: "Buscar agora",
+    groupFeedDealsLastRun: "Última busca:",
+    groupFeedDealsNeverRun: "Nunca rodou",
+    groupFeedDealsSaved: "Configuração do robô salva",
+    groupFeedDealsDone: "Busca concluída — resultados enviados",
+    groupFeedDealsNoKey: "Chave Firecrawl não configurada. Adicione a chave nas Configurações de IA para usar a busca web.",
+    groupFeedDealsNoWatchlist: "Adicione termos na watchlist (aba Vigia) primeiro.",
+    groupFeedDealsDisclaimer: "O robô usa busca web (Firecrawl) e pode incluir resultados promocionais. Sempre confira a loja e a reputação antes de comprar.",
+    groupFeedDealsFirecrawl: "Precisa de chave Firecrawl para a busca web. Sem ela, o vigia de grupos continua funcionando normalmente.",
+    groupFeedHistoryCleared: "Histórico limpo",
+    groupFeedBrowserWarning: "Disponível apenas no app desktop (Electron). Conecte o WhatsApp para ver os grupos ao vivo.",
 
     // Sidebar
     sidebarHistory: "Histórico de Conversas",
@@ -2188,6 +2277,9 @@ export const translations: Record<Language, TranslationKeys> = {
     settings_api_key_saved: "(salva)",
     settings_api_key_desc: "Chave para {label}",
     settings_api_key_placeholder: "Cole sua chave...",
+    settings_api_key_rotation_desc: "Chaves (rotação automática)",
+    settings_api_key_max: "Até {max} por provedor",
+    settings_api_key_remove: "Remover chave",
     settings_fallback_provider_label: "Fallback Provider",
     settings_fallback_provider_desc: "Usado se o principal falhar",
     settings_none: "Nenhum",
@@ -2795,6 +2887,48 @@ export const translations: Record<Language, TranslationKeys> = {
     navMemory: "Memory",
     navAutomation: "Automation",
     navFiles: "Files",
+    navGroupFeed: "Groups",
+    groupFeedTabFeed: "Live feed",
+    groupFeedTabWatch: "Watch",
+    groupFeedTabDeals: "Deals bot",
+    groupFeedSearchPlaceholder: "Search messages...",
+    groupFeedAllGroups: "All groups",
+    groupFeedClearHistory: "Clear history",
+    groupFeedMessages: "messages",
+    groupFeedGroups: "groups",
+    groupFeedLive: "LIVE",
+    groupFeedEmpty: "No messages yet. Messages from watched groups will appear here in real time.",
+    groupFeedWatchConfig: "Watcher config",
+    groupFeedAiFilter: "AI relevance filter",
+    groupFeedAiFilterDesc: "Besides the keyword, the Personal Assistant confirms the message is actually relevant before alerting you.",
+    groupFeedAlertTargetWa: "Your number JID (e.g. 55...@s.whatsapp.net)",
+    groupFeedAlertTargetTg: "Telegram chat ID to receive the alert",
+    groupFeedAlertTargetDesc: "Leave empty to use the WhatsApp listenJid. Alerts are delivered via WhatsApp or Telegram.",
+    groupFeedSave: "Save",
+    groupFeedWatchedGroups: "Watched groups",
+    groupFeedNoGroupsYet: "No known groups yet. Connect WhatsApp/Telegram and receive messages for them to show up here.",
+    groupFeedWatchlist: "Watchlist (terms to watch)",
+    groupFeedWatchlistPlaceholder: "E.g. gaming chair, rtx 5070, iphone 15...",
+    groupFeedAdd: "Add",
+    groupFeedNoTerms: "No terms yet. Add items you want to track (e.g. \"gaming chair\").",
+    groupFeedTermAdded: "Term added to watcher",
+    groupFeedAlertSent: "Alert sent to you",
+    groupFeedAlertSaved: "Alert settings saved",
+    groupFeedDealsTitle: "Internet deals bot",
+    groupFeedDealsDesc: "Scans the web for deals on your watchlist items and sends you the results.",
+    groupFeedDealsEnable: "Enable periodic bot",
+    groupFeedDealsInterval: "Interval (hours):",
+    groupFeedDealsRunNow: "Search now",
+    groupFeedDealsLastRun: "Last run:",
+    groupFeedDealsNeverRun: "Never run",
+    groupFeedDealsSaved: "Deals bot settings saved",
+    groupFeedDealsDone: "Search done — results sent",
+    groupFeedDealsNoKey: "Firecrawl key not configured. Add it in the AI Settings to enable web search.",
+    groupFeedDealsNoWatchlist: "Add terms to the watchlist (Watch tab) first.",
+    groupFeedDealsDisclaimer: "The bot uses web search (Firecrawl) and may include promotional results. Always verify the store and reputation before buying.",
+    groupFeedDealsFirecrawl: "A Firecrawl key is needed for web search. Without it, the group watcher still works normally.",
+    groupFeedHistoryCleared: "History cleared",
+    groupFeedBrowserWarning: "Only available in the desktop app (Electron). Connect WhatsApp to see groups live.",
 
     // Sidebar
     sidebarHistory: "Conversation History",
@@ -3542,6 +3676,9 @@ export const translations: Record<Language, TranslationKeys> = {
     settings_api_key_saved: "(saved)",
     settings_api_key_desc: "Key for {label}",
     settings_api_key_placeholder: "Paste your key...",
+    settings_api_key_rotation_desc: "Keys (auto rotation)",
+    settings_api_key_max: "Up to {max} per provider",
+    settings_api_key_remove: "Remove key",
     settings_fallback_provider_label: "Fallback Provider",
     settings_fallback_provider_desc: "Used if primary fails",
     settings_none: "None",
@@ -4149,6 +4286,48 @@ export const translations: Record<Language, TranslationKeys> = {
     navMemory: "Memoria",
     navAutomation: "Automatización",
     navFiles: "Archivos",
+    navGroupFeed: "Grupos",
+    groupFeedTabFeed: "Feed en vivo",
+    groupFeedTabWatch: "Vigía",
+    groupFeedTabDeals: "Bot de ofertas",
+    groupFeedSearchPlaceholder: "Buscar mensajes...",
+    groupFeedAllGroups: "Todos los grupos",
+    groupFeedClearHistory: "Limpiar historial",
+    groupFeedMessages: "mensajes",
+    groupFeedGroups: "grupos",
+    groupFeedLive: "EN VIVO",
+    groupFeedEmpty: "Aún no hay mensajes. Los mensajes de los grupos vigilados aparecerán aquí en tiempo real.",
+    groupFeedWatchConfig: "Configuración del vigía",
+    groupFeedAiFilter: "Filtro de relevancia con IA",
+    groupFeedAiFilterDesc: "Además de la palabra clave, el Asistente Personal confirma si el mensaje es realmente relevante antes de avisarte.",
+    groupFeedAlertTargetWa: "JID de tu número (ej: 55...@s.whatsapp.net)",
+    groupFeedAlertTargetTg: "Chat ID de Telegram para recibir la alerta",
+    groupFeedAlertTargetDesc: "Vacío = usa el listenJid configurado en WhatsApp. Las alertas se envían por WhatsApp o Telegram.",
+    groupFeedSave: "Guardar",
+    groupFeedWatchedGroups: "Grupos vigilados",
+    groupFeedNoGroupsYet: "Aún no hay grupos conocidos. Conecta WhatsApp/Telegram y recibe mensajes para que aparezcan aquí.",
+    groupFeedWatchlist: "Watchlist (términos a vigilar)",
+    groupFeedWatchlistPlaceholder: "Ej: silla gamer, rtx 5070, iphone 15...",
+    groupFeedAdd: "Agregar",
+    groupFeedNoTerms: "Aún no hay términos. Agrega ítems que quieras seguir (ej: \"silla gamer\").",
+    groupFeedTermAdded: "Término agregado al vigía",
+    groupFeedAlertSent: "Alerta enviada para ti",
+    groupFeedAlertSaved: "Configuración de alerta guardada",
+    groupFeedDealsTitle: "Bot de ofertas en internet",
+    groupFeedDealsDesc: "Escanea la web buscando ofertas de los ítems de tu watchlist y te envía los resultados.",
+    groupFeedDealsEnable: "Activar bot periódico",
+    groupFeedDealsInterval: "Intervalo (horas):",
+    groupFeedDealsRunNow: "Buscar ahora",
+    groupFeedDealsLastRun: "Última búsqueda:",
+    groupFeedDealsNeverRun: "Nunca se ejecutó",
+    groupFeedDealsSaved: "Configuración del bot guardada",
+    groupFeedDealsDone: "Búsqueda completada — resultados enviados",
+    groupFeedDealsNoKey: "Clave Firecrawl no configurada. Agrégala en Configuraciones de IA para usar la búsqueda web.",
+    groupFeedDealsNoWatchlist: "Agrega términos a la watchlist (pestaña Vigía) primero.",
+    groupFeedDealsDisclaimer: "El bot usa búsqueda web (Firecrawl) y puede incluir resultados promocionales. Siempre verifica la tienda y la reputación antes de comprar.",
+    groupFeedDealsFirecrawl: "Se necesita clave Firecrawl para la búsqueda web. Sin ella, el vigía de grupos sigue funcionando normalmente.",
+    groupFeedHistoryCleared: "Historial limpiado",
+    groupFeedBrowserWarning: "Solo disponible en la app de escritorio (Electron). Conecta WhatsApp para ver los grupos en vivo.",
 
     // Sidebar
     sidebarHistory: "Historial de Conversaciones",
@@ -4897,6 +5076,9 @@ export const translations: Record<Language, TranslationKeys> = {
     settings_api_key_saved: "(guardada)",
     settings_api_key_desc: "Clave para {label}",
     settings_api_key_placeholder: "Pega tu clave...",
+    settings_api_key_rotation_desc: "Claves (rotación automática)",
+    settings_api_key_max: "Hasta {max} por proveedor",
+    settings_api_key_remove: "Eliminar clave",
     settings_fallback_provider_label: "Fallback Provider",
     settings_fallback_provider_desc: "Usado si el principal falla",
     settings_none: "Ninguno",
@@ -5504,6 +5686,48 @@ export const translations: Record<Language, TranslationKeys> = {
     navMemory: "Mémoire",
     navAutomation: "Automatisation",
     navFiles: "Fichiers",
+    navGroupFeed: "Groupes",
+    groupFeedTabFeed: "Flux en direct",
+    groupFeedTabWatch: "Vigie",
+    groupFeedTabDeals: "Bot de promos",
+    groupFeedSearchPlaceholder: "Rechercher des messages...",
+    groupFeedAllGroups: "Tous les groupes",
+    groupFeedClearHistory: "Effacer l'historique",
+    groupFeedMessages: "messages",
+    groupFeedGroups: "groupes",
+    groupFeedLive: "EN DIRECT",
+    groupFeedEmpty: "Aucun message pour l'instant. Les messages des groupes surveillés apparaîtront ici en temps réel.",
+    groupFeedWatchConfig: "Configuration de la vigie",
+    groupFeedAiFilter: "Filtre de pertinence IA",
+    groupFeedAiFilterDesc: "En plus du mot-clé, l'Assistant Personnel confirme que le message est réellement pertinent avant de vous alerter.",
+    groupFeedAlertTargetWa: "JID de votre numéro (ex : 55...@s.whatsapp.net)",
+    groupFeedAlertTargetTg: "Chat ID Telegram pour recevoir l'alerte",
+    groupFeedAlertTargetDesc: "Vide = utilise le listenJid configuré sur WhatsApp. Les alertes sont envoyées via WhatsApp ou Telegram.",
+    groupFeedSave: "Enregistrer",
+    groupFeedWatchedGroups: "Groupes surveillés",
+    groupFeedNoGroupsYet: "Aucun groupe connu pour l'instant. Connectez WhatsApp/Telegram et recevez des messages pour qu'ils apparaissent ici.",
+    groupFeedWatchlist: "Watchlist (termes à surveiller)",
+    groupFeedWatchlistPlaceholder: "Ex : chaise gamer, rtx 5070, iphone 15...",
+    groupFeedAdd: "Ajouter",
+    groupFeedNoTerms: "Aucun terme. Ajoutez des éléments à suivre (ex : \"chaise gamer\").",
+    groupFeedTermAdded: "Terme ajouté à la vigie",
+    groupFeedAlertSent: "Alerte envoyée",
+    groupFeedAlertSaved: "Configuration d'alerte enregistrée",
+    groupFeedDealsTitle: "Bot de promos sur internet",
+    groupFeedDealsDesc: "Scanne le web à la recherche de promos sur vos articles de watchlist et vous envoie les résultats.",
+    groupFeedDealsEnable: "Activer le bot périodique",
+    groupFeedDealsInterval: "Intervalle (heures) :",
+    groupFeedDealsRunNow: "Chercher maintenant",
+    groupFeedDealsLastRun: "Dernière recherche :",
+    groupFeedDealsNeverRun: "Jamais exécuté",
+    groupFeedDealsSaved: "Configuration du bot enregistrée",
+    groupFeedDealsDone: "Recherche terminée — résultats envoyés",
+    groupFeedDealsNoKey: "Clé Firecrawl non configurée. Ajoutez-la dans les Paramètres IA pour utiliser la recherche web.",
+    groupFeedDealsNoWatchlist: "Ajoutez d'abord des termes à la watchlist (onglet Vigie).",
+    groupFeedDealsDisclaimer: "Le bot utilise la recherche web (Firecrawl) et peut inclure des résultats promotionnels. Vérifiez toujours la boutique et la réputation avant d'acheter.",
+    groupFeedDealsFirecrawl: "Une clé Firecrawl est nécessaire pour la recherche web. Sans elle, la vigie de groupes fonctionne normalement.",
+    groupFeedHistoryCleared: "Historique effacé",
+    groupFeedBrowserWarning: "Disponible uniquement dans l'app desktop (Electron). Connectez WhatsApp pour voir les groupes en direct.",
 
     // Sidebar
     sidebarHistory: "Historique des Conversations",
@@ -6252,6 +6476,9 @@ export const translations: Record<Language, TranslationKeys> = {
     settings_api_key_saved: "(enregistrée)",
     settings_api_key_desc: "Clé pour {label}",
     settings_api_key_placeholder: "Collez votre clé...",
+    settings_api_key_rotation_desc: "Clés (rotation automatique)",
+    settings_api_key_max: "Jusqu'à {max} par fournisseur",
+    settings_api_key_remove: "Supprimer la clé",
     settings_fallback_provider_label: "Fournisseur de Secours",
     settings_fallback_provider_desc: "Utilisé si le principal échoue",
     settings_none: "Aucun",

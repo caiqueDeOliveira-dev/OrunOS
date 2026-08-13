@@ -18,8 +18,8 @@ async function autonomousLoop({ messages, agentId, sender, requestId, cancelledR
   const log = ctx.log || console;
 
   const settings = resolveAISettings(agentId);
-  const keys = secretStore.readSecretStore();
-  const apiKey = keys[settings.provider];
+  const apiKeys = secretStore.getProviderApiKeys(settings.provider);
+  const apiKey = apiKeys[0];
   let systemPrompt = buildSystemPrompt(settings.systemPrompt, agentId);
   if (voiceMode) {
     // Speech-shaped replies: the answer will be read aloud by TTS. Short,
@@ -78,24 +78,29 @@ async function autonomousLoop({ messages, agentId, sender, requestId, cancelledR
   let lastToolText = "";
   let retryWithoutTool = false;
 
-  const fallbackProviders = ["opencodezen", "groq", "openrouter"];
+  // Keep the free cloud providers in the same automatic fallback chain,
+  // including NVIDIA NIM when it has a valid key configured.
+  const fallbackProviders = ["opencodezen", "groq", "openrouter", "nvidia", "github"];
   const triedProviders = new Set([settings.provider]);
   const retriedProvider = new Set();
   let currentProvider = settings.provider;
   let currentModel = settings.model;
   let currentBaseUrl = settings.baseUrl;
   let currentApiKey = apiKey;
+  let currentApiKeys = apiKeys;
 
   // Auto-select: if the chosen provider has no API key, pick the first available
   if (!currentApiKey && currentProvider !== "ollama") {
     for (const fp of fallbackProviders) {
-      if (keys[fp]) {
+      const fKeys = secretStore.getProviderApiKeys(fp);
+      if (fKeys.length) {
         const fModels = aiRouter.KNOWN_FREE_MODELS?.[fp];
         log.info(`[autonomous] no key for ${currentProvider}, auto-selecting ${fp}/${fModels?.[0]}`);
         currentProvider = fp;
         currentModel = fModels?.[0] || currentModel;
         currentBaseUrl = undefined;
-        currentApiKey = keys[fp];
+        currentApiKeys = fKeys;
+        currentApiKey = fKeys[0];
         break;
       }
     }
@@ -113,7 +118,7 @@ async function autonomousLoop({ messages, agentId, sender, requestId, cancelledR
           provider: currentProvider,
           model: currentModel,
           baseUrl: currentBaseUrl,
-          apiKey: currentApiKey,
+          apiKeys: currentApiKeys,
           messages: context,
           tools: [...agentTools, ...mcpClient.getAllTools(), ...pluginSystem.getPluginTools()],
         }),
@@ -131,8 +136,8 @@ async function autonomousLoop({ messages, agentId, sender, requestId, cancelledR
       let switched = false;
       for (const fp of fallbackProviders) {
         if (triedProviders.has(fp)) continue;
-        const fk = keys[fp];
-        if (!fk) continue;
+        const fKeys = secretStore.getProviderApiKeys(fp);
+        if (!fKeys.length) continue;
         const fModels = aiRouter.KNOWN_FREE_MODELS?.[fp];
         const fModel = fModels?.[0];
         if (!fModel) continue;
@@ -140,7 +145,8 @@ async function autonomousLoop({ messages, agentId, sender, requestId, cancelledR
         currentProvider = fp;
         currentModel = fModel;
         currentBaseUrl = undefined;
-        currentApiKey = fk;
+        currentApiKeys = fKeys;
+        currentApiKey = fKeys[0];
         triedProviders.add(fp);
         switched = true;
         break;

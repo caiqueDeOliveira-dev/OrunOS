@@ -104,6 +104,9 @@ contextBridge.exposeInMainWorld("orun", {
     set: (key, value) => ipcRenderer.invoke("settings:set", key, value),
     setApiKey: (slot, value) => ipcRenderer.invoke("settings:set-api-key", slot, value),
     hasApiKey: (slot) => ipcRenderer.invoke("settings:has-api-key", slot),
+    setProviderKey: (provider, index, value) => ipcRenderer.invoke("settings:set-provider-key", provider, index, value),
+    deleteProviderKey: (provider, index) => ipcRenderer.invoke("settings:delete-provider-key", provider, index),
+    providerKeyCount: (provider) => ipcRenderer.invoke("settings:provider-key-count", provider),
     validateApiKey: (provider, key) => ipcRenderer.invoke("settings:validate-api-key", { provider, key }),
     agentRecommendedModels: () => ipcRenderer.invoke("settings:agent-recommended-models"),
     isFirstRun: () => ipcRenderer.invoke("settings:is-first-run"),
@@ -316,6 +319,12 @@ contextBridge.exposeInMainWorld("orun", {
     setAgentJids: (agentJids) => ipcRenderer.invoke("whatsapp:set-agent-jids", agentJids),
     listGroups: () => ipcRenderer.invoke("whatsapp:list-groups"),
     testGroup: (jid, agentName) => ipcRenderer.invoke("whatsapp:test-group", jid, agentName),
+    groupMessages: (jid) => ipcRenderer.invoke("whatsapp:group-messages", { jid }),
+    onGroupMessage: (callback) => {
+      const handler = (_e, payload) => callback(payload);
+      ipcRenderer.on("whatsapp:group-msg", handler);
+      return () => ipcRenderer.removeListener("whatsapp:group-msg", handler);
+    },
     onStatusUpdate: (callback) => {
       const handler = (_e, status) => callback(status);
       ipcRenderer.on("whatsapp:status-update", handler);
@@ -338,6 +347,31 @@ contextBridge.exposeInMainWorld("orun", {
     setN8nWebhook: (url) => ipcRenderer.invoke("wa:auto:n8n-webhook", url),
     getN8nWebhook: () => ipcRenderer.invoke("wa:auto:n8n-webhook-get"),
     extractDate: (text) => ipcRenderer.invoke("wa:auto:extract-date", text),
+  },
+  groupFeed: {
+    getState: () => ipcRenderer.invoke("group-feed:get-state"),
+    getSettings: () => ipcRenderer.invoke("group-feed:get-settings"),
+    setSettings: (patch) => ipcRenderer.invoke("group-feed:set-settings", patch),
+    addWatchlistTerm: (term) => ipcRenderer.invoke("group-feed:watchlist-add", term),
+    removeWatchlistTerm: (id) => ipcRenderer.invoke("group-feed:watchlist-remove", id),
+    toggleWatchlistTerm: (id, enabled) => ipcRenderer.invoke("group-feed:watchlist-toggle", id, enabled),
+    clearHistory: () => ipcRenderer.invoke("group-feed:clear-history"),
+    runDealsScan: () => ipcRenderer.invoke("group-feed:deals-run"),
+    onMessage: (callback) => {
+      const handler = (_e, msg) => callback(msg);
+      ipcRenderer.on("group-feed:message", handler);
+      return () => ipcRenderer.removeListener("group-feed:message", handler);
+    },
+    onAlert: (callback) => {
+      const handler = (_e, alert) => callback(alert);
+      ipcRenderer.on("group-feed:alert", handler);
+      return () => ipcRenderer.removeListener("group-feed:alert", handler);
+    },
+    onDeals: (callback) => {
+      const handler = (_e, result) => callback(result);
+      ipcRenderer.on("group-feed:deals", handler);
+      return () => ipcRenderer.removeListener("group-feed:deals", handler);
+    },
   },
   schedules: {
     get: () => ipcRenderer.invoke("schedules:get"),
@@ -642,6 +676,9 @@ contextBridge.exposeInMainWorld("orun", {
     signIn: (email, password) => ipcRenderer.invoke("auth:sign-in", { email, password }),
     signUp: (email, password, displayName) => ipcRenderer.invoke("auth:sign-up", { email, password, displayName }),
     signOut: () => ipcRenderer.invoke("auth:sign-out"),
+    resetPassword: (email) => ipcRenderer.invoke("auth:reset-password", { email }),
+    updatePassword: (password) => ipcRenderer.invoke("auth:update-password", { password }),
+    completeRecovery: (url) => ipcRenderer.invoke("auth:complete-recovery", { url }),
     getOwner: () => ipcRenderer.invoke("auth:get-owner"),
     listDevices: (tenantId) => ipcRenderer.invoke("auth:list-devices", tenantId),
     revokeDevice: (deviceId) => ipcRenderer.invoke("auth:revoke-device", deviceId),

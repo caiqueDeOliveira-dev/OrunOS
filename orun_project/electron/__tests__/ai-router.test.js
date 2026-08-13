@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { routeChat, streamChat, trimContext, buildContext, testConnection } from "../ai-router.cjs";
+import { routeChat, streamChat, trimContext, buildContext, testConnection, resolveApiKeys, isKeyQuotaError, markKeyExhausted, isKeyExhausted } from "../ai-router.cjs";
+import { checkAll, getStatus } from "../provider-health.cjs";
 
 describe("trimContext", () => {
   it("keeps everything when under the limit", () => {
@@ -51,6 +52,15 @@ describe("routeChat / streamChat provider validation", () => {
   });
 });
 
+describe("provider health / NVIDIA integration", () => {
+  it("tracks NVIDIA in the monitored provider set", async () => {
+    await checkAll(() => "dummy-key");
+    const status = getStatus();
+    expect(status.nvidia).toBeDefined();
+    expect(status.nvidia.status).toMatch(/up|down|unknown/);
+  });
+});
+
 describe("testConnection", () => {
   it("returns ok:false with a readable error instead of throwing", async () => {
     const result = await testConnection({ provider: "anthropic", messages: [] });
@@ -84,5 +94,52 @@ describe("buildContext", () => {
     expect(context[0]).toEqual({ role: "system", content: "Be nice." });
     expect(context).toHaveLength(6);
     expect(context[context.length - 1].content).toBe("msg 19");
+  });
+});
+
+describe("multi-key rotation", () => {
+  it("resolveApiKeys accepts an apiKeys array (trimmed, deduped empty)", () => {
+    expect(resolveApiKeys({ apiKeys: [" k1 ", "k2", "  ", "k3"] })).toEqual(["k1", "k2", "k3"]);
+  });
+
+  it("resolveApiKeys falls back to a single apiKey string", () => {
+    expect(resolveApiKeys({ apiKey: " secret " })).toEqual(["secret"]);
+  });
+
+  it("resolveApiKeys returns [] when nothing is configured", () => {
+    expect(resolveApiKeys({})).toEqual([]);
+    expect(resolveApiKeys({ apiKey: "" })).toEqual([]);
+  });
+
+  it("isKeyQuotaError detects 429 / quota / billing", () => {
+    expect(isKeyQuotaError(new Error("HTTP 429: rate_limit_exceeded"))).toBe(true);
+    expect(isKeyQuotaError(new Error("HTTP 402: You exceeded your current quota"))).toBe(true);
+    expect(isKeyQuotaError(new Error("insufficient_quota"))).toBe(true);
+    expect(isKeyQuotaError(new Error("billing_limits: out of credits"))).toBe(true);
+    expect(isKeyQuotaError(new Error("HTTP 503: overloaded"))).toBe(false);
+    expect(isKeyQuotaError(new Error("context length exceeded"))).toBe(false);
+  });
+
+  it("markKeyExhausted / isKeyExhausted rotate a key on cooldown", () => {
+    expect(isKeyExhausted("groq", 0)).toBe(false);
+    markKeyExhausted("groq", 0, 60000);
+    expect(isKeyExhausted("groq", 0)).toBe(true);
+    expect(isKeyExhausted("groq", 1)).toBe(false);
+    markKeyExhausted("groq", 0, 0);
+    expect(isKeyExhausted("groq", 0)).toBe(false);
+  });
+
+  it("routeChat with no keys still rejects with a missing API key error", async () => {
+    await expect(routeChat({ provider: "groq", messages: [] })).rejects.toThrow(/API key/);
+  });
+
+  it("routeChat skips exhausted keys and reports provider exhaustion without a network call", async () => {
+    markKeyExhausted("groq", 0, 60000);
+    markKeyExhausted("groq", 1, 60000);
+    await expect(
+      routeChat({ provider: "groq", model: "llama-3.3-70b-versatile", apiKeys: ["k1", "k2"], messages: [{ role: "user", content: "hi" }] })
+    ).rejects.toThrow(/All API keys for groq are exhausted or rate-limited/);
+    markKeyExhausted("groq", 0, 0);
+    markKeyExhausted("groq", 1, 0);
   });
 });

@@ -9,6 +9,8 @@ const PROVIDER_ENDPOINTS = {
   openrouter: { url: "https://openrouter.ai/api/v1/models", method: "GET" },
   github: { url: "https://models.inference.ai.azure.com", method: "GET" },
   opencodezen: { url: "https://api.opencodezen.com/v1/models", method: "GET" },
+  nvidia: { url: "https://integrate.api.nvidia.com/v1/models", method: "GET" },
+  ollama_cloud: { url: "https://ollama.com/v1/models", method: "GET" },
   fal: { url: "https://fal.ai/v1/models", method: "GET" },
 };
 
@@ -35,6 +37,10 @@ function validateApiKey(provider, key) {
       } else if (provider.toLowerCase() === "github") {
         headers["Authorization"] = `Bearer ${key}`;
       } else if (provider.toLowerCase() === "opencodezen") {
+        headers["Authorization"] = `Bearer ${key}`;
+      } else if (provider.toLowerCase() === "nvidia") {
+        headers["Authorization"] = `Bearer ${key}`;
+      } else if (provider.toLowerCase() === "ollama_cloud") {
         headers["Authorization"] = `Bearer ${key}`;
       } else if (provider.toLowerCase() === "fal") {
         headers["Authorization"] = `Key ${key}`;

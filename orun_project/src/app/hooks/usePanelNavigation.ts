@@ -159,8 +159,9 @@ export function usePanelNavigation(onNewChat?: () => void) {
       if (id === "planner") setPlannerOpen(true);
       if (id === "agentHub") setAgentHubOpen(true);
       if (id === "analytics") setAnalyticsOpen(true);
+      if (id === "groupFeed") setWorkspaceOpen("GroupFeed");
     },
-    [setActiveNav, setAgentsOpen, setHistoryOpen, setAutomationOpen, setProjectsOpen, setFilesOpen, setMemoryOpen, setSkillsOpen, setPlannerOpen, setAgentHubOpen, setAnalyticsOpen],
+    [setActiveNav, setAgentsOpen, setHistoryOpen, setAutomationOpen, setProjectsOpen, setFilesOpen, setMemoryOpen, setSkillsOpen, setPlannerOpen, setAgentHubOpen, setAnalyticsOpen, setWorkspaceOpen],
   );
 
   // ── Escape key closes all panels ─────────────────────────────────────────

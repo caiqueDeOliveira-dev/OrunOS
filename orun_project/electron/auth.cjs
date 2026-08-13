@@ -415,6 +415,45 @@ async function signUp({ email, password, displayName }) {
   return getState();
 }
 
+// ── Recuperação de senha (esqueci minha senha) ───────────────────────────
+//
+// Fluxo: o renderer pede o envio do link → Supabase envia email de recovery
+// apontando para `orun-os://auth/recovery`. Ao clicar, o app (rodando ou não)
+// é aberto com a URL contendo os tokens no fragment; o renderer chama
+// completeRecoveryFromUrl (estabelece a sessão temporária) e depois
+// updatePassword (troca a senha com a sessão de recovery ativa).
+
+const RECOVERY_REDIRECT = "orun-os://auth/recovery";
+
+async function resetPassword({ email }) {
+  if (!authClient) throw new Error("auth indisponível");
+  await authClient.resetPasswordForEmail(email, RECOVERY_REDIRECT);
+}
+
+async function updatePassword({ password }) {
+  if (!authClient) throw new Error("auth indisponível");
+  await authClient.updatePassword(password);
+}
+
+async function completeRecoveryFromUrl({ url }) {
+  if (!authClient || !supabaseClient) throw new Error("auth indisponível");
+  // Links de recuperação chegam como `orun-os://auth/recovery#access_token=...&refresh_token=...`.
+  // supabase-js v2 não tem getSessionFromUrl (era v1); recovery entrega tokens no fragment
+  // (diferente do OAuth/PKCE, que entrega `code`). Por isso: parse + setSession.
+  const raw = url.split("#")[1] || url.split("?")[1] || "";
+  const params = new URLSearchParams(raw);
+  const access_token = params.get("access_token");
+  const refresh_token = params.get("refresh_token");
+  if (!access_token || !refresh_token) throw new Error("Link de recuperação inválido ou expirado.");
+  const { data, error } = await supabaseClient.auth.setSession({ access_token, refresh_token });
+  if (error) throw error;
+  const session = data.session;
+  if (!session) throw new Error("Link de recuperação inválido ou expirado.");
+  await tokenStore.setItem(TOKEN_STORE_KEYS.ACCESS_TOKEN, session.access_token);
+  await tokenStore.setItem(TOKEN_STORE_KEYS.REFRESH_TOKEN, session.refresh_token);
+  await authClient.persistAndHydrate(session.access_token, session.refresh_token, session.user.id);
+}
+
 async function signOut() {
   if (!authClient) return getState();
   await authClient.signOut();
@@ -494,8 +533,8 @@ async function startCheckout(tenantId) {
     body: {
       tenantId,
       priceId: plan.stripe_price_id,
-      successUrl: "orunos://billing/success",
-      cancelUrl: "orunos://billing/cancel",
+      successUrl: "orun-os://billing/success",
+      cancelUrl: "orun-os://billing/cancel",
     },
   });
   if (fnError) throw fnError;
@@ -523,6 +562,9 @@ module.exports = {
   signIn,
   signUp,
   signOut,
+  resetPassword,
+  updatePassword,
+  completeRecoveryFromUrl,
   getOwner,
   listDevices,
   revokeDevice,

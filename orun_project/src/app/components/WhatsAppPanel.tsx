@@ -2,12 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import {
   X, MessageCircle, QrCode, CheckCircle2, Loader2, AlertTriangle, RefreshCw, Users, Send,
-  Zap, Bell, Radio, Globe, Trash2, Plus, ToggleLeft, ToggleRight, BarChart3, Bot,
+  Zap, Bell, Radio, Globe, Trash2, Plus, ToggleLeft, ToggleRight, BarChart3, Bot, MessageSquare,
 } from "lucide-react";
 import { isElectron } from "../constants";
 import { useTranslation } from "../../i18n/I18nProvider";
 import { useToast } from "./Toast";
-import type { OrunWhatsAppStatus } from "../../types/orun";
+import type { OrunWhatsAppStatus, OrunGroupMessage } from "../../types/orun";
 
 function getAgentGroups(t: (key: string) => string) {
   return [
@@ -31,7 +31,7 @@ function getAgentGroups(t: (key: string) => string) {
   ];
 }
 
-type Tab = "config" | "automation";
+type Tab = "config" | "groups" | "automation";
 
 export function WhatsAppPanel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
@@ -64,6 +64,13 @@ export function WhatsAppPanel({ onClose }: { onClose: () => void }) {
   const [summaryAgent, setSummaryAgent] = useState("Health");
   const [summaryResult, setSummaryResult] = useState<string | null>(null);
   const [loadingSummary, setLoadingSummary] = useState(false);
+
+  // Groups feed state
+  const [selectedGroup, setSelectedGroup] = useState("");
+  const selectedGroupRef = useRef("");
+  const [groupMessages, setGroupMessages] = useState<OrunGroupMessage[]>([]);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const threadRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isElectron) return;
@@ -109,8 +116,95 @@ export function WhatsAppPanel({ onClose }: { onClose: () => void }) {
       if (dataUrl) { setQr(dataUrl); setError(null); }
       else setError("Falha ao gerar QR Code. Clique Conectar para tentar novamente.");
     });
-    return () => { offStatus(); offQR(); };
+    const offGroupMsg = window.orun.whatsapp.onGroupMessage(({ jid, message }) => {
+      if (jid === selectedGroupRef.current) {
+        setGroupMessages((prev) => [...prev, message]);
+      }
+    });
+    return () => { offStatus(); offQR(); offGroupMsg(); };
   }, []);
+
+  const selectGroup = async (jid: string) => {
+    selectedGroupRef.current = jid;
+    setSelectedGroup(jid);
+    setLoadingMessages(true);
+    const msgs = await window.orun.whatsapp.groupMessages(jid);
+    setGroupMessages(msgs);
+    setLoadingMessages(false);
+  };
+
+  useEffect(() => {
+    if (!threadRef.current) return;
+    threadRef.current.scrollTop = threadRef.current.scrollHeight;
+  }, [groupMessages]);
+
+  function formatTime(ts: number) {
+    try {
+      return new Date(ts).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    } catch { return ""; }
+  }
+
+  function senderColor(s?: string) {
+    let h = 200;
+    if (s) { let acc = 0; for (const c of s) acc = (acc * 31 + c.charCodeAt(0)) % 360; h = acc; }
+    return `hsl(${h}, 65%, 60%)`;
+  }
+
+  function renderRichText(text: string) {
+    const urlRe = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
+    const parts = text.split(urlRe);
+    return parts.map((part, i) => {
+      const isUrl = part?.startsWith("http") || part?.startsWith("www");
+      if (isUrl) {
+        const href = part.startsWith("http") ? part : `https://${part}`;
+        return (
+          <a key={i} href={href} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} style={{ color: "var(--primary)", textDecoration: "underline", wordBreak: "break-all" }}>
+            {part}
+          </a>
+        );
+      }
+      return <span key={i}>{part}</span>;
+    });
+  }
+
+  function renderBubble(m: OrunGroupMessage, i: number) {
+    const isMine = Boolean(m.fromMe);
+    const isBot = Boolean(m.bot);
+    const label = isBot ? "Robô" : (m.senderName || "Participante");
+    const accent = isBot ? "#C3002F" : "#25D366";
+    const bubbleBg = isMine ? (isBot ? "rgba(195,0,47,0.14)" : "rgba(37,211,102,0.13)") : "var(--secondary)";
+    const bubbleBorder = isMine ? (isBot ? "rgba(195,0,47,0.35)" : "rgba(37,211,102,0.3)") : "var(--border)";
+    return (
+      <div key={m.id || i} className="flex" style={{ justifyContent: isMine ? "flex-end" : "flex-start" }}>
+        <div className="max-w-[85%] px-2.5 py-1.5 rounded-lg" style={{ background: bubbleBg, border: `1px solid ${bubbleBorder}` }}>
+          {!isMine && (
+            <div className="text-[9px] font-semibold mb-0.5" style={{ color: senderColor(m.senderJid || m.senderName || "?") }}>{label}</div>
+          )}
+          {isMine && isBot && (
+            <div className="flex items-center gap-1 text-[9px] font-semibold mb-0.5" style={{ color: accent }}>
+              <Bot size={9} /> Robô
+            </div>
+          )}
+          {m.imageBase64 && (
+            <img
+              src={`data:${m.imageMime || "image/jpeg"};base64,${m.imageBase64}`}
+              alt="produto"
+              className="rounded-md mb-1"
+              style={{ maxWidth: 220, maxHeight: 170, objectFit: "cover", display: "block" }}
+            />
+          )}
+          {m.text ? (
+            <div className="text-[11px] whitespace-pre-wrap break-words" style={{ color: "var(--foreground)" }}>{renderRichText(m.text)}</div>
+          ) : m.audioMime ? (
+            <div className="text-[10px] flex items-center gap-1" style={{ color: "var(--muted-foreground)" }}>
+              <Zap size={10} /> Áudio{m.audioDuration ? ` (${m.audioDuration}s)` : ""}
+            </div>
+          ) : null}
+          <div className="text-[8px] mt-0.5 text-right" style={{ color: "var(--muted-foreground)" }}>{formatTime(m.timestamp)}</div>
+        </div>
+      </div>
+    );
+  }
 
   const connect = async () => {
     setConnecting(true);
@@ -268,6 +362,17 @@ export function WhatsAppPanel({ onClose }: { onClose: () => void }) {
                 <Users size={12} /> {t("whatsappConfigTab")}
               </button>
               <button
+                onClick={() => setTab("groups")}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-[11px] transition-colors"
+                style={{
+                  background: tab === "groups" ? "var(--background)" : "transparent",
+                  color: tab === "groups" ? "var(--foreground)" : "var(--muted-foreground)",
+                  border: tab === "groups" ? "1px solid var(--border)" : "1px solid transparent",
+                }}
+              >
+                <MessageSquare size={12} /> Grupos
+              </button>
+              <button
                 onClick={() => setTab("automation")}
                 className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-[11px] transition-colors"
                 style={{
@@ -415,6 +520,75 @@ export function WhatsAppPanel({ onClose }: { onClose: () => void }) {
                 <p className="text-[9px] mt-2" style={{ color: "var(--muted-foreground)" }}>
                   {t("whatsappJidHelp")}
                 </p>
+              </div>
+            )}
+
+            {/* ═══ GROUPS TAB ═══ */}
+            {tab === "groups" && (
+              <div className="mb-4">
+                {status !== "connected" ? (
+                  <p className="text-[11px] py-2" style={{ color: "var(--muted-foreground)" }}>
+                    Conecte o WhatsApp para ver as mensagens dos grupos.
+                  </p>
+                ) : groups.length === 0 ? (
+                  <p className="text-[10px] mb-3" style={{ color: "var(--muted-foreground)" }}>{t("whatsappNoGroupsFound")}</p>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2 mb-2">
+                      <MessageSquare size={13} style={{ color: "#25D366" }} />
+                      <span className="text-xs tracking-wider uppercase" style={{ fontFamily: "'Sora', sans-serif", color: "var(--foreground)" }}>Grupos</span>
+                      <button
+                        onClick={async () => {
+                          setLoadingGroups(true);
+                          setGroups(await window.orun.whatsapp.listGroups());
+                          setLoadingGroups(false);
+                        }}
+                        className="ml-auto p-1 rounded" style={{ color: "var(--muted-foreground)" }}
+                      >
+                        <RefreshCw size={11} className={loadingGroups ? "animate-spin" : ""} />
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-1 mb-3 max-h-[72px] overflow-y-auto scrollbar-hide">
+                      {groups.map((g) => (
+                        <button
+                          key={g.jid}
+                          onClick={() => selectGroup(g.jid)}
+                          className="px-2 py-1 rounded-md text-[9px] transition-colors truncate"
+                          style={{
+                            background: selectedGroup === g.jid ? "rgba(37,211,102,0.16)" : "var(--input)",
+                            color: selectedGroup === g.jid ? "#25D366" : "var(--muted-foreground)",
+                            border: selectedGroup === g.jid ? "1px solid rgba(37,211,102,0.4)" : "1px solid var(--border)",
+                            maxWidth: 150,
+                          }}
+                        >
+                          {g.name}
+                        </button>
+                      ))}
+                    </div>
+
+                    {!selectedGroup ? (
+                      <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+                        Escolha um grupo acima para ver as mensagens (texto, fotos e links do jeito que aparecem lá).
+                      </p>
+                    ) : loadingMessages ? (
+                      <div className="flex items-center justify-center py-6">
+                        <Loader2 size={14} className="animate-spin" style={{ color: "#25D366" }} />
+                      </div>
+                    ) : groupMessages.length === 0 ? (
+                      <p className="text-[10px] p-3 rounded-lg" style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--muted-foreground)" }}>
+                        Sem mensagens ainda. As novas mensagens deste grupo (inclusive as do robô) vão aparecer aqui em tempo real.
+                      </p>
+                    ) : (
+                      <div
+                        ref={threadRef}
+                        className="space-y-1.5 max-h-[360px] overflow-y-auto scrollbar-hide rounded-lg p-2"
+                        style={{ background: "var(--input)", border: "1px solid var(--border)" }}
+                      >
+                        {groupMessages.map((m, i) => renderBubble(m, i))}
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             )}
 

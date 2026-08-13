@@ -61,6 +61,7 @@ const { DiscordBot } = require("./discord-bot.cjs");
 const telegram = require("./telegram.cjs");
 const { createTelegramHandler } = require("./telegram-handler.cjs");
 const { createTelegramAutomation } = require("./telegram-automation.cjs");
+const { createGroupWatcher } = require("./group-watcher.cjs");
 const { registerFileSystemHandlers } = require("./file-system-handlers.cjs");
 const { startWebhookReceiver, stopWebhookReceiver, setEventHandler } = require("./webhook-receiver.cjs");
 const auditLog = require("./audit-log.cjs");
@@ -83,6 +84,9 @@ discordBot.setLogger(log);
 // ── Telegram instances ──────────────────────────────────────────────────────
 telegram.setLogger(log);
 const telegramAutomation = createTelegramAutomation({ log });
+
+// ── Vigia de grupos (feed ao vivo + watchlist + robô de promoções) ─────────
+let groupWatcher = null;
 
 // ── Rate limiter for IPC ────────────────────────────────────────────────
 const ipcRateLimiter = {
@@ -141,22 +145,24 @@ const DEFAULT_AI_SETTINGS = {
 
 // Recommended model per agent — used as default when no override is set.
 // The UI shows "(Recomendado)" next to these.
+// Atualizado em 2026-08-13: opencodezen "big-pickle" removido (404 free),
+// Groq sem chave válida, cadeia de fallback passa por openrouter pago.
 const AGENT_RECOMMENDED_MODELS = {
-  Hampton:    { provider: "groq",        model: "llama-3.3-70b-versatile" },
-  Developer:  { provider: "opencodezen", model: "big-pickle" },
-  Designer:   { provider: "opencodezen", model: "big-pickle" },
-  Creator:    { provider: "groq",        model: "llama-3.3-70b-versatile" },
-  Health:     { provider: "groq",        model: "llama-3.3-70b-versatile" },
-  Finance:    { provider: "groq",        model: "llama-3.3-70b-versatile" },
-  Teacher:    { provider: "groq",        model: "qwen/qwen3-32b" },
-  Marketing:  { provider: "opencodezen", model: "big-pickle" },
-  "Personal Assistant": { provider: "groq", model: "llama-3.3-70b-versatile" },
-  "Home IA":       { provider: "groq",        model: "llama-3.3-70b-versatile" },
-  "Cyber Security": { provider: "opencodezen", model: "big-pickle" },
-  Automation: { provider: "groq",        model: "llama-3.3-70b-versatile" },
-  Automotive: { provider: "groq",        model: "llama-3.3-70b-versatile" },
-  Juridico:   { provider: "opencodezen", model: "big-pickle" },
-  System:     { provider: "groq",        model: "llama-3.3-70b-versatile" },
+  Hampton:    { provider: "openrouter",  model: "openai/gpt-4o-mini" },
+  Developer:  { provider: "openrouter",  model: "openai/gpt-4o-mini" },
+  Designer:   { provider: "openrouter",  model: "openai/gpt-4o-mini" },
+  Creator:    { provider: "openrouter",  model: "openai/gpt-4o-mini" },
+  Health:     { provider: "openrouter",  model: "openai/gpt-4o-mini" },
+  Finance:    { provider: "openrouter",  model: "openai/gpt-4o-mini" },
+  Teacher:    { provider: "openrouter",  model: "openai/gpt-4o-mini" },
+  Marketing:  { provider: "openrouter",  model: "openai/gpt-4o-mini" },
+  "Personal Assistant": { provider: "openrouter", model: "openai/gpt-4o-mini" },
+  "Home IA":       { provider: "openrouter",  model: "openai/gpt-4o-mini" },
+  "Cyber Security": { provider: "openrouter",  model: "openai/gpt-4o-mini" },
+  Automation: { provider: "openrouter",  model: "openai/gpt-4o-mini" },
+  Automotive: { provider: "openrouter",  model: "openai/gpt-4o-mini" },
+  Juridico:   { provider: "openrouter",  model: "openai/gpt-4o-mini" },
+  System:     { provider: "openrouter",  model: "openai/gpt-4o-mini" },
 };
 
 // ── Agent Tool Permissions ──────────────────────────────────────────────
@@ -823,6 +829,7 @@ function registerIpcHandlers() {
     spotify, discordBot, telegram, telegramAutomation,
   };
   Object.defineProperty(ctx, "mainWindow", { get: () => mainWindow, enumerable: true });
+  Object.defineProperty(ctx, "groupWatcher", { get: () => groupWatcher, enumerable: true });
   Object.defineProperty(ctx, "skillManager", { get: () => skillManager, enumerable: true });
   Object.defineProperty(ctx, "memoryEngine", { get: () => memoryEngine, enumerable: true });
   Object.defineProperty(ctx, "knowledgeEngine", { get: () => knowledgeEngine, enumerable: true });
@@ -848,6 +855,7 @@ function registerIpcHandlers() {
   require("./ipc/discord-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/google-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/identity-handlers.cjs").register(ipcMain, ctx);
+  require("./ipc/group-feed-handlers.cjs").register(ipcMain, ctx);
 
   // File system handlers (evidence management)
   registerFileSystemHandlers(ipcMain, ctx);
@@ -1319,10 +1327,27 @@ app.whenReady().then(() => {
     }
   }, syncIntervalMs);
 
+  // Vigia de grupos: feed ao vivo persistido + watchlist + robô de promoções.
+  groupWatcher = createGroupWatcher({
+    db, log, aiRouter, secretStore, resolveAISettings,
+    whatsapp, telegram,
+    userDataPath: app.getPath("userData"),
+  });
+  groupWatcher.setCallbacks({
+    onPush: (msg) => mainWindow?.webContents.send("group-feed:message", msg),
+    onAlert: (alert) => mainWindow?.webContents.send("group-feed:alert", alert),
+    onDeals: (result) => mainWindow?.webContents.send("group-feed:deals", result),
+  });
+  groupWatcher.start(app.getPath("userData"));
+
   whatsapp.setListeners({
     onStatus: (status, extra) => mainWindow?.webContents.send("whatsapp:status-update", { status, ...extra }),
     onQR: (dataUrl) => mainWindow?.webContents.send("whatsapp:qr", dataUrl),
-    onMessage: (msg) => handleWhatsAppMessage(msg).catch((err) => log.error("[whatsapp] handler crashed:", err.message)),
+    onMessage: (msg) => {
+      groupWatcher?.onMessage({ ...msg, provider: "whatsapp" }).catch((err) => log.error("[group-watcher] crashed:", err.message));
+      handleWhatsAppMessage(msg).catch((err) => log.error("[whatsapp] handler crashed:", err.message));
+    },
+    onGroupMessage: (payload) => mainWindow?.webContents.send("whatsapp:group-msg", payload),
   });
 
   // Telegram message handler
@@ -1332,7 +1357,10 @@ app.whenReady().then(() => {
 
   telegram.setListeners({
     onStatus: (statusData) => mainWindow?.webContents.send("telegram:status-update", statusData),
-    onMessage: (msg) => telegramHandler.handleMessage(msg, telegram).catch((err) => log.error("[telegram] handler crashed:", err.message)),
+    onMessage: (msg) => {
+      groupWatcher?.onMessage({ ...msg, provider: "telegram" }).catch((err) => log.error("[group-watcher] crashed:", err.message));
+      telegramHandler.handleMessage(msg, telegram).catch((err) => log.error("[telegram] handler crashed:", err.message));
+    },
   });
 
   discordBot.setStatusCallbacks((status) => {
@@ -1385,7 +1413,7 @@ app.whenReady().then(() => {
     });
   }
 
-  scheduler.init({ db, aiRouter, agentPrompts, log, getSecret: (provider) => secretStore.readSecretStore()[provider], deliver: deliverAgentMessage, processAgentReply: agentProcessor.processAgentReply, autonomousLoop });
+  scheduler.init({ db, aiRouter, agentPrompts, log, getSecret: (provider) => secretStore.readSecretStore()[provider], getApiKeys: (provider) => secretStore.getProviderApiKeys(provider), deliver: deliverAgentMessage, processAgentReply: agentProcessor.processAgentReply, autonomousLoop });
 
   // Auto-start with Windows
   const autoStart = db.getSetting("autoStart", false);
@@ -1444,8 +1472,7 @@ app.whenReady().then(() => {
     if (!text || typeof text !== "string" || text.length > 2000) return false;
     try {
       const settings = resolveAISettings();
-      const keys = secretStore.readSecretStore();
-      const apiKey = keys[settings.provider];
+      const apiKeys = secretStore.getProviderApiKeys(settings.provider);
       const systemPrompt = buildSystemPrompt(settings.systemPrompt);
       const messages = [
         { role: "system", content: systemPrompt },
@@ -1453,11 +1480,11 @@ app.whenReady().then(() => {
       ];
       const { context } = await aiRouter.buildContext({
         messages, systemPrompt, provider: settings.provider,
-        model: settings.model, baseUrl: settings.baseUrl, apiKey,
+        model: settings.model, baseUrl: settings.baseUrl, apiKeys,
       });
       const result = await aiRouter.routeChat({
         provider: settings.provider, model: settings.model,
-        baseUrl: settings.baseUrl, apiKey, messages: context,
+        baseUrl: settings.baseUrl, apiKeys, messages: context,
       });
       const processed = agentProcessor.processAgentReply(null, result.text);
       if (quickChatWindow && !quickChatWindow.isDestroyed()) {
@@ -1565,6 +1592,9 @@ app.on("before-quit", () => {
   try { spotify.stopCallbackServer(); } catch { /* ignore */ }
   try { discordBot.disconnect().catch(() => {}); } catch { /* ignore */ }
   try { telegram.disconnect().catch(() => {}); } catch { /* ignore */ }
+
+  // Stop the group watcher (persiste histórico e desliga o timer de promoções)
+  try { groupWatcher?.stop(); } catch { /* ignore */ }
 
   // Stop active stream requests
   for (const [id, req] of activeStreamRequests) {

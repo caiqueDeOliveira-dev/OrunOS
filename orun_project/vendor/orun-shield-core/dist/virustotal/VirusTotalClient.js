@@ -7,7 +7,7 @@ exports.VirusTotalClient = void 0;
 const node_crypto_1 = require("node:crypto");
 const promises_1 = require("node:fs/promises");
 const node_crypto_2 = require("node:crypto");
-const node_fetch_1 = __importDefault(require("node-fetch"));
+const node_fetch_1 = { default: globalThis.fetch };
 const TypedEmitter_js_1 = require("../utils/TypedEmitter.js");
 const VT_BASE_URL = "https://www.virustotal.com/api/v3";
 /** Upload direto só é permitido até 32MB; acima disso é preciso pedir uma upload_url dedicada. */

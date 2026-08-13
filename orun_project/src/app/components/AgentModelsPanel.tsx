@@ -8,7 +8,8 @@ import type { OrunProvider } from "../../types/orun";
 const PROVIDER_LABELS: Record<OrunProvider, string> = {
   ollama: "Ollama (Local)", anthropic: "Claude", openai: "OpenAI",
   openrouter: "OpenRouter", groq: "Groq", github: "GitHub Models",
-  opencodezen: "OpenCode Zen",
+  opencodezen: "OpenCode Zen", nvidia: "NVIDIA NIM",
+  ollama_cloud: "Ollama Cloud",
 };
 
 type Override = { provider: OrunProvider; model: string; systemPrompt?: string } | null;

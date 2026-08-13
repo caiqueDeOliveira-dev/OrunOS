@@ -146,6 +146,7 @@ const AGENT_PLUGIN_MAP: Record<string, string> = {
   Juridico: "Juridico",
   AssistenteTecnico: "AssistenteTecnico",
   Suporte: "Suporte",
+  GroupFeed: "GroupFeed",
   "Personal Assistant": "PersonalAssistant",
   "Home IA": "HomeIA",
   "Cyber Security": "CyberSecurity",

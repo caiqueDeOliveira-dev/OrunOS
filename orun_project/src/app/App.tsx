@@ -15,6 +15,7 @@ import Onboarding from "./components/Onboarding";
 import { AuthGate } from "./components/AuthGate";
 import { VoiceOverlay } from "./components/VoiceOverlay";
 import { QuickChat } from "./components/QuickChat";
+import { RecoveryPasswordModal } from "./components/RecoveryPasswordModal";
 import { initWorkspaceActionListener, destroyWorkspaceActionListener } from "./plugins/lib/workspace-actions";
 import { isElectron } from "./constants";
 import type { Phase } from "./types";
@@ -134,6 +135,8 @@ function MainApp() {
           proactivePrompt={proactivePrompt}
           onProactiveHandled={() => setProactivePrompt(null)}
         />
+
+        <RecoveryPasswordModal />
 
         </div>
         </ToastProvider>

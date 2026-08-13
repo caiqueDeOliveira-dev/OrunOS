@@ -6,13 +6,15 @@ import { useTranslation } from "../../i18n/I18nProvider";
 import type { OrunProvider } from "../../types/orun";
 
 const PROVIDER_INFO: Record<OrunProvider, { label: string; kind: "local" | "cloud" }> = {
-  ollama: { label: "Ollama", kind: "local" },
+  ollama: { label: "Ollama (local)", kind: "local" },
+  ollama_cloud: { label: "Ollama Cloud", kind: "cloud" },
   anthropic: { label: "Claude", kind: "cloud" },
   openai: { label: "OpenAI", kind: "cloud" },
   openrouter: { label: "OpenRouter", kind: "cloud" },
   groq: { label: "Groq", kind: "cloud" },
   github: { label: "GitHub Models", kind: "cloud" },
   opencodezen: { label: "OpenCode Zen", kind: "cloud" },
+  nvidia: { label: "NVIDIA NIM", kind: "cloud" },
 };
 
 type CatalogModel = { id: string; free: boolean };

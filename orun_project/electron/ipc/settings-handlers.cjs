@@ -32,6 +32,9 @@ function register(ipcMain, ctx) {
     return secretStore.writeSecret(slot, value);
   });
   ipcMain.handle("settings:has-api-key", (_event, slot) => Boolean(secretStore.readSecretStore()[slot]));
+  ipcMain.handle("settings:set-provider-key", (_event, provider, index, value) => secretStore.setApiKeyAt(provider, index, value));
+  ipcMain.handle("settings:delete-provider-key", (_event, provider, index) => secretStore.deleteApiKeyAt(provider, index));
+  ipcMain.handle("settings:provider-key-count", (_event, provider) => (typeof provider === "string" ? secretStore.getApiKeyCount(provider) : 0));
   ipcMain.handle("settings:validate-api-key", async (_event, { provider, key }) => {
     if (!provider || !key) {
       return { valid: false, error: "Provider e key são obrigatórios" };

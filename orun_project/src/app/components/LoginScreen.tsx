@@ -6,7 +6,7 @@ interface LoginScreenProps {
   onSkip: () => void;
 }
 
-type Mode = "signin" | "signup";
+type Mode = "signin" | "signup" | "forgot";
 
 export function LoginScreen({ onDone, onSkip }: LoginScreenProps) {
   const [mode, setMode] = useState<Mode>("signin");
@@ -28,6 +28,11 @@ export function LoginScreen({ onDone, onSkip }: LoginScreenProps) {
         const state = await window.orun.auth.signIn(email.trim(), password);
         if (state.status !== "authenticated") setInfo("Confirme o e-mail ou complete o segundo fator.");
         else onDone(state);
+      } else if (mode === "forgot") {
+        await window.orun.auth.resetPassword(email.trim());
+        setMode("signin");
+        setPassword("");
+        setInfo("Enviamos um link de recuperação para seu e-mail. Clique nele — o app vai abrir para você redefinir a senha.");
       } else {
         const state = await window.orun.auth.signUp(email.trim(), password, displayName.trim() || undefined);
         if (state.status !== "authenticated") {
@@ -65,12 +70,29 @@ export function LoginScreen({ onDone, onSkip }: LoginScreenProps) {
         transition={{ duration: 0.3 }}
       >
         <div className="flex flex-col items-center mb-6">
-          <div className="w-14 h-14 rounded-full flex items-center justify-center text-2xl mb-3" style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-            🌅
+          <div className="relative mb-3">
+            <div
+              className="absolute rounded-full"
+              style={{ inset: -18, background: "radial-gradient(circle, rgba(195,0,47,0.18) 0%, transparent 65%)" }}
+            />
+            <img
+              src="./LogoIA.png"
+              alt="Orun OS"
+              className="relative rounded-full"
+              style={{
+                width: 64,
+                height: 64,
+                objectFit: "cover",
+                border: "1px solid rgba(195,0,47,0.45)",
+                boxShadow: "0 0 24px rgba(195,0,47,0.25), inset 0 0 20px rgba(0,0,0,0.5)",
+              }}
+            />
           </div>
           <h1 className="text-2xl font-bold" style={{ color: "var(--foreground)" }}>Orun OS</h1>
           <p className="text-sm mt-1" style={{ color: "var(--muted-foreground)" }}>
-            {mode === "signin" ? "Entre com sua conta Orun" : "Crie sua conta Orun"}
+            {mode === "signin" && "Entre com sua conta Orun"}
+            {mode === "signup" && "Crie sua conta Orun"}
+            {mode === "forgot" && "Recupere o acesso à sua conta"}
           </p>
         </div>
 
@@ -95,16 +117,18 @@ export function LoginScreen({ onDone, onSkip }: LoginScreenProps) {
             className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2"
             style={{ ...inputStyle, ["--tw-ring-color" as any]: "var(--ring)" }}
           />
-          <input
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Senha"
-            autoComplete={mode === "signin" ? "current-password" : "new-password"}
-            className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2"
-            style={{ ...inputStyle, ["--tw-ring-color" as any]: "var(--ring)" }}
-          />
+          {mode !== "forgot" && (
+            <input
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Senha"
+              autoComplete={mode === "signin" ? "current-password" : "new-password"}
+              className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2"
+              style={{ ...inputStyle, ["--tw-ring-color" as any]: "var(--ring)" }}
+            />
+          )}
 
           {error && (
             <div className="text-sm px-3 py-2 rounded-lg" style={{ background: "color-mix(in srgb, var(--destructive) 10%, transparent)", color: "var(--destructive)" }}>
@@ -124,21 +148,45 @@ export function LoginScreen({ onDone, onSkip }: LoginScreenProps) {
             style={{ background: "var(--primary)", color: "var(--primary-foreground)" }}
           >
             {busy && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-            {mode === "signin" ? "Entrar" : "Criar conta"}
+            {mode === "signin" && "Entrar"}
+            {mode === "signup" && "Criar conta"}
+            {mode === "forgot" && "Enviar link de recuperação"}
           </button>
         </form>
 
         <div className="flex items-center justify-between mt-6 text-sm">
-          <button
-            onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setError(null); setInfo(null); }}
-            className="transition-colors hover:opacity-70"
-            style={{ color: "var(--primary)" }}
-          >
-            {mode === "signin" ? "Criar conta" : "Já tenho conta"}
-          </button>
-          <button onClick={onSkip} className="transition-colors hover:opacity-70" style={{ color: "var(--muted-foreground)" }}>
-            Continuar sem conta
-          </button>
+          {mode !== "forgot" ? (
+            <>
+              <button
+                onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setError(null); setInfo(null); }}
+                className="transition-colors hover:opacity-70"
+                style={{ color: "var(--primary)" }}
+              >
+                {mode === "signin" ? "Criar conta" : "Já tenho conta"}
+              </button>
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  onClick={() => { setMode("forgot"); setError(null); setInfo(null); }}
+                  className="transition-colors hover:opacity-70"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
+                  Esqueci minha senha
+                </button>
+                <button onClick={onSkip} className="transition-colors hover:opacity-70" style={{ color: "var(--muted-foreground)" }}>
+                  Continuar sem conta
+                </button>
+              </div>
+            </>
+          ) : (
+            <button
+              onClick={() => { setMode("signin"); setError(null); setInfo(null); }}
+              className="transition-colors hover:opacity-70"
+              style={{ color: "var(--primary)" }}
+            >
+              ← Voltar ao login
+            </button>
+          )}
         </div>
       </motion.div>
     </motion.div>

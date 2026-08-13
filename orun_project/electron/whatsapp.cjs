@@ -21,6 +21,50 @@ let userDataPath = "";
 let autoConnectEnabled = true;
 let watchdogTimer = null;
 
+// Log de mensagens por grupo (para a aba "Grupos" do renderer).
+const MAX_GROUP_MESSAGES = 150;
+let messageLog = new Map(); // jid -> [{ id, fromMe, bot, senderJid, senderName, text, imageBase64, imageMime, audioMime, audioDuration, timestamp }]
+
+function getMessagesFile() {
+  return path.join(userDataPath, "whatsapp-messages.json");
+}
+
+function loadMessageLog() {
+  if (!userDataPath) return;
+  try {
+    const file = getMessagesFile();
+    if (fs.existsSync(file)) {
+      const data = JSON.parse(fs.readFileSync(file, "utf8"));
+      messageLog = new Map(Object.entries(data || {}));
+    }
+  } catch { /* ignore */ }
+}
+
+function saveMessageLog() {
+  if (!userDataPath) return;
+  try {
+    const obj = {};
+    for (const [jid, arr] of messageLog) obj[jid] = arr;
+    fs.writeFileSync(getMessagesFile(), JSON.stringify(obj));
+  } catch { /* ignore */ }
+}
+
+function logGroupMessage(jid, entry) {
+  if (!jid || !jid.endsWith("@g.us")) return;
+  if (!messageLog.has(jid)) messageLog.set(jid, []);
+  const arr = messageLog.get(jid);
+  arr.push(entry);
+  if (arr.length > MAX_GROUP_MESSAGES) arr.splice(0, arr.length - MAX_GROUP_MESSAGES);
+  saveMessageLog();
+  if (listeners.onGroupMessage) {
+    listeners.onGroupMessage({ jid, message: entry });
+  }
+}
+
+function getGroupMessages(jid) {
+  return messageLog.get(jid) || [];
+}
+
 function getStatus() {
   return currentStatus;
 }
@@ -81,6 +125,7 @@ function listGroups() {
 async function connect(userData) {
   userDataPath = userData;
   loadGroups();
+  loadMessageLog();
 
   const baileys = await import("@whiskeysockets/baileys");
   const {
@@ -297,6 +342,19 @@ async function connect(userData) {
         externalMessageId: msg.key.id || null,
         timestamp: msgTimestamp,
       });
+
+      logGroupMessage(jid, {
+        id: msg.key.id || null,
+        fromMe,
+        senderJid,
+        senderName: msg.pushName || null,
+        text,
+        imageBase64,
+        imageMime: isImage ? (msg.message.imageMessage?.mimetype || "image/jpeg") : null,
+        audioMime: isAudio ? (msg.message.audioMessage?.mimetype || null) : null,
+        audioDuration: isAudio ? (msg.message.audioMessage?.seconds || null) : null,
+        timestamp: msgTimestamp,
+      });
     }
   });
 
@@ -309,6 +367,14 @@ async function sendMessage(jid, text) {
   try {
     const result = await sock.sendMessage(jid, { text });
     trackSentMessage(result);
+    logGroupMessage(jid, {
+      id: result?.key?.id || null,
+      fromMe: true,
+      bot: true,
+      senderName: sock.user?.name || sock.user?.verifiedName || "Eu",
+      text,
+      timestamp: Date.now(),
+    });
   } catch (err) {
     if (err.message?.includes("Connection Closed") || err.message?.includes("not connected")) {
       currentStatus = "disconnected";
@@ -324,6 +390,16 @@ async function sendAudioMessage(jid, buffer, mime = "audio/ogg; codecs=opus", pt
   try {
     const result = await sock.sendMessage(jid, { audio: buffer, mimetype: mime, ptt });
     trackSentMessage(result);
+    logGroupMessage(jid, {
+      id: result?.key?.id || null,
+      fromMe: true,
+      bot: true,
+      senderName: sock.user?.name || sock.user?.verifiedName || "Eu",
+      text: null,
+      audioMime: mime,
+      audioDuration: null,
+      timestamp: Date.now(),
+    });
   } catch (err) {
     if (err.message?.includes("Connection Closed") || err.message?.includes("not connected")) {
       currentStatus = "disconnected";
@@ -353,7 +429,15 @@ async function disconnect() {
 async function sendTestMessage(jid, agentName) {
   if (!sock || currentStatus !== "connected") throw new Error("WhatsApp is not connected.");
   const msg = `✅ Teste de roteamento - Agente: *${agentName}*\nSe você está vendo esta mensagem, o roteamento está funcionando corretamente!`;
-  await sock.sendMessage(jid, { text: msg });
+  const result = await sock.sendMessage(jid, { text: msg });
+  logGroupMessage(jid, {
+    id: result?.key?.id || null,
+    fromMe: true,
+    bot: true,
+    senderName: sock.user?.name || sock.user?.verifiedName || "Eu",
+    text: msg,
+    timestamp: Date.now(),
+  });
 }
 
-module.exports = { connect, disconnect, sendMessage, sendAudioMessage, getStatus, setListeners, listGroups, sendTestMessage, autoConnect: connect, setAutoConnect: (enabled) => { autoConnectEnabled = enabled; } };
+module.exports = { connect, disconnect, sendMessage, sendAudioMessage, getStatus, setListeners, listGroups, sendTestMessage, getGroupMessages, autoConnect: connect, setAutoConnect: (enabled) => { autoConnectEnabled = enabled; } };

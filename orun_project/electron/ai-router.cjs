@@ -47,6 +47,59 @@ function markProviderRateLimited(provider, retryAfterSeconds) {
   logger.ai.info(`[ai-router] ${provider} marked rate-limited for ${retryAfterSeconds || 60}s`);
 }
 
+// ── Per-key rotation (up to 3 keys per provider) ─────────────────────────
+// When a key's token quota runs out (429 / insufficient_quota / billing),
+// that key is put on cooldown and the router rotates to the next key of the
+// SAME provider. Only when every key of the provider is exhausted does the
+// call fail upward so callers can fall back to another provider.
+
+const KEY_COOLDOWN_QUOTA_MS = 60 * 60 * 1000; // quota/billing exhausted → 1h
+const KEY_COOLDOWN_RATE_MS = 60 * 1000; // plain 429 → 1min
+const keyCooldownUntil = {};
+
+function keyCooldownSlot(provider, index) {
+  return `${provider}:${index}`;
+}
+
+function markKeyExhausted(provider, index, cooldownMs) {
+  keyCooldownUntil[keyCooldownSlot(provider, index)] = Date.now() + cooldownMs;
+}
+
+function isKeyExhausted(provider, index) {
+  return (keyCooldownUntil[keyCooldownSlot(provider, index)] || 0) > Date.now();
+}
+
+/**
+ * Normalize apiKeys into an ordered list. Accepts either an `apiKeys` array
+ * (multi-key, up to 3) or a single `apiKey` string. Empty/missing → [].
+ */
+function resolveApiKeys(req) {
+  if (Array.isArray(req.apiKeys)) {
+    return req.apiKeys.filter((k) => typeof k === "string" && k.trim()).map((k) => k.trim());
+  }
+  if (typeof req.apiKey === "string" && req.apiKey.trim()) return [req.apiKey.trim()];
+  return [];
+}
+
+/**
+ * True when the error means THIS KEY ran out of tokens (rotate to next key).
+ * 429 (rate limit / quota), 402 (insufficient_quota), and provider messages
+ * about billing/quota/balance/spend — but NOT generic 5xx or context limits.
+ */
+function isKeyQuotaError(err) {
+  const msg = (err?.message || "").toLowerCase();
+  if (/429|402/.test(msg)) return true;
+  return /insufficient_quota|insufficient balance|rate_limit_exceeded|rate limit|quota exceeded|billing|out of (credits|tokens|requests)|spend limit|exceeded your current|current quota/i.test(msg);
+}
+
+/** Cooldown duration for an exhausted key, based on the error type. */
+function keyCooldownFor(err) {
+  if (err?.message?.includes("429")) {
+    return (parseRetryAfter(err) || 60) * 1000;
+  }
+  return KEY_COOLDOWN_QUOTA_MS;
+}
+
 function isProviderRateLimited(provider) {
   if (providerCooldownUntil[provider] && Date.now() < providerCooldownUntil[provider]) return true;
   const limits = PROVIDER_RATE_LIMITS[provider];
@@ -235,6 +288,10 @@ const OPENAI_COMPATIBLE = {
   groq: { baseUrl: "https://api.groq.com/openai/v1", authHeaders: (key) => ({ Authorization: `Bearer ${key}` }), defaultModel: "llama-3.3-70b-versatile" },
   github: { baseUrl: "https://models.github.ai/inference", authHeaders: (key) => ({ Authorization: `Bearer ${key}`, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" }), defaultModel: "openai/gpt-4o" },
   opencodezen: { baseUrl: "https://opencode.ai/zen/v1", authHeaders: (key) => ({ Authorization: `Bearer ${key}` }), defaultModel: "gpt-5.6-sol" },
+  // NVIDIA NIM Cloud — https://build.nvidia.com (free credits mensalmente).
+  nvidia: { baseUrl: "https://integrate.api.nvidia.com/v1", authHeaders: (key) => ({ Authorization: `Bearer ${key}` }), defaultModel: "meta/llama-3.1-70b-instruct" },
+  // Ollama Cloud — https://ollama.com (mesma API OpenAI-compat, modelos hospedados).
+  ollama_cloud: { baseUrl: "https://ollama.com/v1", authHeaders: (key) => ({ Authorization: `Bearer ${key}` }), defaultModel: "gpt-oss:120b" },
 };
 
 function isOpenAICompatible(provider) {
@@ -412,58 +469,73 @@ function normalizeTools(tools) {
 
 // Inner routeChat — no retry logic, used by retry wrapper
 async function routeChatOnce(req) {
+  if (!req?.provider) throw new Error("Missing API key for provider.");
   if (req.tools?.length) req = { ...req, tools: normalizeTools(req.tools) };
   if (req.provider === "ollama") return chatOllama(req);
   if (req.provider === "anthropic") return chatAnthropic(req);
   if (isOpenAICompatible(req.provider)) return chatOpenAICompatible(req.provider, req);
-  throw new Error(`Unknown AI provider: ${req.provider}`);
+  throw new Error(`Missing API key for provider: ${req.provider}`);
 }
 
 /**
- * routeChat with 429 retry and per-provider rate limiting.
+ * routeChat with 429 retry, per-provider rate limiting and per-key rotation.
  * If the requested provider is rate limited, selects the best available
- * provider before making the call. After a successful call, tracks the
- * request. If retries are exhausted, auto-falls back to the next free
- * model for that provider, then cross-provider.
+ * provider before making the call. When a key's quota runs out, rotates to
+ * the next configured key for the same provider; only after ALL keys are
+ * exhausted does it fall back to the next free model and rethrow so callers
+ * can switch providers.
  */
 async function routeChat(req) {
-  const allProviders = ["opencodezen", "groq", "openrouter"];
-  const bestProvider = selectBestProvider(req.provider, allProviders.filter((p) => p !== "ollama" && p !== "anthropic").concat(["ollama", "anthropic"]));
-  const effectiveReq = bestProvider !== req.provider ? { ...req, provider: bestProvider } : req;
+  // Provider changes require that provider's own keys.  The IPC layer owns
+  // cross-provider fallback, so this low-level router must never silently
+  // change provider while carrying a key from the original provider.
+  const effectiveReq = req;
+
+  // Ordered list of keys for this provider; [] means "no key configured".
+  const keys = resolveApiKeys(effectiveReq);
+  if (keys.length === 0) keys.push(undefined);
 
   let lastErr;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      const result = await Promise.race([
-        routeChatOnce(effectiveReq),
-        new Promise((_, reject) => setTimeout(() => reject(new Error("Request timed out after 45s")), 45000)),
-      ]);
-      trackProviderRequest(effectiveReq.provider);
-      return result;
-    } catch (err) {
-      lastErr = err;
-      const isRetryable = err.message?.includes("429") || err.message?.includes("500") || err.message?.includes("502") || err.message?.includes("503") || err.message?.includes("ECONNRESET") || err.message?.includes("ETIMEDOUT");
-      if (err.message?.includes("429")) {
-        const retryAfter = parseRetryAfter(err);
-        markProviderRateLimited(effectiveReq.provider, retryAfter || 60);
+  for (let ki = 0; ki < keys.length; ki++) {
+    if (isKeyExhausted(effectiveReq.provider, ki)) continue;
+    const keyReq = { ...effectiveReq, apiKey: keys[ki] };
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const result = await Promise.race([
+          routeChatOnce(keyReq),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("Request timed out after 45s")), 45000)),
+        ]);
+        trackProviderRequest(effectiveReq.provider);
+        return result;
+      } catch (err) {
+        lastErr = err;
+        if (isKeyQuotaError(err)) {
+          // This key's tokens are done — mark it and rotate to the next key.
+          markKeyExhausted(effectiveReq.provider, ki, keyCooldownFor(err));
+          logger.ai.info(`[ai-router] ${effectiveReq.provider} key ${ki + 1}/${keys.length} exhausted (${err.message}), rotating to next key`);
+          break;
+        }
+        const isRetryable = err.message?.includes("500") || err.message?.includes("502") || err.message?.includes("503") || err.message?.includes("ECONNRESET") || err.message?.includes("ETIMEDOUT");
+        if (attempt < 2 && isRetryable) {
+          const delayMs = Math.min(1000 * Math.pow(2, attempt), 5000);
+          logger.ai.info(`[ai-router] ${effectiveReq.provider} retryable error, attempt ${attempt + 1}, backing off ${delayMs}ms`);
+          await sleepMs(delayMs);
+          continue;
+        }
+        // Persistent non-quota failure on this key — try the next key.
+        break;
       }
-      if (attempt < 2 && isRetryable) {
-        const delayMs = Math.min(1000 * Math.pow(2, attempt), 5000);
-        logger.ai.info(`[ai-router] ${effectiveReq.provider} retryable error, attempt ${attempt + 1}, backing off ${delayMs}ms`);
-        await sleepMs(delayMs);
-        continue;
-      }
-      break;
     }
   }
-  // Fallback: try the next free model within same provider
+  // Fallback: try the next free model within same provider (only if a key is usable).
   if (isOpenAICompatible(effectiveReq.provider) && KNOWN_FREE_MODELS[effectiveReq.provider]) {
     const next = nextFreeModel(effectiveReq.provider, effectiveReq.model);
-    if (next && next !== effectiveReq.model) {
+    const fallbackKey = keys.find((_k, i) => !isKeyExhausted(effectiveReq.provider, i));
+    if (next && next !== effectiveReq.model && fallbackKey !== undefined) {
       logger.ai.info(`[ai-router] ${effectiveReq.provider} falling back to ${next}`);
       try {
         const result = await Promise.race([
-          routeChatOnce({ ...effectiveReq, model: next }),
+          routeChatOnce({ ...effectiveReq, model: next, apiKey: fallbackKey }),
           new Promise((_, reject) => setTimeout(() => reject(new Error("Request timed out after 45s")), 45000)),
         ]);
         trackProviderRequest(effectiveReq.provider);
@@ -476,55 +548,75 @@ async function routeChat(req) {
   // Cross-provider fallback — note: callers should handle their own fallback
   // with proper API keys. This is a last-resort fallback that only works if
   // the request already has a valid apiKey that happens to work on another provider.
+  if (lastErr === undefined) {
+    lastErr = new Error(`All API keys for ${effectiveReq.provider} are exhausted or rate-limited.`);
+  }
   throw lastErr;
 }
 
 async function streamChatOnce(req) {
+  if (!req?.provider) throw new Error("Missing API key for provider.");
   if (req.provider === "ollama") return streamOllama(req);
   if (req.provider === "anthropic") return streamAnthropic(req);
   if (isOpenAICompatible(req.provider)) return streamOpenAICompatible(req.provider, req);
-  throw new Error(`Unknown AI provider: ${req.provider}`);
+  throw new Error(`Missing API key for provider: ${req.provider}`);
 }
 
 async function streamChat(req) {
-  const allProviders = ["opencodezen", "groq", "openrouter"];
-  const bestProvider = selectBestProvider(req.provider, allProviders.filter((p) => p !== "ollama" && p !== "anthropic").concat(["ollama", "anthropic"]));
-  const effectiveReq = bestProvider !== req.provider ? { ...req, provider: bestProvider } : req;
+  // See routeChat: cross-provider fallback is handled above this layer, where
+  // the correct set of keys is available for each provider.
+  const effectiveReq = req;
+
+  const keys = resolveApiKeys(effectiveReq);
+  if (keys.length === 0) keys.push(undefined);
 
   let lastErr;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      const result = await streamChatOnce(effectiveReq);
-      trackProviderRequest(effectiveReq.provider);
-      return result;
-    } catch (err) {
-      lastErr = err;
-      const isRetryable = err.message?.includes("429") || err.message?.includes("500") || err.message?.includes("502") || err.message?.includes("503") || err.message?.includes("ECONNRESET") || err.message?.includes("ETIMEDOUT");
-      if (err.message?.includes("429")) {
-        const retryAfter = parseRetryAfter(err);
-        markProviderRateLimited(effectiveReq.provider, retryAfter || 60);
+  for (let ki = 0; ki < keys.length; ki++) {
+    if (isKeyExhausted(effectiveReq.provider, ki)) continue;
+    const keyReq = { ...effectiveReq, apiKey: keys[ki] };
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const result = await streamChatOnce(keyReq);
+        trackProviderRequest(effectiveReq.provider);
+        return result;
+      } catch (err) {
+        lastErr = err;
+        if (isKeyQuotaError(err)) {
+          markKeyExhausted(effectiveReq.provider, ki, keyCooldownFor(err));
+          logger.ai.info(`[ai-router] ${effectiveReq.provider} key ${ki + 1}/${keys.length} stream exhausted (${err.message}), rotating to next key`);
+          break;
+        }
+        const isRetryable = err.message?.includes("500") || err.message?.includes("502") || err.message?.includes("503") || err.message?.includes("ECONNRESET") || err.message?.includes("ETIMEDOUT");
+        if (attempt < 2 && isRetryable) {
+          const delayMs = Math.min(1000 * Math.pow(2, attempt), 5000);
+          logger.ai.info(`[ai-router] ${effectiveReq.provider} stream retryable error, attempt ${attempt + 1}, backing off ${delayMs}ms`);
+          await sleepMs(delayMs);
+          continue;
+        }
+        break;
       }
-      if (attempt < 2 && isRetryable) {
-        const delayMs = Math.min(1000 * Math.pow(2, attempt), 5000);
-        logger.ai.info(`[ai-router] ${effectiveReq.provider} stream retryable error, attempt ${attempt + 1}, backing off ${delayMs}ms`);
-        await sleepMs(delayMs);
-        continue;
-      }
-      break;
     }
   }
   if (isOpenAICompatible(effectiveReq.provider) && KNOWN_FREE_MODELS[effectiveReq.provider]) {
     const next = nextFreeModel(effectiveReq.provider, effectiveReq.model);
-    if (next && next !== effectiveReq.model) {
+    const fallbackKey = keys.find((_k, i) => !isKeyExhausted(effectiveReq.provider, i));
+    if (next && next !== effectiveReq.model && fallbackKey !== undefined) {
       logger.ai.info(`[ai-router] ${effectiveReq.provider} stream rate-limited on ${effectiveReq.model}, falling back to ${next}`);
-      const result = await streamChatOnce({ ...effectiveReq, model: next });
-      trackProviderRequest(effectiveReq.provider);
-      return result;
+      try {
+        const result = await streamChatOnce({ ...effectiveReq, model: next, apiKey: fallbackKey });
+        trackProviderRequest(effectiveReq.provider);
+        return result;
+      } catch (fallbackErr) {
+        lastErr = fallbackErr;
+      }
     }
   }
   // Cross-provider fallback — note: callers should handle their own fallback
   // with proper API keys. This is a last-resort fallback that only works if
   // the request already has a valid apiKey that happens to work on another provider.
+  if (lastErr === undefined) {
+    lastErr = new Error(`All API keys for ${effectiveReq.provider} are exhausted or rate-limited.`);
+  }
   throw lastErr;
 }
 
@@ -691,7 +783,7 @@ const MODEL_CATALOG = {
     { id: "kimi-k2.7-code", free: false },
     { id: "qwen3.5-plus", free: false },
     { id: "qwen3.6-plus", free: false },
-    { id: "big-pickle", free: true },
+    { id: "deepseek-v4-flash-free", free: true },
     { id: "deepseek-v4-flash-free", free: true },
     { id: "mimo-v2.5-free", free: true },
     { id: "hy3-free", free: true },
@@ -709,4 +801,5 @@ module.exports = {
   listOllamaModels, listCloudModels, KNOWN_FREE_MODELS, getModelCatalog,
   PROVIDERS: Object.keys(OPENAI_COMPATIBLE).concat(["ollama", "anthropic"]),
   PROVIDER_RATE_LIMITS, getProviderRateLimitStatus,
+  resolveApiKeys, isKeyQuotaError, markKeyExhausted, isKeyExhausted,
 };

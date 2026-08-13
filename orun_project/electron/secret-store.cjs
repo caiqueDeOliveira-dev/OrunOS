@@ -145,4 +145,39 @@ async function del(slot) {
   } catch { return false; }
 }
 
-module.exports = { init, getOrCreateDBKey, readSecretStore, writeSecret, aesEncrypt, aesDecrypt, get, set, delete: del };
+// ── Multi-key API (up to 3 keys per AI provider) ─────────────────────────
+// Slot layout: primary key lives in slot `provider` (backwards compatible),
+// extras in `provider:2` and `provider:3`.
+
+const MAX_PROVIDER_KEYS = 3;
+
+function providerKeySlot(provider, index) {
+  return index <= 1 ? provider : `${provider}:${index}`;
+}
+
+function getProviderApiKeys(provider) {
+  const store = readSecretStore();
+  const keys = [];
+  for (let i = 1; i <= MAX_PROVIDER_KEYS; i++) {
+    const v = store[providerKeySlot(provider, i)];
+    if (typeof v === "string" && v.trim()) keys.push(v.trim());
+  }
+  return keys;
+}
+
+function getApiKeyCount(provider) {
+  return getProviderApiKeys(provider).length;
+}
+
+function setApiKeyAt(provider, index, value) {
+  if (index < 1 || index > MAX_PROVIDER_KEYS) return false;
+  if (typeof value !== "string" || !value.trim()) return false;
+  return writeSecret(providerKeySlot(provider, index), value.trim());
+}
+
+function deleteApiKeyAt(provider, index) {
+  if (index < 1 || index > MAX_PROVIDER_KEYS) return false;
+  return del(providerKeySlot(provider, index));
+}
+
+module.exports = { init, getOrCreateDBKey, readSecretStore, writeSecret, aesEncrypt, aesDecrypt, get, set, delete: del, getProviderApiKeys, getApiKeyCount, setApiKeyAt, deleteApiKeyAt, MAX_PROVIDER_KEYS };

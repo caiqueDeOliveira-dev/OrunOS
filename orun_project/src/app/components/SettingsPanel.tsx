@@ -15,13 +15,15 @@ import { ShieldPanel } from "./ShieldPanel";
 import { OptimizerPanel } from "./OptimizerPanel";
 
 const PROVIDER_INFO: Record<OrunProvider, { label: string; kind: "local" | "cloud"; defaultModel: string; note?: string }> = {
-  ollama: { label: "Ollama", kind: "local", defaultModel: "llama3.1" },
+  ollama: { label: "Ollama (local)", kind: "local", defaultModel: "llama3.1", note: "Roda no seu PC. Privado e gratuito." },
+  ollama_cloud: { label: "Ollama Cloud", kind: "cloud", defaultModel: "gpt-oss:120b", note: "API hospedada em ollama.com (mesmos modelos do local, pagos)" },
   anthropic: { label: "Claude", kind: "cloud", defaultModel: "claude-sonnet-4-6" },
   openai: { label: "OpenAI", kind: "cloud", defaultModel: "gpt-4o-mini" },
-  openrouter: { label: "OpenRouter", kind: "cloud", defaultModel: "meta-llama/llama-3.3-70b-instruct:free", note: "Free tier: models ending in :free" },
+  openrouter: { label: "OpenRouter", kind: "cloud", defaultModel: "openai/gpt-4o-mini", note: "Pago por token (sem free tier global)" },
   groq: { label: "Groq", kind: "cloud", defaultModel: "llama-3.3-70b-versatile", note: "Free tier, very fast inference" },
   github: { label: "GitHub Models", kind: "cloud", defaultModel: "openai/gpt-4o", note: "Free with a GitHub personal access token (models: read scope)" },
-  opencodezen: { label: "OpenCode Zen", kind: "cloud", defaultModel: "openai/gpt-5.6-sol", note: "Free with OpenCode Zen account" },
+  opencodezen: { label: "OpenCode Zen", kind: "cloud", defaultModel: "deepseek-v4-flash-free", note: "Free com conta OpenCode Zen" },
+  nvidia: { label: "NVIDIA NIM", kind: "cloud", defaultModel: "meta/llama-3.1-70b-instruct", note: "5k créditos free/mês em build.nvidia.com (Llama, Mistral, Gemma, DeepSeek, Nemotron)" },
 };
 
 // ── Section Component ───────────────────────────────────────────────────
@@ -950,7 +952,11 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
     "You are Hampton, the central AI of Orun OS, a personal AI operating system. Be direct, helpful, and concise. IMPORTANTE: Sempre responda em português do Brasil (pt-BR). Nunca use outro idioma."
   );
   const [apiKey, setApiKey] = useState("");
+  const [apiKey2, setApiKey2] = useState("");
+  const [apiKey3, setApiKey3] = useState("");
   const [hasKey, setHasKey] = useState(false);
+  const [hasKey2, setHasKey2] = useState(false);
+  const [hasKey3, setHasKey3] = useState(false);
   const [testState, setTestState] = useState<"idle" | "testing" | "ok" | "error">("idle");
   const [testError, setTestError] = useState("");
   const [ollamaModels, setOllamaModels] = useState<string[]>([]);
@@ -1023,7 +1029,11 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
 
   useEffect(() => {
     if (!isElectron) return;
-    window.orun.settings.hasApiKey(provider).then(setHasKey);
+    window.orun.settings.providerKeyCount(provider).then((count) => {
+      setHasKey(count >= 1);
+      setHasKey2(count >= 2);
+      setHasKey3(count >= 3);
+    });
   }, [provider]);
 
   const refreshOllamaModels = async () => {
@@ -1048,10 +1058,24 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
     await window.orun.settings.set("wakeWordEnabled", wakeWordEnabled);
     await window.orun.settings.set("theme", theme);
     if (apiKey.trim()) {
-      const ok = await window.orun.settings.setApiKey(provider, apiKey.trim());
+      const ok = await window.orun.settings.setProviderKey(provider, 1, apiKey.trim());
       if (ok) {
         setApiKey("");
         setHasKey(true);
+      }
+    }
+    if (apiKey2.trim()) {
+      const ok = await window.orun.settings.setProviderKey(provider, 2, apiKey2.trim());
+      if (ok) {
+        setApiKey2("");
+        setHasKey2(true);
+      }
+    }
+    if (apiKey3.trim()) {
+      const ok = await window.orun.settings.setProviderKey(provider, 3, apiKey3.trim());
+      if (ok) {
+        setApiKey3("");
+        setHasKey3(true);
       }
     }
   };
@@ -1063,6 +1087,16 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
     const result = await window.orun.ai.testConnection({ provider, model, baseUrl });
     if (result.ok) setTestState("ok");
     else { setTestState("error"); setTestError(result.error || t("settingsError")); }
+  };
+
+  const removeProviderKey = async (index: number) => {
+    if (!isElectron) return;
+    const ok = await window.orun.settings.deleteProviderKey(provider, index);
+    if (ok) {
+      if (index === 1) setHasKey(false);
+      if (index === 2) setHasKey2(false);
+      if (index === 3) setHasKey3(false);
+    }
   };
 
   const info = PROVIDER_INFO[provider];
@@ -1238,13 +1272,58 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
                     </>
                   ) : (
                     <>
-                      <SettingRow label={`${t("settings_api_key_label")} ${hasKey ? t("settings_api_key_saved") : ""}`} description={t("settings_api_key_desc", { label: info.label })}>
-                        <input
-                          type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)}
-                          placeholder={hasKey ? "••••••••" : t("settings_api_key_placeholder")}
-                          className="w-48 px-2.5 py-1.5 rounded-md text-[10px] outline-none text-right"
-                          style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }}
-                        />
+                      <SettingRow label={t("settings_api_key_rotation_desc")} description="">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>{t("settings_api_key_max", { max: "3" })}</span>
+                        </div>
+                      </SettingRow>
+                      <SettingRow label={`${t("settings_api_key_label")} 1 ${hasKey ? t("settings_api_key_saved") : ""}`} description={t("settings_api_key_desc", { label: info.label })}>
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)}
+                            placeholder={hasKey ? "••••••••" : t("settings_api_key_placeholder")}
+                            className="w-40 px-2.5 py-1.5 rounded-md text-[10px] outline-none text-right"
+                            style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+                          />
+                          {hasKey && (
+                            <button onClick={() => removeProviderKey(1)} title={t("settings_api_key_remove")}
+                              className="px-1.5 py-1 rounded text-[9px]" style={{ background: "var(--secondary)", color: "var(--muted-foreground)" }}>
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                      </SettingRow>
+                      <SettingRow label={`${t("settings_api_key_label")} 2 ${hasKey2 ? t("settings_api_key_saved") : ""}`}>
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="password" value={apiKey2} onChange={(e) => setApiKey2(e.target.value)}
+                            placeholder={hasKey2 ? "••••••••" : t("settings_api_key_placeholder")}
+                            className="w-40 px-2.5 py-1.5 rounded-md text-[10px] outline-none text-right"
+                            style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+                          />
+                          {hasKey2 && (
+                            <button onClick={() => removeProviderKey(2)} title={t("settings_api_key_remove")}
+                              className="px-1.5 py-1 rounded text-[9px]" style={{ background: "var(--secondary)", color: "var(--muted-foreground)" }}>
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                      </SettingRow>
+                      <SettingRow label={`${t("settings_api_key_label")} 3 ${hasKey3 ? t("settings_api_key_saved") : ""}`}>
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="password" value={apiKey3} onChange={(e) => setApiKey3(e.target.value)}
+                            placeholder={hasKey3 ? "••••••••" : t("settings_api_key_placeholder")}
+                            className="w-40 px-2.5 py-1.5 rounded-md text-[10px] outline-none text-right"
+                            style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+                          />
+                          {hasKey3 && (
+                            <button onClick={() => removeProviderKey(3)} title={t("settings_api_key_remove")}
+                              className="px-1.5 py-1 rounded text-[9px]" style={{ background: "var(--secondary)", color: "var(--muted-foreground)" }}>
+                              ✕
+                            </button>
+                          )}
+                        </div>
                       </SettingRow>
                     </>
                   )}

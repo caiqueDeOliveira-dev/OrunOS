@@ -6,9 +6,10 @@ import type { OrunProvider } from "../../types/orun";
 import type { HamptonState } from "../types";
 
 const PROVIDER_SHORT: Record<OrunProvider, string> = {
-  ollama: "Ollama", anthropic: "Claude", openai: "OpenAI",
+  ollama: "Ollama", ollama_cloud: "Ollama Cloud",
+  anthropic: "Claude", openai: "OpenAI",
   openrouter: "OpenRouter", groq: "Groq", github: "GitHub",
-  opencodezen: "OC Zen",
+  opencodezen: "OC Zen", nvidia: "NVIDIA",
 };
 
 const Clock = React.memo(function Clock({ locale }: { locale: string }) {

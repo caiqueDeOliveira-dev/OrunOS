@@ -38,7 +38,7 @@ export interface SpeechRecognitionInstance extends EventTarget {
   abort(): void;
 }
 
-export type OrunProvider = "ollama" | "anthropic" | "openai" | "openrouter" | "groq" | "github" | "opencodezen";
+export type OrunProvider = "ollama" | "anthropic" | "openai" | "openrouter" | "groq" | "github" | "opencodezen" | "nvidia" | "ollama_cloud";
 
 interface OrunChatMessage {
   role: "user" | "assistant" | "system";
@@ -604,6 +604,70 @@ export interface OrunWhatsAppStatus {
   maxReached?: boolean;
 }
 
+export interface OrunGroupMessage {
+  id?: string | null;
+  fromMe: boolean;
+  bot?: boolean;
+  senderJid?: string;
+  senderName?: string | null;
+  text?: string | null;
+  imageBase64?: string | null;
+  imageMime?: string | null;
+  audioMime?: string | null;
+  audioDuration?: number | null;
+  timestamp: number;
+}
+
+export interface OrunGroupFeedMessage {
+  id: string;
+  provider: "whatsapp" | "telegram";
+  channelId: string;
+  channelName: string;
+  senderName: string;
+  text: string;
+  mediaType: "text" | "image" | "audio";
+  ts: number;
+  fromMe: boolean;
+  externalId: string;
+}
+
+export interface OrunGroupInfo {
+  id: string;
+  channelId: string;
+  provider: "whatsapp" | "telegram";
+  name: string;
+  known?: boolean;
+}
+
+export interface OrunWatchlistItem {
+  id: string;
+  term: string;
+  enabled: boolean;
+  createdAt: number;
+}
+
+export interface OrunGroupWatcherSettings {
+  watchlist: OrunWatchlistItem[];
+  watchedGroups: string[];
+  feedGroups: string[];
+  aiFilter: boolean;
+  alertProvider: "whatsapp" | "telegram";
+  alertTarget: string;
+  deals: {
+    enabled: boolean;
+    intervalHours: number;
+    lastRun: number | null;
+    status: "idle" | "ok" | "empty" | "no-key" | "no-watchlist";
+  };
+}
+
+export interface OrunGroupFeedState {
+  history: OrunGroupFeedMessage[];
+  groups: OrunGroupInfo[];
+  settings: OrunGroupWatcherSettings;
+  groupsCount: number;
+}
+
 export interface OrunSchedule {
   enabled: boolean;
   time: string; // "HH:MM"
@@ -641,6 +705,9 @@ interface OrunAPI {
     set: (key: string, value: unknown) => Promise<boolean>;
     setApiKey: (slot: string, value: string) => Promise<boolean>;
     hasApiKey: (slot: string) => Promise<boolean>;
+    setProviderKey: (provider: string, index: number, value: string) => Promise<boolean>;
+    deleteProviderKey: (provider: string, index: number) => Promise<boolean>;
+    providerKeyCount: (provider: string) => Promise<number>;
     validateApiKey: (provider: string, key: string) => Promise<{ valid: boolean; statusCode?: number; latencyMs?: number; error?: string | null }>;
     encryptDB: () => Promise<{ ok: boolean; error?: string }>;
     decryptDB: () => Promise<{ ok: boolean; error?: string }>;
@@ -800,6 +867,8 @@ interface OrunAPI {
     sendTest: (jid: string, text: string) => Promise<{ ok: boolean; error?: string }>;
     listGroups: () => Promise<{ jid: string; name: string }[]>;
     testGroup: (jid: string, label: string) => Promise<{ ok: boolean; error?: string }>;
+    groupMessages: (jid: string) => Promise<OrunGroupMessage[]>;
+    onGroupMessage: (callback: (payload: { jid: string; message: OrunGroupMessage }) => void) => () => void;
     getAgentJids: () => Promise<Record<string, string>>;
     setAgentJids: (agentJids: Record<string, string>) => Promise<boolean>;
     onStatusUpdate: (callback: (status: OrunWhatsAppStatus) => void) => () => void;
@@ -816,6 +885,19 @@ interface OrunAPI {
     setN8nWebhook: (url: string) => Promise<{ ok: boolean; error?: string }>;
     getN8nWebhook: () => Promise<string>;
     extractDate: (text: string) => Promise<{ date: string; description: string; hour: number; minute: number } | null>;
+  };
+  groupFeed: {
+    getState: () => Promise<OrunGroupFeedState>;
+    getSettings: () => Promise<{ settings: OrunGroupWatcherSettings | null }>;
+    setSettings: (patch: Partial<OrunGroupWatcherSettings>) => Promise<{ settings: OrunGroupWatcherSettings }>;
+    addWatchlistTerm: (term: string) => Promise<{ item?: OrunWatchlistItem; settings?: OrunGroupWatcherSettings; error?: string }>;
+    removeWatchlistTerm: (id: string) => Promise<{ settings: OrunGroupWatcherSettings }>;
+    toggleWatchlistTerm: (id: string, enabled: boolean) => Promise<{ settings: OrunGroupWatcherSettings }>;
+    clearHistory: () => Promise<{ ok: boolean }>;
+    runDealsScan: () => Promise<{ ok: boolean; error?: string; deals?: Array<{ term: string; results: Array<{ title: string; url: string; description?: string }> }> }>;
+    onMessage: (callback: (msg: OrunGroupFeedMessage) => void) => () => void;
+    onAlert: (callback: (alert: unknown) => void) => () => void;
+    onDeals: (callback: (result: unknown) => void) => () => void;
   };
   schedules: {
     get: () => Promise<Record<string, OrunSchedule>>;
@@ -1076,6 +1158,9 @@ interface OrunAPI {
     signIn: (email: string, password: string) => Promise<OrunAuthState>;
     signUp: (email: string, password: string, displayName?: string) => Promise<OrunAuthState>;
     signOut: () => Promise<OrunAuthState>;
+    resetPassword: (email: string) => Promise<{ ok: boolean }>;
+    updatePassword: (password: string) => Promise<{ ok: boolean }>;
+    completeRecovery: (url: string) => Promise<{ ok: boolean }>;
     getOwner: () => Promise<OrunOwnerLink | null>;
     listDevices: (tenantId: string) => Promise<OrunDevice[]>;
     revokeDevice: (deviceId: string) => Promise<void>;

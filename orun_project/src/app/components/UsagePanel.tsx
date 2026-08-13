@@ -7,12 +7,14 @@ import type { OrunUsageRow, OrunTTSUsageRow } from "../../types/orun";
 
 const PROVIDER_LABELS: Record<string, string> = {
   ollama: "Ollama (Local)",
+  ollama_cloud: "Ollama Cloud",
   anthropic: "Claude",
   openai: "OpenAI",
   openrouter: "OpenRouter",
   groq: "Groq",
   github: "GitHub Models",
   opencodezen: "OpenCode Zen",
+  nvidia: "NVIDIA NIM",
   elevenlabs: "ElevenLabs",
   google: "Google Cloud TTS",
   azure: "Azure Speech",

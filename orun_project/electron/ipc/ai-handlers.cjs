@@ -7,6 +7,31 @@ const providerHealth = require("../provider-health.cjs");
 const { getErrorMessage, getErrorTitle } = require("../error-messages.cjs");
 const { isSilentReply, SILENT_MARKER } = require("../silent-mode.cjs");
 
+// Only free-capable providers are automatic fallbacks. Paid providers (OpenAI
+// and Anthropic) are used only when the user explicitly selects one in
+// Settings, so a temporary free-tier limit never creates an unexpected bill.
+const AUTOMATIC_FALLBACK_PROVIDERS = ["groq", "openrouter", "nvidia", "github", "opencodezen"];
+
+function fallbackCandidates(primaryProvider, configuredFallback, secretStore, aiRouter) {
+  const candidates = [];
+  const seen = new Set([primaryProvider]);
+  const add = (provider, model) => {
+    if (!provider || seen.has(provider)) return;
+    const apiKeys = secretStore.getProviderApiKeys(provider);
+    if (!apiKeys.length) return;
+    const fallbackModel = model || aiRouter.KNOWN_FREE_MODELS?.[provider]?.[0];
+    if (!fallbackModel) return;
+    seen.add(provider);
+    candidates.push({ provider, model: fallbackModel, apiKeys });
+  };
+
+  // A manually selected fallback takes priority, then use every other
+  // configured free provider automatically.
+  add(configuredFallback?.provider, configuredFallback?.model);
+  for (const provider of AUTOMATIC_FALLBACK_PROVIDERS) add(provider);
+  return candidates;
+}
+
 function register(ipcMain, ctx) {
   const {
     aiRouter, db, secretStore, agentProcessor, mcpClient, pluginSystem, toolsModule,
@@ -16,8 +41,7 @@ function register(ipcMain, ctx) {
 
   ipcMain.handle("ai:chat", async (_event, { messages, agentId }) => {
     const settings = resolveAISettings(agentId);
-    const keys = secretStore.readSecretStore();
-    const apiKey = keys[settings.provider];
+    const apiKeys = secretStore.getProviderApiKeys(settings.provider);
     let systemPrompt = buildSystemPrompt(settings.systemPrompt, agentId);
     if (ctx.memoryEngine) {
       const lastUser = [...messages].reverse().find((m) => m.role === "user" && typeof m.content === "string")?.content || "";
@@ -26,14 +50,14 @@ function register(ipcMain, ctx) {
         if (memBlock) systemPrompt += memBlock;
       }
     }
-    const { context } = await aiRouter.buildContext({ messages, systemPrompt, provider: settings.provider, model: settings.model, baseUrl: settings.baseUrl, apiKey });
+    const { context } = await aiRouter.buildContext({ messages, systemPrompt, provider: settings.provider, model: settings.model, baseUrl: settings.baseUrl, apiKeys });
 
-    log.info(`[ai:chat] agent=${agentId || "hampton"} provider=${settings.provider} model=${settings.model}`);
+    log.info(`[ai:chat] agent=${agentId || "hampton"} provider=${settings.provider} model=${settings.model} keys=${apiKeys.length}`);
     try {
       const cached = responseCache.get(messages[messages.length - 1]?.content || "", agentId);
       if (cached) { return agentProcessor.processAgentReply(agentId, cached); }
       const tStart = Date.now();
-      const result = await aiRouter.routeChat({ provider: settings.provider, model: settings.model, baseUrl: settings.baseUrl, apiKey, messages: context });
+      const result = await aiRouter.routeChat({ provider: settings.provider, model: settings.model, baseUrl: settings.baseUrl, apiKeys, messages: context });
       telemetry.trace("ai:chat", Date.now() - tStart, { provider: settings.provider, model: settings.model });
       telemetry.counter("ai:chat:success");
       agentProcessor.recordUsageSafely(settings.provider, result.usage);
@@ -43,13 +67,24 @@ function register(ipcMain, ctx) {
     } catch (err) {
       telemetry.counter("ai:chat:error");
       const fallback = db.getSetting("aiFallback", null);
-      if (fallback?.provider) {
-        log.warn(`[ai:chat] ${settings.provider} failed (${err.message}), trying fallback ${fallback.provider}`);
+      const candidates = fallbackCandidates(settings.provider, fallback, secretStore, aiRouter);
+      if (candidates.length) {
+        log.warn(`[ai:chat] ${settings.provider} failed (${err.message}), trying configured providers automatically`);
         try {
-          const result = await aiRouter.routeChat({ provider: fallback.provider, model: fallback.model, apiKey: keys[fallback.provider], messages: context });
-          agentProcessor.recordUsageSafely(fallback.provider, result.usage);
-          if (ctx.analytics) ctx.analytics.logEvent({ type: "ai:chat", agent: agentId || "hampton", detail: `${fallback.provider} ${fallback.model}` });
-          return agentProcessor.processAgentReply(agentId, await agentProcessor.processActions(result.text));
+          let fallbackErr = err;
+          for (const candidate of candidates) {
+            try {
+              log.info(`[ai:chat] trying fallback ${candidate.provider}/${candidate.model} keys=${candidate.apiKeys.length}`);
+              const result = await aiRouter.routeChat({ provider: candidate.provider, model: candidate.model, apiKeys: candidate.apiKeys, messages: context });
+              agentProcessor.recordUsageSafely(candidate.provider, result.usage);
+              if (ctx.analytics) ctx.analytics.logEvent({ type: "ai:chat", agent: agentId || "hampton", detail: `${candidate.provider} ${candidate.model}` });
+              return agentProcessor.processAgentReply(agentId, await agentProcessor.processActions(result.text));
+            } catch (candidateErr) {
+              fallbackErr = candidateErr;
+              log.warn(`[ai:chat] fallback ${candidate.provider} failed: ${candidateErr.message}`);
+            }
+          }
+          throw fallbackErr;
         } catch (fallbackErr) {
           const userMessage = getErrorMessage(fallbackErr);
           const title = getErrorTitle(fallbackErr);
@@ -67,7 +102,7 @@ function register(ipcMain, ctx) {
   ipcMain.on("ai:chat-stream", async (event, { requestId, messages, agentId }) => {
     const sender = event.sender;
     const settings = resolveAISettings(agentId);
-    const keys = secretStore.readSecretStore();
+    const apiKeys = secretStore.getProviderApiKeys(settings.provider);
     let systemPrompt = buildSystemPrompt(settings.systemPrompt, agentId);
     if (ctx.memoryEngine) {
       const lastUser = [...messages].reverse().find((m) => m.role === "user" && typeof m.content === "string")?.content || "";
@@ -78,20 +113,20 @@ function register(ipcMain, ctx) {
     }
     const send = (channel, payload) => { if (!sender.isDestroyed()) sender.send(channel, payload); };
 
-    const attempt = async (provider, model, baseUrl, apiKey) => {
+    const attempt = async (provider, model, baseUrl, keys) => {
       let receivedAny = false;
-      const { context } = await aiRouter.buildContext({ messages, systemPrompt, provider, model, baseUrl, apiKey });
+      const { context } = await aiRouter.buildContext({ messages, systemPrompt, provider, model, baseUrl, apiKeys: keys });
       return aiRouter.streamChat({
-        provider, model, baseUrl, apiKey, messages: context,
+        provider, model, baseUrl, apiKeys: keys, messages: context,
         onChunk: (delta) => { receivedAny = true; send(`ai:chat-stream:chunk:${requestId}`, delta); },
         onRequestReady: (req) => activeStreamRequests.set(requestId, req),
       }).then((result) => ({ result, receivedAny: true })).catch((err) => { throw Object.assign(err, { receivedAny }); });
     };
 
-    log.info(`[ai:chat-stream] agent=${agentId || "hampton"} provider=${settings.provider} model=${settings.model}`);
+    log.info(`[ai:chat-stream] agent=${agentId || "hampton"} provider=${settings.provider} model=${settings.model} keys=${apiKeys.length}`);
     const tStreamStart = Date.now();
     try {
-      const { result } = await attempt(settings.provider, settings.model, settings.baseUrl, keys[settings.provider]);
+      const { result } = await attempt(settings.provider, settings.model, settings.baseUrl, apiKeys);
       activeStreamRequests.delete(requestId);
       agentProcessor.recordUsageSafely(settings.provider, result.usage);
       const finalText = agentProcessor.processAgentReply(agentId, await agentProcessor.processActions(result.text));
@@ -106,16 +141,27 @@ function register(ipcMain, ctx) {
       if (err.cancelled) { log.info(`[ai:chat-stream] ${requestId} cancelled by user`); return; }
 
       const fallback = db.getSetting("aiFallback", null);
-      if (fallback?.provider && !err.receivedAny) {
-        log.warn(`[ai:chat-stream] ${settings.provider} failed (${err.message}), trying fallback ${fallback.provider}`);
+      const candidates = fallbackCandidates(settings.provider, fallback, secretStore, aiRouter);
+      if (candidates.length && !err.receivedAny) {
+        log.warn(`[ai:chat-stream] ${settings.provider} failed (${err.message}), trying configured providers automatically`);
         try {
-          const { result } = await attempt(fallback.provider, fallback.model, undefined, keys[fallback.provider]);
-          activeStreamRequests.delete(requestId);
-          agentProcessor.recordUsageSafely(fallback.provider, result.usage);
-          const finalText = agentProcessor.processAgentReply(agentId, await agentProcessor.processActions(result.text));
-          if (isSilentReply(finalText)) { log.info(`[ai:chat-stream] silent exec agent=${agentId || "hampton"} (fallback)`); send(`ai:chat-stream:done:${requestId}`, { silent: true, text: "" }); }
-          else send(`ai:chat-stream:done:${requestId}`, finalText);
-          return;
+          let fallbackErr = err;
+          for (const candidate of candidates) {
+            try {
+              log.info(`[ai:chat-stream] trying fallback ${candidate.provider}/${candidate.model} keys=${candidate.apiKeys.length}`);
+              const { result } = await attempt(candidate.provider, candidate.model, undefined, candidate.apiKeys);
+              activeStreamRequests.delete(requestId);
+              agentProcessor.recordUsageSafely(candidate.provider, result.usage);
+              const finalText = agentProcessor.processAgentReply(agentId, await agentProcessor.processActions(result.text));
+              if (isSilentReply(finalText)) { log.info(`[ai:chat-stream] silent exec agent=${agentId || "hampton"} (fallback)`); send(`ai:chat-stream:done:${requestId}`, { silent: true, text: "" }); }
+              else send(`ai:chat-stream:done:${requestId}`, finalText);
+              return;
+            } catch (candidateErr) {
+              fallbackErr = candidateErr;
+              log.warn(`[ai:chat-stream] fallback ${candidate.provider} failed: ${candidateErr.message}`);
+            }
+          }
+          throw fallbackErr;
         } catch (fallbackErr) {
           activeStreamRequests.delete(requestId);
           const userMessage = getErrorMessage(fallbackErr);
@@ -187,14 +233,13 @@ function register(ipcMain, ctx) {
 
   ipcMain.handle("ai:test-connection", async (_event, overrideSettings) => {
     const settings = { ...getGlobalAISettings(), ...(overrideSettings || {}) };
-    const keys = secretStore.readSecretStore();
-    return aiRouter.testConnection({ provider: settings.provider, model: settings.model, baseUrl: settings.baseUrl, apiKey: keys[settings.provider] });
+    return aiRouter.testConnection({ provider: settings.provider, model: settings.model, baseUrl: settings.baseUrl, apiKeys: secretStore.getProviderApiKeys(settings.provider) });
   });
 
   ipcMain.handle("ai:list-ollama-models", async (_event, baseUrl) => {
     try { return await aiRouter.listOllamaModels(baseUrl); } catch (err) { log.warn("[ai:list-ollama-models] failed:", err.message); return []; }
   });
-  ipcMain.handle("ai:list-cloud-models", async (_event, provider) => aiRouter.listCloudModels(provider, secretStore.readSecretStore()[provider]));
+  ipcMain.handle("ai:list-cloud-models", async (_event, provider) => aiRouter.listCloudModels(provider, secretStore.getProviderApiKeys(provider)[0]));
   ipcMain.handle("ai:known-free-models", () => aiRouter.KNOWN_FREE_MODELS);
   ipcMain.handle("ai:model-catalog", () => aiRouter.getModelCatalog());
   ipcMain.handle("ai:providers", () => aiRouter.PROVIDERS);

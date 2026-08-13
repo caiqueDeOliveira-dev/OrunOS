@@ -56,6 +56,7 @@ async function runAgentTask(agentName) {
   const provider = override?.provider || globalAI.provider;
   const model = override?.model || globalAI.model;
   const apiKey = deps.getSecret(provider);
+  const apiKeys = deps.getApiKeys ? deps.getApiKeys(provider) : (apiKey ? [apiKey] : []);
   const systemPrompt = agentPrompts.promptFor(agentName, override?.systemPrompt);
 
   const userPrompt = await buildUserPrompt(agentName, db);
@@ -74,7 +75,7 @@ async function runAgentTask(agentName) {
     });
   } else {
     const result = await aiRouter.routeChat({
-      provider, model, baseUrl: globalAI.baseUrl, apiKey,
+      provider, model, baseUrl: globalAI.baseUrl, apiKeys,
       messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }],
     });
     finalText = processAgentReply ? processAgentReply(agentName, result.text) : result.text;

@@ -47,6 +47,7 @@ const WORKSPACE_PLUGINS = [
   () => import("./plugins/workspaces/workspace-personal-assistant"),
   () => import("./plugins/workspaces/workspace-home-ia"),
   () => import("./plugins/workspaces/workspace-cyber-security"),
+  () => import("./plugins/workspaces/workspace-group-feed"),
 ];
 
 const HamptonWolf = lazy(() => import("./components/HamptonWolf").then(m => ({ default: m.HamptonWolf })));
@@ -260,6 +261,8 @@ export function HomeScreen() {
         "suporte": "Suporte",
         "home-ia": "HomeIA",
         "cyber-security": "CyberSecurity",
+        "group-feed": "GroupFeed",
+        "groupFeed": "GroupFeed",
       };
       nav.setWorkspaceOpen(PLUGIN_MAP[workspaceId] || workspaceId);
     };
@@ -287,6 +290,11 @@ export function HomeScreen() {
         case "whatsapp":
           nav.setSettingsOpen(false);
           nav.setWhatsappOpen(true);
+          break;
+        case "groupFeed":
+          nav.setSettingsOpen(false);
+          nav.setWorkspaceOpen("GroupFeed");
+          nav.setActiveNav("groupFeed");
           break;
         case "calendar":
           nav.setCalendarOpen(true);

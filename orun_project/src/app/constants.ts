@@ -1,7 +1,7 @@
 import {
   Home, Users, FolderOpen, Sparkles, Brain, Zap, Files, Settings,
   Code, Music, Video, Globe, Heart, DollarSign, BookOpen, Share2, Megaphone, Car,
-  Scale, Wrench, LifeBuoy, MessageSquare, Shield, House,
+  Scale, Wrench, LifeBuoy, MessageSquare, MessageSquareText, Shield, House,
 } from "lucide-react";
 import type { translations } from "../i18n/translations";
 
@@ -53,6 +53,7 @@ export function getNavTop(t: T) {
     { id: "memory", icon: Brain, label: t("navMemory") },
     { id: "automation", icon: Zap, label: t("navAutomation") },
     { id: "files", icon: Files, label: t("navFiles") },
+    { id: "groupFeed", icon: MessageSquareText, label: t("navGroupFeed") },
   ];
 }
 

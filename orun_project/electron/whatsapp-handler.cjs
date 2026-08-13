@@ -321,7 +321,7 @@ async function handleWhatsAppMessage(payload, ctx) {
   // Cross-provider fallback chain.
   const fallbackChain = [
     { provider: settings.provider, model: settings.model, baseUrl: settings.baseUrl, apiKey: keys[settings.provider] },
-    ...["groq", "openrouter", "github", "opencodezen"]
+    ...["groq", "openrouter", "nvidia", "github", "opencodezen"]
       .filter((p) => p !== settings.provider && keys[p])
       .map((p) => ({ provider: p, model: aiRouter.KNOWN_FREE_MODELS?.[p]?.[0], baseUrl: undefined, apiKey: keys[p] })),
   ];
