@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, Events, Partials } = require("discord.js");
+const { Client, GatewayIntentBits, Events, Partials, REST, Routes } = require("discord.js");
 
 class DiscordBot {
   constructor() {
@@ -8,9 +8,12 @@ class DiscordBot {
     this.log = console;
     this.onMessage = null; // callback: (message, channel) => void
     this.onStatusChange = null; // callback: (status) => void
+    this.onInteraction = null; // callback: (interaction) => void
+    this.commands = []; // array de SlashCommandBuilder (deploy per-guild)
     this._messageHandler = null;
     this._readyHandler = null;
     this._errorHandler = null;
+    this._interactionHandler = null;
   }
 
   setLogger(log) {
@@ -23,6 +26,28 @@ class DiscordBot {
 
   setMessageCallback(onMessage) {
     this.onMessage = onMessage;
+  }
+
+  setCommands(commands) {
+    this.commands = Array.isArray(commands) ? commands : [];
+  }
+
+  setInteractionHandler(onInteraction) {
+    this.onInteraction = onInteraction;
+  }
+
+  async deployCommands() {
+    if (!this.client || !this.client.isReady() || this.commands.length === 0) return;
+    const rest = new REST({ version: "10" }).setToken(this.token);
+    const body = this.commands.map((c) => (typeof c.toJSON === "function" ? c.toJSON() : c));
+    for (const guild of this.client.guilds.cache.values()) {
+      try {
+        await rest.put(Routes.applicationGuildCommands(this.client.user.id, guild.id), { body });
+        this.log.info(`[discord] Comandos registrados em "${guild.name}" (${guild.id})`);
+      } catch (err) {
+        this.log.error(`[discord] Falha ao registrar comandos em "${guild.name}":`, err.message);
+      }
+    }
   }
 
   _emitStatus(status) {
@@ -49,13 +74,14 @@ class DiscordBot {
         partials: [Partials.Channel, Partials.Message],
       });
 
-      this._readyHandler = () => {
+      this._readyHandler = async () => {
         this.log.info(`[discord] Bot logged in as ${this.client.user.tag}`);
         this._emitStatus("connected");
         this.client.user.setPresence({
           activities: [{ name: "Orun OS", type: 0 }],
           status: "online",
         });
+        await this.deployCommands();
       };
 
       this._messageHandler = async (message) => {
@@ -97,8 +123,18 @@ class DiscordBot {
         }
       };
 
+      this._interactionHandler = async (interaction) => {
+        if (!this.onInteraction) return;
+        try {
+          await this.onInteraction(interaction);
+        } catch (err) {
+          this.log.error("[discord] Interaction handler error:", err.message);
+        }
+      };
+
       this.client.once(Events.ClientReady, this._readyHandler);
       this.client.on(Events.MessageCreate, this._messageHandler);
+      this.client.on(Events.InteractionCreate, this._interactionHandler);
       this.client.on(Events.Error, this._errorHandler);
 
       await this.client.login(token);

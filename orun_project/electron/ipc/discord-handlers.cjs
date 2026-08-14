@@ -1,5 +1,21 @@
+const palworldSetup = require("../palworld-setup.cjs");
+const tropaModules = require("../tropa-modules.cjs");
+
 function register(ipcMain, ctx) {
-  const { discordBot, secretStore, aiRouter, buildSystemPrompt, log } = ctx;
+  const { discordBot, secretStore, aiRouter, buildSystemPrompt, log, db } = ctx;
+
+  // ── Slash commands / interações (área Palworld + módulos da Tropa) ──
+  discordBot.setCommands([
+    ...palworldSetup.buildCommandDefinitions(),
+    ...tropaModules.buildCommandDefinitions(),
+  ]);
+  const tropaHandler = tropaModules.buildInteractionHandler({ log, db });
+  const palworldHandler = palworldSetup.buildInteractionHandler({ log });
+  discordBot.setInteractionHandler(async (interaction) => {
+    const handled = await tropaHandler(interaction);
+    if (handled !== undefined) return handled;
+    return palworldHandler(interaction);
+  });
 
   // ── Connection ──────────────────────────────────────────────────
   ipcMain.handle("discord:get-token", async () => {
