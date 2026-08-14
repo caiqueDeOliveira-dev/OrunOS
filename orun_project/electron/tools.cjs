@@ -15,6 +15,7 @@ const { getErrorMessage } = require("./error-messages.cjs");
 const auditLog = require("./audit-log.cjs");
 const developerTools = require("./developer-tools.cjs");
 const firecrawl = require("./firecrawl.cjs");
+const discordBridge = require("./discord-bridge.cjs");
 
 // ── Rate limiter (simple in-memory) ────────────────────────────────────
 const agentRateLimiter = {
@@ -121,6 +122,7 @@ let ctx = null; // { db, socialMedia }
 
 function init(userDataPath, context) {
   ctx = context || null;
+  discordBridge.init(ctx);
   auditLog.init(userDataPath);
 }
 
@@ -781,6 +783,9 @@ const TOOL_DEFINITIONS = [
   },
 ];
 
+// Ferramentas do CaOS Commander (ponte cérebro ↔ bot Discord — Fase 3)
+TOOL_DEFINITIONS.push(...discordBridge.TOOL_DEFINITIONS);
+
 // ── Tool implementations ────────────────────────────────────────────────
 
 function readFile(args) {
@@ -1220,6 +1225,13 @@ async function executeToolRaw(name, args) {
     case "publish_to_social": return publishToSocial(args);
     case "generate_image": return generateImage(args);
     case "generate_video": return generateVideo(args);
+    case "discord_status": return discordBridge.execute("status", args || {});
+    case "discord_server_info": return discordBridge.execute("server_info", args || {});
+    case "discord_channels": return discordBridge.execute("channels", args || {});
+    case "discord_roles": return discordBridge.execute("roles", args || {});
+    case "discord_plan": return discordBridge.execute("plan", args || {});
+    case "discord_apply": return discordBridge.execute("apply", args || {});
+    case "discord_archive_game": return discordBridge.execute("archive_game", args || {});
     case "web_search": {
       const { query, numResults = 5 } = args;
       const keys = ctx && ctx.readSecretStore ? ctx.readSecretStore() : {};

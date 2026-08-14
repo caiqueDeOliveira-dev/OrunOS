@@ -376,17 +376,28 @@ describe("tropa-modules / buildInteractionHandler", () => {
 
   it("/arquivar-jogo confirmar:true arquiva jogo do sistema", async () => {
     const db = makeDb();
-    const setParent = vi.fn().mockResolvedValue(undefined);
-    const gameCat = makeChannel({ id: "cat-tarkov", name: "🎮・Tarkov", type: ChannelType.GuildCategory, setParent });
-    const guild = makeGuild({ channels: [gameCat] });
-    tropa.addGame(db, guild.id, { slug: "tarkov", name: "Tarkov", categoryId: "cat-tarkov", channelIds: [], archived: false, createdAt: Date.now() });
+    const setParentChild = vi.fn().mockResolvedValue(undefined);
+    const hideCat = vi.fn().mockResolvedValue(undefined);
+    const gameCat = {
+      id: "cat-tarkov",
+      name: "🎮・Tarkov",
+      type: ChannelType.GuildCategory,
+      parentId: null,
+      position: 0,
+      permissionOverwrites: { create: hideCat },
+    };
+    const childText = makeChannel({ id: "ch-1", name: "regras", type: ChannelType.GuildText, parentId: "cat-tarkov", setParent: setParentChild });
+    const guild = makeGuild({ channels: [gameCat, childText] });
+    tropa.addGame(db, guild.id, { slug: "tarkov", name: "Tarkov", categoryId: "cat-tarkov", channelIds: ["ch-1"], archived: false, createdAt: Date.now() });
 
     const handler = tropa.buildInteractionHandler({ log, db });
     const { interaction, calls } = makeInteraction({ commandName: "arquivar-jogo", options: { jogo: "Tarkov", confirmar: true }, guild });
     await handler(interaction);
     expect(calls.deferredReply).toBe(1);
     expect(calls.edits.length).toBe(1);
-    expect(setParent).toHaveBeenCalled();
+    expect(setParentChild).toHaveBeenCalledTimes(1);
+    expect(setParentChild.mock.calls[0][0]).toBeDefined();
+    expect(hideCat).toHaveBeenCalled();
     expect(tropa.getTracker(db, guild.id).games[0].archived).toBe(true);
   });
 

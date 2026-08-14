@@ -412,8 +412,29 @@ async function executeArchive(guild, game, cat, log) {
     }
   }
 
-  if (cat && typeof cat.setParent === "function") {
-    await cat.setParent(archiveCat.id, { lockPermissions: false });
+  // Categorias não podem ser aninhadas (Discord), então movemos os CANAIS do
+  // jogo para dentro da categoria de arquivo e escondemos a categoria vazia
+  // (@everyone sem ViewChannel). Nada é apagado — reversível manualmente.
+  if (cat) {
+    const children = channels.filter((c) => c.parentId === cat.id && c.type !== ChannelType.GuildCategory);
+    for (const ch of children) {
+      if (ch && typeof ch.setParent === "function") {
+        await ch.setParent(archiveCat.id, { lockPermissions: false });
+      }
+    }
+    if (
+      cat.permissionOverwrites &&
+      typeof cat.permissionOverwrites.create === "function" &&
+      guild.roles &&
+      guild.roles.everyone
+    ) {
+      const everyone = guild.roles.everyone;
+      const current = cat.permissionOverwrites.cache ? cat.permissionOverwrites.cache.get(everyone.id) : null;
+      const alreadyDenied = current && current.deny && current.deny.has(PermissionFlagsBits.ViewChannel);
+      if (!alreadyDenied) {
+        await cat.permissionOverwrites.create(everyone.id, { ViewChannel: false });
+      }
+    }
   }
 
   return { archiveCategoryId: archiveCat.id };

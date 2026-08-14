@@ -69,6 +69,7 @@ type TranslationKeys = {
   agentPersonalAssistant: string;
   agentHomeIA: string;
   agentCyberSecurity: string;
+  agentCaOSCommander: string;
   agentSpeechAudio: string;
   agentKnowledgeMemory: string;
   agentOSConfig: string;
@@ -1470,6 +1471,7 @@ export const translations: Record<Language, TranslationKeys> = {
     agentPersonalAssistant: "Assistente Pessoal",
     agentHomeIA: "Casa Inteligente",
     agentCyberSecurity: "Segurança Cibernética",
+    agentCaOSCommander: "Comandante do Discord (Tropa do CaOS)",
     agentSpeechAudio: "Fala & Áudio",
     agentKnowledgeMemory: "Conhecimento & Memória",
     agentOSConfig: "SO & Configuração",
@@ -2870,6 +2872,7 @@ export const translations: Record<Language, TranslationKeys> = {
     agentPersonalAssistant: "Personal Assistant",
     agentHomeIA: "Smart Home",
     agentCyberSecurity: "Cyber Security",
+    agentCaOSCommander: "Discord Commander (Tropa do CaOS)",
     agentSpeechAudio: "Speech & Audio",
     agentKnowledgeMemory: "Knowledge & Memory",
     agentOSConfig: "OS & Configuration",
@@ -4269,6 +4272,7 @@ export const translations: Record<Language, TranslationKeys> = {
     agentPersonalAssistant: "Asistente Personal",
     agentHomeIA: "Hogar Inteligente",
     agentCyberSecurity: "Ciberseguridad",
+    agentCaOSCommander: "Comandante de Discord (Tropa do CaOS)",
     agentSpeechAudio: "Habla y Audio",
     agentKnowledgeMemory: "Conocimiento y Memoria",
     agentOSConfig: "SO y Configuración",
@@ -5669,6 +5673,7 @@ export const translations: Record<Language, TranslationKeys> = {
     agentPersonalAssistant: "Assistant Personnel",
     agentHomeIA: "Maison Intelligente",
     agentCyberSecurity: "Cybersécurité",
+    agentCaOSCommander: "Commandant Discord (Tropa do CaOS)",
     agentSpeechAudio: "Parole & Audio",
     agentKnowledgeMemory: "Connaissance & Mémoire",
     agentOSConfig: "OS & Configuration",

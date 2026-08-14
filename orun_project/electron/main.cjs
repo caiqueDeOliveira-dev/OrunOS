@@ -163,6 +163,7 @@ const AGENT_RECOMMENDED_MODELS = {
   Automotive: { provider: "openrouter",  model: "openai/gpt-4o-mini" },
   Juridico:   { provider: "openrouter",  model: "openai/gpt-4o-mini" },
   System:     { provider: "openrouter",  model: "openai/gpt-4o-mini" },
+  "CaOS Commander": { provider: "openrouter", model: "openai/gpt-4o-mini" },
 };
 
 // ── Agent Tool Permissions ──────────────────────────────────────────────
@@ -248,6 +249,12 @@ const AGENT_TOOL_PERMISSIONS = {
     "memory_save", "memory_search", "rag_search",
     "notify", "schedule_task", "trigger_agent",
     "open_workspace", "workspace_action",
+  ],
+  "CaOS Commander": [
+    "discord_status", "discord_server_info", "discord_channels", "discord_roles",
+    "discord_plan", "discord_apply", "discord_archive_game",
+    "read_file", "list_files", "web_fetch", "web_search",
+    "memory_save", "memory_search", "rag_search", "notify", "trigger_agent",
   ],
   Hampton: null, // null = all tools (default agent)
 };
@@ -1213,7 +1220,7 @@ app.whenReady().then(() => {
   } catch (err) {
     log.warn("[identity] init failed:", err.message);
   }
-  toolsModule.init(app.getPath("userData"), { db, socialMedia, image3d, videoGenerator, readSecretStore: secretStore.readSecretStore });
+  toolsModule.init(app.getPath("userData"), { db, socialMedia, image3d, videoGenerator, readSecretStore: secretStore.readSecretStore, discordBot, log: logger.tools });
   logger.tools.info("Tools module initialized");
   toolsModule.setAllowedRoots([app.getPath("userData"), app.getPath("documents"), app.getPath("desktop"), app.getPath("home")]);
   rag.init(app.getPath("userData"), db.getSetting("ollama", {}).baseUrl);
@@ -1396,7 +1403,13 @@ app.whenReady().then(() => {
 
   // Auto-connect Discord on startup if token exists
   const discordTokenEntry = secretStore.readSecretStore().discord_bot_token;
-  const discordToken = typeof discordTokenEntry === "string" ? discordTokenEntry : discordTokenEntry?.token;
+  let discordToken = typeof discordTokenEntry === "string" ? discordTokenEntry : discordTokenEntry?.token;
+  if (typeof discordToken === "string" && discordToken.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(discordToken);
+      discordToken = typeof parsed === "string" ? parsed : parsed?.token;
+    } catch { /* mantém a string crua */ }
+  }
   if (discordToken) {
     log.info("[discord] token found, auto-connecting...");
     discordBot.connect(discordToken).catch((err) => {
