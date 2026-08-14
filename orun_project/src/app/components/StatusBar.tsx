@@ -8,7 +8,7 @@ import type { HamptonState } from "../types";
 const PROVIDER_SHORT: Record<OrunProvider, string> = {
   ollama: "Ollama", ollama_cloud: "Ollama Cloud",
   anthropic: "Claude", openai: "OpenAI",
-  openrouter: "OpenRouter", groq: "Groq", github: "GitHub",
+  openrouter: "OpenRouter", groq: "Groq",
   opencodezen: "OC Zen", nvidia: "NVIDIA",
 };
 

@@ -12,7 +12,6 @@ const PROVIDER_INFO: Record<OrunProvider, { label: string; kind: "local" | "clou
   openai: { label: "OpenAI", kind: "cloud" },
   openrouter: { label: "OpenRouter", kind: "cloud" },
   groq: { label: "Groq", kind: "cloud" },
-  github: { label: "GitHub Models", kind: "cloud" },
   opencodezen: { label: "OpenCode Zen", kind: "cloud" },
   nvidia: { label: "NVIDIA NIM", kind: "cloud" },
 };

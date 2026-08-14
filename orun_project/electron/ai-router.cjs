@@ -4,9 +4,9 @@
 // Given a provider + model + message history, calls the right backend and
 // returns/streams a reply — plus, where the provider reports it, token
 // usage for the "Usage today" panel. Ollama and Anthropic have their own
-// wire format; everything else (OpenAI, OpenRouter, Groq, GitHub Models)
-// speaks the same OpenAI-compatible Chat Completions API, so they share
-// one implementation and only differ by base URL + auth headers.
+// wire format; everything else (OpenAI, OpenRouter, Groq, NVIDIA, Ollama
+// Cloud, OpenCodeZen) speaks the same OpenAI-compatible Chat Completions
+// API, so they share one implementation and only differ by base URL + auth headers.
 
 const https = require("https");
 const http = require("http");
@@ -20,7 +20,6 @@ const httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 10, maxFreeSoc
 const PROVIDER_RATE_LIMITS = {
   groq: { rpm: 30, rpd: 14400 },
   openrouter: { rpm: 200, rpd: 200 },
-  github: { rpm: 15, rpd: 1500 },
   opencodezen: { rpm: 60, rpd: 1000 },
 };
 
@@ -284,10 +283,9 @@ async function buildContext({ messages, systemPrompt, maxMessages = 10, provider
 
 const OPENAI_COMPATIBLE = {
   openai: { baseUrl: "https://api.openai.com/v1", authHeaders: (key) => ({ Authorization: `Bearer ${key}` }), defaultModel: "gpt-4o-mini" },
-  openrouter: { baseUrl: "https://openrouter.ai/api/v1", authHeaders: (key) => ({ Authorization: `Bearer ${key}`, "HTTP-Referer": "https://orunos.local", "X-Title": "Orun OS" }), defaultModel: "meta-llama/llama-3.3-70b-instruct:free" },
+  openrouter: { baseUrl: "https://openrouter.ai/api/v1", authHeaders: (key) => ({ Authorization: `Bearer ${key}`, "HTTP-Referer": "https://orunos.local", "X-Title": "Orun OS" }), defaultModel: "openai/gpt-oss-20b:free" },
   groq: { baseUrl: "https://api.groq.com/openai/v1", authHeaders: (key) => ({ Authorization: `Bearer ${key}` }), defaultModel: "llama-3.3-70b-versatile" },
-  github: { baseUrl: "https://models.github.ai/inference", authHeaders: (key) => ({ Authorization: `Bearer ${key}`, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" }), defaultModel: "openai/gpt-4o" },
-  opencodezen: { baseUrl: "https://opencode.ai/zen/v1", authHeaders: (key) => ({ Authorization: `Bearer ${key}` }), defaultModel: "gpt-5.6-sol" },
+  opencodezen: { baseUrl: "https://opencode.ai/zen/v1", authHeaders: (key) => ({ Authorization: `Bearer ${key}` }), defaultModel: "big-pickle" },
   // NVIDIA NIM Cloud — https://build.nvidia.com (free credits mensalmente).
   nvidia: { baseUrl: "https://integrate.api.nvidia.com/v1", authHeaders: (key) => ({ Authorization: `Bearer ${key}` }), defaultModel: "meta/llama-3.1-70b-instruct" },
   // Ollama Cloud — https://ollama.com (mesma API OpenAI-compat, modelos hospedados).
@@ -325,7 +323,7 @@ function formatMessagesFor(provider, messages) {
     if (provider === "ollama") {
       return { role: m.role, content: m.content, images: [m.image.base64] };
     }
-    // OpenAI-compatible (openai, openrouter, github; groq mostly lacks vision but shares the shape)
+    // OpenAI-compatible (openai, openrouter, nvidia, ollama_cloud, opencodezen; groq mostly lacks vision but shares the shape)
     return {
       role: m.role,
       content: [
@@ -691,21 +689,22 @@ const MODEL_CATALOG = {
     { id: "claude-opus-4.8", free: false },
   ],
   openrouter: [
-    { id: "meta-llama/llama-3.3-70b-instruct:free", free: true },
-    { id: "qwen/qwen3-coder:free", free: true },
+    { id: "openai/gpt-oss-20b:free", free: true },
     { id: "nvidia/nemotron-3-ultra-550b-a55b:free", free: true },
     { id: "nvidia/nemotron-3-super-120b-a12b:free", free: true },
     { id: "nvidia/nemotron-3-nano-30b-a3b:free", free: true },
     { id: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free", free: true },
+    { id: "nvidia/nemotron-3.5-lightning:free", free: true },
+    { id: "nvidia/nemotron-3.5-content-safety:free", free: true },
     { id: "nvidia/nemotron-nano-9b-v2:free", free: true },
     { id: "nvidia/nemotron-nano-12b-v2-vl:free", free: true },
-    { id: "openai/gpt-oss-20b:free", free: true },
-    { id: "tencent/hy3:free", free: true },
     { id: "google/gemma-4-31b-it:free", free: true },
     { id: "google/gemma-4-26b-a4b-it:free", free: true },
-    { id: "poolside/laguna-m.1:free", free: true },
-    { id: "poolside/laguna-xs-2.1:free", free: true },
     { id: "cohere/north-mini-code:free", free: true },
+    { id: "poolside/laguna-s-2.1:free", free: true },
+    { id: "poolside/laguna-xs-2.1:free", free: true },
+    { id: "liquid/lfm-2.5-2.6b:free", free: true },
+    { id: "openrouter/free", free: true },
     { id: "deepseek/deepseek-v4-flash", free: false },
     { id: "z-ai/glm-5.1", free: false },
     { id: "qwen/qwen3.5-plus", free: false },
@@ -715,24 +714,21 @@ const MODEL_CATALOG = {
   groq: [
     { id: "llama-3.3-70b-versatile", free: true },
     { id: "llama-3.1-8b-instant", free: true },
-    { id: "qwen/qwen3-32b", free: true },
     { id: "openai/gpt-oss-120b", free: true },
     { id: "openai/gpt-oss-20b", free: true },
     { id: "allam-2-7b", free: true },
     { id: "groq/compound", free: true },
     { id: "groq/compound-mini", free: true },
   ],
-  github: [
-    { id: "openai/gpt-4o", free: true },
-    { id: "openai/gpt-4o-mini", free: true },
-    { id: "openai/gpt-5-nano", free: true },
-    { id: "meta/llama-3.3-70b-instruct", free: true },
-    { id: "meta/llama-4-scout-17b-16e-instruct", free: true },
-    { id: "mistral-ai/mistral-large-2411", free: true },
-    { id: "mistral-ai/codestral-2501", free: true },
-  ],
   opencodezen: [
-    { id: "gpt-5.6-sol", free: true },
+    { id: "big-pickle", free: true },
+    { id: "deepseek-v4-flash-free", free: true },
+    { id: "mimo-v2.5-free", free: true },
+    { id: "hy3-free", free: true },
+    { id: "nemotron-3-ultra-free", free: true },
+    { id: "nemotron-3.5-lightning-free", free: true },
+    { id: "laguna-s-2.1-free", free: true },
+    { id: "gpt-5.6-sol", free: false },
     { id: "gpt-5.6-terra", free: false },
     { id: "gpt-5.6-luna", free: false },
     { id: "gpt-5.5", free: false },
@@ -752,46 +748,43 @@ const MODEL_CATALOG = {
     { id: "gpt-5", free: false },
     { id: "gpt-5-codex", free: false },
     { id: "gpt-5-nano", free: false },
-    { id: "gpt-5-mini", free: false },
-    { id: "gpt-5-pro", free: false },
-    { id: "claude-opus-4-1", free: false },
-    { id: "claude-opus-4-5", free: false },
-    { id: "claude-opus-4-6", free: false },
-    { id: "claude-opus-4-7", free: false },
-    { id: "claude-opus-4-8", free: false },
     { id: "claude-fable-5", free: false },
-    { id: "claude-sonnet-4", free: false },
-    { id: "claude-sonnet-4-5", free: false },
-    { id: "claude-sonnet-4-6", free: false },
+    { id: "claude-opus-5", free: false },
+    { id: "claude-opus-4-8", free: false },
+    { id: "claude-opus-4-7", free: false },
+    { id: "claude-opus-4-6", free: false },
+    { id: "claude-opus-4-5", free: false },
     { id: "claude-sonnet-5", free: false },
+    { id: "claude-sonnet-4-6", free: false },
+    { id: "claude-sonnet-4-5", free: false },
+    { id: "claude-sonnet-4", free: false },
     { id: "claude-haiku-4-5", free: false },
-    { id: "gemini-3-flash", free: false },
-    { id: "gemini-3.1-pro", free: false },
+    { id: "gemini-3.7-flash", free: false },
+    { id: "gemini-3.6-flash", free: false },
+    { id: "gemini-3.5-flash-lite", free: false },
     { id: "gemini-3.5-flash", free: false },
+    { id: "gemini-3.1-pro", free: false },
+    { id: "gemini-3-flash", free: false },
+    { id: "grok-4.6", free: false },
     { id: "grok-4.5", free: false },
     { id: "grok-build-0.1", free: false },
-    { id: "deepseek-v4-flash", free: false },
+    { id: "muse-spark-1.2", free: false },
     { id: "deepseek-v4-pro", free: false },
-    { id: "glm-5", free: false },
-    { id: "glm-5.1", free: false },
+    { id: "deepseek-v4-flash", free: false },
     { id: "glm-5.2", free: false },
-    { id: "minimax-m2.5", free: false },
-    { id: "minimax-m2.7", free: false },
+    { id: "glm-5.1", free: false },
+    { id: "glm-5", free: false },
     { id: "minimax-m3", free: false },
-    { id: "kimi-k2.5", free: false },
-    { id: "kimi-k2.6", free: false },
+    { id: "minimax-m2.7", free: false },
+    { id: "minimax-m2.5", free: false },
+    { id: "kimi-k3", free: false },
     { id: "kimi-k2.7-code", free: false },
-    { id: "qwen3.5-plus", free: false },
+    { id: "kimi-k2.6", free: false },
+    { id: "kimi-k2.5", free: false },
     { id: "qwen3.6-plus", free: false },
-    { id: "deepseek-v4-flash-free", free: true },
-    { id: "deepseek-v4-flash-free", free: true },
-    { id: "mimo-v2.5-free", free: true },
-    { id: "hy3-free", free: true },
-    { id: "nemotron-3-ultra-free", free: true },
-    { id: "north-mini-code-free", free: true },
+    { id: "qwen3.5-plus", free: false },
   ],
 };
-
 function getModelCatalog() {
   return MODEL_CATALOG;
 }

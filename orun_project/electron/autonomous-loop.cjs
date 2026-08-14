@@ -80,7 +80,7 @@ async function autonomousLoop({ messages, agentId, sender, requestId, cancelledR
 
   // Keep the free cloud providers in the same automatic fallback chain,
   // including NVIDIA NIM when it has a valid key configured.
-  const fallbackProviders = ["opencodezen", "groq", "openrouter", "nvidia", "github"];
+  const fallbackProviders = ["opencodezen", "groq", "openrouter", "nvidia"];
   const triedProviders = new Set([settings.provider]);
   const retriedProvider = new Set();
   let currentProvider = settings.provider;

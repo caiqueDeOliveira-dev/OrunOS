@@ -12,7 +12,6 @@ const PROVIDER_LABELS: Record<string, string> = {
   openai: "OpenAI",
   openrouter: "OpenRouter",
   groq: "Groq",
-  github: "GitHub Models",
   opencodezen: "OpenCode Zen",
   nvidia: "NVIDIA NIM",
   elevenlabs: "ElevenLabs",

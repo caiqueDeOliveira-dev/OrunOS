@@ -19,10 +19,9 @@ const PROVIDER_INFO: Record<OrunProvider, { label: string; kind: "local" | "clou
   ollama_cloud: { label: "Ollama Cloud", kind: "cloud", defaultModel: "gpt-oss:120b", note: "API hospedada em ollama.com (mesmos modelos do local, pagos)" },
   anthropic: { label: "Claude", kind: "cloud", defaultModel: "claude-sonnet-4-6" },
   openai: { label: "OpenAI", kind: "cloud", defaultModel: "gpt-4o-mini" },
-  openrouter: { label: "OpenRouter", kind: "cloud", defaultModel: "openai/gpt-4o-mini", note: "Pago por token (sem free tier global)" },
+  openrouter: { label: "OpenRouter", kind: "cloud", defaultModel: "openai/gpt-oss-20b:free", note: "Free tier (modelos :free) + pago por token" },
   groq: { label: "Groq", kind: "cloud", defaultModel: "llama-3.3-70b-versatile", note: "Free tier, very fast inference" },
-  github: { label: "GitHub Models", kind: "cloud", defaultModel: "openai/gpt-4o", note: "Free with a GitHub personal access token (models: read scope)" },
-  opencodezen: { label: "OpenCode Zen", kind: "cloud", defaultModel: "deepseek-v4-flash-free", note: "Free com conta OpenCode Zen" },
+  opencodezen: { label: "OpenCode Zen", kind: "cloud", defaultModel: "big-pickle", note: "Free com conta OpenCode Zen" },
   nvidia: { label: "NVIDIA NIM", kind: "cloud", defaultModel: "meta/llama-3.1-70b-instruct", note: "5k créditos free/mês em build.nvidia.com (Llama, Mistral, Gemma, DeepSeek, Nemotron)" },
 };
 

@@ -171,7 +171,6 @@ type TranslationKeys = {
   settingsOllamaNote: string;
   settingsApiKeySaved: string;
   settingsApiKeyPlaceholder: string;
-  settingsApiKeyPlaceholderGithub: string;
   settingsApiKeyKeepPlaceholder: string;
   settingsApiKeyNote: string;
   settingsSystemPrompt: string;
@@ -1575,7 +1574,6 @@ export const translations: Record<Language, TranslationKeys> = {
     settingsOllamaUrl: "Ollama URL",
     settingsOllamaNote: "Requer o Ollama rodando localmente (ollama.com). Nenhum dado sai desta máquina.",
     settingsApiKeySaved: "salva • criptografada",
-    settingsApiKeyPlaceholderGithub: "github_pat_...",
     settingsApiKeyPlaceholder: "sk-...",
     settingsApiKeyKeepPlaceholder: "•••••••••••••••• (deixe em branco para manter)",
     settingsApiKeyNote: "Armazenado criptografado nesta máquina via keychain do SO. Nunca enviado para outro lugar exceto a API oficial de",
@@ -2976,7 +2974,6 @@ export const translations: Record<Language, TranslationKeys> = {
     settingsOllamaUrl: "Ollama URL",
     settingsOllamaNote: "Requires Ollama running locally (ollama.com). No data leaves this machine.",
     settingsApiKeySaved: "saved • encrypted",
-    settingsApiKeyPlaceholderGithub: "github_pat_...",
     settingsApiKeyPlaceholder: "sk-...",
     settingsApiKeyKeepPlaceholder: "•••••••••••••••• (leave blank to keep)",
     settingsApiKeyNote: "Stored encrypted on this machine via OS keychain. Never sent anywhere except the official",
@@ -4376,7 +4373,6 @@ export const translations: Record<Language, TranslationKeys> = {
     settingsOllamaUrl: "URL de Ollama",
     settingsOllamaNote: "Requiere Ollama ejecutándose localmente (ollama.com). Ningún dato sale de esta máquina.",
     settingsApiKeySaved: "guardada • encriptada",
-    settingsApiKeyPlaceholderGithub: "github_pat_...",
     settingsApiKeyPlaceholder: "sk-...",
     settingsApiKeyKeepPlaceholder: "•••••••••••••••• (deje en blanco para mantener)",
     settingsApiKeyNote: "Almacenado encriptado en esta máquina vía keychain del SO. Nunca enviado a otro lugar excepto la API oficial de",
@@ -5777,7 +5773,6 @@ export const translations: Record<Language, TranslationKeys> = {
     settingsOllamaUrl: "URL Ollama",
     settingsOllamaNote: "Nécessite Ollama en cours d'exécution localement (ollama.com). Aucune donnée ne sort de cette machine.",
     settingsApiKeySaved: "sauvegardée • chiffrée",
-    settingsApiKeyPlaceholderGithub: "github_pat_...",
     settingsApiKeyPlaceholder: "sk-...",
     settingsApiKeyKeepPlaceholder: "•••••••••••••••• (laissez vide pour conserver)",
     settingsApiKeyNote: "Stocké chiffré sur cette machine via le keychain du système. Jamais envoyé ailleurs que vers l'API officielle de",

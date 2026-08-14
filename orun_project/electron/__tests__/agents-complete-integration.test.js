@@ -69,19 +69,19 @@ const AGENT_WORKSPACE_MAP = {
 // ── RECOMMENDED MODELS (from main.cjs) ────────────────────────────────
 const AGENT_RECOMMENDED_MODELS = {
   Hampton:    { provider: "groq",        model: "llama-3.3-70b-versatile" },
-  Developer:  { provider: "groq",        model: "qwen/qwen3-32b" },
+  Developer:  { provider: "groq",        model: "llama-3.3-70b-versatile" },
   Designer:   { provider: "opencodezen", model: "big-pickle" },
   Creator:    { provider: "groq",        model: "llama-3.3-70b-versatile" },
   Health:     { provider: "groq",        model: "llama-3.3-70b-versatile" },
   Finance:    { provider: "groq",        model: "llama-3.3-70b-versatile" },
-  Teacher:    { provider: "groq",        model: "qwen/qwen3-32b" },
+  Teacher:    { provider: "groq",        model: "llama-3.3-70b-versatile" },
   Marketing:  { provider: "opencodezen", model: "big-pickle" },
   "Personal Assistant": { provider: "groq", model: "llama-3.3-70b-versatile" },
   Automation: { provider: "groq",        model: "llama-3.3-70b-versatile" },
   Automotive: { provider: "groq",        model: "llama-3.3-70b-versatile" },
   Juridico:   { provider: "groq",        model: "llama-3.3-70b-versatile" },
   System:     { provider: "groq",        model: "llama-3.3-70b-versatile" },
-  "CaOS Commander": { provider: "openrouter", model: "openai/gpt-4o-mini" },
+  "CaOS Commander": { provider: "openrouter", model: "openai/gpt-oss-20b:free" },
 };
 
 // ── TOOL PERMISSIONS (from main.cjs) ──────────────────────────────────
@@ -310,7 +310,7 @@ describe("All agents have recommended models", () => {
   }
 
   it("All recommended models have valid providers", () => {
-    const validProviders = ["groq", "opencodezen", "openrouter", "github", "ollama"];
+    const validProviders = ["groq", "opencodezen", "openrouter", "ollama"];
     for (const [agent, cfg] of Object.entries(AGENT_RECOMMENDED_MODELS)) {
       expect(validProviders, `Agent "${agent}" has invalid provider: ${cfg.provider}`).toContain(cfg.provider);
     }

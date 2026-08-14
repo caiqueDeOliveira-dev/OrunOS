@@ -145,25 +145,26 @@ const DEFAULT_AI_SETTINGS = {
 
 // Recommended model per agent — used as default when no override is set.
 // The UI shows "(Recomendado)" next to these.
-// Atualizado em 2026-08-13: opencodezen "big-pickle" removido (404 free),
-// Groq sem chave válida, cadeia de fallback passa por openrouter pago.
+// Atualizado em 2026-08-14: GitHub Models aposentado (30/07/2026) — provider
+// removido. opencodezen "big-pickle" re-adicionado (free). Modelos free
+// revalidados por provider (openrouter :free, groq, nvidia, ollama_cloud).
 const AGENT_RECOMMENDED_MODELS = {
-  Hampton:    { provider: "openrouter",  model: "openai/gpt-4o-mini" },
-  Developer:  { provider: "openrouter",  model: "openai/gpt-4o-mini" },
-  Designer:   { provider: "openrouter",  model: "openai/gpt-4o-mini" },
-  Creator:    { provider: "openrouter",  model: "openai/gpt-4o-mini" },
-  Health:     { provider: "openrouter",  model: "openai/gpt-4o-mini" },
-  Finance:    { provider: "openrouter",  model: "openai/gpt-4o-mini" },
-  Teacher:    { provider: "openrouter",  model: "openai/gpt-4o-mini" },
-  Marketing:  { provider: "openrouter",  model: "openai/gpt-4o-mini" },
-  "Personal Assistant": { provider: "openrouter", model: "openai/gpt-4o-mini" },
-  "Home IA":       { provider: "openrouter",  model: "openai/gpt-4o-mini" },
-  "Cyber Security": { provider: "openrouter",  model: "openai/gpt-4o-mini" },
-  Automation: { provider: "openrouter",  model: "openai/gpt-4o-mini" },
-  Automotive: { provider: "openrouter",  model: "openai/gpt-4o-mini" },
-  Juridico:   { provider: "openrouter",  model: "openai/gpt-4o-mini" },
-  System:     { provider: "openrouter",  model: "openai/gpt-4o-mini" },
-  "CaOS Commander": { provider: "openrouter", model: "openai/gpt-4o-mini" },
+  Hampton:    { provider: "groq",        model: "llama-3.3-70b-versatile" },
+  Developer:  { provider: "groq",        model: "llama-3.3-70b-versatile" },
+  Designer:   { provider: "opencodezen", model: "big-pickle" },
+  Creator:    { provider: "groq",        model: "llama-3.3-70b-versatile" },
+  Health:     { provider: "groq",        model: "llama-3.3-70b-versatile" },
+  Finance:    { provider: "groq",        model: "llama-3.3-70b-versatile" },
+  Teacher:    { provider: "groq",        model: "llama-3.3-70b-versatile" },
+  Marketing:  { provider: "opencodezen", model: "big-pickle" },
+  "Personal Assistant": { provider: "groq", model: "llama-3.3-70b-versatile" },
+  "Home IA":       { provider: "groq",  model: "llama-3.3-70b-versatile" },
+  "Cyber Security": { provider: "groq", model: "llama-3.3-70b-versatile" },
+  Automation: { provider: "groq",        model: "llama-3.3-70b-versatile" },
+  Automotive: { provider: "groq",        model: "llama-3.3-70b-versatile" },
+  Juridico:   { provider: "groq",        model: "llama-3.3-70b-versatile" },
+  System:     { provider: "groq",        model: "llama-3.3-70b-versatile" },
+  "CaOS Commander": { provider: "openrouter", model: "openai/gpt-oss-20b:free" },
 };
 
 // ── Agent Tool Permissions ──────────────────────────────────────────────

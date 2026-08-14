@@ -47,7 +47,7 @@ describe("routeChat / streamChat provider validation", () => {
       routeChat({ provider: "groq", messages: [{ role: "user", content: "hi" }] })
     ).rejects.toThrow(/API key/);
     await expect(
-      routeChat({ provider: "github", messages: [{ role: "user", content: "hi" }] })
+      routeChat({ provider: "nvidia", messages: [{ role: "user", content: "hi" }] })
     ).rejects.toThrow(/API key/);
   });
 });

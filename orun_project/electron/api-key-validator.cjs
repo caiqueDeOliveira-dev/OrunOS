@@ -7,8 +7,7 @@ const http = require("http");
 const PROVIDER_ENDPOINTS = {
   groq: { url: "https://api.groq.com/openai/v1/models", method: "GET" },
   openrouter: { url: "https://openrouter.ai/api/v1/models", method: "GET" },
-  github: { url: "https://models.inference.ai.azure.com", method: "GET" },
-  opencodezen: { url: "https://api.opencodezen.com/v1/models", method: "GET" },
+  opencodezen: { url: "https://opencode.ai/zen/v1/models", method: "GET" },
   nvidia: { url: "https://integrate.api.nvidia.com/v1/models", method: "GET" },
   ollama_cloud: { url: "https://ollama.com/v1/models", method: "GET" },
   fal: { url: "https://fal.ai/v1/models", method: "GET" },
@@ -33,8 +32,6 @@ function validateApiKey(provider, key) {
       if (provider.toLowerCase() === "groq") {
         headers["Authorization"] = `Bearer ${key}`;
       } else if (provider.toLowerCase() === "openrouter") {
-        headers["Authorization"] = `Bearer ${key}`;
-      } else if (provider.toLowerCase() === "github") {
         headers["Authorization"] = `Bearer ${key}`;
       } else if (provider.toLowerCase() === "opencodezen") {
         headers["Authorization"] = `Bearer ${key}`;

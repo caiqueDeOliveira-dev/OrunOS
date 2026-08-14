@@ -14,7 +14,6 @@ const PROVIDERS = {
   groq: { url: "https://api.groq.com/openai/v1/models", needsKey: true },
   openrouter: { url: "https://openrouter.ai/api/v1/models", needsKey: true },
   nvidia: { url: "https://integrate.api.nvidia.com/v1/models", needsKey: true },
-  github: { url: "https://models.github.ai/inference/models", needsKey: true },
   opencodezen: { url: "https://opencode.ai/zen/v1/models", needsKey: true },
   ollama: { url: "http://localhost:11434/api/tags", needsKey: false },
 };

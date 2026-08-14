@@ -31,8 +31,7 @@ export default function Onboarding({ onComplete, onDontShowAgain }: OnboardingPr
       description: t("onboardingProviderDesc"),
       providers: [
         { id: "groq", name: "Groq", free: true, desc: "Rápido e gratuito" },
-        { id: "openrouter", name: "OpenRouter", free: false, desc: "Pago por token, catálogo amplo" },
-        { id: "github", name: "GitHub Models", free: true, desc: "Gratuito com GitHub" },
+        { id: "openrouter", name: "OpenRouter", free: false, desc: "Tem modelos :free + pago por token" },
         { id: "opencodezen", name: "OpenCodeZen", free: true, desc: t("onboardingProviderFree") },
         { id: "nvidia", name: "NVIDIA NIM", free: true, desc: "5k créditos free/mês em build.nvidia.com" },
         { id: "ollama_cloud", name: "Ollama Cloud", free: false, desc: "Modelos Ollama hospedados em ollama.com" },

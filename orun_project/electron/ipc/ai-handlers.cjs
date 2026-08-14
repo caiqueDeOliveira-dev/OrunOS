@@ -10,7 +10,7 @@ const { isSilentReply, SILENT_MARKER } = require("../silent-mode.cjs");
 // Only free-capable providers are automatic fallbacks. Paid providers (OpenAI
 // and Anthropic) are used only when the user explicitly selects one in
 // Settings, so a temporary free-tier limit never creates an unexpected bill.
-const AUTOMATIC_FALLBACK_PROVIDERS = ["groq", "openrouter", "nvidia", "github", "opencodezen"];
+const AUTOMATIC_FALLBACK_PROVIDERS = ["groq", "openrouter", "nvidia", "opencodezen"];
 
 function fallbackCandidates(primaryProvider, configuredFallback, secretStore, aiRouter) {
   const candidates = [];

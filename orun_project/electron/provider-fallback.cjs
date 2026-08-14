@@ -4,14 +4,13 @@
 // Eliminates 3x duplicated fallback logic across ai-router.cjs.
 
 const KNOWN_FREE_MODELS = {
-  groq: ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "qwen/qwen3-32b", "openai/gpt-oss-120b", "openai/gpt-oss-20b", "allam-2-7b", "groq/compound", "groq/compound-mini"],
-  openrouter: ["openai/gpt-4o-mini", "meta-llama/llama-3.1-8b-instruct", "mistralai/mistral-nemo", "qwen/qwen-2.5-72b-instruct"],
-  github: ["openai/gpt-4o", "openai/gpt-4o-mini", "openai/gpt-5-nano", "meta/llama-3.3-70b-instruct", "meta/llama-4-scout-17b-16e-instruct", "mistral-ai/mistral-large-2411", "mistral-ai/codestral-2501"],
-  opencodezen: ["deepseek-v4-flash-free", "mimo-v2.5-free", "nemotron-3-ultra-free", "north-mini-code-free", "gpt-5.6-sol"],
+  groq: ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "openai/gpt-oss-120b", "openai/gpt-oss-20b", "allam-2-7b", "groq/compound", "groq/compound-mini"],
+  openrouter: ["openai/gpt-oss-20b:free", "nvidia/nemotron-3-ultra-550b-a55b:free", "nvidia/nemotron-3-super-120b-a12b:free", "nvidia/nemotron-3-nano-30b-a3b:free", "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free", "nvidia/nemotron-3.5-lightning:free", "nvidia/nemotron-3.5-content-safety:free", "nvidia/nemotron-nano-9b-v2:free", "nvidia/nemotron-nano-12b-v2-vl:free", "google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "cohere/north-mini-code:free", "poolside/laguna-s-2.1:free", "poolside/laguna-xs-2.1:free", "liquid/lfm-2.5-2.6b:free", "openrouter/free"],
+  opencodezen: ["big-pickle", "deepseek-v4-flash-free", "mimo-v2.5-free", "hy3-free", "nemotron-3-ultra-free", "nemotron-3.5-lightning-free", "laguna-s-2.1-free"],
   // NVIDIA NIM — free tier mensal por modelo (5k créditos).
-  nvidia: ["meta/llama-3.1-70b-instruct", "meta/llama-3.1-8b-instruct", "mistralai/mistral-large", "mistralai/mistral-nemotron", "nvidia/nemotron-4-340b-instruct", "google/gemma-3-27b-it", "qwen/qwen2.5-72b-instruct", "deepseek-ai/deepseek-r1"],
+  nvidia: ["meta/llama-3.1-70b-instruct", "meta/llama-3.1-8b-instruct", "mistralai/mistral-nemotron", "openai/gpt-oss-20b", "nvidia/nemotron-3-ultra-550b-a55b", "nvidia/nemotron-3-super-120b-a12b", "nvidia/nemotron-3-nano-30b-a3b", "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning", "nvidia/nemotron-3.5-lightning-30b-a3b", "deepseek-ai/deepseek-v4-flash-0731", "z-ai/glm-5.2", "minimaxai/minimax-m3", "stepfun-ai/step-3.7-flash"],
   // Ollama Cloud — modelos hospedados (mesmos do Ollama local, mas pagos por tokens).
-  ollama_cloud: ["gpt-oss:120b", "gpt-oss:20b", "llama3.1:70b", "llama3.1:8b", "qwen2.5:72b", "qwen2.5:32b", "qwen2.5-coder:32b", "deepseek-r1:70b", "deepseek-v3:70b", "mistral-large:123b", "gemma3:27b", "phi4:14b", "codellama:70b"],
+  ollama_cloud: ["gpt-oss:120b", "gpt-oss:20b", "deepseek-v4-flash:0731", "deepseek-v4-flash:preview", "deepseek-v4-pro:preview", "nemotron-3-ultra", "nemotron-3-super", "nemotron-3-nano:30b", "glm-5.1", "glm-5.2", "minimax-m3", "minimax-m2.7", "kimi-k3", "kimi-k2.6", "kimi-k2.7-code", "gemma4:31b", "mistral-large-3:675b", "qwen3.5:397b"],
 };
 
 const PROVIDER_ORDER = ["groq", "openrouter", "nvidia", "ollama_cloud", "opencodezen"];

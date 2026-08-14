@@ -38,7 +38,7 @@ export interface SpeechRecognitionInstance extends EventTarget {
   abort(): void;
 }
 
-export type OrunProvider = "ollama" | "anthropic" | "openai" | "openrouter" | "groq" | "github" | "opencodezen" | "nvidia" | "ollama_cloud";
+export type OrunProvider = "ollama" | "anthropic" | "openai" | "openrouter" | "groq" | "opencodezen" | "nvidia" | "ollama_cloud";
 
 interface OrunChatMessage {
   role: "user" | "assistant" | "system";
