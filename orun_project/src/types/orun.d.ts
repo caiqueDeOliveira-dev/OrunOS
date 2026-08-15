@@ -1088,6 +1088,9 @@ interface OrunAPI {
     sendDM: (userId: string, content: string) => Promise<{ ok: boolean; messageId?: string; error?: string }>;
     setAgentResponse: (enabled: boolean) => Promise<{ ok: boolean }>;
     getAgentResponse: () => Promise<boolean>;
+    getInviteUrl: () => Promise<{ ok: boolean; url: string | null; permissions?: string; scopes?: string[] }>;
+    redeployCommands: () => Promise<{ ok: boolean; error?: string; deployed?: number; failed?: number; results?: Array<{ guild: { id: string; name: string }; ok: boolean; error?: string; commands?: number }> }>;
+    getDeployLog: () => Promise<{ at: number; commands: number; results: Array<{ guild: { id: string; name: string }; ok: boolean; error?: string; commands?: number }> } | null>;
     onStatusUpdate: (callback: (status: string) => void) => () => void;
   };
   activity: {

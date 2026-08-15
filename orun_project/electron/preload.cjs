@@ -601,6 +601,9 @@ contextBridge.exposeInMainWorld("orun", {
     sendDM: (userId, content) => ipcRenderer.invoke("discord:send-dm", userId, content),
     setAgentResponse: (enabled) => ipcRenderer.invoke("discord:set-agent-response", enabled),
     getAgentResponse: () => ipcRenderer.invoke("discord:get-agent-response"),
+    getInviteUrl: () => ipcRenderer.invoke("discord:get-invite-url"),
+    redeployCommands: () => ipcRenderer.invoke("discord:redeploy-commands"),
+    getDeployLog: () => ipcRenderer.invoke("discord:get-deploy-log"),
     onStatusUpdate: (callback) => {
       const handler = (_e, status) => callback(status);
       ipcRenderer.on("discord:status-update", handler);

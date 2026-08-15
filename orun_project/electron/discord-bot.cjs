@@ -1,4 +1,14 @@
-const { Client, GatewayIntentBits, Events, Partials, REST, Routes } = require("discord.js");
+const { Client, GatewayIntentBits, Events, Partials, REST, Routes, PermissionFlagsBits } = require("discord.js");
+
+// Permissões solicitadas no link de convite (escopos bot + applications.commands)
+const INVITE_PERMISSIONS =
+  PermissionFlagsBits.ViewChannel |
+  PermissionFlagsBits.ManageChannels |
+  PermissionFlagsBits.ManageRoles |
+  PermissionFlagsBits.SendMessages |
+  PermissionFlagsBits.EmbedLinks |
+  PermissionFlagsBits.AttachFiles |
+  PermissionFlagsBits.UseApplicationCommands;
 
 class DiscordBot {
   constructor() {
@@ -10,6 +20,7 @@ class DiscordBot {
     this.onStatusChange = null; // callback: (status) => void
     this.onInteraction = null; // callback: (interaction) => void
     this.commands = []; // array de SlashCommandBuilder (deploy per-guild)
+    this.lastDeploy = null; // { at, commands, results } — log do último deploy
     this._messageHandler = null;
     this._readyHandler = null;
     this._errorHandler = null;
@@ -37,17 +48,50 @@ class DiscordBot {
   }
 
   async deployCommands() {
-    if (!this.client || !this.client.isReady() || this.commands.length === 0) return;
+    if (!this.client || !this.client.isReady() || this.commands.length === 0) {
+      return { deployed: 0, failed: 0, results: [], reason: "not_ready_or_empty" };
+    }
     const rest = new REST({ version: "10" }).setToken(this.token);
     const body = this.commands.map((c) => (typeof c.toJSON === "function" ? c.toJSON() : c));
+    const results = [];
     for (const guild of this.client.guilds.cache.values()) {
       try {
         await rest.put(Routes.applicationGuildCommands(this.client.user.id, guild.id), { body });
         this.log.info(`[discord] Comandos registrados em "${guild.name}" (${guild.id})`);
+        results.push({ guild: { id: guild.id, name: guild.name }, ok: true, commands: body.length });
       } catch (err) {
         this.log.error(`[discord] Falha ao registrar comandos em "${guild.name}":`, err.message);
+        results.push({ guild: { id: guild.id, name: guild.name }, ok: false, error: err.message });
       }
     }
+    this.lastDeploy = { at: Date.now(), commands: body.length, results };
+    return {
+      deployed: results.filter((r) => r.ok).length,
+      failed: results.filter((r) => !r.ok).length,
+      results,
+    };
+  }
+
+  // Reexecuta o deploy dos comandos slash (sem reconectar o bot).
+  async redeployCommands() {
+    if (!this.client || !this.client.isReady()) {
+      return { ok: false, error: "Bot não conectado" };
+    }
+    const res = await this.deployCommands();
+    return { ok: res.failed === 0, ...res };
+  }
+
+  // Log do último deploy (para exibição no painel).
+  getDeployLog() {
+    return this.lastDeploy;
+  }
+
+  // Link de convite com escopos bot + applications.commands.
+  getInviteUrl() {
+    if (!this.client || !this.client.isReady() || !this.client.user) {
+      return null;
+    }
+    return `https://discord.com/oauth2/authorize?client_id=${this.client.user.id}&permissions=${INVITE_PERMISSIONS}&scope=bot%20applications.commands`;
   }
 
   _emitStatus(status) {
@@ -218,4 +262,4 @@ class DiscordBot {
   }
 }
 
-module.exports = { DiscordBot };
+module.exports = { DiscordBot, INVITE_PERMISSIONS };

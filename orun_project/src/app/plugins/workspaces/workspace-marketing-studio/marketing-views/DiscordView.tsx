@@ -15,6 +15,10 @@ export function DiscordView() {
   const [messageText, setMessageText] = useState("");
   const [sending, setSending] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
+  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const [inviteCopied, setInviteCopied] = useState(false);
+  const [deploying, setDeploying] = useState(false);
+  const [deployLog, setDeployLog] = useState<{ at: number; commands: number; results: Array<{ guild: { id: string; name: string }; ok: boolean; error?: string; commands?: number }> } | null>(null);
 
   const addLog = (msg: string) => setLogs((prev) => [...prev.slice(-49), `[${new Date().toLocaleTimeString("pt-BR")}] ${msg}`]);
 
@@ -34,6 +38,8 @@ export function DiscordView() {
           discord: { ...s.discord, autoResponse: enabled },
         }));
       }
+      const log = await window.orun?.discord?.getDeployLog();
+      if (log) setDeployLog(log);
     } catch {}
   };
 
@@ -149,6 +155,49 @@ export function DiscordView() {
     }
   };
 
+  const handleGetInviteUrl = async () => {
+    try {
+      const res = await window.orun?.discord?.getInviteUrl();
+      if (res?.ok && res.url) {
+        setInviteUrl(res.url);
+        addLog(`${t("Link de convite gerado")} (scopes: ${(res.scopes || []).join(" + ")})`);
+      } else {
+        addLog(t("Não foi possível gerar o link (bot desconectado?)"));
+      }
+    } catch (e: any) {
+      addLog(t("Erro") + `: ${e.message}`);
+    }
+  };
+
+  const handleCopyInvite = async () => {
+    if (!inviteUrl) return;
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+      setInviteCopied(true);
+      setTimeout(() => setInviteCopied(false), 2000);
+    } catch {
+      addLog(t("Falha ao copiar link"));
+    }
+  };
+
+  const handleRedeploy = async () => {
+    setDeploying(true);
+    addLog(t("Reenviando comandos slash..."));
+    try {
+      const res = await window.orun?.discord?.redeployCommands();
+      if (res?.ok) {
+        addLog(`${t("Comandos enviados para")} ${res.deployed ?? 0} ${t("servidor(es)")}`);
+      } else {
+        addLog(t("Falha ao reenviar") + (res?.error ? `: ${res.error}` : ""));
+      }
+      const log = await window.orun?.discord?.getDeployLog();
+      if (log) setDeployLog(log);
+    } catch (e: any) {
+      addLog(t("Erro") + `: ${e.message}`);
+    }
+    setDeploying(false);
+  };
+
   const statusColors: Record<string, string> = {
     disconnected: "#A0A0A0",
     connecting: "#F59E0B",
@@ -236,6 +285,44 @@ export function DiscordView() {
           <WorkspaceButton onClick={handleDisconnect} variant="ghost" size="sm">{t("Desconectar")}</WorkspaceButton>
         </div>
       </div>
+
+      <WorkspaceCard>
+        <p className="text-[9px] font-medium mb-1" style={{ color: "#A0A0A0" }}>⚙️ {t("Comandos slash")}</p>
+        <div className="flex gap-1 flex-wrap">
+          <WorkspaceButton onClick={handleRedeploy} variant="primary" size="sm" disabled={deploying}>
+            {deploying ? t("Enviando...") : "🔄 " + t("Reenviar comandos")}
+          </WorkspaceButton>
+          <WorkspaceButton onClick={handleGetInviteUrl} variant="ghost" size="sm">🔗 {t("Link de convite")}</WorkspaceButton>
+        </div>
+
+        {inviteUrl && (
+          <div className="mt-2 p-2 rounded" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid #252525" }}>
+            <p className="text-[8px] break-all" style={{ color: "#C0C0C0", fontFamily: "'JetBrains Mono', monospace" }}>
+              {inviteUrl}
+            </p>
+            <div className="mt-1">
+              <WorkspaceButton onClick={handleCopyInvite} variant="ghost" size="sm">
+                {inviteCopied ? t("Copiado!") : t("Copiar link")}
+              </WorkspaceButton>
+            </div>
+          </div>
+        )}
+
+        {deployLog && (
+          <div className="mt-2 p-2 rounded" style={{ background: "rgba(0,0,0,0.2)" }}>
+            <p className="text-[8px]" style={{ color: "#A0A0A0" }}>
+              {t("Último deploy")}: {new Date(deployLog.at).toLocaleString("pt-BR")} — {deployLog.commands} {t("comandos")}
+            </p>
+            <div className="space-y-0.5 max-h-20 overflow-y-auto ws-scrollbar mt-1">
+              {deployLog.results.map((r) => (
+                <p key={r.guild.id} className="text-[8px]" style={{ color: r.ok ? "#22C55E" : "#EF4444", fontFamily: "'JetBrains Mono', monospace" }}>
+                  {r.ok ? "✅" : "❌"} {r.guild.name}: {r.ok ? `${r.commands} ${t("comandos")}` : (r.error || "erro")}
+                </p>
+              ))}
+            </div>
+          </div>
+        )}
+      </WorkspaceCard>
 
       <div className="grid grid-cols-2 gap-2">
         <WorkspaceCard>
