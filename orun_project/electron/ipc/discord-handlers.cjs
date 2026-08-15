@@ -1,40 +1,112 @@
 const palworldSetup = require("../palworld-setup.cjs");
 const tropaModules = require("../tropa-modules.cjs");
 const { INVITE_PERMISSIONS } = require("../discord-bot.cjs");
+const discordBridge = require("../discord-bridge.cjs");
 
-const CAOS_COMMANDER_PROMPT = `Você é o 🐺 CaOS Commander, o bot oficial de gerenciamento do servidor Discord "🐺 TROPA DO CaOS" (Orun OS). Identidade: estética dark, preto e vermelho sangue, símbolo de lobo, tom militar/tático, agressivo mas organizado.
+const CAOS_MAIN_GUILD_ID = "1436425754740129836";
+const CAOS_MAX_ITERATIONS = 6;
 
-Você é o "Quartel digital da Tropa do CaOS". Toda resposta deve ser em português (pt-BR), concisa e direta, mantendo a persona de comando.
+const DISCORD_CHAT_TOOLS = discordBridge.TOOL_DEFINITIONS.filter((t) =>
+  ["discord_status", "discord_server_info", "discord_channels", "discord_roles", "discord_plan"].includes(t.function?.name),
+);
 
-SUAS CAPACIDADES REAIS:
-- Ler mensagens e responder nos canais onde o bot está presente.
-- Gerenciar a estrutura do servidor (categorias, canais, cargos, permissões) usando os comandos slash do bot.
-- Os comandos slash abaixo JÁ EXISTEM e funcionam no servidor. Direcione o usuário para eles:
-  • /servidor-info — auditoria somente leitura (categorias, canais, cargos, permissões, posições)
-  • /preview-redesign — mostra o plano de reorganização da Tropa (não altera nada)
-  • /aplicar-redesign — aplica a estrutura da Tropa (exige Administrador/Gerenciar Servidor + confirmação)
-  • /preview-palworld — plano da área Palworld
-  • /setup-palworld — cria a estrutura Palworld (exige confirmação)
-  • /criar-jogo — cria área de um jogo novo (modular)
-  • /arquivar-jogo — arquiva área de jogo criada pelo sistema (protegido para elementos manuais)
-  • /criar-guilda — cria guilda modular com canais e cargos
-  • /setup-cargos — cria os cargos da comunidade
-  • /painel — painel com membros, online, lives, guildas e jogos
-- Para criar uma guilda/jogo/cargos, instrua o usuário a usar o comando slash correspondente. Comandos administrativos exigem as permissões Administrador ou Gerenciar Servidor.
+async function runCaosBrain({ systemPrompt, content, aiSettings, apiKey, log }) {
+  const messages = [{ role: "user", content }];
+  let context;
+  try {
+    const ctxResult = await aiRouter.buildContext({
+      messages,
+      systemPrompt,
+      provider: aiSettings.provider,
+      model: aiSettings.model,
+      baseUrl: aiSettings.baseUrl,
+      apiKey,
+    });
+    context = ctxResult.context;
+  } catch {
+    context = [{ role: "system", content: systemPrompt }, ...messages];
+  }
 
-SUAS LIMITAÇÕES REAIS (não diga que consegue o que não consegue):
-- Você NÃO vê a tela, jogo, mapa, câmera ou coordenadas do usuário.
-- Você NÃO controla o PC, joga, crafta, ressuscita ou executa ações fora do Discord.
-- Você NÃO expõe tokens, senhas ou informações privadas.
+  let lastToolText = "";
+  let retriedWithoutTool = false;
+  for (let i = 0; i < CAOS_MAX_ITERATIONS; i++) {
+    let result;
+    try {
+      result = await aiRouter.chatWithTools({
+        provider: aiSettings.provider,
+        model: aiSettings.model,
+        baseUrl: aiSettings.baseUrl,
+        apiKey,
+        messages: context,
+        tools: DISCORD_CHAT_TOOLS,
+      });
+    } catch (err) {
+      log?.error?.("[discord] CaOS brain chat error:", err.message);
+      return lastToolText || `Não consegui consultar o servidor agora: ${err.message}`;
+    }
 
-REGRAS:
-- NUNCA afirme que não consegue criar comandos slash ou gerenciar a estrutura: você consegue, via os comandos slash acima.
-- Se o usuário estiver falando de jogo (Palworld, etc.), não finja participar; responda curto, com dica útil ou pergunte se quer abrir uma área no Discord.
-- Ao ser chamado por "CaOS, status" ou perguntas sobre estrutura, responda com status real e aponte os comandos slash corretos.
-- Responda de forma curta: normalmente 1-4 linhas, salvo quando o usuário pedir detalhes.`;
+    if (!result.toolCalls || result.toolCalls.length === 0) {
+      const finalText = result.text || lastToolText || "";
+      const claimedAudit = /\b(analis|audit|auditoria|inspecion|verificad?|status|servidor)\b/i.test(finalText)
+        && /\b(categorias?|canais|cargos|membros|guilds?|guild_id)\b/i.test(finalText);
+      if (claimedAudit && !retriedWithoutTool) {
+        retriedWithoutTool = true;
+        context.push({ role: "assistant", content: finalText || null });
+        context.push({
+          role: "user",
+          content: `Não descreva a análise: chame agora as ferramentas discord_status e discord_server_info (guild_id "${CAOS_MAIN_GUILD_ID}") e responda com os dados reais retornados.`,
+        });
+        continue;
+      }
+      return finalText;
+    }
+
+    if (result.text && result.text.trim()) lastToolText = result.text;
+
+    for (const tc of result.toolCalls) {
+      const name = String(tc.name || "").replace(/^discord_/, "");
+      let toolResult;
+      try {
+        toolResult = await discordBridge.execute(name, tc.arguments || {});
+      } catch (err) {
+        toolResult = { error: err.message };
+      }
+      log?.info?.("[discord] CaOS tool:", `${tc.name} → ${JSON.stringify(toolResult).slice(0, 300)}`);
+      context.push({
+        role: "assistant",
+        content: result.text || null,
+        tool_calls: [{ id: tc.id, type: "function", function: { name: tc.name, arguments: JSON.stringify(tc.arguments || {}) } }],
+      });
+      context.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify(toolResult) });
+    }
+  }
+  return lastToolText || "Não consegui completar a análise do servidor.";
+}
+
+const CAOS_COMMANDER_PROMPT = `Você é o 🐺 CaOS Commander, o quartel digital do servidor Discord "🐺 TROPA DO CaOS" (Orun OS). Estética dark, preto e vermelho sangue, símbolo de lobo, tom militar/tático, agressivo mas organizado. Responda sempre em pt-BR, curto e direto (1-4 linhas, salvo quando pedirem detalhes).
+
+SERVIDOR PRINCIPAL: "🐺 TROPA DO CaOS" — guild_id ${CAOS_MAIN_GUILD_ID}.
+
+VOCÊ TEM FERRAMENTAS REAIS DE AUDITORIA (use-as — NUNCA diga que não consegue auditar o servidor):
+- discord_status — status do bot + lista de servidores com id/nome/membros. Chame primeiro para descobrir guild_id.
+- discord_server_info — auditoria completa: categorias, canais, cargos, permissões, posições.
+- discord_channels — mapa de canais por categoria.
+- discord_roles — lista de cargos com posição/cor.
+- discord_plan — plano somente leitura (areas: tropa, palworld, game, guild, roles).
+Quando o usuário pedir "status", "auditoria", "servidor-info" ou quiser saber a estrutura, chame as ferramentas e responda com os DADOS REAIS retornados. Não descreva o que faria — execute.
+
+COMANDOS SLASH (quem EXECUTA mudanças no servidor é o usuário, pelos comandos slash do bot — você não escreve código nem registra comandos):
+- /servidor-info (auditoria), /preview-redesign (diff), /aplicar-redesign (confirmação), /preview-palworld, /setup-palworld (confirmação), /criar-jogo, /arquivar-jogo, /criar-guilda, /setup-cargos, /painel.
+Comandos administrativos exigem Administrador ou Gerenciar Servidor. Se o usuário pedir para CRIAR/APLICAR estrutura, instrua-o a usar o slash command correspondente.
+
+LIMITAÇÕES REAIS (não invente capacidade):
+- Você NÃO vê tela/jogo/mapa/coordenadas do usuário; NÃO controla o PC; NÃO joga.
+- NUNCA exponha tokens, senhas ou informações privadas.
+- NUNCA diga que "não tem acesso", "não roda no ambiente" ou "não consegue": para auditoria você TEM as ferramentas acima e para escrita existem os comandos slash.`;
 
 function register(ipcMain, ctx) {
   const { discordBot, secretStore, aiRouter, buildSystemPrompt, log, db } = ctx;
+  const { resolveAISettings } = ctx;
 
   // ── Slash commands / interações (área Palworld + módulos da Tropa) ──
   discordBot.setCommands([
@@ -135,39 +207,27 @@ function register(ipcMain, ctx) {
     } catch { return false; }
   });
 
-  // ── Set up message handler for Marketing agent ────────────────
+  // ── Set up message handler for CaOS Commander ────────────────
   discordBot.setMessageCallback(async (message) => {
     try {
       const agentResponseEnabled = await secretStore.get("discord_agent_response");
       if (!agentResponseEnabled?.enabled) return null;
 
-      const resolveAISettings = ctx.resolveAISettings;
-      const aiSettings = resolveAISettings ? resolveAISettings("Marketing") : (ctx.getGlobalAISettings?.() || {});
+      const aiSettings = resolveAISettings ? resolveAISettings("CaOS Commander") : (ctx.getGlobalAISettings?.() || {});
       const keys = secretStore.readSecretStore();
       const apiKey = keys[aiSettings.provider];
-      const agentSystemPrompt = buildSystemPrompt(null, "Marketing");
+      const agentSystemPrompt = buildSystemPrompt(null, "CaOS Commander");
 
       const discordSystemPrompt = `${CAOS_COMMANDER_PROMPT}\n\nContexto do agente base:\n${agentSystemPrompt}\n\nO usuário que enviou a mensagem é: ${message.author.displayName} (${message.author.username}).`;
 
-      const messages = [{ role: "user", content: message.content }];
-
-      const { context } = await aiRouter.buildContext({
-        messages,
+      const text = await runCaosBrain({
         systemPrompt: discordSystemPrompt,
-        provider: aiSettings.provider,
-        model: aiSettings.model,
-        baseUrl: aiSettings.baseUrl,
+        content: message.content,
+        aiSettings,
         apiKey,
+        log,
       });
-
-      const response = await aiRouter.routeChat({
-        provider: aiSettings.provider,
-        model: aiSettings.model,
-        baseUrl: aiSettings.baseUrl,
-        apiKey,
-        messages: context,
-      });
-      return { text: response.text || response };
+      return text ? { text } : null;
     } catch (err) {
       log.error("[discord] Agent response error:", err.message);
       return null;

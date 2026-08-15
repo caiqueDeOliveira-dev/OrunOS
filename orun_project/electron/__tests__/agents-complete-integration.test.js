@@ -81,7 +81,7 @@ const AGENT_RECOMMENDED_MODELS = {
   Automotive: { provider: "groq",        model: "llama-3.3-70b-versatile" },
   Juridico:   { provider: "groq",        model: "llama-3.3-70b-versatile" },
   System:     { provider: "groq",        model: "llama-3.3-70b-versatile" },
-  "CaOS Commander": { provider: "openrouter", model: "openai/gpt-oss-20b:free" },
+  "CaOS Commander": { provider: "groq",        model: "llama-3.3-70b-versatile" },
 };
 
 // ── TOOL PERMISSIONS (from main.cjs) ──────────────────────────────────

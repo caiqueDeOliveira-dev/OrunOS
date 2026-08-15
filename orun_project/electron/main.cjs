@@ -164,7 +164,7 @@ const AGENT_RECOMMENDED_MODELS = {
   Automotive: { provider: "groq",        model: "llama-3.3-70b-versatile" },
   Juridico:   { provider: "groq",        model: "llama-3.3-70b-versatile" },
   System:     { provider: "groq",        model: "llama-3.3-70b-versatile" },
-  "CaOS Commander": { provider: "openrouter", model: "openai/gpt-oss-20b:free" },
+  "CaOS Commander": { provider: "groq",        model: "llama-3.3-70b-versatile" },
 };
 
 // ── Agent Tool Permissions ──────────────────────────────────────────────
@@ -561,7 +561,9 @@ function buildSystemPrompt(basePrompt, agentId) {
       prompt += suffix;
     }
   }
-  if (prompt) {
+  const agentPerms = AGENT_TOOL_PERMISSIONS[agentId];
+  const canWriteFiles = !agentId || !agentPerms || agentPerms.includes("write_file");
+  if (prompt && canWriteFiles) {
     prompt += "\n\nCRIACAO DE ARQUIVOS (IMPORTANTE): quando o usuario pedir para criar um site, codigo, script ou qualquer arquivo, grave os arquivos no developer workspace com as ferramentas write_file/edit_file/read_file/list_files/run_command. Essas ferramentas resolvem caminhos relativos contra {DEVELOPER_WORKSPACE}, entao os arquivos criados aparecem no Explorer do Developer IDE. Depois de criar os arquivos, NAO cole o codigo inteiro na resposta do chat: responda de forma curta listando os arquivos criados e o caminho completo, e o resultado de qualquer comando.\n\nA pasta 'hello' que o usuario menciona E a raiz do workspace ({DEVELOPER_WORKSPACE}). NUNCA crie uma subpasta chamada 'hello' dentro do workspace. Exemplo: se o usuario pedir 'crie um site na pasta hello', grave em 'index.html' (relativo = {DEVELOPER_WORKSPACE}\\index.html), NAO em 'hello/index.html'. Se ele pedir 'site de restaurante na pasta hello', grave em 'restaurante/index.html' (relativo = {DEVELOPER_WORKSPACE}\\restaurante\\index.html).";
   }
   if (prompt && prompt.includes("{DEVELOPER_WORKSPACE}")) {
