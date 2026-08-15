@@ -83,6 +83,88 @@ async function runCaosBrain({ systemPrompt, content, aiSettings, apiKey, log }) 
   return lastToolText || "Não consegui completar a análise do servidor.";
 }
 
+const AUDIT_REQUEST_REGEX =
+  /^(caos[\s,.:;!-]*)?(status|auditoria|auditar|inspecionar|servidor[-\s]?info|estrutura do servidor|como est[áa] (o )?servidor|mostr[ae] (a )?(auditoria|estrutura)|o que foi feito|oque foi feito)\b.*$/i;
+
+async function runDeterministicStatus(log) {
+  let status;
+  try {
+    status = await discordBridge.execute("status", {});
+  } catch (err) {
+    return `⚠️ Não consegui acessar o bot agora: ${err.message}`;
+  }
+  if (!status.connected) {
+    return [
+      "╔══════════════════════════╗",
+      "🐺 **TROPA DO CaOS**",
+      "╚══════════════════════════╝",
+      "🤖 **SISTEMA ORUN**",
+      "> Sistema online.",
+      "> Tropa **desconectada**.",
+      "🔴 STATUS: **OFFLINE**",
+      "",
+      "> O bot do Discord não está conectado. Abra o Orun OS e conecte o bot no painel Discord para eu auditar o servidor.",
+    ].join("\n");
+  }
+
+  const guild = (status.guilds || []).find((g) => g.id === CAOS_MAIN_GUILD_ID) || (status.guilds || [])[0];
+  if (!guild) {
+    return "🟢 **SISTEMA ORUN ONLINE**\n> Sistema online.\n> Nenhum servidor vinculado ao bot.\n\n> Conecte o bot a um servidor para que eu audite a estrutura.";
+  }
+
+  let info, channels, roles;
+  try {
+    info = await discordBridge.execute("server_info", { guild_id: guild.id });
+    channels = await discordBridge.execute("channels", { guild_id: guild.id });
+    roles = await discordBridge.execute("roles", { guild_id: guild.id });
+  } catch (err) {
+    return `⚠️ Erro ao auditar "${guild.name}": ${err.message}`;
+  }
+
+  const cats = channels.categories || [];
+  const allChannels = cats.flatMap((c) => c.channels || []);
+  const textCount = allChannels.filter((c) => c.type === "texto").length;
+  const voiceCount = allChannels.filter((c) => c.type === "voz").length;
+  const uncat = (channels.uncategorized || []).length;
+
+  const lines = [
+    "╔══════════════════════════╗",
+    "🐺 **TROPA DO CaOS**",
+    "╚══════════════════════════╝",
+    "🤖 **SISTEMA ORUN**",
+    "> Sistema online.",
+    "> Tropa conectada.",
+    "🟢 STATUS: **ONLINE**",
+    "",
+    `📊 **AUDITORIA — ${info.name}**`,
+    `👥 Membros: **${info.memberCount}**`,
+    `🗂️ Categorias: **${cats.length}** · Canais: **${allChannels.length}** (${textCount} texto / ${voiceCount} voz)${uncat ? ` · ${uncat} sem categoria` : ""}`,
+    `🏷️ Cargos: **${(roles.roles || []).length}**`,
+    "",
+    "**📁 ESTRUTURA ATUAL**",
+  ];
+  for (const cat of cats) {
+    lines.push(`🏷️ ${cat.name}`);
+    for (const ch of (cat.channels || []).slice(0, 20)) {
+      lines.push(`   ${ch.type === "voz" ? "🔊" : "#️⃣"} ${ch.name} (${ch.type})`);
+    }
+  }
+  if (uncat > 0) {
+    lines.push("🏷️ *Sem categoria*");
+    for (const ch of (channels.uncategorized || []).slice(0, 10)) {
+      lines.push(`   ${ch.type === "voz" ? "🔊" : "#️⃣"} ${ch.name} (${ch.type})`);
+    }
+  }
+  lines.push(
+    "",
+    "> *Nenhuma alteração foi feita — auditoria somente leitura.*",
+    "> Comandos que eu posso executar: **/preview-redesign**, **/aplicar-redesign**, **/setup-palworld**, **/criar-jogo**, **/criar-guilda**, **/setup-cargos**, **/painel** (exigem Administrador ou Gerenciar Servidor).",
+  );
+
+  const text = lines.join("\n");
+  return text.length > 1900 ? `${text.slice(0, 1900)}\n… (truncado)` : text;
+}
+
 const CAOS_COMMANDER_PROMPT = `Você é o 🐺 CaOS Commander, o quartel digital do servidor Discord "🐺 TROPA DO CaOS" (Orun OS). Estética dark, preto e vermelho sangue, símbolo de lobo, tom militar/tático, agressivo mas organizado. Responda sempre em pt-BR, curto e direto (1-4 linhas, salvo quando pedirem detalhes).
 
 SERVIDOR PRINCIPAL: "🐺 TROPA DO CaOS" — guild_id ${CAOS_MAIN_GUILD_ID}.
@@ -212,6 +294,12 @@ function register(ipcMain, ctx) {
     try {
       const agentResponseEnabled = await secretStore.get("discord_agent_response");
       if (!agentResponseEnabled?.enabled) return null;
+
+      const content = String(message.content || "").trim();
+      if (AUDIT_REQUEST_REGEX.test(content)) {
+        const auditText = await runDeterministicStatus(log);
+        return auditText ? { text: auditText } : null;
+      }
 
       const aiSettings = resolveAISettings ? resolveAISettings("CaOS Commander") : (ctx.getGlobalAISettings?.() || {});
       const keys = secretStore.readSecretStore();
