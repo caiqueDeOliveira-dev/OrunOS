@@ -68,6 +68,12 @@ interface UseVoiceOptions {
   t?: (key: string) => string;
 }
 
+/** Safety net: max time a mic session can stay open waiting for a turn. If the
+ * user doesn't complete a turn within this window the recording is discarded
+ * WITHOUT sending — prevents the app from transcribing/responding to background
+ * conversation (Discord calls, TV, friends talking) and burning tokens. */
+const VOICE_REPLY_WINDOW_MS = 12000;
+
 export function useVoice({
   onTranscript,
   onStateChange,
@@ -109,6 +115,12 @@ export function useVoice({
   const browserSTTRef = useRef<{ start: () => void; stop: () => void } | null>(null);
   const noiseSupCtxRef = useRef<AudioContext | null>(null);
   const smartDelayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Safety-net timer for the mic reply window (see VOICE_REPLY_WINDOW_MS).
+  const replyWindowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // When set, the in-flight recording must be discarded (background chatter) —
+  // processAudio drops it without sending/responding.
+  const discardCurrentRef = useRef(false);
+  const stopRecordingRef = useRef<() => void>(() => {});
   // Re-entrancy guard: startRecording is async and only sets mediaRecorderRef
   // AFTER awaiting getUserMedia. Without this, two concurrent calls (e.g. the
   // conversational auto-mic timer + a barge-in that fires in the same window)
@@ -177,6 +189,10 @@ export function useVoice({
     if (smartDelayTimerRef.current) {
       clearTimeout(smartDelayTimerRef.current);
       smartDelayTimerRef.current = null;
+    }
+    if (replyWindowTimerRef.current) {
+      clearTimeout(replyWindowTimerRef.current);
+      replyWindowTimerRef.current = null;
     }
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
@@ -296,6 +312,15 @@ export function useVoice({
 
   // ── Process recorded audio (shared logic) ────────────────────────
   const processAudio = useCallback(async (audioBlob: Blob, mimeType: string, duration: number) => {
+    // Background-chatter clip closed by the safety-net window: drop it WITHOUT
+    // transcribing/sending, so the app never responds to what the user wasn't
+    // saying to it (and never burns tokens on it).
+    if (discardCurrentRef.current) {
+      discardCurrentRef.current = false;
+      updateState("idle");
+      return;
+    }
+
     if (audioBlob.size === 0) {
       updateState("idle");
       return;
@@ -590,6 +615,10 @@ export function useVoice({
     else startRecording();
   }, [isRecording, startRecording, stopRecording]);
 
+  // Keep a stable ref so the conversational auto-mic safety net can close the
+  // mic (see reply window effect below) without stale closure issues.
+  stopRecordingRef.current = stopRecording;
+
   // ── Wake word detection ──────────────────────────────────────────
   // In Electron, uses the Python wake word service (background-services.cjs).
   // In browser, uses the Web Speech API.
@@ -661,16 +690,13 @@ export function useVoice({
         const transcript = event.results[i][0].transcript.toLowerCase().trim();
         if (transcript !== lastTranscript) {
           lastTranscript = transcript;
-          if (
+          // Anti-falso-positivo (mesma regra do wake_word_service.py): palavras
+          // inequívocas disparam sozinhas; variantes ambíguas só com prefixo.
+          const hasWake =
             transcript.includes(wakeWord) ||
-            transcript.includes("oi orun") ||
-            transcript.includes("oie orun") ||
-            transcript.includes("hey orun") ||
-            transcript.includes("hampton") ||
-            transcript.includes("oi hampton") ||
-            transcript.includes("ampton") ||
-            transcript.includes("amton")
-          ) {
+            /\b(orun|orum|ourun|orún|hampton|hamptom|hempton)\b/.test(transcript) ||
+            /\b(ok|okay|oi|oie|hey|ei|ô|oh)\s*[,\s]+\s*(oren|orõ|orã|orunh|oron|oram|oran|oh run|o run|hampon|hampeton|hampion|hamtom|hantam|hantom|amton|amptom|amtom|anpton|aumpton)\b/.test(transcript);
+          if (hasWake) {
             recognition.stop();
             setIsWakeListening(false);
             startRecordingRef.current();
@@ -828,6 +854,35 @@ export function useVoice({
 
     prevHamptonState.current = effectiveHamptonState;
   }, [conversationalMode, effectiveHamptonState]);
+
+  // ── Safety net: mic reply window ────────────────────────────────
+  // Any time the mic is open ("listening") waiting for a turn, if the user
+  // doesn't complete a turn within VOICE_REPLY_WINDOW_MS the recording is
+  // closed and DISCARDED (never sent). This stops the app from acting as a
+  // live wiretap: on a Discord call / with friends talking nearby, the app
+  // would otherwise keep transcribing ambient speech and responding to it —
+  // exactly the runaway-token behavior the user reported.
+  useEffect(() => {
+    if (effectiveHamptonState === "listening") {
+      if (replyWindowTimerRef.current) {
+        clearTimeout(replyWindowTimerRef.current);
+        replyWindowTimerRef.current = null;
+      }
+      replyWindowTimerRef.current = setTimeout(() => {
+        replyWindowTimerRef.current = null;
+        if (stateRef.current === "listening") {
+          console.warn("[voice] reply window expired — discarding ambient audio (no turn completed)");
+          discardCurrentRef.current = true;
+          stopRecordingRef.current();
+        }
+      }, VOICE_REPLY_WINDOW_MS);
+    } else {
+      if (replyWindowTimerRef.current) {
+        clearTimeout(replyWindowTimerRef.current);
+        replyWindowTimerRef.current = null;
+      }
+    }
+  }, [effectiveHamptonState]);
 
   // Cleanup on unmount
   useEffect(() => () => cleanup(), [cleanup]);

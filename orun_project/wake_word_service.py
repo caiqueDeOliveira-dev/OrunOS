@@ -32,13 +32,13 @@ if hasattr(sys.stdout, "reconfigure"):
 # ── Config ─────────────────────────────────────────────────────────────
 WAKE_WORDS = [
     "ok orun", "okay orun", "ô orun", "o orun",
-    "oi orun", "oie orun", "hey orun", "hampton",
-    "oi hampton", "ok hampton",
+    "oi orun", "oie orun", "hey orun", "ei orun",
+    "hampton", "oi hampton", "ok hampton", "ei hampton",
 ]
 SAMPLE_RATE = 16000
 CHUNK_DURATION = 3.0        # seconds per recording chunk
 SILENCE_THRESHOLD = 1e-4    # absolute minimum RMS (quiet mics) — default arg value
-MIN_SPEECH_DURATION = 0.4   # minimum speech to consider
+MIN_SPEECH_DURATION = 0.5   # minimum speech to consider
 SLEEP_BETWEEN_CHUNKS = 0.2  # pause between listening cycles (menor = resposta mais rápida)
 # ── Adaptive VAD ────────────────────────────────────────────────────────
 # Uses a rolling noise floor instead of a fixed threshold, so detection
@@ -209,43 +209,57 @@ def transcribe_audio(audio, sample_rate, stt_url):
 # ── Check wake word ────────────────────────────────────────────────────
 import re
 
-# Whisper often mangles "orun" (pt-BR): accept the common phonetic variants.
-# Optional trigger prefix (ok/oi/hey/...) or bare "orun" anywhere in the text.
-ORUN_VARIANTS = [
-    "orun", "orum", "oren", "ourum", "orõ", "orã", "orunh", "orún",
-    "oron", "oram", "oran", "aurun", "awrun", "oh run", "o run",
+# Whisper often mangles "orun"/"hampton" (pt-BR): accept the common phonetic
+# variants. IMPORTANTE (anti falso positivo): o app NÃO deve abrir o
+# microfone/responder sozinho quando o usuário está em uma conversa comum
+# (ex.: Discord). Então:
+#   * Palavras-chave inequívocas ("orun", "hampton", ...) disparam mesmo
+#     sozinhas — não são palavras do pt-BR, raramente aparecem por acaso.
+#   * Variantes curtas e ambíguas ("oram", "oren", "oron", "amton", ...) SÓ
+#     disparam quando precedidas de um prefixo forte (ok/oi/hey/ei/ô/oh).
+#     O "o" sozinho foi removido do prefixo: "o" é palavra comum do pt-BR e
+#     precede qualquer coisa ("o ramos", "o ron"), o que mantinha o disparo
+#     automático em conversas normais.
+
+CORE_WAKE_WORDS = [
+    "orun", "orum", "ourun", "orún",
+    "hampton", "hamptom", "hempton",
 ]
-ORUN_PREFIXES = "ok|okay|ô|o|oi|oie|hey|ei|oh"
-ORUN_FUZZY = re.compile(
-    rf"\b(?:(?:{ORUN_PREFIXES})\s+)?(?:{'|'.join(ORUN_VARIANTS)})\b",
+CORE_WAKE_RE = re.compile(
+    rf"\b(?:{'|'.join(CORE_WAKE_WORDS)})\b",
     re.IGNORECASE,
 )
 
-# "hampton" also gets mangled by Whisper — cover common mis-transcriptions.
-HAMPTON_VARIANTS = [
-    "hampton", "hamptom", "hampon", "hampeton", "hempton", "hampion",
-    "hamtom", "hantam", "hantom",
-    "ampton", "amptom", "amton", "amtom", "anpton", "aumpton",
+STRONG_WAKE_PREFIXES = "ok|okay|oi|oie|hey|ei|ô|oh"
+PREFIXED_WAKE_VARIANTS = [
+    # orun family — sons curtos/ambíguos do pt-BR
+    "oren", "orõ", "orã", "orunh", "oron", "oram", "oran",
+    "aurun", "awrun", "oh run", "o run",
+    # hampton family
+    "hampon", "hampeton", "hampion", "hamtom", "hantam", "hantom",
+    "amton", "amptom", "amtom", "anpton", "aumpton",
 ]
-HAMPTON_FUZZY = re.compile(
-    rf"\b(?:{'|'.join(HAMPTON_VARIANTS)})\b",
+PREFIXED_WAKE_RE = re.compile(
+    rf"\b(?:{STRONG_WAKE_PREFIXES})\s*[,\s]+\s*(?:{'|'.join(PREFIXED_WAKE_VARIANTS)})\b",
     re.IGNORECASE,
 )
 
 
 def contains_wake_word(text):
-    """Check if text contains a wake word variant (exact + fuzzy)."""
+    """Check if text contains a wake word (exact + core bare + prefixed fuzzy)."""
     text_lower = text.lower().strip()
 
-    # Exact match first (multi-word triggers + bare words in WAKE_WORDS)
+    # Exact multi-word triggers from WAKE_WORDS
     for wake in WAKE_WORDS:
         if wake in text_lower:
             return True
 
-    # Fuzzy match for "orun" and "hampton" variations (incl. bare "orun")
-    if ORUN_FUZZY.search(text_lower):
+    # Unambiguous product names (bare)
+    if CORE_WAKE_RE.search(text_lower):
         return True
-    if HAMPTON_FUZZY.search(text_lower):
+
+    # Ambiguous variants only when preceded by a strong wake prefix
+    if PREFIXED_WAKE_RE.search(text_lower):
         return True
 
     return False
@@ -268,7 +282,7 @@ def strip_wake_word(text):
     command ("" if the utterance was only the wake word).
 
     Order: exact WAKE_WORDS match first (longest first to prefer "ok orun"
-    over a bare "orun"), then fuzzy 'orun', then fuzzy 'hampton'."""
+    over a bare "orun"), then core words, then prefix+ambiguous-variant."""
     if not text:
         return ""
     t = text.strip()
@@ -280,11 +294,11 @@ def strip_wake_word(text):
             t = t[:idx] + " " + t[idx + len(wake):]
             break
     else:
-        m = ORUN_FUZZY.search(t)
+        m = CORE_WAKE_RE.search(tl)
         if m:
             t = t[:m.start()] + " " + t[m.end():]
         else:
-            m = HAMPTON_FUZZY.search(t)
+            m = PREFIXED_WAKE_RE.search(tl)
             if m:
                 t = t[:m.start()] + " " + t[m.end():]
 
