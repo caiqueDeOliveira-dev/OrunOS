@@ -91,12 +91,30 @@ function getDefaultComboId() {
 function startHttpServer(app, secretStore) {
   if (_httpServer) return { ok: true, alreadyRunning: true, url: _httpUrl };
 
-  const { router, comboStore } = getAiRouterService(app, secretStore);
+  const { router, comboStore, providerConfigStore, usageLogStore, dbPath } = getAiRouterService(app, secretStore);
   const { createAiRouterServer } = require("@orun/ai-router-server");
 
   const port = Number(process.env.ORUN_AI_ROUTER_PORT) || 4321;
   const apiKey = process.env.ORUN_AI_ROUTER_API_KEY || undefined;
-  const server = createAiRouterServer({ router, comboStore, apiKey });
+
+  // Resolve dashboard dist path: try ../router-dashboard/dist (monorepo) first,
+  // then ../vendor/router-dashboard/dist (vendored), then null (no dashboard).
+  const fs = require("fs");
+  const candidateDirs = [
+    path.join(__dirname, "..", "router-dashboard", "dist"),
+    path.join(__dirname, "..", "vendor", "router-dashboard", "dist"),
+  ];
+  const dashboardDir = candidateDirs.find((d) => fs.existsSync(path.join(d, "index.html"))) || undefined;
+
+  const server = createAiRouterServer({
+    router,
+    comboStore,
+    providerConfigStore,
+    usageLogStore,
+    apiKey,
+    meta: { dbPath, defaultComboId: FREE_FOREVER_COMBO.id },
+    dashboardDir,
+  });
 
   _httpServer = server;
   _httpUrl = `http://127.0.0.1:${port}`;

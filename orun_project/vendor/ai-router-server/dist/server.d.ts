@@ -1,10 +1,19 @@
 import { type Server } from "node:http";
-import { type IComboStore, type IModelRouter } from "@orun/ai-router-core";
+import { type IComboStore, type IModelRouter, type IProviderConfigStore, type IUsageLogStore } from "@orun/ai-router-core";
 export interface AiRouterServerOptions {
     router: IModelRouter;
     comboStore: IComboStore;
+    providerConfigStore?: IProviderConfigStore;
+    usageStore?: IUsageLogStore;
     /** Se definida, exige `Authorization: Bearer <apiKey>` em todas as rotas /v1/*. */
     apiKey?: string;
+    /** Metadata opcional para o dashboard. */
+    meta?: {
+        dbPath?: string;
+        defaultComboId?: string;
+    };
+    /** Caminho para a pasta dist/ do dashboard buildado. Se definido, serve /dashboard. */
+    dashboardDir?: string;
 }
 /**
  * Servidor HTTP que expõe o router como uma API OpenAI-compatible

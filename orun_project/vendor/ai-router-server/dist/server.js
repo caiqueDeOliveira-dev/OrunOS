@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createAiRouterServer = createAiRouterServer;
 const node_http_1 = require("node:http");
@@ -81,6 +114,11 @@ async function handleRequest(req, res, options) {
             json(res, 200, { ok: true, service: "orun-ai-router", time: Date.now() });
             return;
         }
+        // ── Dashboard API (api/*) ──────────────────────────────────
+        if (path.startsWith("/api/")) {
+            await handleDashboardApi(req, res, path, options);
+            return;
+        }
         if (!path.startsWith("/v1/")) {
             sendError(res, 404, `rota não encontrada: ${path}`, "not_found");
             return;
@@ -126,6 +164,141 @@ async function handleRequest(req, res, options) {
         const message = err instanceof Error ? err.message : "erro interno";
         sendError(res, status, message, status >= 500 ? "internal_error" : "invalid_request");
     }
+}
+// ─────────────────────────────────────────────────────────────
+// Dashboard API  (/api/*)
+// ─────────────────────────────────────────────────────────────
+const DASHBOARD_MIME = {
+    ".html": "text/html; charset=utf-8",
+    ".js": "application/javascript; charset=utf-8",
+    ".css": "text/css; charset=utf-8",
+    ".json": "application/json; charset=utf-8",
+    ".svg": "image/svg+xml",
+    ".png": "image/png",
+    ".ico": "image/x-icon",
+    ".woff2": "font/woff2",
+    ".woff": "font/woff",
+};
+async function handleDashboardApi(req, res, path, options) {
+    const method = req.method ?? "GET";
+    // ── /api/health (detailed) ──
+    if (method === "GET" && path === "/api/health") {
+        const combos = await options.comboStore.listCombos();
+        const def = combos.find((c) => c.isSystemDefault);
+        json(res, 200, {
+            ok: true,
+            dbPath: options.meta?.dbPath ?? null,
+            defaultComboId: options.meta?.defaultComboId ?? def?.id ?? null,
+            combosCount: combos.length,
+            hasProviderConfig: !!options.providerConfigStore,
+            hasUsageLog: !!options.usageStore,
+        });
+        return;
+    }
+    // ── /api/combos ──
+    if (path === "/api/combos") {
+        const combos = await options.comboStore.listCombos();
+        if (method === "GET") {
+            json(res, 200, combos);
+            return;
+        }
+        if (method === "POST") {
+            const raw = await readBody(req);
+            const body = JSON.parse(raw);
+            const saved = await options.comboStore.saveCombo(body);
+            json(res, 201, saved);
+            return;
+        }
+    }
+    // ── /api/combos/:id ──
+    const comboMatch = path.match(/^\/api\/combos\/(.+)$/);
+    if (comboMatch) {
+        const id = decodeURIComponent(comboMatch[1]);
+        if (method === "GET") {
+            const combo = await options.comboStore.getCombo(id);
+            if (!combo) {
+                sendError(res, 404, "combo não encontrado");
+                return;
+            }
+            json(res, 200, combo);
+            return;
+        }
+        if (method === "PUT") {
+            const raw = await readBody(req);
+            const body = JSON.parse(raw);
+            const saved = await options.comboStore.saveCombo({ ...body, id });
+            json(res, 200, saved);
+            return;
+        }
+        if (method === "DELETE") {
+            await options.comboStore.deleteCombo(id);
+            json(res, 200, { ok: true });
+            return;
+        }
+    }
+    // ── /api/providers ──
+    if (path === "/api/providers" && options.providerConfigStore) {
+        const configs = await options.providerConfigStore.listConfigs();
+        if (method === "GET") {
+            json(res, 200, configs);
+            return;
+        }
+        if (method === "POST") {
+            const raw = await readBody(req);
+            const body = JSON.parse(raw);
+            const saved = await options.providerConfigStore.saveConfig(body);
+            json(res, 201, saved);
+            return;
+        }
+    }
+    // ── /api/usage ──
+    if (path === "/api/usage" && options.usageStore) {
+        const url = new node_url_1.URL(req.url ?? "/", "http://localhost");
+        const comboId = url.searchParams.get("comboId") ?? undefined;
+        const limit = parseInt(url.searchParams.get("limit") ?? "50", 10);
+        const events = await options.usageStore.listRecent(comboId, limit);
+        json(res, 200, events);
+        return;
+    }
+    // ── /api/test ──
+    if (method === "POST" && path === "/api/test") {
+        const raw = await readBody(req);
+        const { comboId, message } = JSON.parse(raw);
+        const result = await options.router.complete({
+            comboId,
+            messages: [{ role: "user", content: message ?? "Responda apenas: OK" }],
+            stream: false,
+        });
+        json(res, 200, result);
+        return;
+    }
+    // ── Dashboard SPA (serve arquivos estáticos de dist/) ──
+    if (method === "GET" && options.dashboardDir) {
+        const assetPath = path === "/dashboard" ? "/index.html" : path.replace(/^\/dashboard\//, "/");
+        const ext = assetPath.match(/\.[^.]+$/)?.[0] ?? ".html";
+        const mime = DASHBOARD_MIME[ext] ?? "application/octet-stream";
+        try {
+            const { readFileSync, existsSync } = await Promise.resolve().then(() => __importStar(require("node:fs")));
+            const { join } = await Promise.resolve().then(() => __importStar(require("node:path")));
+            const filePath = join(options.dashboardDir, assetPath);
+            if (existsSync(filePath)) {
+                const content = readFileSync(filePath);
+                res.writeHead(200, { "content-type": mime, "cache-control": ext === ".html" ? "no-cache" : "public, max-age=31536000" });
+                res.end(content);
+                return;
+            }
+            // SPA fallback: serve index.html for any non-file path
+            const indexPath = join(options.dashboardDir, "index.html");
+            if (existsSync(indexPath)) {
+                const content = readFileSync(indexPath);
+                res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-cache" });
+                res.end(content);
+                return;
+            }
+        }
+        catch { /* dist not built yet — fall through */ }
+    }
+    sendError(res, 404, "rota não encontrada", "not_found");
 }
 // ─────────────────────────────────────────────────────────────
 // Resolução de combo
