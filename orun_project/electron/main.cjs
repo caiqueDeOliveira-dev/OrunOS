@@ -877,6 +877,9 @@ function registerIpcHandlers() {
   require("./ipc/career-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/ai-router-handlers.cjs").register(ipcMain, ctx);
 
+  // Auto-start HTTP server for dashboard (lazy init).
+  try { require("./ai-router-service.cjs").getAiRouterService(app, ctx.secretStore); } catch (_) {}
+
   // File system handlers (evidence management)
   registerFileSystemHandlers(ipcMain, ctx);
 
