@@ -668,6 +668,61 @@ export interface OrunGroupFeedState {
   groupsCount: number;
 }
 
+export type OrunJobStatus = "nova" | "curriculo_pronto" | "enviada" | "descartada";
+export type OrunProfileKey = "caique" | "esposa";
+
+export interface OrunCareerProfile {
+  name: string;
+  area: string;
+  level: string;
+  city: string;
+  remote: string;
+  targetRoles: string[];
+  headline: string;
+  about: string;
+  skills: string[];
+  experiences: Array<{ role?: string; company?: string; period?: string; description?: string }>;
+  education: Array<{ course?: string; institution?: string; year?: string }>;
+  linkedinUrl: string;
+  updatedAt: string | null;
+}
+
+export interface OrunJob {
+  id: string;
+  profileKey: OrunProfileKey;
+  title: string;
+  company: string;
+  location: string;
+  remote: string;
+  url: string;
+  source: string;
+  foundAt: string;
+  status: OrunJobStatus;
+  appliedAt: string | null;
+  notes: string;
+}
+
+export interface OrunCareerStats {
+  total: number;
+  enviadas: number;
+  enviadasHoje: number;
+  pendentes: number;
+  preparadas: number;
+  byProfile: Record<OrunProfileKey, { total: number; enviadas: number; pendentes: number }>;
+}
+
+export interface OrunCareerState {
+  profiles: Record<OrunProfileKey, OrunCareerProfile>;
+  jobs: OrunJob[];
+  stats: OrunCareerStats;
+  meta: {
+    statusLabels: Record<string, string>;
+    profileKeys: Record<string, string>;
+    profileLabels: Record<OrunProfileKey, string>;
+    supportedSearches: string[];
+  };
+}
+
 export interface OrunSchedule {
   enabled: boolean;
   time: string; // "HH:MM"
@@ -678,6 +733,71 @@ export interface OrunTTSUsageRow {
   date: string;
   requests: number;
   characters: number;
+}
+
+export interface OrunRouterStep {
+  providerId: string;
+  model: string;
+  accountLabel?: string;
+  maxRetries?: number;
+}
+
+export interface OrunRouterCombo {
+  id: string;
+  name: string;
+  kind?: "text" | "media";
+  steps: OrunRouterStep[];
+  skillId?: string;
+  isSystemDefault?: boolean;
+  rtkEnabled?: boolean;
+  cacheEnabled?: boolean;
+  cacheSimilarityThreshold?: number;
+}
+
+export interface OrunRouterUsageEvent {
+  timestamp: number;
+  comboId: string;
+  stepIndex: number;
+  providerId: string;
+  model: string;
+  promptTokens: number;
+  completionTokens: number;
+  latencyMs: number;
+  success: boolean;
+  errorCode?: string;
+  estimatedCostUsd?: number;
+  cacheHit?: boolean;
+}
+
+export interface OrunRouterHealth {
+  ok: boolean;
+  db: string;
+  defaultComboId: string;
+  http: { running: boolean; url?: string };
+}
+
+export interface OrunRouterCompleteResult {
+  text: string;
+  providerId: string;
+  model: string;
+  latencyMs: number;
+  promptTokens: number;
+  completionTokens: number;
+  estimatedCostUsd?: number;
+  cacheHit?: boolean;
+}
+
+export interface OrunRouterStreamCallbacks {
+  onChunk?: (delta: string) => void;
+  onDone?: (fullText: string) => void;
+  onError?: (message: string) => void;
+}
+
+export interface OrunRouterHttpStatus {
+  running: boolean;
+  url?: string;
+  port?: number;
+  error?: string;
 }
 
 interface OrunAPI {
@@ -699,6 +819,19 @@ interface OrunAPI {
     cacheClear: () => Promise<{ ok: boolean }>;
     telemetry: () => Promise<{ counters: Record<string, number>; metrics: Record<string, any>; recentTraces: number }>;
     rateLimitStatus: () => Promise<Record<string, { minute: number; day: number; limits: { rpm: number; rpd: number }; minuteRemaining: number; dayRemaining: number }>>;
+  };
+  aiRouter: {
+    health: () => Promise<OrunRouterHealth>;
+    listCombos: () => Promise<OrunRouterCombo[]>;
+    getCombo: (comboId: string) => Promise<OrunRouterCombo | null>;
+    saveCombo: (combo: OrunRouterCombo) => Promise<OrunRouterCombo>;
+    deleteCombo: (comboId: string) => Promise<{ ok: boolean }>;
+    usageRecent: (opts?: { comboId?: string; limit?: number }) => Promise<OrunRouterUsageEvent[]>;
+    complete: (request: { comboId: string; messages: { role: "system" | "user" | "assistant" | "tool"; content: string }[] }) => Promise<OrunRouterCompleteResult>;
+    stream: (request: { comboId: string; messages: { role: "system" | "user" | "assistant" | "tool"; content: string }[] }, callbacks: OrunRouterStreamCallbacks) => () => void;
+    httpStatus: () => Promise<OrunRouterHttpStatus>;
+    httpStart: () => Promise<OrunRouterHttpStatus>;
+    httpStop: () => Promise<{ ok: boolean }>;
   };
   settings: {
     get: <T = unknown>(key: string) => Promise<T | undefined>;
@@ -898,6 +1031,19 @@ interface OrunAPI {
     onMessage: (callback: (msg: OrunGroupFeedMessage) => void) => () => void;
     onAlert: (callback: (alert: unknown) => void) => () => void;
     onDeals: (callback: (result: unknown) => void) => () => void;
+  };
+  career: {
+    getState: () => Promise<OrunCareerState>;
+    getStats: () => Promise<OrunCareerStats>;
+    listJobs: (opts?: { profileKey?: OrunProfileKey; status?: OrunJobStatus }) => Promise<{ jobs: OrunJob[]; total: number }>;
+    addJob: (job: Partial<OrunJob> & { title: string }) => Promise<{ ok: boolean; job?: OrunJob; error?: string }>;
+    updateStatus: (id: string, status: OrunJobStatus) => Promise<{ ok: boolean; job?: OrunJob; error?: string }>;
+    removeJob: (id: string) => Promise<{ ok: boolean; error?: string }>;
+    getProfile: (profileKey: OrunProfileKey) => Promise<{ profile: OrunCareerProfile | null }>;
+    saveProfile: (profileKey: OrunProfileKey, data: Partial<OrunCareerProfile>) => Promise<{ ok: boolean; profile?: OrunCareerProfile; error?: string }>;
+    generateProfile: (profileKey: OrunProfileKey) => Promise<{ ok?: boolean; name?: string; headlines?: string[]; about?: string[]; keywords?: string[]; checklist?: string[]; error?: string }>;
+    prepareApplication: (jobId: string, profileKey?: OrunProfileKey, querySummary?: string) => Promise<{ ok?: boolean; resumePath?: string; letterPath?: string; jobId?: string | null; error?: string }>;
+    searchJobs: (query: string, profileKey?: OrunProfileKey, limit?: number) => Promise<{ ok?: boolean; candidates?: Array<{ title: string; url: string; company: string; location: string; remote: string; source: string; snippet: string }>; total?: number; error?: string }>;
   };
   schedules: {
     get: () => Promise<Record<string, OrunSchedule>>;

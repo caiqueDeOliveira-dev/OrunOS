@@ -940,7 +940,7 @@ function KeyboardShortcutBuilder() {
 
 // ── Main Component ──────────────────────────────────────────────────────
 
-export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenWhatsApp, onOpenTelegram, onOpenSuporte, onOpenAchievements }: { onClose: () => void; onOpenAgentModels: () => void; onOpenUsage: () => void; onOpenWhatsApp: () => void; onOpenTelegram: () => void; onOpenSuporte?: () => void; onOpenAchievements?: () => void }) {
+export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenWhatsApp, onOpenTelegram, onOpenSuporte, onOpenAchievements, onOpenRouter }: { onClose: () => void; onOpenAgentModels: () => void; onOpenUsage: () => void; onOpenWhatsApp: () => void; onOpenTelegram: () => void; onOpenSuporte?: () => void; onOpenAchievements?: () => void; onOpenRouter?: () => void }) {
   const { t, language, setLanguage } = useTranslation();
   const { theme, setTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<SettingsTab>("ai");
@@ -1676,6 +1676,15 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
                     >
                       <Activity size={12} /> {t("settings_usage_button")}
                     </button>
+                    {onOpenRouter && (
+                      <button
+                        onClick={onOpenRouter}
+                        className="col-span-2 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-[10px] transition-colors"
+                        style={{ background: "rgba(192,0,24,0.1)", border: "1px solid rgba(192,0,24,0.35)", color: "#FF1A2D", fontFamily: "'Sora', sans-serif" }}
+                      >
+                        <Server size={12} /> {t("settings_router_button")}
+                      </button>
+                    )}
                   </div>
                 </Section>
 

@@ -165,6 +165,7 @@ const AGENT_RECOMMENDED_MODELS = {
   Juridico:   { provider: "groq",        model: "llama-3.3-70b-versatile" },
   System:     { provider: "groq",        model: "llama-3.3-70b-versatile" },
   "CaOS Commander": { provider: "groq",        model: "llama-3.3-70b-versatile" },
+  Carreiras: { provider: "groq",                model: "llama-3.3-70b-versatile" },
 };
 
 // ── Agent Tool Permissions ──────────────────────────────────────────────
@@ -256,6 +257,13 @@ const AGENT_TOOL_PERMISSIONS = {
     "discord_plan", "discord_apply", "discord_archive_game",
     "read_file", "list_files", "web_fetch", "web_search",
     "memory_save", "memory_search", "rag_search", "notify", "trigger_agent",
+  ],
+  Carreiras: [
+    "career_get_state", "career_search_jobs", "career_add_job", "career_list_jobs",
+    "career_update_job_status", "career_save_profile", "career_generate_profile",
+    "career_prepare_application", "career_stats",
+    "web_fetch", "web_search",
+    "memory_save", "memory_search", "rag_search", "notify", "open_workspace", "workspace_action",
   ],
   Hampton: null, // null = all tools (default agent)
 };
@@ -866,6 +874,8 @@ function registerIpcHandlers() {
   require("./ipc/google-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/identity-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/group-feed-handlers.cjs").register(ipcMain, ctx);
+  require("./ipc/career-handlers.cjs").register(ipcMain, ctx);
+  require("./ipc/ai-router-handlers.cjs").register(ipcMain, ctx);
 
   // File system handlers (evidence management)
   registerFileSystemHandlers(ipcMain, ctx);

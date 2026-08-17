@@ -1,0 +1,14 @@
+{
+  "name": "@orun/ai-router-server",
+  "version": "0.1.0",
+  "description": "Servidor HTTP OpenAI-compatible (/v1/chat/completions, /v1/models) + Anthropic (/v1/messages) em cima do Orun Router - use como baseURL de qualquer tool que fale OpenAI/Anthropic.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "peerDependencies": {
+    "@orun/ai-router-core": "^0.1.0"
+  },
+  "peerDependenciesMeta": {
+    "@orun/ai-router-core": { "optional": false }
+  },
+  "license": "ISC"
+}

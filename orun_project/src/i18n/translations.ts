@@ -70,6 +70,7 @@ type TranslationKeys = {
   agentHomeIA: string;
   agentCyberSecurity: string;
   agentCaOSCommander: string;
+  agentCarreiras: string;
   agentSpeechAudio: string;
   agentKnowledgeMemory: string;
   agentOSConfig: string;
@@ -923,6 +924,33 @@ type TranslationKeys = {
   settings_tts_fallback_info: string;
   settings_agent_models_button: string;
   settings_usage_button: string;
+  settings_router_button: string;
+
+  // Orun Router
+  aiRouterTitle: string;
+  aiRouterDescription: string;
+  aiRouterStatusDb: string;
+  aiRouterStatusDefaultCombo: string;
+  aiRouterCombos: string;
+  aiRouterTest: string;
+  aiRouterTesting: string;
+  aiRouterSystemDefault: string;
+  aiRouterFree: string;
+  aiRouterUsage: string;
+  aiRouterEmptyUsage: string;
+  aiRouterEmptyCombos: string;
+  aiRouterHttp: string;
+  aiRouterHttpStart: string;
+  aiRouterHttpStop: string;
+  aiRouterHttpHint: string;
+  aiRouterHttpRunning: string;
+  aiRouterHttpStopped: string;
+  aiRouterNotElectron: string;
+  aiRouterTestResponded: string;
+  aiRouterTestTokens: string;
+  aiRouterTestFailed: string;
+  aiRouterBack: string;
+
 
   // Automotive Garage
   automotive_service_type_oil_change: string;
@@ -1471,6 +1499,7 @@ export const translations: Record<Language, TranslationKeys> = {
     agentHomeIA: "Casa Inteligente",
     agentCyberSecurity: "Segurança Cibernética",
     agentCaOSCommander: "Comandante do Discord (Tropa do CaOS)",
+    agentCarreiras: "Vagas de Emprego & Carreira",
     agentSpeechAudio: "Fala & Áudio",
     agentKnowledgeMemory: "Conhecimento & Memória",
     agentOSConfig: "SO & Configuração",
@@ -2293,6 +2322,31 @@ export const translations: Record<Language, TranslationKeys> = {
     settings_tts_fallback_info: "Fallback automático: se o engine cloud falhar (tokens, quota, etc.), muda automaticamente para Piper → Bark (local, sem internet)",
     settings_agent_models_button: "Modelos por Agente",
     settings_usage_button: "Uso Hoje",
+    settings_router_button: "Orun Router",
+    aiRouterTitle: "Orun Router",
+    aiRouterDescription: "Roteador multi-provider com combos e fallback automático entre providers free (ex: free-forever: Kiro → OpenCode Free → Vertex AI → Ollama).",
+    aiRouterStatusDb: "Banco local",
+    aiRouterStatusDefaultCombo: "Combo padrão",
+    aiRouterCombos: "Combos",
+    aiRouterTest: "Testar",
+    aiRouterTesting: "Testando…",
+    aiRouterSystemDefault: "PADRÃO",
+    aiRouterFree: "FREE",
+    aiRouterUsage: "Uso recente",
+    aiRouterEmptyUsage: "Nenhum uso registrado ainda.",
+    aiRouterEmptyCombos: "Nenhum combo disponível.",
+    aiRouterHttp: "Servidor HTTP local (OpenAI/Anthropic)",
+    aiRouterHttpStart: "Iniciar",
+    aiRouterHttpStop: "Parar",
+    aiRouterHttpHint: 'Ative com ORUN_AI_ROUTER_HTTP=1 para expor /v1/chat/completions e /v1/messages em http://127.0.0.1:4321 (Bearer opcional via ORUN_AI_ROUTER_API_KEY).',
+    aiRouterHttpRunning: "Rodando",
+    aiRouterHttpStopped: "Parado",
+    aiRouterNotElectron: "O Orun Router está disponível apenas na versão desktop.",
+    aiRouterTestResponded: "Respondeu via",
+    aiRouterTestTokens: "tokens",
+    aiRouterTestFailed: "Falhou",
+    aiRouterBack: "Voltar",
+
     settingsBackgroundListen: "Escuta em Background",
     settingsBackgroundListenDesc: "Microfone escuta 'OK Orun' 24/7 e abre o overlay automaticamente",
     settingsWakeServiceRunning: "Serviço ativo",
@@ -2871,6 +2925,7 @@ export const translations: Record<Language, TranslationKeys> = {
     agentHomeIA: "Smart Home",
     agentCyberSecurity: "Cyber Security",
     agentCaOSCommander: "Discord Commander (Tropa do CaOS)",
+    agentCarreiras: "Job Search & Career",
     agentSpeechAudio: "Speech & Audio",
     agentKnowledgeMemory: "Knowledge & Memory",
     agentOSConfig: "OS & Configuration",
@@ -3692,6 +3747,30 @@ export const translations: Record<Language, TranslationKeys> = {
     settings_tts_fallback_info: "Auto-fallback: if cloud engine fails (tokens, quota, etc.), switches to Piper → Bark (local, no internet)",
     settings_agent_models_button: "Models per Agent",
     settings_usage_button: "Usage Today",
+    settings_router_button: "Orun Router",
+    aiRouterTitle: "Orun Router",
+    aiRouterDescription: "Multi-provider router with combos and automatic fallback between free providers (e.g. free-forever: Kiro → OpenCode Free → Vertex AI → Ollama).",
+    aiRouterStatusDb: "Local DB",
+    aiRouterStatusDefaultCombo: "Default combo",
+    aiRouterCombos: "Combos",
+    aiRouterTest: "Test",
+    aiRouterTesting: "Testing…",
+    aiRouterSystemDefault: "DEFAULT",
+    aiRouterFree: "FREE",
+    aiRouterUsage: "Recent usage",
+    aiRouterEmptyUsage: "No usage recorded yet.",
+    aiRouterEmptyCombos: "No combos available.",
+    aiRouterHttp: "Local HTTP server (OpenAI/Anthropic)",
+    aiRouterHttpStart: "Start",
+    aiRouterHttpStop: "Stop",
+    aiRouterHttpHint: 'Enable with ORUN_AI_ROUTER_HTTP=1 to expose /v1/chat/completions and /v1/messages at http://127.0.0.1:4321 (optional Bearer via ORUN_AI_ROUTER_API_KEY).',
+    aiRouterHttpRunning: "Running",
+    aiRouterHttpStopped: "Stopped",
+    aiRouterNotElectron: "The Orun Router is only available in the desktop version.",
+    aiRouterTestResponded: "Responded via",
+    aiRouterTestTokens: "tokens",
+    aiRouterTestFailed: "Failed",
+    aiRouterBack: "Back",
     settingsBackgroundListen: "Background Listening",
     settingsBackgroundListenDesc: "Mic listens for 'OK Orun' 24/7 and opens the overlay automatically",
     settingsWakeServiceRunning: "Service running",
@@ -4270,6 +4349,7 @@ export const translations: Record<Language, TranslationKeys> = {
     agentHomeIA: "Hogar Inteligente",
     agentCyberSecurity: "Ciberseguridad",
     agentCaOSCommander: "Comandante de Discord (Tropa do CaOS)",
+    agentCarreiras: "Búsqueda de Empleo y Carrera",
     agentSpeechAudio: "Habla y Audio",
     agentKnowledgeMemory: "Conocimiento y Memoria",
     agentOSConfig: "SO y Configuración",
@@ -5092,6 +5172,30 @@ export const translations: Record<Language, TranslationKeys> = {
     settings_tts_fallback_info: "Fallback automático: si el engine cloud falla (tokens, cuota, etc.), cambia a Piper → Bark (local, sin internet)",
     settings_agent_models_button: "Modelos por Agente",
     settings_usage_button: "Uso Hoy",
+    settings_router_button: "Orun Router",
+    aiRouterTitle: "Orun Router",
+    aiRouterDescription: "Enrutador multi-proveedor con combos y respaldo automático entre proveedores free (ej. free-forever: Kiro → OpenCode Free → Vertex AI → Ollama).",
+    aiRouterStatusDb: "BD local",
+    aiRouterStatusDefaultCombo: "Combo predeterminado",
+    aiRouterCombos: "Combos",
+    aiRouterTest: "Probar",
+    aiRouterTesting: "Probando…",
+    aiRouterSystemDefault: "PREDETERMINADO",
+    aiRouterFree: "FREE",
+    aiRouterUsage: "Uso reciente",
+    aiRouterEmptyUsage: "Aún no hay uso registrado.",
+    aiRouterEmptyCombos: "No hay combos disponibles.",
+    aiRouterHttp: "Servidor HTTP local (OpenAI/Anthropic)",
+    aiRouterHttpStart: "Iniciar",
+    aiRouterHttpStop: "Detener",
+    aiRouterHttpHint: 'Actívalo con ORUN_AI_ROUTER_HTTP=1 para exponer /v1/chat/completions y /v1/messages en http://127.0.0.1:4321 (Bearer opcional vía ORUN_AI_ROUTER_API_KEY).',
+    aiRouterHttpRunning: "En ejecución",
+    aiRouterHttpStopped: "Detenido",
+    aiRouterNotElectron: "El Orun Router solo está disponible en la versión de escritorio.",
+    aiRouterTestResponded: "Respondió vía",
+    aiRouterTestTokens: "tokens",
+    aiRouterTestFailed: "Falló",
+    aiRouterBack: "Volver",
     settingsBackgroundListen: "Escucha en Segundo Plano",
     settingsBackgroundListenDesc: "El micrófono escucha 'OK Orun' 24/7 y abre la superposición automáticamente",
     settingsWakeServiceRunning: "Servicio activo",
@@ -5670,6 +5774,7 @@ export const translations: Record<Language, TranslationKeys> = {
     agentHomeIA: "Maison Intelligente",
     agentCyberSecurity: "Cybersécurité",
     agentCaOSCommander: "Commandant Discord (Tropa do CaOS)",
+    agentCarreiras: "Recherche d'Emploi & Carrière",
     agentSpeechAudio: "Parole & Audio",
     agentKnowledgeMemory: "Connaissance & Mémoire",
     agentOSConfig: "OS & Configuration",
@@ -6492,6 +6597,30 @@ export const translations: Record<Language, TranslationKeys> = {
     settings_tts_fallback_info: "Fallback auto : si le engine cloud échoue (tokens, quota, etc.), passe à Piper → Bark (local, pas d'internet)",
     settings_agent_models_button: "Modèles par Agent",
     settings_usage_button: "Utilisation Aujourd'hui",
+    settings_router_button: "Orun Router",
+    aiRouterTitle: "Orun Router",
+    aiRouterDescription: "Routeur multi-fournisseur avec combos et repli automatique entre fournisseurs gratuits (ex. free-forever : Kiro → OpenCode Free → Vertex AI → Ollama).",
+    aiRouterStatusDb: "BD locale",
+    aiRouterStatusDefaultCombo: "Combo par défaut",
+    aiRouterCombos: "Combos",
+    aiRouterTest: "Tester",
+    aiRouterTesting: "Test en cours…",
+    aiRouterSystemDefault: "PAR DÉFAUT",
+    aiRouterFree: "GRATUIT",
+    aiRouterUsage: "Utilisation récente",
+    aiRouterEmptyUsage: "Aucune utilisation enregistrée.",
+    aiRouterEmptyCombos: "Aucun combo disponible.",
+    aiRouterHttp: "Serveur HTTP local (OpenAI/Anthropic)",
+    aiRouterHttpStart: "Démarrer",
+    aiRouterHttpStop: "Arrêter",
+    aiRouterHttpHint: 'Activez avec ORUN_AI_ROUTER_HTTP=1 pour exposer /v1/chat/completions et /v1/messages sur http://127.0.0.1:4321 (Bearer optionnel via ORUN_AI_ROUTER_API_KEY).',
+    aiRouterHttpRunning: "En cours",
+    aiRouterHttpStopped: "Arrêté",
+    aiRouterNotElectron: "Le routeur Orun n'est disponible que dans la version de bureau.",
+    aiRouterTestResponded: "A répondu via",
+    aiRouterTestTokens: "tokens",
+    aiRouterTestFailed: "Échec",
+    aiRouterBack: "Retour",
     settingsBackgroundListen: "Écoute en Arrière-plan",
     settingsBackgroundListenDesc: "Le micro écoute 'OK Orun' 24/7 et ouvre le overlay automatiquement",
     settingsWakeServiceRunning: "Service actif",

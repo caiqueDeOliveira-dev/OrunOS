@@ -99,6 +99,38 @@ contextBridge.exposeInMainWorld("orun", {
     telemetry: () => ipcRenderer.invoke("ai:telemetry"),
     rateLimitStatus: () => ipcRenderer.invoke("ai:rate-limit-status"),
   },
+  aiRouter: {
+    health: () => ipcRenderer.invoke("ai-router:health"),
+    listCombos: () => ipcRenderer.invoke("ai-router:list-combos"),
+    getCombo: (comboId) => ipcRenderer.invoke("ai-router:get-combo", comboId),
+    saveCombo: (combo) => ipcRenderer.invoke("ai-router:save-combo", combo),
+    deleteCombo: (comboId) => ipcRenderer.invoke("ai-router:delete-combo", comboId),
+    usageRecent: (opts) => ipcRenderer.invoke("ai-router:usage-recent", opts),
+    complete: (request) => ipcRenderer.invoke("ai-router:complete", request),
+    stream(request, { onChunk, onDone, onError } = {}) {
+      const requestId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const chunkChannel = `ai-router:stream:chunk:${requestId}`;
+      const doneChannel = `ai-router:stream:done:${requestId}`;
+      const errorChannel = `ai-router:stream:error:${requestId}`;
+      let finished = false;
+
+      const handleChunk = (_e, chunk) => onChunk?.(chunk);
+      const handleDone = (_e, result) => { finished = true; cleanup(); onDone?.(result); };
+      const handleError = (_e, message) => { finished = true; cleanup(); onError?.(message); };
+      function cleanup() {
+        ipcRenderer.removeListener(chunkChannel, handleChunk);
+        ipcRenderer.removeListener(doneChannel, handleDone);
+        ipcRenderer.removeListener(errorChannel, handleError);
+      }
+      ipcRenderer.on(chunkChannel, handleChunk);
+      ipcRenderer.on(doneChannel, handleDone);
+      ipcRenderer.on(errorChannel, handleError);
+      ipcRenderer.send("ai-router:stream", { requestId, request });
+    },
+    httpStatus: () => ipcRenderer.invoke("ai-router:http-status"),
+    httpStart: () => ipcRenderer.invoke("ai-router:http-start"),
+    httpStop: () => ipcRenderer.invoke("ai-router:http-stop"),
+  },
   settings: {
     get: (key) => ipcRenderer.invoke("settings:get", key),
     set: (key, value) => ipcRenderer.invoke("settings:set", key, value),
@@ -372,6 +404,19 @@ contextBridge.exposeInMainWorld("orun", {
       ipcRenderer.on("group-feed:deals", handler);
       return () => ipcRenderer.removeListener("group-feed:deals", handler);
     },
+  },
+  career: {
+    getState: () => ipcRenderer.invoke("career:get-state"),
+    getStats: () => ipcRenderer.invoke("career:get-stats"),
+    listJobs: (opts) => ipcRenderer.invoke("career:list-jobs", opts),
+    addJob: (job) => ipcRenderer.invoke("career:add-job", job),
+    updateStatus: (id, status) => ipcRenderer.invoke("career:update-status", id, status),
+    removeJob: (id) => ipcRenderer.invoke("career:remove-job", id),
+    getProfile: (profileKey) => ipcRenderer.invoke("career:get-profile", profileKey),
+    saveProfile: (profileKey, data) => ipcRenderer.invoke("career:save-profile", profileKey, data),
+    generateProfile: (profileKey) => ipcRenderer.invoke("career:generate-profile", profileKey),
+    prepareApplication: (jobId, profileKey, querySummary) => ipcRenderer.invoke("career:prepare-application", jobId, profileKey, querySummary),
+    searchJobs: (query, profileKey, limit) => ipcRenderer.invoke("career:search-jobs", query, profileKey, limit),
   },
   schedules: {
     get: () => ipcRenderer.invoke("schedules:get"),

@@ -1,0 +1,11 @@
+{
+  "name": "@orun/ai-router-core",
+  "version": "0.1.0",
+  "description": "Schema, registry de providers, adapters de formato, ModelRouter/MediaRouter, OAuth e skills - 100% agnostico de plataforma (Electron/Expo/Tizen).",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "dependencies": {
+    "zod": "^4.0.0"
+  },
+  "license": "ISC"
+}

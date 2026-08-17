@@ -94,6 +94,7 @@ export function usePanelNavigation(onNewChat?: () => void) {
   const setSettingsOpen = useCallback(makePanelSetter("settings"), []);
   const setAgentModelsOpen = useCallback(makePanelSetter("agentModels"), []);
   const setUsageOpen = useCallback(makePanelSetter("usage"), []);
+  const setRouterOpen = useCallback(makePanelSetter("router"), []);
   const setAutomationOpen = useCallback(makePanelSetter("automation"), []);
   const setSchedulesOpen = useCallback(makePanelSetter("schedules"), []);
   const setVoicesOpen = useCallback(makePanelSetter("voices"), []);
@@ -189,6 +190,7 @@ export function usePanelNavigation(onNewChat?: () => void) {
   const settingsOpen = state.currentPanel === "settings";
   const agentModelsOpen = state.currentPanel === "agentModels";
   const usageOpen = state.currentPanel === "usage";
+  const routerOpen = state.currentPanel === "router";
   const automationOpen = state.currentPanel === "automation";
   const schedulesOpen = state.currentPanel === "schedules";
   const voicesOpen = state.currentPanel === "voices";
@@ -211,6 +213,7 @@ export function usePanelNavigation(onNewChat?: () => void) {
   return {
     // State
     agentsOpen, historyOpen, settingsOpen, agentModelsOpen, usageOpen,
+    routerOpen,
     automationOpen, schedulesOpen, voicesOpen, modelPickerOpen, whatsappOpen,
     agentDataOpen: state.agentDataOpen, agentPage: state.agentPage,
     projectsOpen, filesOpen, memoryOpen, skillsOpen, socialMediaOpen,
@@ -221,7 +224,7 @@ export function usePanelNavigation(onNewChat?: () => void) {
     analyticsOpen,
     // Setters
     setAgentsOpen, setHistoryOpen, setSettingsOpen, setAgentModelsOpen,
-    setUsageOpen, setAutomationOpen, setSchedulesOpen, setVoicesOpen,
+    setUsageOpen, setRouterOpen, setAutomationOpen, setSchedulesOpen, setVoicesOpen,
     setModelPickerOpen, setWhatsappOpen, setAgentDataOpen, setAgentPage,
     setProjectsOpen, setFilesOpen, setMemoryOpen, setSkillsOpen, setSocialMediaOpen,
     setExportImportOpen, setActivityOpen, setEmailOpen, setCalendarOpen, setActiveNav, setWorkspaceOpen,

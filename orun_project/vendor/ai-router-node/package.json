@@ -1,0 +1,16 @@
+{
+  "name": "@orun/ai-router-node",
+  "version": "0.1.0",
+  "description": "Stores SQLite (combos, provider configs, usage log) para o Orun Router em Node/Electron.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "peerDependencies": {
+    "@orun/ai-router-core": "^0.1.0",
+    "better-sqlite3": "^11.10.0 || ^12.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@orun/ai-router-core": { "optional": false },
+    "better-sqlite3": { "optional": false }
+  },
+  "license": "ISC"
+}
