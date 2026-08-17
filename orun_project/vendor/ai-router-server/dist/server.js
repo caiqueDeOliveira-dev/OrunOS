@@ -119,6 +119,11 @@ async function handleRequest(req, res, options) {
             await handleDashboardApi(req, res, path, options);
             return;
         }
+        // ── Dashboard SPA (/dashboard/*) ───────────────────────────
+        if (path === "/dashboard" || path.startsWith("/dashboard/")) {
+            await serveDashboard(req, res, path, options);
+            return;
+        }
         if (!path.startsWith("/v1/")) {
             sendError(res, 404, `rota não encontrada: ${path}`, "not_found");
             return;
@@ -272,33 +277,40 @@ async function handleDashboardApi(req, res, path, options) {
         json(res, 200, result);
         return;
     }
-    // ── Dashboard SPA (serve arquivos estáticos de dist/) ──
-    if (method === "GET" && options.dashboardDir) {
-        const assetPath = path === "/dashboard" ? "/index.html" : path.replace(/^\/dashboard\//, "/");
-        const ext = assetPath.match(/\.[^.]+$/)?.[0] ?? ".html";
-        const mime = DASHBOARD_MIME[ext] ?? "application/octet-stream";
-        try {
-            const { readFileSync, existsSync } = await Promise.resolve().then(() => __importStar(require("node:fs")));
-            const { join } = await Promise.resolve().then(() => __importStar(require("node:path")));
-            const filePath = join(options.dashboardDir, assetPath);
-            if (existsSync(filePath)) {
-                const content = readFileSync(filePath);
-                res.writeHead(200, { "content-type": mime, "cache-control": ext === ".html" ? "no-cache" : "public, max-age=31536000" });
-                res.end(content);
-                return;
-            }
-            // SPA fallback: serve index.html for any non-file path
-            const indexPath = join(options.dashboardDir, "index.html");
-            if (existsSync(indexPath)) {
-                const content = readFileSync(indexPath);
-                res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-cache" });
-                res.end(content);
-                return;
-            }
-        }
-        catch { /* dist not built yet — fall through */ }
-    }
     sendError(res, 404, "rota não encontrada", "not_found");
+}
+// ─────────────────────────────────────────────────────────────
+// Dashboard SPA estático (/dashboard/*)
+// ─────────────────────────────────────────────────────────────
+async function serveDashboard(req, res, path, options) {
+    if (!options.dashboardDir) {
+        sendError(res, 404, "dashboard não disponível", "not_found");
+        return;
+    }
+    const assetPath = path === "/dashboard" ? "/index.html" : path.replace(/^\/dashboard\//, "/");
+    const ext = assetPath.match(/\.[^.]+$/)?.[0] ?? ".html";
+    const mime = DASHBOARD_MIME[ext] ?? "application/octet-stream";
+    try {
+        const { readFileSync, existsSync } = await Promise.resolve().then(() => __importStar(require("node:fs")));
+        const { join } = await Promise.resolve().then(() => __importStar(require("node:path")));
+        const filePath = join(options.dashboardDir, assetPath);
+        if (existsSync(filePath)) {
+            const content = readFileSync(filePath);
+            res.writeHead(200, { "content-type": mime, "cache-control": ext === ".html" ? "no-cache" : "public, max-age=31536000" });
+            res.end(content);
+            return;
+        }
+        // SPA fallback: serve index.html for any non-file path
+        const indexPath = join(options.dashboardDir, "index.html");
+        if (existsSync(indexPath)) {
+            const content = readFileSync(indexPath);
+            res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-cache" });
+            res.end(content);
+            return;
+        }
+    }
+    catch { /* dist not built yet — fall through */ }
+    sendError(res, 404, "dashboard não encontrado", "not_found");
 }
 // ─────────────────────────────────────────────────────────────
 // Resolução de combo
