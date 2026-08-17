@@ -108,7 +108,12 @@ function startHttpServer(app, secretStore) {
     path.join(__dirname, "..", "router-dashboard", "dist"),
     path.join(__dirname, "..", "vendor", "router-dashboard", "dist"),
   ];
-  const dashboardDir = candidateDirs.find((d) => fs.existsSync(path.join(d, "index.html"))) || undefined;
+  const dashboardDir = candidateDirs.find((d) => {
+    const hasIndex = fs.existsSync(path.join(d, "index.html"));
+    log.info(`[ai-router] dashboard check ${d} => ${hasIndex}`);
+    return hasIndex;
+  }) || undefined;
+  log.info(`[ai-router] resolved dashboardDir=${dashboardDir ?? "null"}`);
 
   const server = createAiRouterServer({
     router,

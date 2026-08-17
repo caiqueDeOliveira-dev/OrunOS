@@ -137,7 +137,8 @@
             "dist/**/*",
             "electron/**/*",
             "!electron/__tests__/**",
-            "rules/**/*"
+            "rules/**/*",
+            "vendor/**/*"
         ],
         "extraResources": [
             {
