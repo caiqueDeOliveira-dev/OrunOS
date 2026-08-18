@@ -119,7 +119,7 @@ function startHttpServer(app, secretStore) {
     router,
     comboStore,
     providerConfigStore,
-    usageLogStore,
+    usageStore: usageLogStore,
     apiKey,
     meta: { dbPath, defaultComboId: FREE_FOREVER_COMBO.id },
     dashboardDir,
