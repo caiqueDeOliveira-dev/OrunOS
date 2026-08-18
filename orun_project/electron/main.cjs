@@ -832,6 +832,17 @@ function autonomousLoop(opts) {
 function registerIpcHandlers() {
   const homeAssistantCtl = homeAssistant.init(app);
   const securityAuditCtl = securityAudit.init(app, toolsModule);
+
+  // Inicializa o @orun/settings bridge (CJS reimplementation)
+  let settingsBridge = null;
+  try {
+    settingsBridge = require("./settings-bridge.cjs");
+    settingsBridge.init(app.getPath("userData"));
+    log.info("[main] @orun/settings bridge inicializado");
+  } catch (err) {
+    log.warn("[main] Falha ao inicializar settings-bridge:", err.message);
+  }
+
   const ctx = {
     aiRouter, ttsRouter, sttRouter, n8n, db, agentPrompts, whatsapp, scheduler,
     videoEditor, image3d, socialMedia, musicProducer, toolsModule, mcpClient,
@@ -845,6 +856,7 @@ function registerIpcHandlers() {
     autonomousLoop, isDev, log, app,
     agentRecommendedModels: AGENT_RECOMMENDED_MODELS,
     spotify, discordBot, telegram, telegramAutomation,
+    settingsBridge,
   };
   Object.defineProperty(ctx, "mainWindow", { get: () => mainWindow, enumerable: true });
   Object.defineProperty(ctx, "groupWatcher", { get: () => groupWatcher, enumerable: true });
@@ -857,6 +869,7 @@ function registerIpcHandlers() {
 
   require("./ipc/ai-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/settings-handlers.cjs").register(ipcMain, ctx);
+  require("./ipc/settings-sync-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/data-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/skill-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/knowledge-handlers.cjs").register(ipcMain, ctx);

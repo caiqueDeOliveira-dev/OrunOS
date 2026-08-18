@@ -139,4 +139,38 @@ module.exports = {
   getController,
   startHeartbeat,
   stopHeartbeat,
+  // @orun/settings sync (nova camada)
+  initSettingsSync,
+  getSettingsSyncEngine,
 };
+
+// ── @orun/settings sync ────────────────────────────────────────────────────
+let settingsSyncEngine = null;
+
+/**
+ * Inicia o SyncEngine de settings via @orun/sync bridge.
+ * Requer: ecossistema ativo (Supabase client + deviceId).
+ */
+function initSettingsSync() {
+  if (!ecosystemEnabled || !controller) return null;
+  try {
+    const settingsBridge = require("./settings-bridge.cjs");
+    const supabase = controller._supabase || controller.supabase;
+    if (!supabase) {
+      logger.sync.warn("[settings-sync] Supabase client nao disponivel no controller");
+      return null;
+    }
+    // initSync retorna uma promise do engine
+    settingsBridge.initSync(supabase, "local", deviceId);
+    settingsSyncEngine = settingsBridge.getSyncEngine();
+    logger.sync.info("[settings-sync] SyncEngine de settings inicializado");
+    return settingsSyncEngine;
+  } catch (err) {
+    logger.sync.warn("[settings-sync] Falha ao inicializar:", err.message);
+    return null;
+  }
+}
+
+function getSettingsSyncEngine() {
+  return settingsSyncEngine;
+}

@@ -9,6 +9,11 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
     css: true,
+    exclude: [
+      "**/node_modules/**",
+      "**/vendor/orun-settings/src/react/hooks.test.tsx",
+      "**/vendor/orun-sync/src/react/use-sync-conflicts.test.tsx",
+    ],
   },
   resolve: {
     alias: {

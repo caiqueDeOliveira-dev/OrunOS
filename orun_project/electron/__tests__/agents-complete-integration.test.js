@@ -26,6 +26,7 @@ const ALL_EXPECTED_AGENTS = [
   "Marketing", "Personal Assistant", "Automation", "Automotive",
   "System", "Creator", "Juridico", "Suporte", "AssistenteTecnico",
   "CaOS Commander",
+  "Carreiras",
 ];
 
 const AGENT_KEYWORDS = {
@@ -44,6 +45,7 @@ const AGENT_KEYWORDS = {
   "Suporte":             ["Suporte", "suporte tecnico", "bugs", "diagnostico"],
   "AssistenteTecnico":   ["Assistente Tecnico", "eletronica", "oficina", "pecas", "conserto"],
   "CaOS Commander":      ["CaOS Commander", "Discord", "TROPA DO CaOS", "discord_apply", "confirm", "comunidade"],
+  "Carreiras":           ["Carreiras", "vaga", "currículo", "candidatura", "career_add_job", "career_prepare_application"],
 };
 
 // ── WORKSPACE MAPPINGS ─────────────────────────────────────────────────
@@ -64,6 +66,7 @@ const AGENT_WORKSPACE_MAP = {
   "Suporte":             [],
   "AssistenteTecnico":   ["assistente-tecnico"],
   "CaOS Commander":      [],
+  "Carreiras":           ["career"],
 };
 
 // ── RECOMMENDED MODELS (from main.cjs) ────────────────────────────────
@@ -82,6 +85,7 @@ const AGENT_RECOMMENDED_MODELS = {
   Juridico:   { provider: "groq",        model: "llama-3.3-70b-versatile" },
   System:     { provider: "groq",        model: "llama-3.3-70b-versatile" },
   "CaOS Commander": { provider: "groq",        model: "llama-3.3-70b-versatile" },
+  Carreiras:      { provider: "groq",        model: "llama-3.3-70b-versatile" },
 };
 
 // ── TOOL PERMISSIONS (from main.cjs) ──────────────────────────────────
@@ -158,6 +162,13 @@ const AGENT_TOOL_PERMISSIONS = {
     "discord_plan", "discord_apply", "discord_archive_game",
     "read_file", "list_files", "web_fetch", "web_search",
     "memory_save", "memory_search", "rag_search", "notify", "trigger_agent",
+  ],
+  Carreiras: [
+    "career_get_state", "career_search_jobs", "career_add_job", "career_list_jobs",
+    "career_update_job_status", "career_save_profile", "career_generate_profile",
+    "career_prepare_application", "career_stats",
+    "web_fetch", "web_search",
+    "memory_save", "memory_search", "rag_search", "notify", "open_workspace", "workspace_action",
   ],
 };
 
@@ -357,6 +368,9 @@ describe("Tool permissions integrity", () => {
     "spotify_play", "spotify_search", "spotify_get_playlists", "spotify_get_now_playing",
     "discord_status", "discord_server_info", "discord_channels", "discord_roles",
     "discord_plan", "discord_apply", "discord_archive_game",
+    "career_get_state", "career_search_jobs", "career_add_job", "career_list_jobs",
+    "career_update_job_status", "career_save_profile", "career_generate_profile",
+    "career_prepare_application", "career_stats",
   ];
 
   for (const [agent, tools] of Object.entries(AGENT_TOOL_PERMISSIONS)) {

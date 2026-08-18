@@ -2,6 +2,7 @@ import { useState, useEffect, Suspense, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { I18nProvider } from "../i18n/I18nProvider";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { SettingsProvider } from "./contexts/SettingsContext";
 import { ToastProvider, useToast } from "./components/Toast";
 import { GlobalStyles } from "./components/GlobalStyles";
 import { CustomCursor } from "./components/CustomCursor";
@@ -82,6 +83,7 @@ function MainApp() {
     <ErrorBoundary>
       <I18nProvider>
         <ThemeProvider>
+        <SettingsProvider>
         <ToastProvider>
         <TTSFallbackListener />
         <div className="fixed inset-0 overflow-hidden" style={{ background: "var(--background)" }}>
@@ -140,6 +142,7 @@ function MainApp() {
 
         </div>
         </ToastProvider>
+        </SettingsProvider>
         </ThemeProvider>
       </I18nProvider>
     </ErrorBoundary>

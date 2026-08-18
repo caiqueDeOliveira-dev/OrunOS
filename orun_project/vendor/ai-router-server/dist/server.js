@@ -186,7 +186,7 @@ const DASHBOARD_MIME = {
 };
 async function handleDashboardApi(req, res, path, options) {
     const method = req.method ?? "GET";
-    // ── /api/health (detailed) ──
+    // ── /api/health (basic) ──
     if (method === "GET" && path === "/api/health") {
         const combos = await options.comboStore.listCombos();
         const def = combos.find((c) => c.isSystemDefault);
@@ -197,6 +197,30 @@ async function handleDashboardApi(req, res, path, options) {
             combosCount: combos.length,
             hasProviderConfig: !!options.providerConfigStore,
             hasUsageLog: !!options.usageStore,
+        });
+        return;
+    }
+    // ── /api/health/detailed ──
+    if (method === "GET" && path === "/api/health/detailed") {
+        const combos = await options.comboStore.listCombos();
+        const def = combos.find((c) => c.isSystemDefault);
+        const configs = options.providerConfigStore ? await options.providerConfigStore.listConfigs() : [];
+        const providers = configs.map((c) => ({
+            providerId: c.providerId,
+            enabled: c.enabled,
+            hasCredential: c.hasCredential ?? false,
+            circuitState: "closed",
+            recentErrors: 0,
+        }));
+        json(res, 200, {
+            ok: true,
+            dbPath: options.meta?.dbPath ?? null,
+            defaultComboId: options.meta?.defaultComboId ?? def?.id ?? null,
+            combosCount: combos.length,
+            hasProviderConfig: !!options.providerConfigStore,
+            hasUsageLog: !!options.usageStore,
+            uptime: process.uptime() * 1000,
+            providers,
         });
         return;
     }
@@ -253,6 +277,18 @@ async function handleDashboardApi(req, res, path, options) {
             const body = JSON.parse(raw);
             const saved = await options.providerConfigStore.saveConfig(body);
             json(res, 201, saved);
+            return;
+        }
+    }
+    // ── /api/providers/:id ──
+    const providerMatch = path.match(/^\/api\/providers\/(.+)$/);
+    if (providerMatch && options.providerConfigStore) {
+        const id = decodeURIComponent(providerMatch[1]);
+        if (method === "PUT") {
+            const raw = await readBody(req);
+            const body = JSON.parse(raw);
+            const saved = await options.providerConfigStore.saveConfig({ ...body, providerId: id });
+            json(res, 200, saved);
             return;
         }
     }

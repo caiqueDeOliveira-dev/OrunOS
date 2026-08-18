@@ -16,6 +16,7 @@ const auditLog = require("./audit-log.cjs");
 const developerTools = require("./developer-tools.cjs");
 const firecrawl = require("./firecrawl.cjs");
 const discordBridge = require("./discord-bridge.cjs");
+const careerBridge = require("./career.cjs");
 
 // ── Rate limiter (simple in-memory) ────────────────────────────────────
 const agentRateLimiter = {
@@ -123,6 +124,7 @@ let ctx = null; // { db, socialMedia }
 function init(userDataPath, context) {
   ctx = context || null;
   discordBridge.init(ctx);
+  careerBridge.init({ ...ctx, userDataPath });
   auditLog.init(userDataPath);
 }
 
@@ -461,6 +463,144 @@ const TOOL_DEFINITIONS = [
         },
         required: ["query"],
       },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "career_get_state",
+      description:
+        "Retorna o estado completo do agente Carreiras: perfis (Caíque/Esposa), lista de vagas cadastradas com status e estatísticas (total, enviadas, enviadas hoje, pendentes). Use antes de qualquer outra tool de carreira para entender o cenário.",
+      parameters: { type: "object", properties: {}, required: [] },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "career_search_jobs",
+      description:
+        "Busca vagas de emprego na web (LinkedIn, Indeed, Catho, Glassdoor, Vagas.com). Retorna candidatas para REVISÃO — não cadastra automaticamente. Use a query com a área e perfil desejados (ex.: 'desenvolvedor react remoto'). Informe profileKey para associar ao perfil correto.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Termos da busca de vagas, ex.: 'desenvolvedor pleno remoto'" },
+          profileKey: { type: "string", enum: ["caique", "esposa"], description: "Para qual perfil a busca é (padrão: caique)" },
+          limit: { type: "number", description: "Máximo de resultados (padrão 8)" },
+        },
+        required: ["query"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "career_add_job",
+      description:
+        "Cadastra manualmente uma vaga encontrada (por link ou dados) no rastreador de vagas. Evita duplicatas por link. A vaga nasce com status 'nova'.",
+      parameters: {
+        type: "object",
+        properties: {
+          profileKey: { type: "string", enum: ["caique", "esposa"], description: "Perfil dono da vaga (padrão: caique)" },
+          title: { type: "string", description: "Título da vaga (obrigatório)" },
+          company: { type: "string", description: "Empresa" },
+          location: { type: "string", description: "Localidade" },
+          remote: { type: "string", description: "Remoto/Presencial/Híbrido" },
+          url: { type: "string", description: "Link da vaga (obrigatório se sem empresa)" },
+          notes: { type: "string", description: "Anotações" },
+        },
+        required: ["title"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "career_list_jobs",
+      description:
+        "Lista vagas cadastradas, opcionalmente filtradas por perfil (caique/esposa) e/ou status (nova, curriculo_pronto, enviada, descartada).",
+      parameters: {
+        type: "object",
+        properties: {
+          profileKey: { type: "string", enum: ["caique", "esposa"], description: "Filtrar por perfil" },
+          status: { type: "string", enum: ["nova", "curriculo_pronto", "enviada", "descartada"], description: "Filtrar por status" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "career_update_job_status",
+      description:
+        "Atualiza o status de uma vaga: 'enviada' (candidatura efetivada — NUNCA marque sem o usuário confirmar que enviou no portal), 'curriculo_pronto' (currículo/carta preparados), 'descartada'. O envio de candidatura é sempre feito pelo usuário no LinkedIn/portal; o agente prepara e confirma.",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "string", description: "Id da vaga" },
+          status: { type: "string", enum: ["nova", "curriculo_pronto", "enviada", "descartada"], description: "Novo status" },
+        },
+        required: ["id", "status"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "career_save_profile",
+      description:
+        "Salva/atualiza os dados de um perfil de candidatura (Caíque ou Esposa): área, nível, cidade, regime remoto, cargos-alvo, headline, sobre, skills, experiências, formação, link do LinkedIn. Use para manter os perfis atualizados para busca e geração de currículo.",
+      parameters: {
+        type: "object",
+        properties: {
+          profileKey: { type: "string", enum: ["caique", "esposa"], description: "Qual perfil salvar" },
+          data: {
+            type: "object",
+            description: "Campos do perfil: { area, level, city, remote, targetRoles[], headline, about, skills[], experiences[], education[], linkedinUrl }",
+          },
+        },
+        required: ["profileKey", "data"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "career_generate_profile",
+      description:
+        "Gera conteúdo otimizado para recrutadores de um perfil: sugestões de headline, seção 'Sobre', palavras-chave (keywords) e um checklist de LinkedIn. Baseado nos dados atuais do perfil.",
+      parameters: {
+        type: "object",
+        properties: {
+          profileKey: { type: "string", enum: ["caique", "esposa"], description: "Qual perfil gerar conteúdo" },
+        },
+        required: ["profileKey"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "career_prepare_application",
+      description:
+        "PREPARA a candidatura de uma vaga: gera currículo (Markdown) e carta de apresentação personalizados com os dados do perfil e grava em userData/career/applications. Recebe o id da vaga (ou link) e profileKey. Marca a vaga como 'curriculo_pronto'. O ENVIO é sempre feito manualmente pelo usuário.",
+      parameters: {
+        type: "object",
+        properties: {
+          jobId: { type: "string", description: "Id da vaga cadastrada" },
+          profileKey: { type: "string", enum: ["caique", "esposa"], description: "Perfil para gerar o currículo (padrão: perfil da vaga)" },
+          querySummary: { type: "string", description: "Resumo da vaga para a carta de apresentação" },
+        },
+        required: ["jobId"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "career_stats",
+      description:
+        "Retorna estatísticas de vagas e candidaturas (total, enviadas, enviadas hoje, pendentes, por perfil). Útil para responder perguntas como 'quantos currículos já mandou?'.",
+      parameters: { type: "object", properties: {}, required: [] },
     },
   },
   {
@@ -1173,6 +1313,7 @@ const AGENT_WORKSPACE_SCOPE = {
   System: ["system"],
   "Home IA": ["home-ia"],
   "Cyber Security": ["cyber-security"],
+  Carreiras: ["career"],
 };
 
 function checkWorkspaceScope(agentId, name, args) {
@@ -1232,6 +1373,15 @@ async function executeToolRaw(name, args) {
     case "discord_plan": return discordBridge.execute("plan", args || {});
     case "discord_apply": return discordBridge.execute("apply", args || {});
     case "discord_archive_game": return discordBridge.execute("archive_game", args || {});
+    case "career_get_state": return careerBridge.getState();
+    case "career_search_jobs": return await careerBridge.searchJobs(args.query, args.profileKey, { limit: args.limit || 8 });
+    case "career_add_job": return careerBridge.addJob(args);
+    case "career_list_jobs": return careerBridge.listJobs({ profileKey: args.profileKey, status: args.status });
+    case "career_update_job_status": return careerBridge.updateJobStatus(args.id, args.status);
+    case "career_save_profile": return careerBridge.saveProfile(args.profileKey, args.data || {});
+    case "career_generate_profile": return careerBridge.generateProfileContent(args.profileKey);
+    case "career_prepare_application": return careerBridge.prepareApplication(args.jobId, args.profileKey, { querySummary: args.querySummary });
+    case "career_stats": return careerBridge.getStats();
     case "web_search": {
       const { query, numResults = 5 } = args;
       const keys = ctx && ctx.readSecretStore ? ctx.readSecretStore() : {};
@@ -1333,7 +1483,7 @@ async function executeToolRaw(name, args) {
         const win = BrowserWindow.getAllWindows()[0];
         if (!win || win.isDestroyed()) return { error: "No active window found" };
         const { workspace } = args;
-        const validWorkspaces = ["creator-audio", "creator-video", "designer", "automation-flow", "finance", "health", "teacher", "marketing", "system", "developer", "automotive-garage", "juridico", "assistente-tecnico", "personal-assistant", "suporte", "home-ia", "cyber-security"];
+        const validWorkspaces = ["creator-audio", "creator-video", "designer", "automation-flow", "finance", "health", "teacher", "marketing", "system", "developer", "automotive-garage", "juridico", "assistente-tecnico", "personal-assistant", "suporte", "home-ia", "cyber-security", "career"];
         if (!validWorkspaces.includes(workspace)) return { error: `Invalid workspace: ${workspace}. Valid: ${validWorkspaces.join(", ")}` };
         // Set up listener BEFORE sending the open message to avoid race condition
         let cleanedUp = false;

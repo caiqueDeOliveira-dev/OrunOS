@@ -150,6 +150,7 @@ const AGENT_PLUGIN_MAP: Record<string, string> = {
   "Personal Assistant": "PersonalAssistant",
   "Home IA": "HomeIA",
   "Cyber Security": "CyberSecurity",
+  Carreiras: "Career",
 };
 
 /** Get the workspace plugin ID for a given agent name. Returns undefined if no workspace exists. */

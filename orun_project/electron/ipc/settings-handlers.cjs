@@ -1,5 +1,6 @@
 // electron/ipc/settings-handlers.cjs
 // Settings, API keys, conversations, and app preference handlers.
+// Novo: integração com @orun/settings bridge (schema validado, escopo, sync).
 
 const { randomUUID } = require("crypto");
 const { validateApiKey } = require("../api-key-validator.cjs");
@@ -7,7 +8,7 @@ const { dbEncryption } = require("../db-encryption.cjs");
 const logger = require("../logger.cjs");
 
 function register(ipcMain, ctx) {
-  const { db, secretStore, syncEnqueue, getGlobalAISettings, agentRecommendedModels } = ctx;
+  const { db, secretStore, syncEnqueue, getGlobalAISettings, agentRecommendedModels, settingsBridge } = ctx;
 
   ipcMain.handle("settings:get", (_event, key) => {
     if (typeof key !== "string" || !key.trim()) return null;
@@ -144,6 +145,54 @@ function register(ipcMain, ctx) {
   });
 
   ipcMain.handle("settings:agent-recommended-models", () => agentRecommendedModels || {});
+
+  // ── @orun/settings bridge (schema validado, escopo, defaults) ────────────
+  // Novos handlers que usam o SettingsStore do settings-bridge.cjs.
+  // Compat: settings:get/set legados continuam funcionando (SQLite).
+
+  ipcMain.handle("settings:schema-get", async (_event, pathStr) => {
+    if (!settingsBridge) return null;
+    const store = settingsBridge.getStore();
+    if (!store) return null;
+    try { return await store.get(pathStr); } catch { return null; }
+  });
+
+  ipcMain.handle("settings:schema-set", async (_event, pathStr, value) => {
+    if (!settingsBridge) return false;
+    const store = settingsBridge.getStore();
+    if (!store) return false;
+    try {
+      await store.set(pathStr, value);
+      return true;
+    } catch (err) {
+      logger.sync.warn("[settings-bridge] set falhou:", err.message);
+      return false;
+    }
+  });
+
+  ipcMain.handle("settings:schema-get-all", async () => {
+    if (!settingsBridge) return null;
+    const store = settingsBridge.getStore();
+    if (!store) return null;
+    try { return await store.getAll(); } catch { return null; }
+  });
+
+  ipcMain.handle("settings:schema-reset", async (_event, pathStr) => {
+    if (!settingsBridge) return false;
+    const store = settingsBridge.getStore();
+    if (!store) return false;
+    try { await store.reset(pathStr); return true; } catch { return false; }
+  });
+
+  ipcMain.handle("settings:schema-scope", async (_event, pathStr) => {
+    if (!settingsBridge) return null;
+    try { return settingsBridge.getStore()?.getScope(pathStr) ?? null; } catch { return null; }
+  });
+
+  ipcMain.handle("settings:schema-account-paths", () => {
+    if (!settingsBridge) return [];
+    return settingsBridge.getAccountScopedPaths();
+  });
 }
 
 module.exports = { register };

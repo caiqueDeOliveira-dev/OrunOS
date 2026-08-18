@@ -848,6 +848,13 @@ interface OrunAPI {
     isEncryptionWeakMode: () => Promise<boolean>;
     isFirstRun: () => Promise<boolean>;
     agentRecommendedModels: () => Promise<Record<string, { provider: string; model: string }>>;
+    // @orun/settings bridge (schema validado, escopo account/device)
+    schemaGet: <T = unknown>(path: string) => Promise<T | undefined>;
+    schemaSet: <T = unknown>(path: string, value: T) => Promise<boolean>;
+    schemaGetAll: () => Promise<Record<string, unknown> | null>;
+    schemaReset: (path?: string) => Promise<boolean>;
+    schemaScope: (path: string) => Promise<"account" | "device" | null>;
+    schemaAccountPaths: () => Promise<string[]>;
   };
   conversations: {
     list: (agent?: string) => Promise<{ id: string; title: string; agent?: string | null; created_at: number; updated_at: number }[]>;
@@ -1151,6 +1158,14 @@ interface OrunAPI {
     trigger: () => Promise<{ ok: boolean; error?: string }>;
     test: () => Promise<{ ok: boolean; error?: string }>;
     configure: (databaseUrl: string) => Promise<{ ok: boolean; error?: string }>;
+  };
+  settingsSync: {
+    init: () => Promise<{ ok: boolean; status?: string; error?: string }>;
+    status: () => Promise<{ active: boolean; pendingPaths?: string[]; conflicts?: Array<{ path: string; localValue: unknown; remoteValue: unknown; localTimestamp: number; remoteTimestamp: number }> }>;
+    resolveConflict: (path: string, resolution: "local" | "remote") => Promise<{ ok: boolean; error?: string }>;
+    retry: () => Promise<{ ok: boolean; error?: string }>;
+    conflicts: () => Promise<Array<{ path: string; localValue: unknown; remoteValue: unknown; localTimestamp: number; remoteTimestamp: number }>>;
+    pending: () => Promise<string[]>;
   };
   system: {
     executeCommand: (command: string, options?: { timeout?: number; cwd?: string }) => Promise<{ success: boolean; stdout?: string; error?: string }>;

@@ -20,6 +20,7 @@ const fs = require("fs");
 const identityResolver = require("./identity-resolver.cjs");
 const sttRouter = require("./stt-router.cjs");
 const ttsRouter = require("./tts-router.cjs");
+const careerBridge = require("./career.cjs");
 
 /**
  * Find which agent is assigned to a given JID (legacy agentJids mapping).
@@ -284,6 +285,19 @@ async function handleWhatsAppMessage(payload, ctx) {
     }
   }
   if (!finalText && !imageBase64) return;
+
+  // Rota determinística do agente Carreiras: perguntas de vagas/currículo
+  // respondem direto do estado (sem chamada de LLM) — estilo rota do CaOS.
+  if (careerBridge.isCareerQuestion(finalText)) {
+    const careerReply = careerBridge.buildWhatsAppReply(finalText);
+    const { conversationId: careerConvId } = persistInbound(db, {
+      jid, agentId, userId, workspaceId, senderKey, externalMessageId,
+      text: finalText, imageBase64, audioBase64, timestamp,
+    });
+    await whatsapp.sendMessage(jid, careerReply);
+    persistOutbound(db, { conversationId: careerConvId, workspaceId, userId, agentId, text: careerReply });
+    return;
+  }
 
   // Config de voz do agente (AUTO: áudio→áudio, texto→texto).
   const voice = identityResolver.getAgentVoiceSettings(db, agentId);

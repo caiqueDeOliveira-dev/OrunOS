@@ -146,6 +146,13 @@ contextBridge.exposeInMainWorld("orun", {
     decryptDB: () => ipcRenderer.invoke("settings:decrypt-db"),
     isDBEncrypted: () => ipcRenderer.invoke("settings:db-encrypted"),
     isEncryptionWeakMode: () => ipcRenderer.invoke("settings:encryption-weak-mode"),
+    // @orun/settings bridge (schema validado, escopo account/device)
+    schemaGet: (path) => ipcRenderer.invoke("settings:schema-get", path),
+    schemaSet: (path, value) => ipcRenderer.invoke("settings:schema-set", path, value),
+    schemaGetAll: () => ipcRenderer.invoke("settings:schema-get-all"),
+    schemaReset: (path) => ipcRenderer.invoke("settings:schema-reset", path),
+    schemaScope: (path) => ipcRenderer.invoke("settings:schema-scope", path),
+    schemaAccountPaths: () => ipcRenderer.invoke("settings:schema-account-paths"),
   },
   conversations: {
     list: (agent) => ipcRenderer.invoke("conversations:list", agent),
@@ -506,6 +513,14 @@ contextBridge.exposeInMainWorld("orun", {
     trigger: () => ipcRenderer.invoke("sync:trigger"),
     test: () => ipcRenderer.invoke("sync:test"),
     configure: (databaseUrl) => ipcRenderer.invoke("sync:configure", { databaseUrl }),
+  },
+  settingsSync: {
+    init: () => ipcRenderer.invoke("settings-sync:init"),
+    status: () => ipcRenderer.invoke("settings-sync:status"),
+    resolveConflict: (path, resolution) => ipcRenderer.invoke("settings-sync:resolve-conflict", path, resolution),
+    retry: () => ipcRenderer.invoke("settings-sync:retry"),
+    conflicts: () => ipcRenderer.invoke("settings-sync:conflicts"),
+    pending: () => ipcRenderer.invoke("settings-sync:pending"),
   },
   system: {
     executeCommand: (command, options) => ipcRenderer.invoke("system:execute-command", command, options),

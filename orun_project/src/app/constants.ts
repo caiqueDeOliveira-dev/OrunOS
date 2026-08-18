@@ -1,7 +1,7 @@
 import {
   Home, Users, FolderOpen, Sparkles, Brain, Zap, Files, Settings,
   Code, Music, Video, Globe, Heart, DollarSign, BookOpen, Share2, Megaphone, Car,
-  Scale, Wrench, LifeBuoy, MessageSquare, MessageSquareText, Shield, House, Gamepad2,
+  Scale, Wrench, LifeBuoy, MessageSquare, MessageSquareText, Shield, House, Gamepad2, Briefcase,
 } from "lucide-react";
 import type { translations } from "../i18n/translations";
 
@@ -42,6 +42,7 @@ export function getAgents(t: T) {
     { name: "Home IA", persona: "Dandara", role: t("agentHomeIA"), icon: House },
     { name: "Cyber Security", persona: "Zumbi", role: t("agentCyberSecurity"), icon: Shield },
     { name: "CaOS Commander", persona: "CaOS Commander", role: t("agentCaOSCommander"), icon: Gamepad2 },
+    { name: "Carreiras", persona: "Irene", role: t("agentCarreiras"), icon: Briefcase },
   ];
 }
 
