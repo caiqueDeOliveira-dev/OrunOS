@@ -70,6 +70,23 @@ class CircuitBreaker {
     getState(providerId, accountLabel = "default") {
         return this.getEntry(providerId, accountLabel).state;
     }
+    getStates() {
+        const result = [];
+        for (const [key, entry] of this.entries) {
+            const [providerId, accountLabel] = key.split(":");
+            let until = null;
+            if (entry.state === "open" && entry.openedAt !== null) {
+                until = entry.openedAt + this.options.cooldownMs;
+            }
+            result.push({
+                providerId: providerId ? `${providerId}:${accountLabel ?? "default"}` : key,
+                state: entry.state,
+                errors: entry.consecutiveFailures,
+                until,
+            });
+        }
+        return result;
+    }
     reset(providerId, accountLabel = "default") {
         this.entries.delete(this.key(providerId, accountLabel));
     }

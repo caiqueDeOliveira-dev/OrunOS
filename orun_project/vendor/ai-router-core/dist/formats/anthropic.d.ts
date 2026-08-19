@@ -1,4 +1,4 @@
-import type { RouterCompletionResult, RouterMessage } from "../schema";
+import type { RouterCompletionResult, RouterMessage, ToolDefinition } from "../schema";
 export declare class AnthropicFormatError extends Error {
     constructor(message: string);
 }
@@ -24,6 +24,11 @@ export interface AnthropicMessagesRequest {
     stream?: boolean;
     max_tokens?: number;
     temperature?: number;
+    tools?: ToolDefinition[];
+    tool_choice?: {
+        type: string;
+        name?: string;
+    };
 }
 export declare function parseAnthropicMessagesRequest(body: unknown): AnthropicMessagesRequest;
 /** Traduz um request Anthropic Messages → RouterMessage[]. */
@@ -33,10 +38,7 @@ export declare function anthropicCompletionResponse(result: RouterCompletionResu
     type: string;
     role: string;
     model: string;
-    content: {
-        type: string;
-        text: string;
-    }[];
+    content: AnthropicContentBlock[];
     stop_reason: string;
     stop_sequence: null;
     usage: {

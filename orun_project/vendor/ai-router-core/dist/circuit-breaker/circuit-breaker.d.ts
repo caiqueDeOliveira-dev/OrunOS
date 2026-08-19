@@ -23,5 +23,11 @@ export declare class CircuitBreaker {
     recordSuccess(providerId: ProviderId, accountLabel?: string): void;
     recordFailure(providerId: ProviderId, accountLabel?: string): void;
     getState(providerId: ProviderId, accountLabel?: string): CircuitState;
+    getStates(): Array<{
+        providerId: string;
+        state: CircuitState;
+        errors: number;
+        until: number | null;
+    }>;
     reset(providerId: ProviderId, accountLabel?: string): void;
 }

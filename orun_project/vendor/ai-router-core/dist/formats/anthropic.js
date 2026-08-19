@@ -18,11 +18,11 @@ exports.AnthropicFormatError = AnthropicFormatError;
 function parseAnthropicMessagesRequest(body) {
     if (!body || typeof body !== "object")
         throw new AnthropicFormatError("corpo da request inválido");
-    const { model, system, messages, stream, max_tokens, temperature } = body;
+    const { model, system, messages, stream, max_tokens, temperature, tools, tool_choice } = body;
     if (!Array.isArray(messages) || messages.length === 0) {
         throw new AnthropicFormatError("campo 'messages' ausente ou vazio");
     }
-    return { model, system, messages, stream: Boolean(stream), max_tokens, temperature };
+    return { model, system, messages, stream: Boolean(stream), max_tokens, temperature, tools, tool_choice };
 }
 /** Extrai texto de um content block Anthropic (string, bloco text, ou content aninhado). */
 function blockText(block) {
@@ -72,13 +72,30 @@ function anthropicMessagesToRouter(request) {
 // Resposta não-streaming
 // ─────────────────────────────────────────────────────────────
 function anthropicCompletionResponse(result, requestedModel) {
+    const content = [];
+    if (result.content) {
+        content.push({ type: "text", text: result.content });
+    }
+    if (result.tool_calls) {
+        for (const tc of result.tool_calls) {
+            content.push({
+                type: "tool_use",
+                id: tc.id,
+                name: tc.function.name,
+                input: JSON.parse(tc.function.arguments || "{}"),
+            });
+        }
+    }
+    if (content.length === 0) {
+        content.push({ type: "text", text: "" });
+    }
     return {
         id: `msg-${result.usage.timestamp}`,
         type: "message",
         role: "assistant",
         model: requestedModel,
-        content: [{ type: "text", text: result.content }],
-        stop_reason: "end_turn",
+        content,
+        stop_reason: result.tool_calls && result.tool_calls.length > 0 ? "tool_use" : "end_turn",
         stop_sequence: null,
         usage: {
             input_tokens: result.usage.promptTokens,

@@ -11,11 +11,21 @@ class GeminiNativeAdapter {
         const contents = messages
             .filter((m) => m.role !== "system")
             .map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] }));
-        return {
+        const body = {
             contents,
             systemInstruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined,
             generationConfig: { maxOutputTokens: opts.maxTokens, temperature: opts.temperature },
         };
+        if (opts.tools) {
+            body.tools = [{
+                    function_declarations: opts.tools.map((t) => ({
+                        name: t.function.name,
+                        description: t.function.description,
+                        parameters: t.function.parameters ?? {},
+                    })),
+                }];
+        }
+        return body;
     }
     async complete(messages, opts) {
         const apiKey = opts.credential.apiKey;
@@ -38,13 +48,26 @@ class GeminiNativeAdapter {
                 throw new types_1.ProviderCallError(`HTTP ${res.status}: ${body.slice(0, 200)}`, "gemini-native", res.status, isRateLimit, isQuota, isServerError);
             }
             const data = (await res.json());
-            const text = data.candidates?.[0]?.content?.parts?.map((p) => p.text).join("") ?? "";
-            return {
+            const parts = data.candidates?.[0]?.content?.parts ?? [];
+            const text = parts.filter((p) => p.text).map((p) => p.text).join("");
+            const result = {
                 content: text,
                 promptTokens: data.usageMetadata?.promptTokenCount ?? 0,
                 completionTokens: data.usageMetadata?.candidatesTokenCount ?? 0,
                 responseHeaders: res.headers,
             };
+            const functionCallParts = parts.filter((p) => p.functionCall);
+            if (functionCallParts.length > 0) {
+                result.toolCalls = functionCallParts.map((p, i) => ({
+                    id: `gemini-call-${Date.now()}-${i}`,
+                    type: "function",
+                    function: {
+                        name: p.functionCall.name,
+                        arguments: JSON.stringify(p.functionCall.args ?? {}),
+                    },
+                }));
+            }
+            return result;
         }
         finally {
             timeout.dispose();
@@ -73,21 +96,37 @@ class GeminiNativeAdapter {
             let content = "";
             let promptTokens = 0;
             let completionTokens = 0;
+            const toolCalls = [];
             for await (const line of (0, read_stream_lines_1.readStreamLines)(res)) {
                 if (!line.startsWith("data: "))
                     continue;
                 const json = JSON.parse(line.slice(6));
-                const delta = json.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
+                const parts = json.candidates?.[0]?.content?.parts ?? [];
+                const delta = parts.filter((p) => p.text).map((p) => p.text ?? "").join("");
                 if (delta) {
                     content += delta;
                     onChunk({ deltaText: delta, done: false });
+                }
+                const functionCallParts = parts.filter((p) => p.functionCall);
+                for (const fc of functionCallParts) {
+                    toolCalls.push({
+                        id: `gemini-call-${Date.now()}-${toolCalls.length}`,
+                        type: "function",
+                        function: {
+                            name: fc.functionCall.name,
+                            arguments: JSON.stringify(fc.functionCall.args ?? {}),
+                        },
+                    });
                 }
                 if (json.usageMetadata) {
                     promptTokens = json.usageMetadata.promptTokenCount ?? promptTokens;
                     completionTokens = json.usageMetadata.candidatesTokenCount ?? completionTokens;
                 }
             }
-            return { content, promptTokens, completionTokens };
+            const result = { content, promptTokens, completionTokens };
+            if (toolCalls.length > 0)
+                result.toolCalls = toolCalls;
+            return result;
         }
         finally {
             timeout.dispose();

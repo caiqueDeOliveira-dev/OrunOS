@@ -1,4 +1,5 @@
-import type { RouterMessage } from "../schema";
+import type { RouterMessage, ToolDefinition, ToolChoice, ToolCall } from "../schema";
+import type { ProxyPoolConfig } from "../proxy-pool";
 /** Resultado bruto de uma chamada de provider, antes de virar UsageEvent. */
 export interface RawCompletionResult {
     content: string;
@@ -6,6 +7,8 @@ export interface RawCompletionResult {
     completionTokens: number;
     /** Headers crus da resposta HTTP — usado pelo QuotaTracker pra ler rate-limit real, quando exposto. */
     responseHeaders?: Headers;
+    /** Tool calls retornados pelo provider (no formato canônico OpenAI). */
+    toolCalls?: ToolCall[];
 }
 /**
  * Credenciais resolvidas na hora da chamada — vêm do ISecretStore,
@@ -24,6 +27,12 @@ export interface AdapterCallOptions {
     signal?: AbortSignal;
     /** default: DEFAULT_TIMEOUT_MS (30s) — ver adapters/timeout.ts */
     timeoutMs?: number;
+    /** Tool definitions pass-through (formato canônico OpenAI). Cada adapter traduz pro wire format nativo. */
+    tools?: ToolDefinition[];
+    /** Tool choice strategy: "auto", "none", "required", ou指定 de função específica. */
+    tool_choice?: ToolChoice;
+    /** Proxy pool config — se habilitado, o adapter roteia requests via proxy. */
+    proxyPool?: ProxyPoolConfig;
 }
 export interface StreamChunk {
     deltaText: string;

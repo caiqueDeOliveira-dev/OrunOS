@@ -160,6 +160,9 @@ class ModelRouter {
     getCircuitState(providerId, accountLabel) {
         return this.circuitBreaker.getState(providerId, accountLabel);
     }
+    getAllCircuitStates() {
+        return this.circuitBreaker.getStates();
+    }
     async applySkill(combo, messages) {
         if (!combo.skillId)
             return messages;
@@ -239,6 +242,9 @@ class ModelRouter {
                     credential: credential ?? {},
                     maxTokens: request.maxTokens,
                     temperature: request.temperature,
+                    tools: request.tools,
+                    tool_choice: request.tool_choice,
+                    proxyPool: request.proxyPool,
                 };
                 const raw = onChunk && adapter.completeStream
                     ? await adapter.completeStream(messages, callOpts, onChunk)
@@ -266,6 +272,7 @@ class ModelRouter {
                     model: step.model,
                     stepIndex,
                     usage,
+                    ...(raw.toolCalls && raw.toolCalls.length > 0 ? { tool_calls: raw.toolCalls } : {}),
                 };
             }
             catch (err) {

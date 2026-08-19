@@ -69,6 +69,12 @@ export declare class ModelRouter implements IModelRouter {
     /** Status de quota exposto pra UI (dashboard) consultar sem passar por uma chamada de verdade. */
     getQuotaStatus(providerId: Combo["steps"][number]["providerId"], accountLabel?: string): Promise<import("../quota/quota-tracker").QuotaStatus>;
     getCircuitState(providerId: Combo["steps"][number]["providerId"], accountLabel?: string): import("../circuit-breaker/circuit-breaker").CircuitState;
+    getAllCircuitStates(): {
+        providerId: string;
+        state: import("../circuit-breaker/circuit-breaker").CircuitState;
+        errors: number;
+        until: number | null;
+    }[];
     private applySkill;
     private tryStep;
     private callAdapterWithRetry;

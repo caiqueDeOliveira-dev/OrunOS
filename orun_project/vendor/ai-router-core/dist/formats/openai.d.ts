@@ -1,4 +1,4 @@
-import type { RouterCompletionResult, RouterMessage } from "../schema";
+import type { RouterCompletionResult, RouterMessage, ToolCall, ToolDefinition, ToolChoice } from "../schema";
 export declare class OpenAiFormatError extends Error {
     constructor(message: string);
 }
@@ -15,6 +15,8 @@ export interface OpenAiChatRequest {
     stream?: boolean;
     max_tokens?: number;
     temperature?: number;
+    tools?: ToolDefinition[];
+    tool_choice?: ToolChoice;
 }
 export declare function parseOpenAiChatRequest(body: unknown): OpenAiChatRequest;
 /** Traduz mensagens OpenAI Chat Completions → RouterMessage[]. */
@@ -27,6 +29,14 @@ export declare function openAiCompletionResponse(result: RouterCompletionResult,
     choices: {
         index: number;
         message: {
+            tool_calls?: {
+                id: string;
+                type: "function";
+                function: {
+                    name: string;
+                    arguments: string;
+                };
+            }[] | undefined;
             role: string;
             content: string;
         };
@@ -41,7 +51,7 @@ export declare function openAiCompletionResponse(result: RouterCompletionResult,
 export declare function openAiStreamChunk(deltaText: string, requestedModel: string, done: boolean, usage?: {
     promptTokens: number;
     completionTokens: number;
-}): {
+}, toolCalls?: ToolCall[]): {
     usage?: {
         promptTokens: number;
         completionTokens: number;
@@ -53,9 +63,16 @@ export declare function openAiStreamChunk(deltaText: string, requestedModel: str
     choices: {
         index: number;
         delta: {
-            content: string;
-        } | {
-            content?: undefined;
+            tool_calls?: {
+                index: number;
+                id: string;
+                type: string;
+                function: {
+                    name: string;
+                    arguments: string;
+                };
+            }[] | undefined;
+            content?: string | undefined;
         };
         finish_reason: string | null;
     }[];

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RouterCompletionResultSchema = exports.RouterCompletionRequestSchema = exports.RouterMessageSchema = exports.UsageEventSchema = exports.SkillBindingSchema = exports.ComboSchema = exports.ComboKindSchema = exports.ComboStepSchema = exports.ProviderConfigSchema = exports.AccountRotationModeSchema = exports.ProviderDefinitionSchema = exports.ProviderCapabilitySchema = exports.WireFormatSchema = exports.AuthMethodSchema = exports.ProviderTierSchema = exports.ProviderIdSchema = void 0;
+exports.RouterCompletionResultSchema = exports.ToolCallSchema = exports.RouterCompletionRequestSchema = exports.ToolChoiceSchema = exports.ToolDefinitionSchema = exports.RouterMessageSchema = exports.UsageEventSchema = exports.SkillBindingSchema = exports.ComboSchema = exports.ComboKindSchema = exports.ComboStepSchema = exports.ProviderConfigSchema = exports.AccountRotationModeSchema = exports.ProviderDefinitionSchema = exports.ProviderCapabilitySchema = exports.WireFormatSchema = exports.AuthMethodSchema = exports.ProviderTierSchema = exports.ProviderIdSchema = void 0;
 const zod_1 = require("zod");
 // ─────────────────────────────────────────────────────────────
 // Providers
@@ -149,12 +149,47 @@ exports.RouterMessageSchema = zod_1.z.object({
     content: zod_1.z.string(),
     toolCallId: zod_1.z.string().optional(),
 });
+exports.ToolDefinitionSchema = zod_1.z.object({
+    type: zod_1.z.literal("function"),
+    function: zod_1.z.object({
+        name: zod_1.z.string(),
+        description: zod_1.z.string().optional(),
+        parameters: zod_1.z.any().optional(),
+    }),
+});
+exports.ToolChoiceSchema = zod_1.z.union([
+    zod_1.z.enum(["auto", "none", "required"]),
+    zod_1.z.object({ type: zod_1.z.literal("function"), function: zod_1.z.object({ name: zod_1.z.string() }) }),
+]);
 exports.RouterCompletionRequestSchema = zod_1.z.object({
     comboId: zod_1.z.string(),
     messages: zod_1.z.array(exports.RouterMessageSchema).min(1),
     stream: zod_1.z.boolean().default(false),
     maxTokens: zod_1.z.number().int().min(1).optional(),
     temperature: zod_1.z.number().min(0).max(2).optional(),
+    tools: zod_1.z.array(exports.ToolDefinitionSchema).optional(),
+    tool_choice: exports.ToolChoiceSchema.optional(),
+    proxyPool: zod_1.z.object({
+        enabled: zod_1.z.boolean(),
+        strategy: zod_1.z.enum(["round-robin", "random", "least-errors"]),
+        proxies: zod_1.z.array(zod_1.z.object({
+            id: zod_1.z.string(),
+            url: zod_1.z.string(),
+            type: zod_1.z.enum(["http", "https", "socks5"]),
+            enabled: zod_1.z.boolean(),
+            health: zod_1.z.enum(["unknown", "healthy", "unhealthy"]),
+            lastCheck: zod_1.z.number().optional(),
+            failCount: zod_1.z.number(),
+        })),
+    }).optional(),
+});
+exports.ToolCallSchema = zod_1.z.object({
+    id: zod_1.z.string(),
+    type: zod_1.z.literal("function"),
+    function: zod_1.z.object({
+        name: zod_1.z.string(),
+        arguments: zod_1.z.string(),
+    }),
 });
 exports.RouterCompletionResultSchema = zod_1.z.object({
     content: zod_1.z.string(),
@@ -162,5 +197,6 @@ exports.RouterCompletionResultSchema = zod_1.z.object({
     model: zod_1.z.string(),
     stepIndex: zod_1.z.number().int().min(0),
     usage: exports.UsageEventSchema,
+    tool_calls: zod_1.z.array(exports.ToolCallSchema).optional(),
 });
 //# sourceMappingURL=schema.js.map

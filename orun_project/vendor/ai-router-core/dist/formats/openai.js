@@ -18,11 +18,11 @@ exports.OpenAiFormatError = OpenAiFormatError;
 function parseOpenAiChatRequest(body) {
     if (!body || typeof body !== "object")
         throw new OpenAiFormatError("corpo da request inválido");
-    const { model, messages, stream, max_tokens, temperature } = body;
+    const { model, messages, stream, max_tokens, temperature, tools, tool_choice } = body;
     if (!Array.isArray(messages) || messages.length === 0) {
         throw new OpenAiFormatError("campo 'messages' ausente ou vazio");
     }
-    return { model, messages, stream: Boolean(stream), max_tokens, temperature };
+    return { model, messages, stream: Boolean(stream), max_tokens, temperature, tools, tool_choice };
 }
 /** Traduz mensagens OpenAI Chat Completions → RouterMessage[]. */
 function openAiMessagesToRouter(messages) {
@@ -52,8 +52,12 @@ function openAiCompletionResponse(result, requestedModel) {
         choices: [
             {
                 index: 0,
-                message: { role: "assistant", content: result.content },
-                finish_reason: "stop",
+                message: {
+                    role: "assistant",
+                    content: result.content,
+                    ...(result.tool_calls && result.tool_calls.length > 0 ? { tool_calls: result.tool_calls } : {}),
+                },
+                finish_reason: result.tool_calls && result.tool_calls.length > 0 ? "tool_calls" : "stop",
             },
         ],
         usage: {
@@ -66,7 +70,7 @@ function openAiCompletionResponse(result, requestedModel) {
 // ─────────────────────────────────────────────────────────────
 // Chunk de streaming (formato OpenAI chat.completion.chunk)
 // ─────────────────────────────────────────────────────────────
-function openAiStreamChunk(deltaText, requestedModel, done, usage) {
+function openAiStreamChunk(deltaText, requestedModel, done, usage, toolCalls) {
     return {
         id: `chatcmpl-stream-${Date.now()}`,
         object: "chat.completion.chunk",
@@ -75,8 +79,11 @@ function openAiStreamChunk(deltaText, requestedModel, done, usage) {
         choices: [
             {
                 index: 0,
-                delta: deltaText ? { content: deltaText } : {},
-                finish_reason: done ? "stop" : null,
+                delta: {
+                    ...(deltaText ? { content: deltaText } : {}),
+                    ...(done && toolCalls && toolCalls.length > 0 ? { tool_calls: toolCalls.map((tc, i) => ({ index: i, id: tc.id, type: "function", function: tc.function })) } : {}),
+                },
+                finish_reason: done ? (toolCalls && toolCalls.length > 0 ? "tool_calls" : "stop") : null,
             },
         ],
         ...(done && usage ? { usage } : {}),

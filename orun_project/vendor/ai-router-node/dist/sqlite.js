@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SqliteSemanticCacheStore = exports.SqliteOAuthTokenStore = exports.SqliteUsageLogStore = exports.SqliteProviderConfigStore = exports.SqliteComboStore = void 0;
 exports.openAiRouterDatabase = openAiRouterDatabase;
 const better_sqlite3_1 = __importDefault(require("better-sqlite3"));
+const migrations_1 = require("./migrations");
 const ai_router_core_1 = require("@orun/ai-router-core");
 /**
  * Camada SQLite compartilhada. Em produção: `better-sqlite3` no Electron,
@@ -15,6 +16,8 @@ const ai_router_core_1 = require("@orun/ai-router-core");
 function openAiRouterDatabase(path) {
     const db = new better_sqlite3_1.default(path);
     db.pragma("journal_mode = WAL");
+    // Run migrations before creating base tables
+    (0, migrations_1.runMigrations)(db);
     db.exec(`
     CREATE TABLE IF NOT EXISTS combos (
       id TEXT PRIMARY KEY,

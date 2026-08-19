@@ -362,6 +362,26 @@ export declare const RouterMessageSchema: z.ZodObject<{
     toolCallId: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;
 export type RouterMessage = z.infer<typeof RouterMessageSchema>;
+export declare const ToolDefinitionSchema: z.ZodObject<{
+    type: z.ZodLiteral<"function">;
+    function: z.ZodObject<{
+        name: z.ZodString;
+        description: z.ZodOptional<z.ZodString>;
+        parameters: z.ZodOptional<z.ZodAny>;
+    }, z.core.$strip>;
+}, z.core.$strip>;
+export type ToolDefinition = z.infer<typeof ToolDefinitionSchema>;
+export declare const ToolChoiceSchema: z.ZodUnion<readonly [z.ZodEnum<{
+    none: "none";
+    auto: "auto";
+    required: "required";
+}>, z.ZodObject<{
+    type: z.ZodLiteral<"function">;
+    function: z.ZodObject<{
+        name: z.ZodString;
+    }, z.core.$strip>;
+}, z.core.$strip>]>;
+export type ToolChoice = z.infer<typeof ToolChoiceSchema>;
 export declare const RouterCompletionRequestSchema: z.ZodObject<{
     comboId: z.ZodString;
     messages: z.ZodArray<z.ZodObject<{
@@ -377,8 +397,60 @@ export declare const RouterCompletionRequestSchema: z.ZodObject<{
     stream: z.ZodDefault<z.ZodBoolean>;
     maxTokens: z.ZodOptional<z.ZodNumber>;
     temperature: z.ZodOptional<z.ZodNumber>;
+    tools: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        type: z.ZodLiteral<"function">;
+        function: z.ZodObject<{
+            name: z.ZodString;
+            description: z.ZodOptional<z.ZodString>;
+            parameters: z.ZodOptional<z.ZodAny>;
+        }, z.core.$strip>;
+    }, z.core.$strip>>>;
+    tool_choice: z.ZodOptional<z.ZodUnion<readonly [z.ZodEnum<{
+        none: "none";
+        auto: "auto";
+        required: "required";
+    }>, z.ZodObject<{
+        type: z.ZodLiteral<"function">;
+        function: z.ZodObject<{
+            name: z.ZodString;
+        }, z.core.$strip>;
+    }, z.core.$strip>]>>;
+    proxyPool: z.ZodOptional<z.ZodObject<{
+        enabled: z.ZodBoolean;
+        strategy: z.ZodEnum<{
+            "round-robin": "round-robin";
+            random: "random";
+            "least-errors": "least-errors";
+        }>;
+        proxies: z.ZodArray<z.ZodObject<{
+            id: z.ZodString;
+            url: z.ZodString;
+            type: z.ZodEnum<{
+                http: "http";
+                https: "https";
+                socks5: "socks5";
+            }>;
+            enabled: z.ZodBoolean;
+            health: z.ZodEnum<{
+                unknown: "unknown";
+                healthy: "healthy";
+                unhealthy: "unhealthy";
+            }>;
+            lastCheck: z.ZodOptional<z.ZodNumber>;
+            failCount: z.ZodNumber;
+        }, z.core.$strip>>;
+    }, z.core.$strip>>;
 }, z.core.$strip>;
 export type RouterCompletionRequest = z.infer<typeof RouterCompletionRequestSchema>;
+export declare const ToolCallSchema: z.ZodObject<{
+    id: z.ZodString;
+    type: z.ZodLiteral<"function">;
+    function: z.ZodObject<{
+        name: z.ZodString;
+        arguments: z.ZodString;
+    }, z.core.$strip>;
+}, z.core.$strip>;
+export type ToolCall = z.infer<typeof ToolCallSchema>;
 export declare const RouterCompletionResultSchema: z.ZodObject<{
     content: z.ZodString;
     providerId: z.ZodEnum<{
@@ -466,5 +538,13 @@ export declare const RouterCompletionResultSchema: z.ZodObject<{
         estimatedCostUsd: z.ZodDefault<z.ZodNumber>;
         cacheHit: z.ZodDefault<z.ZodBoolean>;
     }, z.core.$strip>;
+    tool_calls: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        id: z.ZodString;
+        type: z.ZodLiteral<"function">;
+        function: z.ZodObject<{
+            name: z.ZodString;
+            arguments: z.ZodString;
+        }, z.core.$strip>;
+    }, z.core.$strip>>>;
 }, z.core.$strip>;
 export type RouterCompletionResult = z.infer<typeof RouterCompletionResultSchema>;
