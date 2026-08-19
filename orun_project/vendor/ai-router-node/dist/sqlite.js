@@ -120,6 +120,9 @@ class SqliteProviderConfigStore {
          ON CONFLICT(provider_id, account_label) DO UPDATE SET data = excluded.data`)
             .run(validated.providerId, accountLabel, JSON.stringify(validated));
     }
+    async deleteConfig(providerId) {
+        this.db.prepare(`DELETE FROM provider_configs WHERE provider_id = ?`).run(providerId);
+    }
 }
 exports.SqliteProviderConfigStore = SqliteProviderConfigStore;
 class SqliteUsageLogStore {

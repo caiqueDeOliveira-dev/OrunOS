@@ -1347,6 +1347,13 @@ app.whenReady().then(() => {
     if (supabaseSync.initEcosystem(secretStore, app.getVersion())) {
       supabaseSync.startHeartbeat();
       log.info("[ecosystem] heartbeat de dispositivo iniciado (30s)");
+      // Inicia sync de settings entre devices
+      try {
+        const settingsSyncEngine = supabaseSync.initSettingsSync();
+        if (settingsSyncEngine) log.info("[ecosystem] settings sync engine iniciado");
+      } catch (err) {
+        log.warn("[ecosystem] settings sync init falhou:", err.message);
+      }
     } else {
       log.info("[ecosystem] Orun-Core inativo — credenciais Supabase não configuradas (opcional)");
     }

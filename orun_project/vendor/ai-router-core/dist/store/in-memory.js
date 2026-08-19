@@ -33,6 +33,12 @@ class InMemoryProviderConfigStore {
     async saveConfig(config) {
         this.configs.set(this.key(config.providerId, config.accountLabel), config);
     }
+    async deleteConfig(providerId) {
+        for (const [k] of this.configs) {
+            if (k.startsWith(`${providerId}:`))
+                this.configs.delete(k);
+        }
+    }
 }
 exports.InMemoryProviderConfigStore = InMemoryProviderConfigStore;
 class InMemorySecretStore {

@@ -19,6 +19,7 @@ export interface IProviderConfigStore {
     getConfig(providerId: ProviderId, accountLabel?: string): Promise<ProviderConfig | null>;
     listConfigs(): Promise<ProviderConfig[]>;
     saveConfig(config: ProviderConfig): Promise<void>;
+    deleteConfig(providerId: ProviderId): Promise<void>;
 }
 /**
  * Segredos (API keys, OAuth tokens) — reusa o ISecretStore que já existe

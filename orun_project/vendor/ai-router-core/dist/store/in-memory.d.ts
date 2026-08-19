@@ -62,6 +62,7 @@ export declare class InMemoryProviderConfigStore implements IProviderConfigStore
         customBaseUrl?: string | undefined;
     }[]>;
     saveConfig(config: ProviderConfig): Promise<void>;
+    deleteConfig(providerId: ProviderId): Promise<void>;
 }
 export declare class InMemorySecretStore implements IAiSecretStore {
     private secrets;

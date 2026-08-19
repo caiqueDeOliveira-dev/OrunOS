@@ -21,6 +21,7 @@ export declare class SqliteProviderConfigStore implements IProviderConfigStore {
     getConfig(providerId: ProviderId, accountLabel?: string): Promise<ProviderConfig | null>;
     listConfigs(): Promise<ProviderConfig[]>;
     saveConfig(config: ProviderConfig): Promise<void>;
+    deleteConfig(providerId: ProviderId): Promise<void>;
 }
 export declare class SqliteUsageLogStore implements IUsageLogStore {
     private readonly db;

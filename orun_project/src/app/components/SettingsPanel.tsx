@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, Cpu, Cloud, CheckCircle2, XCircle, Loader2, RefreshCw, Users, Activity, MessageCircle, Globe, Sparkles, Volume2, Shield, Palette, Bot, Plug, ChevronRight, Zap, Mic, Music, Send, Database, Download, Upload, LifeBuoy, TreePine, Waves, CupSoda, Flame, Ear, Award, Mail, Calendar, Keyboard, Server, Plus, Trash2 } from "lucide-react";
+import { X, Cpu, Cloud, CheckCircle2, XCircle, Loader2, RefreshCw, Users, Activity, MessageCircle, Globe, Sparkles, Volume2, Shield, Palette, Bot, Plug, ChevronRight, Zap, Mic, Music, Send, Database, Download, Upload, LifeBuoy, TreePine, Waves, CupSoda, Flame, Ear, Award, Mail, Calendar, Keyboard, Server, Plus, Trash2, ArrowUpDown } from "lucide-react";
 import { useTranslation } from "../../i18n/I18nProvider";
 import { LANGUAGE_OPTIONS, type Language } from "../../i18n/translations";
 import { isElectron } from "../constants";
@@ -13,6 +13,8 @@ import { AutoBackup } from "../services/autoBackup";
 import { ProfilesPanel } from "./ProfilesPanel";
 import { ShieldPanel } from "./ShieldPanel";
 import { OptimizerPanel } from "./OptimizerPanel";
+import { SettingsSyncPanel } from "./SettingsSyncPanel";
+import { useSetting } from "../contexts/SettingsContext";
 
 const PROVIDER_INFO: Record<OrunProvider, { label: string; kind: "local" | "cloud"; defaultModel: string; note?: string }> = {
   ollama: { label: "Ollama (local)", kind: "local", defaultModel: "llama3.1", note: "Roda no seu PC. Privado e gratuito." },
@@ -827,13 +829,14 @@ function AmbientSoundsSection({ t }: { t: (key: string) => string }) {
 
 // ── Tab Navigation ──────────────────────────────────────────────────────
 
-type SettingsTab = "ai" | "integrations" | "appearance" | "system" | "profiles" | "shield" | "optimizer";
+type SettingsTab = "ai" | "integrations" | "appearance" | "system" | "sync" | "profiles" | "shield" | "optimizer";
 
 const getTabs = (t: (key: string) => string): { id: SettingsTab; label: string; icon: React.ElementType }[] => [
   { id: "ai", label: t("settingsTabAI"), icon: Bot },
   { id: "integrations", label: t("settingsTabIntegrations"), icon: Plug },
   { id: "appearance", label: t("settingsTabAppearance"), icon: Palette },
   { id: "system", label: t("settingsTabSystem"), icon: Cpu },
+  { id: "sync", label: "Sync", icon: ArrowUpDown },
   { id: "profiles", label: t("settingsTabProfiles"), icon: Users },
   { id: "shield", label: t("settingsTabShield"), icon: Shield },
   { id: "optimizer", label: t("settingsTabOptimizer"), icon: Sparkles },
@@ -964,10 +967,12 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
   const [modelCatalog, setModelCatalog] = useState<Record<string, { id: string; free: boolean }[]>>({});
   const [fallbackProvider, setFallbackProvider] = useState<OrunProvider | "none">("none");
   const [fallbackModel, setFallbackModel] = useState("");
-  const [runInBackground, setRunInBackground] = useState(false);
-  const [autoStart, setAutoStart] = useState(false);
-  const [wakeWordEnabled, setWakeWordEnabled] = useState(false);
-  const [backgroundListening, setBackgroundListening] = useState(false);
+  const { value: runInBackground, setValue: setRunInBackground } = useSetting<boolean>("desktop.runInBackground");
+  const { value: autoStart, setValue: setAutoStart } = useSetting<boolean>("desktop.launchOnStartup");
+  const { value: wakeWordEnabled, setValue: setWakeWordEnabled } = useSetting<boolean>("core.hampton.wakeWordEnabled");
+  const { value: backgroundListening, setValue: setBackgroundListening } = useSetting<boolean>("core.hampton.backgroundListening");
+  const { value: aiSettings, setValue: setAiSettings } = useSetting<{ provider: OrunProvider; model: string; baseUrl: string; systemPrompt: string }>("desktop.ai");
+  const { value: aiFallback, setValue: setAiFallback } = useSetting<{ provider: string; model: string } | null>("desktop.aiFallback");
   const [wakeServiceRunning, setWakeServiceRunning] = useState(false);
   const [wakeDiagnostic, setWakeDiagnostic] = useState<{ python?: boolean; packages?: boolean; tcpPort?: boolean } | null>(null);
   const [updateStatus, setUpdateStatus] = useState<{ status: string; version?: string; percent?: number; message?: string } | null>(null);
@@ -986,38 +991,33 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
       AutoBackup.listBackups().then(setLsBackups).catch(() => {});
     }
   }, []);
-  const [ttsEngine, setTtsEngine] = useState<string>("");
-  const [ttsVoice, setTtsVoice] = useState<string>("");
+  const { value: ttsEngine, setValue: setTtsEngine } = useSetting<string>("core.hampton.ttsEngine");
+  const { value: ttsVoice, setValue: setTtsVoice } = useSetting<string>("core.hampton.ttsVoice");
   const [showEncryption, setShowEncryption] = useState(false);
+  const [showSyncPanel, setShowSyncPanel] = useState(false);
 
   useEffect(() => {
     if (!isElectron) return;
-    window.orun.settings.get<{ provider: OrunProvider; model: string; baseUrl?: string; systemPrompt?: string }>("ai").then((saved) => {
-      if (saved) {
-        setProvider(saved.provider);
-        setModel(saved.model);
-        if (saved.baseUrl) setBaseUrl(saved.baseUrl);
-        if (saved.systemPrompt) setSystemPrompt(saved.systemPrompt);
-      }
-    });
+    // AI settings são carregadas via useSetting (bridge store)
+    // Sincroniza os campos individuais quando o objeto carrega
+    if (aiSettings) {
+      setProvider(aiSettings.provider);
+      setModel(aiSettings.model);
+      if (aiSettings.baseUrl) setBaseUrl(aiSettings.baseUrl);
+      if (aiSettings.systemPrompt) setSystemPrompt(aiSettings.systemPrompt);
+    }
+    if (aiFallback) {
+      setFallbackProvider(aiFallback.provider as OrunProvider);
+      setFallbackModel(aiFallback.model);
+    }
     window.orun.ai.knownFreeModels().then(setFreeModels);
     window.orun.ai.modelCatalog().then(setModelCatalog);
-    window.orun.settings.get<{ provider: OrunProvider; model: string } | null>("aiFallback").then((fb) => {
-      if (fb) { setFallbackProvider(fb.provider); setFallbackModel(fb.model); }
-    });
-    window.orun.settings.get<boolean>("runInBackground").then((v) => setRunInBackground(Boolean(v)));
-    window.orun.settings.get<boolean>("autoStart").then((v) => setAutoStart(Boolean(v)));
-    window.orun.settings.get<boolean>("wakeWordEnabled").then((v) => setWakeWordEnabled(Boolean(v)));
-    window.orun.settings.get<boolean>("backgroundListening").then((v) => setBackgroundListening(Boolean(v)));
     window.orun.wakeListener?.status().then((s) => {
-      setBackgroundListening(s?.running ?? false);
       setWakeServiceRunning(s?.running ?? false);
     });
-    window.orun.settings.get<string>("theme").then((v) => { if (v === "light" || v === "dark") { setTheme(v); } });
-    window.orun.settings.get<{ engine: string; voiceId: string }>("tts").then((v) => { if (v) { setTtsEngine(v.engine); setTtsVoice(v.voiceId); } });
     const unsubscribe = window.orun.app.onUpdateStatus((status) => { setUpdateStatus(status); setCheckingUpdate(false); });
     return unsubscribe;
-  }, []);
+  }, [aiSettings, aiFallback]);
 
   const checkForUpdates = async () => {
     setCheckingUpdate(true);
@@ -1048,13 +1048,12 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
 
   const save = async () => {
     if (!isElectron) return;
-    await window.orun.settings.set("ai", { provider, model, baseUrl, systemPrompt });
-    await window.orun.settings.set("aiFallback", fallbackProvider === "none" ? null : { provider: fallbackProvider, model: fallbackModel });
-    await window.orun.settings.set("runInBackground", runInBackground);
-    await window.orun.app.setRunInBackground(runInBackground);
-    await window.orun.settings.set("autoStart", autoStart);
-    await window.orun.app?.setAutoStart?.(autoStart);
-    await window.orun.settings.set("wakeWordEnabled", wakeWordEnabled);
+    // Salva AI settings via useSetting (bridge store)
+    await setAiSettings({ provider, model, baseUrl, systemPrompt });
+    await setAiFallback(fallbackProvider === "none" ? null : { provider: fallbackProvider, model: fallbackModel });
+    // runInBackground, autoStart, wakeWordEnabled são salvos via useSetting (bridge store)
+    await window.orun.app.setRunInBackground(runInBackground ?? false);
+    await window.orun.app?.setAutoStart?.(autoStart ?? false);
     await window.orun.settings.set("theme", theme);
     if (apiKey.trim()) {
       const ok = await window.orun.settings.setProviderKey(provider, 1, apiKey.trim());
@@ -1102,6 +1101,7 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
   const catalogModels = modelCatalog[provider] || [];
 
   return (
+    <>
     <motion.div
       className="fixed inset-0 z-50 flex items-center justify-center"
       style={{ background: "rgba(0,0,0,0.6)" }}
@@ -1589,7 +1589,6 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
                         // In Electron, the browser wake word doesn't work.
                         // Enable the Python-based background listener instead.
                         setBackgroundListening(true);
-                        await window.orun.settings.set("backgroundListening", true);
                         await window.orun.wakeListener?.start();
                         const s = await window.orun.wakeListener?.status();
                         setWakeServiceRunning(s?.running ?? false);
@@ -1608,7 +1607,6 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
                       onChange={async (e) => {
                         const on = e.target.checked;
                         setBackgroundListening(on);
-                        await window.orun.settings.set("backgroundListening", on);
                         if (on) {
                           await window.orun.wakeListener?.start();
                         } else {
@@ -1876,6 +1874,29 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
                 </Section>
               </motion.div>
             )}
+            {/* ── Sync Tab ──────────────────────────────── */}
+            {activeTab === "sync" && (
+              <motion.div key="sync" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.15 }}>
+                <Section title="Settings Sync" icon={ArrowUpDown} accent="#3B82F6">
+                  <SettingRow label="Sincronização entre devices" description="Sincronize suas configurações entre múltiplos dispositivos via Supabase. Configurações com escopo 'account' sincronizam entre todos os devices da conta.">
+                    <button
+                      onClick={() => setShowSyncPanel(true)}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[10px] transition-colors"
+                      style={{ background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.35)", color: "#3B82F6", fontFamily: "'Sora', sans-serif" }}
+                    >
+                      <ArrowUpDown size={12} /> Abrir Sync Panel
+                    </button>
+                  </SettingRow>
+                </Section>
+
+                <Section title="Escopos" icon={Shield} accent="#8B5C56">
+                  <p className="text-[9px] leading-relaxed" style={{ color: "var(--muted-foreground)" }}>
+                    <strong>account</strong> — Sincroniza entre todos os devices da mesma conta (ex: AI provider, persona).<br />
+                    <strong>device</strong> — Específico deste device (ex: tema, atalhos). Não sincroniza.
+                  </p>
+                </Section>
+              </motion.div>
+            )}
             {/* ── Profiles Tab ────────────────────────────── */}
             {activeTab === "profiles" && (
               <motion.div key="profiles" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.15 }}>
@@ -1920,5 +1941,8 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
         {testState === "error" && <p className="text-[9px] px-5 pb-3" style={{ color: "#C00018" }}>{testError}</p>}
       </motion.div>
     </motion.div>
+
+    {showSyncPanel && <SettingsSyncPanel onClose={() => setShowSyncPanel(false)} />}
+    </>
   );
 }

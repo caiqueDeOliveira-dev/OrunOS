@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { X, ArrowLeft, Cloud, Cpu, Play, Loader2, Check } from "lucide-react";
 import { isElectron } from "../constants";
 import { useTranslation } from "../../i18n/I18nProvider";
+import { useSetting } from "../contexts/SettingsContext";
 import type { OrunTTSEngine, OrunVoice } from "../../types/orun";
 
 const ENGINE_INFO: Record<OrunTTSEngine, { label: string; kind: "cloud" | "local"; needsKey: boolean; needsRegion?: boolean; needsBaseUrl?: boolean; note?: string }> = {
@@ -19,23 +20,18 @@ const ENGINE_INFO: Record<OrunTTSEngine, { label: string; kind: "cloud" | "local
 
 export function VoicesPicker({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
+  const { value: ttsSetting, setValue: setTtsSetting } = useSetting<{ engine: OrunTTSEngine; voiceId: string; enabled?: boolean }>("tts");
   const [engine, setEngine] = useState<OrunTTSEngine | null>(null);
   const [voices, setVoices] = useState<OrunVoice[]>([]);
   const [loadingVoices, setLoadingVoices] = useState(false);
   const [voicesError, setVoicesError] = useState("");
   const [playingId, setPlayingId] = useState<string | null>(null);
-  const [selected, setSelected] = useState<{ engine: OrunTTSEngine; voiceId: string } | null>(null);
 
   // Config fields for the currently-open engine
   const [apiKey, setApiKey] = useState("");
   const [hasKey, setHasKey] = useState(false);
   const [region, setRegion] = useState("");
   const [baseUrl, setBaseUrl] = useState("");
-
-  useEffect(() => {
-    if (!isElectron) return;
-    window.orun.settings.get<{ engine: OrunTTSEngine; voiceId: string }>("tts").then((v) => { if (v) setSelected(v); });
-  }, []);
 
   const openEngine = async (eng: OrunTTSEngine) => {
     setEngine(eng);
@@ -92,8 +88,7 @@ export function VoicesPicker({ onClose }: { onClose: () => void }) {
 
   const selectVoice = async (voice: OrunVoice) => {
     if (!engine) return;
-    setSelected({ engine, voiceId: voice.id });
-    if (isElectron) await window.orun.settings.set("tts", { engine, voiceId: voice.id, enabled: true });
+    await setTtsSetting({ engine, voiceId: voice.id, enabled: true });
     onClose();
   };
 
@@ -129,7 +124,7 @@ export function VoicesPicker({ onClose }: { onClose: () => void }) {
               <div className="grid grid-cols-2 gap-2">
                 {(Object.keys(ENGINE_INFO) as OrunTTSEngine[]).map((eng) => {
                   const info = ENGINE_INFO[eng];
-                  const isActive = selected?.engine === eng;
+                  const isActive = ttsSetting?.engine === eng;
                   return (
                     <button
                       key={eng}
@@ -186,7 +181,7 @@ export function VoicesPicker({ onClose }: { onClose: () => void }) {
 
               <div className="space-y-1.5">
                 {voices.map((voice) => {
-                  const isSelected = selected?.engine === engine && selected.voiceId === voice.id;
+                  const isSelected = ttsSetting?.engine === engine && ttsSetting.voiceId === voice.id;
                   return (
                     <button
                       key={voice.id}

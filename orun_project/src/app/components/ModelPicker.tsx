@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, ArrowLeft, Cloud, Cpu, Check, Loader2, RefreshCw, Sparkles } from "lucide-react";
 import { isElectron } from "../constants";
 import { useTranslation } from "../../i18n/I18nProvider";
+import { useSetting } from "../contexts/SettingsContext";
 import type { OrunProvider } from "../../types/orun";
 
 const PROVIDER_INFO: Record<OrunProvider, { label: string; kind: "local" | "cloud" }> = {
@@ -20,15 +21,13 @@ type CatalogModel = { id: string; free: boolean };
 
 export function ModelPicker({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
+  const { value: aiSetting, setValue: setAiSetting } = useSetting<{ provider: OrunProvider; model: string }>("ai");
+  const { value: aiFull } = useSetting<Record<string, unknown>>("ai");
   const [provider, setProvider] = useState<OrunProvider | null>(null);
   const [models, setModels] = useState<CatalogModel[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selected, setSelected] = useState<{ provider: OrunProvider; model: string } | null>(null);
 
-  useEffect(() => {
-    if (!isElectron) return;
-    window.orun.settings.get<{ provider: OrunProvider; model: string }>("ai").then((v) => { if (v) setSelected(v); });
-  }, []);
+  const selected = aiSetting ?? null;
 
   const openProvider = async (p: OrunProvider) => {
     setProvider(p);
@@ -61,11 +60,7 @@ export function ModelPicker({ onClose }: { onClose: () => void }) {
 
   const selectModel = async (model: string) => {
     if (!provider) return;
-    setSelected({ provider, model });
-    if (isElectron) {
-      const current = (await window.orun.settings.get<Record<string, unknown>>("ai")) || {};
-      await window.orun.settings.set("ai", { ...current, provider, model });
-    }
+    await setAiSetting({ ...aiFull, provider, model } as { provider: OrunProvider; model: string });
     onClose();
   };
 

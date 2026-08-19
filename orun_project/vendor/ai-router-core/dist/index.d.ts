@@ -28,3 +28,7 @@ export * from "./cache/semantic-cache";
 export * from "./pricing/model-pricing";
 export * from "./security/validate-base-url";
 export * from "./rate-limit/rate-limiter";
+export * from "./token-saver";
+export * from "./proxy-pool";
+export * from "./tunnel";
+export * from "./translator";

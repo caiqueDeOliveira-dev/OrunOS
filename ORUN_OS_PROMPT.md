@@ -9,11 +9,12 @@ Ordem de fases: **A** = completar os projetos na metade (OrunVS → OrunTV → O
 ## Overview
 Orun OS is a **desktop AI operating system** built with Electron + React + Vite. It runs as a native Windows/macOS/Linux app, featuring a multi-agent AI system with autonomous tool-calling, WhatsApp/Telegram/Discord/Email integrations, voice interaction (TTS/STT/wake word), social media publishing, Google Calendar/Gmail sync, Spotify control, and a plugin-based workspace system. Part of the **Orun ecosystem** (desktop + mobile monorepo + Orun-Core + Supabase shared project); the desktop is the reference base for all of them.
 
-- **Version**: 0.6.8
+- **Version**: 0.6.19
 - **Stack**: Electron 31, React 18.3, Vite 6, Tailwind CSS 4, TypeScript
-- **AI Providers**: OpenCodeZen (primary), Groq, OpenRouter (fallback chain); Ollama local-only; GitHub Models retired (410); DeepSeek/PaLM reachable via OpenCodeZen proxy
+- **AI Providers**: OpenCodeZen (primary), Groq, OpenRouter (fallback chain); Ollama local-only; GitHub Models retired (410); DeepSeek/PaLM reachable via OpenCodeZen proxy; **Orun AI Router** integrado (dashboard + API REST)
 - **DB**: SQLite (local) + Supabase/PostgreSQL (cloud sync, push-first, same shared project used by mobile/core: ref `kmfmeewibravdsxemzuj`)
 - **Language**: Portuguese (pt-BR) default, English/Spanish/French supported
+- **Tests**: 1070 passed / 9 skipped (59 test files)
 - **Repo**: all code in `orun_project/` subdirectory
 - **Docs**: `docs/roadmap-v1.md` (plataforma), `docs/voice-roadmap.md` (voz), `docs/so-orun-roadmap.md` (visão SO) — curados, atualizados por sessão
 
@@ -29,16 +30,16 @@ Todos os apps usam o **mesmo Supabase compartilhado** (`kmfmeewibravdsxemzuj`) e
 
 | # | Projeto | Status | Caminho | Stack | O que é |
 |---|---------|--------|---------|-------|---------|
-| 1 | **Orun OS (desktop)** | **v0.6.8** — referência/base | `C:\Users\Caiqu\OneDrive\Desktop\orun-os\orun_project` | Electron 31, React 18.3, Vite 6, Tailwind 4, TS | App desktop multi-agente, workspace plugin-based, WhatsApp/Telegram/Discord, voz, Spotify, n8n, sync Supabase |
-| 2 | **Orun Mobile (monorepo)** | ativo — 211 testes | `C:\Users\Caiqu\Downloads\orun-monorepo_1\orun-monorepo` (branch `master`) | Expo/React Native, Supabase, Deno Edge Functions | App mobile (expo-router), design system Neon/Glass, `supabase-sync` (sync engine + ai-relay/telegram/whatsapp webhooks), `whatsapp-baileys`, **home-app** (tablet smarthome) |
+| 1 | **Orun OS (desktop)** | **v0.6.19** — referência/base | `C:\Users\Caiqu\OneDrive\Desktop\orun-os\orun_project` | Electron 31, React 18.3, Vite 6, Tailwind 4, TS | App desktop multi-agente, workspace plugin-based, WhatsApp/Telegram/Discord, voz, Spotify, n8n, sync Supabase |
+| 2 | **Orun Mobile (monorepo)** | ativo — whatsapp-baileys em Docker | `C:\Users\Caiqu\Downloads\orun-monorepo_1\orun-monorepo` (branch `master`) | Expo/React Native, Supabase, Deno Edge Functions | App mobile (expo-router), `whatsapp-baileys` (Docker), `supabase-sync`, ai-relay/telegram/whatsapp webhooks |
 | 3 | **Orun-Core** | v0.1.2 — 60 testes | `C:\Users\Caiqu\OneDrive\Desktop\Orun-Core` | TypeScript | Core compartilhado: `getSupabaseClient` (transport WebSocket p/ Electron), hub `devices`/`commands`, satélites (`home`, `tv`, `shield`) |
-| 4 | **OrunVS** | **v0.3.4** — 87 testes, VSIX instalado | `C:\Users\Caiqu\OneDrive\Desktop\OrunVS` | VS Code extension, TS | Extensão VS Code com chat IA multi-provider (OpenCodeZen/Gemini/Groq/OpenRouter/DeepSeek/HF/Ollama), fallback chain, memória local, skills, **client MCP stdio + catálogo on-demand** |
-| 5 | **OrunTV** | v0.1.0 — em refinamento | `C:\Users\Caiqu\Downloads\oruntv_2\oruntv` | Jellyfin + Sonarr/Radarr/Prowlarr/Bazarr/qBittorrent; apps dashboard/desktop/mobile/tizen; packages core/shared-logic | Media stack completo + `OrunTV ROBO\meu_robote.py` (Playwright extrai `.m3u8/.mpd/.mp4`) |
-| 6 | **Orun Shield** | v0.1.0 — em refinamento | `C:\Users\Caiqu\Downloads\Orun Shield\orun-security-suite` | 6 pacotes TS (shield-core: ClamAV/VirusTotal/YARA/Sentinela/firewall; sentinela-agent: IA NLP; shield-mobile; system-optimizer: winget/brew/apt) + 2 integrações Electron; ~115+ testes | Suíte de segurança (proteção, otimização, monitoramento) |
+| 4 | **OrunVS** | **v0.3.7** — 14 arquivos com falha (sem testes rodando) | `C:\Users\Caiqu\OneDrive\Desktop\OrunVS` | VS Code extension, TS | Extensão VS Code com chat IA multi-provider (OpenCodeZen/Gemini/Groq/OpenRouter/DeepSeek/HF/Ollama), fallback chain, memória local, skills, **client MCP stdio + catálogo on-demand** |
+| 5 | **OrunTV** | v0.1.0 — sem git | `C:\Users\Caiqu\Downloads\oruntv_2\oruntv` | Jellyfin + Sonarr/Radarr/Prowlarr/Bazarr/qBittorrent; apps dashboard/desktop/mobile/tizen; packages core/shared-logic | Media stack completo |
+| 6 | **Orun Shield** | **v0.3.2** — app separado, commitado | `C:\Users\Caiqu\OneDrive\Desktop\Orun Shield\orun-security-suite` | 5 pacotes TS (shield-core, sentinela-agent, shield-mobile, system-optimizer) + orun-shield-app | Suíte de segurança (proteção, otimização, monitoramento) — app standalone Electron |
 | 7 | **Orun Home (home-app)** | ativo — APK via EAS | `packages/home-app` no monorepo | Expo SDK 54, RN, expo-router, zustand, supabase-js | App tablet smarthome (landscape): dashboard, dispositivos, cenários, automações, assistente (agente Home IA), satélite `home` do hub; HA opcional |
-| 8 | **Orun Auth (@orun/identity)** | **bruto (v0.1.0) — pronto p/ refinar** | zip `Downloads\Orun Auth.zip` / `Orun Auth_1.zip` | TS (pacote puro), vitest, Deno Edge Functions | Camada centralizada de identidade/auth do ecossistema: sign in/up/out, OAuth, magic link, refresh, storage seguro por plataforma (electron/expo/webcrypto), SessionRegistry multi-device, Turnstile, **billing Stripe + entitlements/paywalls**, licenciamento offline (JWT), MFA/TOTP, audit log, LGPD (export/delete), passkeys (beta). 5 Edge Functions (`create-checkout-session`, `stripe-webhook`, `issue-license`, `export-user-data`, `delete-account`). Código testado (71/71) aguardando integração — **não integrado nos apps ainda** |
-| 9 | **Orun Files** | **bruto (v0.1.0) — pronto p/ refinar** | zip `Downloads\orun-files.zip` | Electron, JS puro, Gemini API (`text-embedding-004` + `gemini-2.0-flash`), electron-store, chokidar, pdf-parse | Gerenciador de arquivos com IA: busca semântica (embeddings + cosseno, fallback textual), organização automática (plano de mover, nada executa sem confirmação), preview universal, indexação com chokidar. MVP funcional; roadmap: extração de conteúdo real (PDF/OCR/transcrição), batching de embeddings, undo, empacotamento electron-builder, modo assistente |
-| 10 | **Orun Design** | bruto — em avaliação | `C:\Users\Caiqu\Downloads\Orun Design\orum-project` | Backend Node (`orum-prospect-backend` 0.1.0) + frontend HTML/CSS/JS puro | (Em avaliação — verificar com o usuário se faz parte do catálogo) |
+| 8 | **Orun Auth (@orun/identity)** | **v0.1.0 — integrado no desktop (vendored)** | `C:\Users\Caiqu\OneDrive\Desktop\Orun Auth\Orun Auth\packages\identity` + vendored em `orun_project/vendor/orun-identity/` | TS (pacote puro), vitest, Deno Edge Functions | Camada centralizada de identidade/auth do ecossistema: sign in/up/out, OAuth, magic link, refresh, storage seguro, SessionRegistry multi-device, Turnstile, billing Stripe, licenciamento offline (JWT), MFA/TOTP, audit log, LGPD, passkeys (beta). 5 Edge Functions deployadas. **Integrado no desktop (v0.6.10+)** — auth gate, login/signup, licença, LGPD |
+| 9 | **Orun Files** | **bruto (v0.1.0) — sem git** | `C:\Users\Caiqu\OneDrive\Desktop\orun-files\orun-files` (+ zip em `Downloads\orun-files.zip`) | Electron, JS puro, Gemini API (`text-embedding-004` + `gemini-2.0-flash`), electron-store, chokidar | Gerenciador de arquivos com IA: busca semântica (embeddings + cosseno, fallback textual), organização automática, preview universal, indexação com chokidar |
+| 10 | **Orun Design** | **não encontrado** | `C:\Users\Caiqu\Downloads\Orun Design\orum-project` | Backend Node + frontend HTML/CSS/JS puro | Diretório não encontrado na última varredura (pode ter sido removido) |
 | — | **Orun TV / Orun Shield (roteiro original)** | adiado | — | TBD | Adiado "pra depois" — **reaberto** pela visão SO (OrunTV e Orun Shield voltaram como projetos ativos) |
 
 > **Nota**: Orun Auth e Orun Files estão **bruto** (v0.1.0, entregues via zip) — o código existe e é funcional, mas **precisa de refinamento**: integração nos apps reais (Auth), extração de conteúdo + batching + undo + empacotamento (Files), alinhamento de identidade visual e de API keys com o restante do ecossistema.
@@ -51,7 +52,7 @@ Todos os apps usam o **mesmo Supabase compartilhado** (`kmfmeewibravdsxemzuj`) e
 Entry point that initializes: SQLite DB, AI router, WhatsApp/Telegram/Discord bots, Google OAuth, Spotify client, n8n bridge, scheduler, plugin system, webhook receiver, Python child processes (wake word, Piper TTS, Whisper STT), auto-updater, tray icon, and ~1100 lines of IPC handlers. All IPC is registered in `main.cjs` directly (not in separate handler files — except Google, media, settings, data, AI, update, Spotify, Discord handlers which are in `electron/ipc/`).
 
 ### Preload (`electron/preload.cjs`)
-Exposes `window.orun` to the renderer with namespaced APIs: `orun.ai`, `orun.settings`, `orun.db`, `orun.whatsapp`, `orun.telegram`, `orun.google`, `orun.spotify`, `orun.socialMedia`, `orun.shell`, `orun.plugins`, `orun.mcp`, `orun.files`, `orun.evidence`, `orun.notifications`, `orun.speech`, `orun.ipc`, `orun.audio`, `orun.waAutomation`.
+Exposes `window.orun` to the renderer with namespaced APIs: `orun.ai`, `orun.settings`, `orun.db`, `orun.whatsapp`, `orun.telegram`, `orun.google`, `orun.spotify`, `orun.socialMedia`, `orun.shell`, `orun.plugins`, `orun.mcp`, `orun.files`, `orun.evidence`, `orun.notifications`, `orun.speech`, `orun.ipc`, `orun.audio`, `orun.waAutomation`, `orun.career`, `orun.aiRouter`.
 
 ### React App (`src/app/`)
 - **Entry**: `src/main.tsx` → `<App />`
@@ -66,25 +67,27 @@ Exposes `window.orun` to the renderer with namespaced APIs: `orun.ai`, `orun.set
 ## Agent System
 
 ### Agent List (defined in `src/app/constants.ts`)
-17 agents, each with a dedicated prompt in `electron/agent-prompts.cjs`:
+19 agents, each with a dedicated prompt in `electron/agent-prompts.cjs`:
 
 1. **Hampton** — Main AI, autonomous loop (up to 15 tool iterations). Central coordinator.
-2. **Developer** — Code review, development, technical guidance
-3. **Designer** — Image generation (Fal AI) & 3D design
-4. **Creator** — Audio & video production
-5. **Health** — Health, nutrition & fitness tracking
-6. **Finance** — Financial tracking & analysis
-7. **Teacher** — Educational assistant
-8. **Marketing** — Social media marketing (Buffer API + n8n)
-9. **Automation** — n8n & workflow automation
-10. **Automotive** — Vehicle management & maintenance
-11. **System** — System diagnostics, PowerShell health checks
-12. **Juridico** — Legal document assistant (Brazilian law)
-13. **AssistenteTecnico** — Technical support
-14. **Suporte** — General support
-15. **Personal Assistant** — Scheduling, reminders, WhatsApp-integrated assistant
-16. **Home IA** — Home automation & control (workspace `HomeIA`)
-17. **Cyber Security** — Security diagnostics & hardening (workspace `CyberSecurity`)
+2. **Developer** (Rebouças) — Code review, development, technical guidance
+3. **Designer** (Abdias) — Image generation (Fal AI / Fooocus local) & 3D design
+4. **Creator** (Pixinguinha) — Audio & video production
+5. **Health** (Juliano) — Health, nutrition & fitness tracking
+6. **Finance** (Conceição) — Financial tracking & analysis
+7. **Teacher** (Firmina) — Educational assistant
+8. **Marketing** (Machado) — Social media marketing (Buffer API + n8n)
+9. **Automation** (Sônia) — n8n & workflow automation
+10. **Automotive** (Teodoro) — Vehicle management & maintenance
+11. **System** (Milton) — System diagnostics, PowerShell health checks
+12. **Juridico** (Luiz Gama) — Legal document assistant (Brazilian law)
+13. **AssistenteTecnico** (João Cândido) — Technical support
+14. **Suporte** (Lélia) — General support
+15. **Personal Assistant** (Carolina) — Scheduling, reminders, WhatsApp-integrated assistant
+16. **Home IA** (Dandara) — Home automation & control (workspace `HomeIA`)
+17. **Cyber Security** (Zumbi) — Security diagnostics & hardening (workspace `CyberSecurity`)
+18. **CaOS Commander** (Lobo 🐺) — Bot Discord management, Palworld server, Tropa do CaOS
+19. **Carreiras** (Irene) — Job search, resume optimization, LinkedIn profiles
 
 ### AI Router (`electron/ai-router.cjs`)
 Routes requests through providers with fallback chain: **OpenCodeZen → Groq → OpenRouter** (GitHub Models removed — retired with 410 brownout). Supports streaming, tool-calling (OpenAI function-calling format), tool-use loop, rate limiting, token counting, and `reasoning_content` passthrough (DeepSeek thinking-mode requirement).
@@ -258,7 +261,7 @@ In-memory, per `(lastUserMsg, agentId)`, 1h TTL, **not persisted** — restart c
 - Tab management (if plugin declares tabs)
 - Lifecycle hooks: `onMount`, `onUnmount`, `onActivate`, `onDeactivate`
 
-### 16 Workspace Plugins
+### 19 Workspace Plugins
 
 | Plugin ID | Agent | Path |
 |-----------|-------|------|
@@ -279,11 +282,13 @@ In-memory, per `(lastUserMsg, agentId)`, 1h TTL, **not persisted** — restart c
 | `PersonalAssistant` | Personal Assistant | `workspace-personal-assistant/` |
 | `HomeIA` | Home IA | `workspace-home-ia/` |
 | `CyberSecurity` | Cyber Security | `workspace-cyber-security/` |
+| `GroupFeed` | WhatsApp Grupos | `workspace-group-feed/` |
+| `Career` | Carreiras | `workspace-career/` |
 
 Each workspace has: `index.ts` (registers plugin), a main component, and optionally `*-actions.ts` for registering tool actions.
 
 ### Workspace UI (premium redesign)
-- All 16 workspaces share the premium dark design system (`src/app/plugins/workspaces/premium.tsx`): consistent palette (black `#050505`/`#0A0A0C`, cards `#141414`, blood red `#C3002F`), `ws-*` typography/utility classes in `theme.css`, shared components (PanelHeader, StatCard, MetricGrid, charts, etc.).
+- All 19 workspaces share the premium dark design system (`src/app/plugins/workspaces/premium.tsx`): consistent palette (black `#050505`/`#0A0A0C`, cards `#141414`, blood red `#C3002F`), `ws-*` typography/utility classes in `theme.css`, shared components (PanelHeader, StatCard, MetricGrid, charts, etc.).
 - Workspaces render **full-screen** inside `WorkspaceView.tsx`; a draggable **floating chat bubble** (`src/app/components/FloatingWorkspaceChat.tsx`, LogoIA icon) opens a 340×460 chat panel with mic/input/send wired to the workspace agent.
 - Home IA workspace also exports `HomeHampton.tsx` (`{ state, size, image }`), used by the central HomeScreen (230px, `/LogoIA.png`) and by the Home IA workspace itself.
 
@@ -300,7 +305,7 @@ Each workspace has: `index.ts` (registers plugin), a main component, and optiona
 
 ## Known Issues & Quirks
 
-1. **Voice-triggered autonomous request hangs on iteration 1** — wake → STT → `[ai:autonomous] messages=2` never logs a tool call, never errors, outlasts both the 120s loop timeout and 60s `postJSON` timeout. Typed requests with larger history run fine. **Under diagnosis** (candidate: payload shape, `activeAutonomousRequests` collision, `resolveAISettings` path). Do not rely on voice-to-Hampton until resolved.
+1. **Voice wake word false positives FIXED (v0.6.18)** — wake_word_service.py now requires unambiguous words ("orun"/"hampton") or prefix+word ("ok orun"); ambiguous phonemes ("oram"/"oren") no longer trigger. Browser matcher mirrors the same rules. Conversational mode has 12s safety window — incomplete turns discard audio. Do not regress without testing 24+ phonetic variants.
 2. **Secret store per-app**: dev uses `%APPDATA%\orun-os` (slot `opencodezen` must hold a valid OpenCodeZen key `sk-...`; a previous dev profile had an OpenRouter-format key → 401 `Invalid API key`). Installed app uses `%APPDATA%\Orun OS`. 14 keys copied installed→dev on 2026-08-06.
 3. **GitHub Models retired** (HTTP 410 brownout) — removed from all provider chains. Do not re-add.
 4. **Groq free tier rate limits** (8k TPM) — 429s when used as primary; OpenCodeZen `big-pickle` is the recommended primary.
@@ -320,7 +325,7 @@ Each workspace has: `index.ts` (registers plugin), a main component, and optiona
 ### Electron (Main Process)
 - `electron/main.cjs` — Entry point, IPC, module init, agent tool permissions
 - `electron/preload.cjs` — Context bridge, window.orun API
-- `electron/agent-prompts.cjs` — All 17 agent system prompts
+- `electron/agent-prompts.cjs` — All 19 agent system prompts
 - `electron/ai-router.cjs` — AI provider routing with fallback chain
 - `electron/autonomous-loop.cjs` — Tool-calling loop
 - `electron/tools.cjs` — Tool definitions (~20+ tools)
@@ -341,6 +346,14 @@ Each workspace has: `index.ts` (registers plugin), a main component, and optiona
 - `electron/agent-hub.cjs` — Unified agent schema + serial delegation
 - `electron/analytics.cjs` — App events + real system metrics
 - `electron/ipc/skill-handlers.cjs`, `memory-handlers.cjs`, `knowledge-handlers.cjs`, `planner-handlers.cjs`, `agent-hub-handlers.cjs`, `analytics-handlers.cjs` — IPC for the platform modules
+- `electron/career.cjs` — Job search engine (Firecrawl + DuckDuckGo fallback, resume/cover letter generation, profile management)
+- `electron/ipc/career-handlers.cjs` — IPC for career module
+- `electron/discord-bridge.cjs` — Brain↔Discord bridge (7 tools: discord_status/server_info/channels/roles/plan/apply/archive_game)
+- `electron/tropa-modules.cjs` — Tropa do CaOS community modules (jogos, guildas, cargos, painel)
+- `electron/palworld-setup.cjs` — Palworld server setup engine (analyze/plan/execute with confirmation)
+- `electron/firecrawl.cjs` — Firecrawl API client (scrape, search, setBaseUrl)
+- `electron/developer-tools.cjs` — Developer elite tools (gitStatus/gitLog/gitDiff/gitStash/semgrepScan/libraryDocs/runTests/codeReview/ghPr)
+- `electron/proactive.cjs` — Proactive events (boot greeting, Spotify watcher, active app watcher)
 
 ### React (Frontend)
 - `src/app/App.tsx` — Root component
@@ -351,13 +364,14 @@ Each workspace has: `index.ts` (registers plugin), a main component, and optiona
 - `src/app/components/SettingsPanel.tsx` — Google OAuth + all settings
 - `src/app/plugins/PluginRegistry.ts` — Plugin system registry
 - `src/app/plugins/PluginHost.tsx` — Plugin host/lifecycle
-- `src/app/plugins/workspaces/premium.tsx` — Premium design system shared by the 16 workspaces
+- `src/app/plugins/workspaces/premium.tsx` — Premium design system shared by the 19 workspaces
 - `src/app/components/FloatingWorkspaceChat.tsx` — Draggable floating chat bubble/panel in workspaces
 - `src/app/components/PlannerPanel.tsx` — Planner UI (goal → tasks)
 - `src/app/components/AgentHubPanel.tsx` — Agent Hub UI (delegation + schema grid)
 - `src/app/components/AnalyticsPanel.tsx` — Analytics dashboard
 - `src/app/components/SkillsPanel.tsx` — Skill manager UI
 - `src/app/components/MemoryPanel.tsx` — Memory management UI
+- `src/app/components/AiRouterPanel.tsx` — Orun AI Router dashboard + API REST
 - `src/styles/theme.css` — Global theme (`.dark` = premium black + blood red, `ws-*` classes)
 - `public/LogoIA.png` — Orun logo (central HomeHampton avatar, sidebar/titlebar/splash icons, floating chat bubble, Electron tray/window icons)
 - `src/i18n/translations.ts` — All translations (6300+ lines, 4 languages)
@@ -366,7 +380,7 @@ Each workspace has: `index.ts` (registers plugin), a main component, and optiona
 - `src/app/hooks/useVoice.ts` — Voice recording + STT + wake word
 
 ### Infrastructure
-- `package.json` — Scripts: `npm run dev` (Vite), `npm run electron:dev` (Vite + Electron), `npm run dist` (build), `npm run typecheck` (tsc --noEmit), `npm test` (vitest run, ~817 tests)
+- `package.json` — Scripts: `npm run dev` (Vite), `npm run electron:dev` (Vite + Electron), `npm run dist` (build), `npm run typecheck` (tsc --noEmit), `npm test` (vitest run, ~1070 tests)
 - `.env` — `DATABASE_URL`, `DIRECT_URL`, `SYNC_INTERVAL_MS`
 - `supabase/migrations/001_initial_schema.sql` — PostgreSQL schema
 - `.github/workflows/build.yml` — CI/CD for Windows/macOS/Linux

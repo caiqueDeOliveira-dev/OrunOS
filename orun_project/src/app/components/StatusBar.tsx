@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Cpu, Wifi, Bell, Sparkles, Mic } from "lucide-react";
 import { useTranslation } from "../../i18n/I18nProvider";
-import { isElectron } from "../constants";
+import { useSetting } from "../contexts/SettingsContext";
 import type { OrunProvider } from "../../types/orun";
 import type { HamptonState } from "../types";
 
@@ -24,13 +24,8 @@ const Clock = React.memo(function Clock({ locale }: { locale: string }) {
 
 export const StatusBar = React.memo(function StatusBar({ onOpenModelPicker, hamptonState = "idle" }: { onOpenModelPicker?: () => void; hamptonState?: HamptonState }) {
   const { t, locale } = useTranslation();
-  const [aiModel, setAiModel] = useState<{ provider: OrunProvider; model: string } | null>(null);
+  const { value: aiModel } = useSetting<{ provider: OrunProvider; model: string }>("ai");
   const [online, setOnline] = useState(typeof navigator !== "undefined" ? navigator.onLine : true);
-
-  useEffect(() => {
-    if (!isElectron) return;
-    window.orun.settings.get<{ provider: OrunProvider; model: string }>("ai").then((v) => { if (v) setAiModel(v); });
-  }, []);
 
   useEffect(() => {
     const handleOnline = () => setOnline(true);

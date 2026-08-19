@@ -38,6 +38,71 @@ const node_http_1 = require("node:http");
 const node_url_1 = require("node:url");
 const ai_router_core_1 = require("@orun/ai-router-core");
 const MAX_BODY_BYTES = 1024 * 1024;
+// ─────────────────────────────────────────────────────────────
+// Circuit Breaker (per-account, in-memory)
+// ─────────────────────────────────────────────────────────────
+const circuitBreaker = new Map();
+let tokenSaverConfig = { ...ai_router_core_1.DEFAULT_TOKEN_SAVER_CONFIG };
+let proxyPoolConfig = { ...ai_router_core_1.DEFAULT_PROXY_POOL };
+let tunnelConfig = { enabled: false, provider: "none", port: 4321 };
+function getCircuitKey(providerId, accountLabel) {
+    return `${providerId}:${accountLabel ?? "default"}`;
+}
+function isAccountAvailable(providerId, accountLabel) {
+    const key = getCircuitKey(providerId, accountLabel);
+    const state = circuitBreaker.get(key);
+    if (!state)
+        return true;
+    if (Date.now() > state.until) {
+        circuitBreaker.delete(key);
+        return true;
+    }
+    return false;
+}
+function markAccountFailed(providerId, accountLabel, cooldownMs = 300000) {
+    const key = getCircuitKey(providerId, accountLabel);
+    const existing = circuitBreaker.get(key);
+    const errors = (existing?.errors ?? 0) + 1;
+    const backoff = Math.min(cooldownMs * Math.pow(2, errors - 1), 3600000);
+    circuitBreaker.set(key, { until: Date.now() + backoff, errors });
+}
+function getCircuitStates() {
+    const result = [];
+    for (const [key, value] of circuitBreaker) {
+        const [providerId, accountLabel] = key.split(":");
+        const available = Date.now() > value.until;
+        result.push({
+            providerId,
+            accountLabel,
+            state: available ? "closed" : "open",
+            until: value.until,
+            errors: value.errors,
+        });
+    }
+    return result;
+}
+// ─────────────────────────────────────────────────────────────
+// SSE log streaming
+// ─────────────────────────────────────────────────────────────
+const logStreams = new Set();
+function broadcastLog(entry) {
+    const data = `data: ${JSON.stringify(entry)}\n\n`;
+    for (const stream of logStreams) {
+        stream.write(data);
+    }
+}
+// ─────────────────────────────────────────────────────────────
+// Pricing (per 1M tokens, approximate retail)
+// ─────────────────────────────────────────────────────────────
+const PRICING = {
+    "openai": { input: 2.5, output: 10 },
+    "anthropic": { input: 3, output: 15 },
+    "groq": { input: 0.05, output: 0.1 },
+    "deepseek": { input: 0.14, output: 0.28 },
+    "gemini": { input: 0, output: 0 },
+    "cerebras": { input: 0, output: 0 },
+    "ollama": { input: 0, output: 0 },
+};
 class HttpError extends Error {
     status;
     constructor(status, message) {
@@ -55,6 +120,13 @@ class HttpError extends Error {
  */
 function createAiRouterServer(options) {
     return (0, node_http_1.createServer)((req, res) => {
+        const startTime = Date.now();
+        const url = req.url ?? "/";
+        const method = req.method ?? "GET";
+        broadcastLog({ type: "request_start", method, url, timestamp: startTime });
+        res.on("finish", () => {
+            broadcastLog({ type: "request_end", method, url, status: res.statusCode, latencyMs: Date.now() - startTime, timestamp: Date.now() });
+        });
         void handleRequest(req, res, options);
     });
 }
@@ -202,25 +274,33 @@ async function handleDashboardApi(req, res, path, options) {
     }
     // ── /api/health/detailed ──
     if (method === "GET" && path === "/api/health/detailed") {
-        const combos = await options.comboStore.listCombos();
-        const def = combos.find((c) => c.isSystemDefault);
-        const configs = options.providerConfigStore ? await options.providerConfigStore.listConfigs() : [];
-        const providers = configs.map((c) => ({
-            providerId: c.providerId,
-            enabled: c.enabled,
-            hasCredential: c.hasCredential ?? false,
-            circuitState: "closed",
-            recentErrors: 0,
-        }));
+        const uptime = process.uptime();
+        const combosCount = options.comboStore ? (await options.comboStore.listCombos()).length : 0;
+        const providers = options.providerConfigStore ? await options.providerConfigStore.listConfigs() : [];
+        const circuits = getCircuitStates();
+        const providerDetails = providers.map(p => {
+            const circuit = circuits.find(c => c.providerId === p.providerId);
+            return {
+                providerId: p.providerId,
+                enabled: p.enabled,
+                hasCredential: p.hasCredential,
+                circuitState: circuit?.state ?? "closed",
+                recentErrors: circuit?.errors ?? 0,
+                cooldownUntil: circuit?.until ?? null,
+            };
+        });
         json(res, 200, {
             ok: true,
             dbPath: options.meta?.dbPath ?? null,
-            defaultComboId: options.meta?.defaultComboId ?? def?.id ?? null,
-            combosCount: combos.length,
+            defaultComboId: options.meta?.defaultComboId ?? null,
+            combosCount,
+            providersCount: providers.length,
+            enabledProviders: providers.filter(p => p.enabled).length,
             hasProviderConfig: !!options.providerConfigStore,
             hasUsageLog: !!options.usageStore,
-            uptime: process.uptime() * 1000,
-            providers,
+            uptime,
+            providers: providerDetails,
+            circuits: circuits,
         });
         return;
     }
@@ -284,6 +364,11 @@ async function handleDashboardApi(req, res, path, options) {
     const providerMatch = path.match(/^\/api\/providers\/(.+)$/);
     if (providerMatch && options.providerConfigStore) {
         const id = decodeURIComponent(providerMatch[1]);
+        if (method === "DELETE") {
+            await options.providerConfigStore.deleteConfig(id);
+            json(res, 200, { ok: true });
+            return;
+        }
         if (method === "PUT") {
             const raw = await readBody(req);
             const body = JSON.parse(raw);
@@ -302,14 +387,134 @@ async function handleDashboardApi(req, res, path, options) {
         return;
     }
     // ── /api/test ──
-    if (method === "POST" && path === "/api/test") {
+    if (path === "/api/test" && method === "POST") {
         const raw = await readBody(req);
-        const { comboId, message } = JSON.parse(raw);
-        const result = await options.router.complete({
-            comboId,
-            messages: [{ role: "user", content: message ?? "Responda apenas: OK" }],
-            stream: false,
+        const body = JSON.parse(raw);
+        const { comboId, message } = body;
+        if (options.router) {
+            try {
+                const startTime = Date.now();
+                const result = await options.router.complete({
+                    comboId,
+                    messages: [{ role: "user", content: message ?? "Say 'hello' in one word." }],
+                    stream: false,
+                });
+                const latencyMs = Date.now() - startTime;
+                json(res, 200, {
+                    text: result.content,
+                    providerId: result.providerId,
+                    model: result.model,
+                    latencyMs,
+                    promptTokens: result.usage?.promptTokens ?? 0,
+                    completionTokens: result.usage?.completionTokens ?? 0,
+                });
+            }
+            catch (e) {
+                json(res, 200, {
+                    text: null,
+                    providerId: null,
+                    model: null,
+                    latencyMs: 0,
+                    promptTokens: 0,
+                    completionTokens: 0,
+                    error: e.message ?? String(e),
+                });
+            }
+            return;
+        }
+    }
+    // ── /api/logs/stream (SSE) ──
+    if (path === "/api/logs/stream" && method === "GET") {
+        res.writeHead(200, {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "Access-Control-Allow-Origin": "*",
         });
+        const heartbeat = setInterval(() => {
+            res.write(": heartbeat\n\n");
+        }, 15000);
+        logStreams.add(res);
+        req.on("close", () => {
+            clearInterval(heartbeat);
+            logStreams.delete(res);
+        });
+        return;
+    }
+    // ── /api/savings ──
+    if (path === "/api/savings" && method === "GET") {
+        if (options.usageStore) {
+            const events = await options.usageStore.listRecent(undefined, 1000);
+            let totalCost = 0;
+            let estimatedRetailCost = 0;
+            for (const event of events) {
+                const pricing = PRICING[event.providerId] ?? { input: 2.5, output: 10 };
+                totalCost += event.estimatedCostUsd ?? 0;
+                estimatedRetailCost += (event.promptTokens * pricing.input + event.completionTokens * pricing.output) / 1_000_000;
+            }
+            json(res, 200, {
+                totalCost,
+                estimatedRetailCost,
+                savings: estimatedRetailCost - totalCost,
+                savingsPercent: estimatedRetailCost > 0 ? Math.round(((estimatedRetailCost - totalCost) / estimatedRetailCost) * 100) : 0,
+                requestCount: events.length,
+            });
+            return;
+        }
+    }
+    // ── /api/token-saver ──
+    if (path === "/api/token-saver" && method === "GET") {
+        json(res, 200, tokenSaverConfig);
+        return;
+    }
+    if (path === "/api/token-saver" && method === "PUT") {
+        const raw = await readBody(req);
+        const body = JSON.parse(raw);
+        tokenSaverConfig = { ...ai_router_core_1.DEFAULT_TOKEN_SAVER_CONFIG, ...body };
+        json(res, 200, tokenSaverConfig);
+        return;
+    }
+    // ── /api/proxy-pool ──
+    if (path === "/api/proxy-pool" && method === "GET") {
+        json(res, 200, proxyPoolConfig);
+        return;
+    }
+    if (path === "/api/proxy-pool" && method === "PUT") {
+        const raw = await readBody(req);
+        const body = JSON.parse(raw);
+        proxyPoolConfig = { ...ai_router_core_1.DEFAULT_PROXY_POOL, ...body };
+        json(res, 200, proxyPoolConfig);
+        return;
+    }
+    // ── /api/tunnel ──
+    if (path === "/api/tunnel" && method === "GET") {
+        const status = (0, ai_router_core_1.getTunnelStatus)();
+        json(res, 200, { ...tunnelConfig, status });
+        return;
+    }
+    if (path === "/api/tunnel" && method === "POST") {
+        const raw = await readBody(req);
+        const body = JSON.parse(raw);
+        tunnelConfig = { ...tunnelConfig, ...body };
+        if (body.action === "start") {
+            const result = await (0, ai_router_core_1.startTunnel)(tunnelConfig);
+            json(res, 200, { ok: !!result, url: result?.url ?? null });
+        }
+        else if (body.action === "stop") {
+            (0, ai_router_core_1.stopTunnel)();
+            json(res, 200, { ok: true });
+        }
+        else {
+            json(res, 200, { ok: true });
+        }
+        return;
+    }
+    // ── /api/translate ──
+    if (path === "/api/translate" && method === "POST") {
+        const raw = await readBody(req);
+        const body = JSON.parse(raw);
+        const { messages, system, targetFormat } = body;
+        const result = (0, ai_router_core_1.translateRequest)(messages ?? [], system, targetFormat ?? "openai");
         json(res, 200, result);
         return;
     }
