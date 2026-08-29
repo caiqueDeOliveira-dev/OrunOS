@@ -8,6 +8,7 @@ import { ActivityBar } from "./components/ActivityBar";
 import { FileExplorer } from "./components/FileExplorer";
 import { SearchPanel } from "./components/SearchPanel";
 import { GitPanel } from "./components/GitPanel";
+import { GitHubPanel } from "./components/GitHubPanel";
 import { IntelligencePanel } from "./components/IntelligencePanel";
 import { AgentsPanel } from "./components/AgentsPanel";
 import { CodeEditor } from "./components/CodeEditor";
@@ -60,6 +61,7 @@ export function OrunCode(_props: WorkspaceProps) {
       case "explorer": return <FileExplorer />;
       case "search": return <SearchPanel />;
       case "git": return <GitPanel />;
+      case "github": return <GitHubPanel />;
       case "intelligence": return <IntelligencePanel />;
       case "agents": return <AgentsPanel />;
       default: return <FileExplorer />;

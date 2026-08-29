@@ -181,6 +181,7 @@ const AGENT_TOOL_PERMISSIONS = {
     "search_content", "run_command", "web_fetch", "web_search",
     "git_status", "git_log", "git_diff", "git_stash", "git_remote", "gh_pr",
     "git_commit", "git_branch", "git_checkout",
+    "github_auth_status", "github_repos_list", "github_repo_info", "github_user_info", "github_repo_doctor",
     "semgrep_scan", "library_docs",
     "run_tests", "code_review", "generate_tests",
     "refactor_rename", "refactor_move", "refactor_extract",
@@ -943,6 +944,7 @@ function registerIpcHandlers() {
   require("./ipc/identity-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/group-feed-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/career-handlers.cjs").register(ipcMain, ctx);
+  require("./ipc/github-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/ai-router-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/world-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/neural-handlers.cjs").register(ipcMain, ctx);

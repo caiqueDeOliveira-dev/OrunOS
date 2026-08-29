@@ -18,6 +18,11 @@
 | 5 | Autonomous Engineering | multi-agent, task board, worktrees, checkpoints, rollback | ⏳ |
 | 6 | Professional Engineering | Security Center, Performance, dependências, CI/CD, browser, MCP marketplace, health | ⏳ |
 | 7 | Orun Ecosystem | integração com Orun Music, Financial, Health, etc. via MCP | ⏳ |
+| 8 | GitHub Control Center | auth via token (keychain, escopo mínimo), dashboard de repositórios, git remoto (clone/fetch/pull/push com token via env), exclusão assistida/guardada | ✅ Fase 1-2 (auth + repos + git + delete + Repo Doctor) |
+
+> **GitHub Control Center — Fase 1 (v0.2.1)**: token nunca é persistido/retornado ao renderer (fica no keychain, e o renderer só o envia uma vez no login). Tools de agente read-only (`github_auth_status`, `github_repos_list`, `github_repo_info`, `github_user_info`) adicionadas ao rol do agente Developer. Exclusão de repositório exige digitar `owner/repo` exato (guarda também no handler/API). Push nunca é automático — requer ação explícita. Fases posteriores (Agent Apps/linhas GitHub) adiadas.
+>
+> **Fase 2 — Repo Doctor (v0.2.2)**: diagnóstico de saúde por repositório (vazios = excluir, obsoletos = arquivar com `staleDays` configurável, atenção = sem descrição, arquivados). Branches consultadas com paralelismo limitado. `github:doctor`/`github:update-repo` (PATCH só arquivar/descrição)/`github:list-branches`; tool de agente `github_repo_doctor` (read-only, resumo compacto). Ações seguem o mesmo guard de confirmação; a rotina de exclusão avança automaticamente pelos vazios listados.
 
 ---
 

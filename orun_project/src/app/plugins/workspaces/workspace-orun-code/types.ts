@@ -37,6 +37,73 @@ export interface GitStatus {
   files: GitFileStatus[];
 }
 
+// ── GitHub Control Center ───────────────────────────────────────────────
+
+export interface GitHubUser {
+  login: string;
+  name: string | null;
+  avatarUrl: string | null;
+  htmlUrl: string | null;
+}
+
+export interface GitHubRepo {
+  fullName: string;
+  name: string;
+  owner: string | null;
+  description: string | null;
+  language: string | null;
+  privateRepo: boolean;
+  fork: boolean;
+  archived: boolean;
+  defaultBranch: string | null;
+  stars: number;
+  forks: number;
+  openIssues: number;
+  pushedAt: string | null;
+  updatedAt: string | null;
+  sizeKB: number;
+  htmlUrl: string | null;
+  empty: boolean;
+}
+
+export interface GitHubAuthState {
+  connected: boolean;
+  user: GitHubUser | null;
+  checking: boolean;
+}
+
+export type GitHubDoctorSeverity = "high" | "medium" | "low" | "info";
+
+export interface GitHubDoctorIssue {
+  code: string;
+  label: string;
+  severity: GitHubDoctorSeverity;
+  action: string;
+}
+
+export interface GitHubDoctorRow {
+  repo: GitHubRepo;
+  issues: GitHubDoctorIssue[];
+  hasBranches: boolean;
+}
+
+export interface GitHubDoctorReport {
+  generatedAt: string;
+  staleDays: number;
+  rows: GitHubDoctorRow[];
+  counts: {
+    checked: number;
+    empty: number;
+    stale: number;
+    attention: number;
+    archived: number;
+  };
+  empty: GitHubDoctorRow[];
+  stale: GitHubDoctorRow[];
+  attention: GitHubDoctorRow[];
+  archived: GitHubDoctorRow[];
+}
+
 // ── Orun AI ─────────────────────────────────────────────────────────────
 
 export type AIChatRole = "user" | "assistant" | "system";
@@ -86,6 +153,22 @@ export type OrunCodeState = {
   searchResults: SearchMatch[];
   gitStatus: GitStatus | null;
   showMinimap: boolean;
+
+  // GitHub Control Center
+  githubAuth: GitHubAuthState | null;
+  githubRepos: GitHubRepo[];
+  githubReposLoading: boolean;
+  githubReposFilter: string;
+  githubError: string | null;
+  githubDeleteTarget: GitHubRepo | null;
+  githubNotice: string | null;
+  githubGitBusy: boolean;
+  githubGitResult: string | null;
+  githubGitBranch: string;
+  githubDoctorTab: "repos" | "doctor";
+  githubDoctorReport: GitHubDoctorReport | null;
+  githubDoctorStaleDays: number;
+  githubDoctorLoading: boolean;
   cursorLine: number;
   cursorCol: number;
 

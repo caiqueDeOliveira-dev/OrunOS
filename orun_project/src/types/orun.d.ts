@@ -917,6 +917,60 @@ export interface OrunRouterHttpStatus {
   error?: string;
 }
 
+interface OrunGitHubUser {
+  login: string;
+  name: string | null;
+  avatarUrl: string | null;
+  htmlUrl: string | null;
+}
+
+interface OrunGitHubRepo {
+  fullName: string;
+  name: string;
+  owner: string | null;
+  description: string | null;
+  language: string | null;
+  privateRepo: boolean;
+  fork: boolean;
+  archived: boolean;
+  defaultBranch: string | null;
+  stars: number;
+  forks: number;
+  openIssues: number;
+  pushedAt: string | null;
+  updatedAt: string | null;
+  sizeKB: number;
+  htmlUrl: string | null;
+  empty: boolean;
+}
+
+interface OrunGitHubDoctorIssue {
+  code: string;
+  label: string;
+  severity: "high" | "medium" | "low" | "info";
+  action: string;
+}
+
+interface OrunGitHubDoctorRow {
+  repo: OrunGitHubRepo;
+  issues: OrunGitHubDoctorIssue[];
+  hasBranches: boolean;
+}
+
+interface OrunGitHubDoctorResult {
+  ok: boolean;
+  generatedAt?: string;
+  staleDays?: number;
+  rows?: OrunGitHubDoctorRow[];
+  counts?: { checked: number; empty: number; stale: number; attention: number; archived: number };
+  empty?: OrunGitHubDoctorRow[];
+  stale?: OrunGitHubDoctorRow[];
+  attention?: OrunGitHubDoctorRow[];
+  archived?: OrunGitHubDoctorRow[];
+  status?: number;
+  error?: string;
+}
+
 interface OrunAPI {
   ai: {
     chat: (messages: OrunChatMessage[], agentId?: string) => Promise<string>;
@@ -1066,6 +1120,7 @@ interface OrunAPI {
     setWorkspace: (path: string) => Promise<{ ok: boolean }>;
     getWorkspace: () => Promise<string | null>;
     listFiles: (dirPath: string) => Promise<{ name: string; isDirectory: boolean; path: string }[] | { error: string }>;
+    gitStatus: (dirPath: string) => Promise<{ ok: boolean; status?: { branch: string; changes: number; staged: number; files: unknown[] }; error?: string }>;
   };
   teacher: {
     getProgress: (date?: string) => Promise<OrunTeacherProgress[]>;
@@ -1177,6 +1232,22 @@ clearHistory: () => Promise<{ ok: boolean }>;
     generateProfile: (profileKey: OrunProfileKey) => Promise<{ ok?: boolean; name?: string; headlines?: string[]; about?: string[]; keywords?: string[]; checklist?: string[]; error?: string }>;
     prepareApplication: (jobId: string, profileKey?: OrunProfileKey, querySummary?: string) => Promise<{ ok?: boolean; resumePath?: string; letterPath?: string; jobId?: string | null; error?: string }>;
     searchJobs: (query: string, profileKey?: OrunProfileKey, limit?: number) => Promise<{ ok?: boolean; candidates?: Array<{ title: string; url: string; company: string; location: string; remote: string; source: string; snippet: string }>; total?: number; error?: string }>;
+  };
+  github: {
+    status: () => Promise<{ ok: boolean; connected: boolean; user?: OrunGitHubUser; error?: string; status?: number }>;
+    connect: (token: string) => Promise<{ ok: boolean; user?: OrunGitHubUser; error?: string; status?: number }>;
+    disconnect: () => Promise<{ ok: boolean }>;
+    listRepos: (opts?: { sort?: string; perPage?: number }) => Promise<{ ok: boolean; total?: number; repos?: OrunGitHubRepo[]; error?: string; status?: number }>;
+    getRepo: (owner: string, repo: string) => Promise<{ ok: boolean; repo?: OrunGitHubRepo; error?: string; status?: number }>;
+    listBranches: (owner: string, repo: string) => Promise<{ ok: boolean; branches?: string[]; error?: string; status?: number }>;
+    updateRepo: (owner: string, repo: string, patch: { archived?: boolean; description?: string }) => Promise<{ ok: boolean; repo?: OrunGitHubRepo; updated?: string[]; error?: string; status?: number }>;
+    doctor: (staleDays?: number) => Promise<OrunGitHubDoctorResult>;
+    deleteRepo: (owner: string, repo: string, confirmName: string) => Promise<{ ok: boolean; guard?: string; deleted?: string; error?: string; status?: number }>;
+    clone: (url: string, dest: string) => Promise<{ ok: boolean; output?: string; error?: string }>;
+    fetch: (workspace: string) => Promise<{ ok: boolean; message?: string; error?: string }>;
+    pull: (workspace: string, branch?: string) => Promise<{ ok: boolean; message?: string; error?: string }>;
+    push: (workspace: string, branch?: string) => Promise<{ ok: boolean; message?: string; pushed?: string; error?: string }>;
+    configureGit: (workspace: string) => Promise<{ ok: boolean; message?: string; error?: string }>;
   };
   schedules: {
     get: () => Promise<Record<string, OrunSchedule>>;

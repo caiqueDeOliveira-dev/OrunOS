@@ -18,6 +18,43 @@ const firecrawl = require("./firecrawl.cjs");
 const discordBridge = require("./discord-bridge.cjs");
 const careerBridge = require("./career.cjs");
 const neuralHandlers = require("./ipc/neural-handlers.cjs");
+const githubService = require("./github-service.cjs");
+
+const GITHUB_TOKEN_SLOT = "orun.github.token";
+
+async function getGithubToken() {
+  try {
+    if (ctx && ctx.secretStore && typeof ctx.secretStore.get === "function") {
+      return await ctx.secretStore.get(GITHUB_TOKEN_SLOT);
+    }
+  } catch {}
+  return null;
+}
+
+async function executeGithubTool(name, args) {
+  const token = await getGithubToken();
+  if (!token) {
+    return {
+      ok: false,
+      error:
+        "GitHub não conectado ao Orun Code. Conecte um token em Orun Code → GitHub (etapa de Fase 1 do GitHub Control Center).",
+    };
+  }
+  try {
+    if (name === "github_auth_status") return githubService.getAuthStatus(token);
+    if (name === "github_repos_list") return githubService.listRepos(token, args || {});
+    if (name === "github_repo_info") return githubService.getRepo(token, args.owner, args.repo);
+    if (name === "github_user_info") return githubService.getUser(token, args.login);
+    if (name === "github_repo_doctor") {
+      const report = await githubService.doctorReport(token, { staleDays: args.staleDays });
+      if (!report.ok) return report;
+      return githubService.summarizeDoctorReport(report);
+    }
+  } catch (e) {
+    return { ok: false, error: e.message || String(e) };
+  }
+  return { ok: false, error: `Ferramenta GitHub desconhecida: ${name}` };
+}
 
 /** Acesso lazy ao Knowledge Engine (criado depois do init no main). */
 function getKnowledgeEngine() {
@@ -975,6 +1012,69 @@ const TOOL_DEFINITIONS = [
   {
     type: "function",
     function: {
+      name: "github_auth_status",
+      description: "Check if the GitHub Control Center is connected. Returns the authenticated GitHub login (never the token).",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "github_repos_list",
+      description: "List the user's GitHub repositories visible to the connected token (read-only). Returns name, description, language, stars, fork/private flags and last update.",
+      parameters: {
+        type: "object",
+        properties: {
+          sort: { type: "string", enum: ["updated", "created", "pushed", "full_name"], description: "Sort mode (default updated)." },
+          perPage: { type: "number", description: "Results per page (max 100, default 100)." },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "github_repo_info",
+      description: "Get details of a single GitHub repository (read-only).",
+      parameters: {
+        type: "object",
+        properties: {
+          owner: { type: "string", description: "Repository owner." },
+          repo: { type: "string", description: "Repository name." },
+        },
+        required: ["owner", "repo"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "github_user_info",
+      description: "Get a GitHub user's public profile. Omit login to get the connected account.",
+      parameters: {
+        type: "object",
+        properties: {
+          login: { type: "string", description: "GitHub username (optional)." },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "github_repo_doctor",
+      description: "Read-only health report of the connected GitHub account's repos: buckets empty (delete candidates), stale (archive candidates, no push in N days), attention (no description) and archived. Returns counts + per-repo reason lines.",
+      parameters: {
+        type: "object",
+        properties: {
+          staleDays: { type: "number", description: "Days without push to consider a repo stale (default 90)." },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "code_review",
       description: "One-shot review bundle for a code review: changed files (git status), the diff (working tree or between refs), and optionally a semgrep scan. Returns the material for the agent to write the review. Requires a git repo.",
       parameters: {
@@ -1822,6 +1922,13 @@ async function executeToolRaw(name, args) {
     }
     case "gh_pr": {
       return developerTools.ghPr(getWorkspaceDir(), args);
+    }
+    case "github_auth_status":
+    case "github_repos_list":
+    case "github_repo_info":
+    case "github_user_info":
+    case "github_repo_doctor": {
+      return await executeGithubTool(name, args);
     }
     case "run_tests": {
       return developerTools.runTests(getWorkspaceDir(), args);

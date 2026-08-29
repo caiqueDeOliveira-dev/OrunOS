@@ -223,6 +223,16 @@ function register(ipcMain, ctx) {
     }
   });
 
+  ipcMain.handle("developer:git-status", (_, dirPath) => {
+    try {
+      const devTools = require("../developer-tools.cjs");
+      if (!dirPath) return { error: "dirPath is required" };
+      return { ok: true, status: devTools.gitStatus(dirPath) };
+    } catch (e) {
+      return { error: e.message };
+    }
+  });
+
   // Teacher progress
   ipcMain.handle("teacher:get-progress", (_event, date) => db.getDailyProgress(date));
 
