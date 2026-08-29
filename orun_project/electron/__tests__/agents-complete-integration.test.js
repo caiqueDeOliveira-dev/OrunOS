@@ -27,6 +27,7 @@ const ALL_EXPECTED_AGENTS = [
   "System", "Creator", "Juridico", "Suporte", "AssistenteTecnico",
   "CaOS Commander",
   "Carreiras",
+  "Neural",
 ];
 
 const AGENT_KEYWORDS = {
@@ -46,6 +47,7 @@ const AGENT_KEYWORDS = {
   "AssistenteTecnico":   ["Assistente Tecnico", "eletronica", "oficina", "pecas", "conserto"],
   "CaOS Commander":      ["CaOS Commander", "Discord", "TROPA DO CaOS", "discord_apply", "confirm", "comunidade"],
   "Carreiras":           ["Carreiras", "vaga", "currículo", "candidatura", "career_add_job", "career_prepare_application"],
+  "Neural":              ["Neural", "segundo cérebro", "[[Wikilinks]]", "neural_save_note", "neural_search_notes"],
 };
 
 // ── WORKSPACE MAPPINGS ─────────────────────────────────────────────────
@@ -67,25 +69,27 @@ const AGENT_WORKSPACE_MAP = {
   "AssistenteTecnico":   ["assistente-tecnico"],
   "CaOS Commander":      [],
   "Carreiras":           ["career"],
+  "Neural":              [],
 };
 
 // ── RECOMMENDED MODELS (from main.cjs) ────────────────────────────────
 const AGENT_RECOMMENDED_MODELS = {
-  Hampton:    { provider: "groq",        model: "llama-3.3-70b-versatile" },
-  Developer:  { provider: "groq",        model: "llama-3.3-70b-versatile" },
+  Hampton:    { provider: "groq",        model: "openai/gpt-oss-120b" },
+  Developer:  { provider: "groq",        model: "openai/gpt-oss-120b" },
   Designer:   { provider: "opencodezen", model: "big-pickle" },
-  Creator:    { provider: "groq",        model: "llama-3.3-70b-versatile" },
-  Health:     { provider: "groq",        model: "llama-3.3-70b-versatile" },
-  Finance:    { provider: "groq",        model: "llama-3.3-70b-versatile" },
-  Teacher:    { provider: "groq",        model: "llama-3.3-70b-versatile" },
+  Creator:    { provider: "groq",        model: "openai/gpt-oss-120b" },
+  Health:     { provider: "groq",        model: "openai/gpt-oss-120b" },
+  Finance:    { provider: "groq",        model: "openai/gpt-oss-120b" },
+  Teacher:    { provider: "groq",        model: "openai/gpt-oss-120b" },
   Marketing:  { provider: "opencodezen", model: "big-pickle" },
-  "Personal Assistant": { provider: "groq", model: "llama-3.3-70b-versatile" },
-  Automation: { provider: "groq",        model: "llama-3.3-70b-versatile" },
-  Automotive: { provider: "groq",        model: "llama-3.3-70b-versatile" },
-  Juridico:   { provider: "groq",        model: "llama-3.3-70b-versatile" },
-  System:     { provider: "groq",        model: "llama-3.3-70b-versatile" },
-  "CaOS Commander": { provider: "groq",        model: "llama-3.3-70b-versatile" },
-  Carreiras:      { provider: "groq",        model: "llama-3.3-70b-versatile" },
+  "Personal Assistant": { provider: "groq", model: "openai/gpt-oss-120b" },
+  Automation: { provider: "groq",        model: "openai/gpt-oss-120b" },
+  Automotive: { provider: "groq",        model: "openai/gpt-oss-120b" },
+  Juridico:   { provider: "groq",        model: "openai/gpt-oss-120b" },
+  System:     { provider: "groq",        model: "openai/gpt-oss-120b" },
+  "CaOS Commander": { provider: "groq",        model: "openai/gpt-oss-120b" },
+  Carreiras:      { provider: "groq",        model: "openai/gpt-oss-120b" },
+  Neural:         { provider: "groq",        model: "openai/gpt-oss-120b" },
 };
 
 // ── TOOL PERMISSIONS (from main.cjs) ──────────────────────────────────
@@ -169,6 +173,12 @@ const AGENT_TOOL_PERMISSIONS = {
     "career_prepare_application", "career_stats",
     "web_fetch", "web_search",
     "memory_save", "memory_search", "rag_search", "notify", "open_workspace", "workspace_action",
+  ],
+  Neural: [
+    "neural_save_note", "neural_search_notes", "neural_list_notes",
+    "neural_get_note", "neural_backlinks_graph",
+    "web_search", "web_fetch",
+    "memory_save", "memory_search", "rag_search", "notify",
   ],
 };
 
@@ -371,6 +381,8 @@ describe("Tool permissions integrity", () => {
     "career_get_state", "career_search_jobs", "career_add_job", "career_list_jobs",
     "career_update_job_status", "career_save_profile", "career_generate_profile",
     "career_prepare_application", "career_stats",
+    "neural_save_note", "neural_search_notes", "neural_list_notes",
+    "neural_get_note", "neural_backlinks_graph",
   ];
 
   for (const [agent, tools] of Object.entries(AGENT_TOOL_PERMISSIONS)) {

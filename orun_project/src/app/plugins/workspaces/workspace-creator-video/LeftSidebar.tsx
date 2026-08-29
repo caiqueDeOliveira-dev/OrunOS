@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "../../../../i18n/I18nProvider";
+import { P } from "../premium";
 import { SANS, MEDIA_TABS } from "./video-types";
 import { MediaTab } from "./left-sidebar/MediaTab";
 import { TextTab } from "./left-sidebar/TextTab";
@@ -25,13 +26,13 @@ export function LeftSidebar() {
       className="flex flex-col shrink-0 overflow-hidden"
       style={{
         width: 180,
-        background: "#0A0A0C",
-        borderRight: "1px solid #252525",
+        background: P.panel,
+        borderRight: `1px solid ${P.border}`,
       }}
     >
       <div
         className="flex overflow-x-auto shrink-0"
-        style={{ borderBottom: "1px solid #141414" }}
+        style={{ borderBottom: `1px solid ${P.border}` }}
       >
         {MEDIA_TABS.map((tab) => (
           <button
@@ -43,12 +44,12 @@ export function LeftSidebar() {
               fontSize: 9,
               fontFamily: SANS,
               fontWeight: activeTab === tab ? 600 : 400,
-              color: activeTab === tab ? "#FFFFFF" : "#5C5C5C",
+              color: activeTab === tab ? P.text : P.dim,
               background: "transparent",
               border: "none",
               borderBottom:
                 activeTab === tab
-                  ? "2px solid #C3002F"
+                  ? `2px solid ${P.primary}`
                   : "2px solid transparent",
               cursor: "pointer",
               whiteSpace: "nowrap",
@@ -63,7 +64,7 @@ export function LeftSidebar() {
         className="hs-scroll flex-1 overflow-y-auto p-2"
         style={{
           scrollbarWidth: "thin",
-          scrollbarColor: "#1C1C1C transparent",
+          scrollbarColor: `${P.border} transparent`,
         }}
       >
         {renderTabContent()}

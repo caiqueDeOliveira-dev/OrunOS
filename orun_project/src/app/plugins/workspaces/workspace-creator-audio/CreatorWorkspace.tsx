@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+﻿import { Suspense, lazy } from "react";
 import type { WorkspaceProps } from "../../types";
 import { usePersonalization, useWorkspaceNotes } from "../../../hooks/usePersonalization";
 import { WorkspaceHeader } from "../../components/WorkspaceHeader";
@@ -16,7 +16,7 @@ export function CreatorWorkspace(props: WorkspaceProps) {
       <WorkspaceHeader
         title={`Creator Studio${notes ? ` — ${notes}` : ""}`}
         subtitle={activeTab === "video" ? "Video" : "Audio"}
-        icon={<div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ background: "linear-gradient(135deg, #8B5CF6, #EC4899)", color: "#fff" }}>{avatarInitials || "C"}</div>}
+        icon={<div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ background: "linear-gradient(135deg, var(--primary), color-mix(in srgb, var(--primary) 55%, black))", color: "#fff" }}>{avatarInitials || "C"}</div>}
         actions={<span className="text-[9px] text-muted-foreground">{userName || "Creator"}</span>}
       />
       <Suspense fallback={

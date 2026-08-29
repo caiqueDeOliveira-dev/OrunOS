@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState, useCallback, Suspense, lazy } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo, Suspense, lazy } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Focus } from "lucide-react";
 import { useTranslation } from "../i18n/I18nProvider";
 import { AgentsPanel } from "./components/AgentsPanel";
-import { Sidebar } from "./components/Sidebar";
+import { SpaceRail } from "./components/SpaceRail";
+import type { SpaceRailActions } from "./components/SpaceRail";
+import { WorldScreen } from "./components/WorldScreen";
 import { StatusBar } from "./components/StatusBar";
 import { ChatInput } from "./components/ChatInput";
 import { VoiceLevelBar } from "./components/VoiceLevelBar";
@@ -11,6 +13,7 @@ import { getHamptonReplies, isElectron, getAgents } from "./constants";
 import type { HamptonState } from "./types";
 import { usePanelNavigation } from "./hooks/usePanelNavigation";
 import { useChat } from "./hooks/useChat";
+import { useNeuralAutoCapture } from "./hooks/useNeuralAutoCapture";
 import { useVoice } from "./hooks/useVoice";
 import { useTTS } from "./hooks/useTTS";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
@@ -19,6 +22,7 @@ import { AgentCardSkeleton } from "./components/Skeleton";
 import { ChatView } from "./components/ChatView";
 import { WorkspaceView } from "./components/WorkspaceView";
 import { HomeHampton } from "./plugins/workspaces/workspace-home-ia/HomeHampton";
+import { PulsePanel } from "./components/PulsePanel";
 import { PluginSettings } from "./plugins/PluginSettings";
 import { ProfilePanel } from "./components/ProfilePanel";
 import { TelegramPanel } from "./components/TelegramPanel";
@@ -28,28 +32,8 @@ import { checkEasterEgg, getAll as getAllEggs } from "./services/easterEggs";
 import { unlock as unlockAchievement, progress as progressAchievement } from "./services/achievements";
 import type { AttachedImage } from "./components/ChatInput";
 import { hasPlugin, getWorkspacePluginId } from "./plugins/PluginRegistry";
+import { WORKSPACE_PLUGIN_LOADERS } from "./plugins/workspace-loaders";
 import { AutoBackup } from "./services/autoBackup";
-
-const WORKSPACE_PLUGINS = [
-  () => import("./plugins/workspaces/workspace-system-console"),
-  () => import("./plugins/workspaces/workspace-health-dashboard"),
-  () => import("./plugins/workspaces/workspace-finance-ledger"),
-  () => import("./plugins/workspaces/workspace-teacher-whiteboard"),
-  () => import("./plugins/workspaces/workspace-marketing-studio"),
-  () => import("./plugins/workspaces/workspace-automation-flow"),
-  () => import("./plugins/workspaces/workspace-developer-ide"),
-  () => import("./plugins/workspaces/workspace-designer-image"),
-  () => import("./plugins/workspaces/workspace-creator-audio"),
-  () => import("./plugins/workspaces/workspace-creator-video"),
-  () => import("./plugins/workspaces/workspace-automotive-garage"),
-  () => import("./plugins/workspaces/workspace-juridico"),
-  () => import("./plugins/workspaces/workspace-assistente-tecnico"),
-  () => import("./plugins/workspaces/workspace-personal-assistant"),
-  () => import("./plugins/workspaces/workspace-home-ia"),
-  () => import("./plugins/workspaces/workspace-cyber-security"),
-  () => import("./plugins/workspaces/workspace-group-feed"),
-  () => import("./plugins/workspaces/workspace-career"),
-];
 
 const HamptonWolf = lazy(() => import("./components/HamptonWolf").then(m => ({ default: m.HamptonWolf })));
 const SettingsPanel = lazy(() => import("./components/SettingsPanel").then(m => ({ default: m.SettingsPanel })));
@@ -67,6 +51,7 @@ const FilesPanel = lazy(() => import("./components/FilesPanel").then(m => ({ def
 const SchedulesPanel = lazy(() => import("./components/SchedulesPanel").then(m => ({ default: m.SchedulesPanel })));
 const SocialMediaPanel = lazy(() => import("./components/SocialMediaPanel").then(m => ({ default: m.SocialMediaPanel })));
 const MemoryPanel = lazy(() => import("./components/MemoryPanel").then(m => ({ default: m.MemoryPanel })));
+const NeuralPanel = lazy(() => import("./components/NeuralPanel").then(m => ({ default: m.NeuralPanel })));
 const SkillsPanel = lazy(() => import("./components/SkillsPanel").then(m => ({ default: m.SkillsPanel })));
 const PlannerPanel = lazy(() => import("./components/PlannerPanel").then(m => ({ default: m.PlannerPanel })));
 const AgentHubPanel = lazy(() => import("./components/AgentHubPanel").then(m => ({ default: m.AgentHubPanel })));
@@ -75,6 +60,7 @@ const CommandPalette = lazy(() => import("./components/CommandPalette").then(m =
 const ExportPanel = lazy(() => import("./components/ExportPanel").then(m => ({ default: m.ExportPanel })));
 const AgentPage = lazy(() => import("./components/AgentPage").then(m => ({ default: m.AgentPage })));
 const SuportePanel = lazy(() => import("./components/SuportePanel").then(m => ({ default: m.SuportePanel })));
+const WorkspaceLauncher = lazy(() => import("./components/WorkspaceLauncher").then(m => ({ default: m.WorkspaceLauncher })));
 const KeyboardShortcutsModal = lazy(() => import("./components/KeyboardShortcutsModal").then(m => ({ default: m.KeyboardShortcutsModal })));
 const ChangelogModal = lazy(() => import("./components/ChangelogModal").then(m => ({ default: m.ChangelogModal })));
 const AchievementsPanel = lazy(() => import("./components/AchievementsPanel").then(m => ({ default: m.AchievementsPanel })));
@@ -109,7 +95,7 @@ export function HomeScreen() {
   }, []);
 
   useEffect(() => {
-    WORKSPACE_PLUGINS.forEach((load) => load().catch(() => {}));
+    WORKSPACE_PLUGIN_LOADERS.forEach((load) => load().catch(() => {}));
     AutoBackup.init(60);
   }, []);
 
@@ -134,6 +120,13 @@ export function HomeScreen() {
   }, [chat]);
 
   const toast = useToast();
+
+  useNeuralAutoCapture({
+    messages: chat.messages,
+    conversationId: chat.conversationId,
+    onResult: (saved) => toast.show(t("neuralAutoSaved", { count: saved }), "info"),
+  });
+
   const konamiBufferRef = useRef<string[]>([]);
   const KONAMI_SEQUENCE = ["ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft", "ArrowRight", "b", "a"];
 
@@ -252,7 +245,7 @@ export function HomeScreen() {
       const { workspaceId } = (e as CustomEvent).detail;
       if (!workspaceId) return;
       const PLUGIN_MAP: Record<string, string> = {
-        health: "Health", finance: "Finance", developer: "Developer",
+        health: "Health", finance: "FinanceReal", developer: "OrunCode",
         marketing: "Marketing", designer: "Designer", teacher: "Teacher",
         system: "System", "automation-flow": "Automation",
         "automotive-garage": "Automotive", "creator-audio": "Creator_Audio",
@@ -266,6 +259,10 @@ export function HomeScreen() {
         "group-feed": "GroupFeed",
         "groupFeed": "GroupFeed",
         "career": "Career",
+        "telemetry": "Telemetry",
+        "shield-secrets": "ShieldSecrets",
+        "finance-real": "FinanceReal",
+        "orun-music": "OrunMusic",
       };
       nav.setWorkspaceOpen(PLUGIN_MAP[workspaceId] || workspaceId);
     };
@@ -354,7 +351,111 @@ export function HomeScreen() {
   const anyPanelOpen = nav.anyPanelOpen;
   const agents = getAgents(t);
   const currentAgent = chat.activeAgent ? agents.find(a => a.name === chat.activeAgent) : null;
-  const workspacePluginId = nav.workspaceOpen ? getWorkspacePluginId(nav.workspaceOpen) : null;
+  const workspacePluginId = nav.workspaceOpen
+    ? (hasPlugin(nav.workspaceOpen) ? nav.workspaceOpen : getWorkspacePluginId(nav.workspaceOpen))
+    : null;
+
+  const hour = new Date().getHours();
+  const greeting = hour < 5 ? t("greetingNight") : hour < 12 ? t("greetingMorning") : hour < 18 ? t("greetingAfternoon") : t("greetingEvening");
+
+  // ── SpaceRail: active space derivation ─────────────────────────────
+  const MEDIA_WS = ["OrunMusic", "Creator_Audio", "Creator_Video", "Designer"];
+  const DEVICE_WS = ["HomeIA", "Telemetry"];
+  const activeSpace = (() => {
+    if (nav.workspaceOpen) {
+      if (DEVICE_WS.includes(nav.workspaceOpen)) return "devices";
+      if (MEDIA_WS.includes(nav.workspaceOpen)) return "media";
+      return "workspaces";
+    }
+    if (nav.settingsOpen || nav.analyticsOpen || nav.exportImportOpen || pluginSettingsOpen || profileOpen || achievementsOpen || suporteOpen || shortcutsOpen || changelogOpen) return "system";
+    if (nav.agentsOpen || nav.memoryOpen || nav.skillsOpen || nav.plannerOpen || nav.agentHubOpen || nav.automationOpen || nav.schedulesOpen || nav.agentModelsOpen || nav.usageOpen || nav.routerOpen || nav.voicesOpen) return "intelligence";
+    if (nav.historyOpen || nav.projectsOpen || nav.filesOpen || nav.emailOpen || nav.calendarOpen || nav.whatsappOpen || nav.socialMediaOpen || nav.activityOpen) return "home";
+    if (nav.activeNav === "world") return "world";
+    if (nav.activeNav === "workspaces") return "workspaces";
+    return "home";
+  })();
+
+  const closeLocalOverlays = useCallback(() => {
+    setPluginSettingsOpen(false); setProfileOpen(false); setAchievementsOpen(false);
+    setTelegramOpen(false); setSuporteOpen(false); setShortcutsOpen(false); setChangelogOpen(false);
+  }, []);
+
+  const handleSpace = useCallback((id: string) => {
+    switch (id) {
+      case "home":
+        nav.closeAll();
+        nav.setActiveNav("home");
+        closeLocalOverlays();
+        break;
+      case "world":
+        nav.closeAll();
+        nav.setActiveNav("world");
+        closeLocalOverlays();
+        break;
+      case "intelligence":
+        nav.setAgentsOpen(true);
+        nav.setActiveNav("agents");
+        break;
+      case "workspaces":
+        nav.closeAll();
+        nav.setActiveNav("workspaces");
+        closeLocalOverlays();
+        break;
+      case "devices":
+        nav.closeAll();
+        closeLocalOverlays();
+        nav.setWorkspaceOpen("HomeIA");
+        break;
+      case "media":
+        nav.closeAll();
+        closeLocalOverlays();
+        nav.setWorkspaceOpen("OrunMusic");
+        break;
+      case "system":
+        nav.setSettingsOpen(true);
+        break;
+    }
+  }, [nav, closeLocalOverlays]);
+
+  const railActions = useMemo<SpaceRailActions>(() => ({
+    history: () => { nav.setHistoryOpen(true); },
+    projects: () => { nav.setProjectsOpen(true); nav.setActiveNav("projects"); },
+    files: () => { nav.setFilesOpen(true); nav.setActiveNav("files"); },
+    email: () => { nav.setEmailOpen(true); nav.setActiveNav("email"); },
+    calendar: () => { nav.setCalendarOpen(true); nav.setActiveNav("calendar"); },
+    whatsapp: () => { nav.setWhatsappOpen(true); },
+    telegram: () => { setTelegramOpen(true); },
+    groupFeed: () => { nav.closeAll(); closeLocalOverlays(); nav.setWorkspaceOpen("GroupFeed"); },
+    social: () => { nav.setSocialMediaOpen(true); nav.setActiveNav("social"); },
+    activity: () => { nav.setActivityOpen(true); nav.setActiveNav("activity"); },
+    agents: () => { nav.setAgentsOpen(true); nav.setActiveNav("agents"); },
+    agentHub: () => { nav.setAgentHubOpen(true); nav.setActiveNav("agentHub"); },
+    memory: () => { nav.setMemoryOpen(true); nav.setActiveNav("memory"); },
+  neural: () => { nav.setNeuralOpen(true); nav.setActiveNav("neural"); },
+    automation: () => { nav.setAutomationOpen(true); nav.setActiveNav("automation"); },
+    schedules: () => { nav.setSchedulesOpen(true); },
+    skills: () => { nav.setSkillsOpen(true); nav.setActiveNav("skills"); },
+    planner: () => { nav.setPlannerOpen(true); nav.setActiveNav("planner"); },
+    agentModels: () => { nav.setAgentModelsOpen(true); },
+    router: () => { nav.setRouterOpen(true); },
+    usage: () => { nav.setUsageOpen(true); },
+    voices: () => { nav.setVoicesOpen(true); },
+    homeIa: () => { nav.closeAll(); closeLocalOverlays(); nav.setWorkspaceOpen("HomeIA"); },
+    telemetry: () => { nav.closeAll(); closeLocalOverlays(); nav.setWorkspaceOpen("Telemetry"); },
+    music: () => { nav.closeAll(); closeLocalOverlays(); nav.setWorkspaceOpen("OrunMusic"); },
+    creatorAudio: () => { nav.closeAll(); closeLocalOverlays(); nav.setWorkspaceOpen("Creator_Audio"); },
+    creatorVideo: () => { nav.closeAll(); closeLocalOverlays(); nav.setWorkspaceOpen("Creator_Video"); },
+    designer: () => { nav.closeAll(); closeLocalOverlays(); nav.setWorkspaceOpen("Designer"); },
+    settings: () => { nav.setSettingsOpen(true); },
+    plugins: () => { setPluginSettingsOpen(true); },
+    analytics: () => { nav.setAnalyticsOpen(true); nav.setActiveNav("analytics"); },
+    exportImport: () => { nav.setExportImportOpen(true); },
+    profile: () => { setProfileOpen(p => !p); },
+    achievements: () => { setAchievementsOpen(true); },
+    support: () => { setSuporteOpen(true); },
+    shortcuts: () => { setShortcutsOpen(true); },
+    changelog: () => { setChangelogOpen(true); },
+  }), [nav, closeLocalOverlays]);
 
   const handleSlashCommand = useCallback((cmd: string) => {
     if (cmd === "vozes") nav.setVoicesOpen(true);
@@ -375,18 +476,11 @@ export function HomeScreen() {
       </a>
 
       {!focusMode && (
-        <Sidebar
-          activeNav={nav.activeNav}
-          onNavClick={nav.handleNavClick}
-          onSettingsClick={() => nav.setSettingsOpen(p => !p)}
-          onHistoryClick={() => { nav.setHistoryOpen(p => !p); nav.setAgentsOpen(false); }}
-          onPluginsClick={() => setPluginSettingsOpen(p => !p)}
-          onProfileClick={() => setProfileOpen(p => !p)}
-          onAchievementsClick={() => setAchievementsOpen(p => !p)}
-          onActivityClick={() => { nav.setActivityOpen(p => !p); nav.setActiveNav("activity"); }}
-          onEmailClick={() => { nav.setEmailOpen(p => !p); nav.setActiveNav("email"); }}
-          onCalendarClick={() => { nav.setCalendarOpen(p => !p); nav.setActiveNav("calendar"); }}
-          badgeCounts={{ activity: activityBadge }}
+        <SpaceRail
+          activeSpace={activeSpace}
+          activityBadge={activityBadge}
+          onSpace={handleSpace}
+          actions={railActions}
         />
       )}
 
@@ -395,7 +489,7 @@ export function HomeScreen() {
         <AnimatePresence>
           {nav.agentsOpen && (
             loadingAgents ? (
-              <div className="fixed inset-y-0 left-16 w-80 z-30 p-4 space-y-4 overflow-y-auto" style={{ background: "var(--background)", borderRight: "1px solid var(--border)" }}>
+              <div className="fixed inset-y-0 left-14 w-80 z-30 p-4 space-y-4 overflow-y-auto" style={{ background: "var(--background)", borderRight: "1px solid var(--border)" }}>
                 <div className="space-y-3">
                   {Array.from({ length: 6 }).map((_, i) => <AgentCardSkeleton key={i} />)}
                 </div>
@@ -420,6 +514,7 @@ export function HomeScreen() {
           {nav.projectsOpen && <ProjectsPanel onClose={() => { nav.setProjectsOpen(false); nav.setActiveNav("home"); }} />}
           {nav.filesOpen && <FilesPanel onClose={() => { nav.setFilesOpen(false); nav.setActiveNav("home"); }} />}
           {nav.memoryOpen && <MemoryPanel onClose={() => { nav.setMemoryOpen(false); nav.setActiveNav("home"); }} />}
+          {nav.neuralOpen && <NeuralPanel onClose={() => { nav.setNeuralOpen(false); nav.setActiveNav("home"); }} />}
           {nav.skillsOpen && <SkillsPanel onClose={() => { nav.setSkillsOpen(false); nav.setActiveNav("home"); }} />}
           {nav.plannerOpen && <PlannerPanel onClose={() => { nav.setPlannerOpen(false); nav.setActiveNav("home"); }} />}
           {nav.agentHubOpen && <AgentHubPanel onClose={() => { nav.setAgentHubOpen(false); nav.setActiveNav("home"); }} />}
@@ -445,7 +540,7 @@ export function HomeScreen() {
       {anyPanelOpen && <div className="fixed inset-0 z-20" onClick={() => { nav.closeAll(); nav.setActiveNav("home"); setPluginSettingsOpen(false); setProfileOpen(false); setAchievementsOpen(false); setTelegramOpen(false); setSuporteOpen(false); setShortcutsOpen(false); setChangelogOpen(false); }} />}
 
       {/* ── Main content ──────────────────────────────────────────── */}
-      <div id="main-content" className={`flex-1 flex flex-col ${focusMode ? '' : 'ml-16'} overflow-hidden relative`}>
+      <div id="main-content" className={`flex-1 flex flex-col ${focusMode ? '' : 'ml-14'} overflow-hidden relative`}>
         {focusMode ? (
           <div className="flex items-center justify-end px-6 py-3 border-b" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
             <button
@@ -491,68 +586,96 @@ export function HomeScreen() {
             partialTranscript={voicePartial}
             onClose={() => { nav.setWorkspaceOpen(null); nav.setActiveNav("home"); }}
           />
+        ) : activeSpace === "world" ? (
+          <WorldScreen />
+        ) : nav.activeNav === "workspaces" ? (
+          <Suspense fallback={null}>
+            <WorkspaceLauncher onOpenWorkspace={(pluginId) => nav.setWorkspaceOpen(pluginId)} />
+          </Suspense>
         ) : (
-          <div className="flex-1 flex flex-col overflow-hidden pb-12">
-            <AnimatePresence mode="wait">
-              {!chat.chatMode ? (
-                <motion.div className="flex-1 flex items-center justify-center relative overflow-hidden" animate={konamiSpinning ? { rotate: 360, scale: [1, 1.15, 1] } : {}} transition={{ duration: 0.8 }}>
-                  <div
-                    className="absolute pointer-events-none"
-                    style={{
-                      width: 720,
-                      height: 720,
-                      borderRadius: "50%",
-                      background: "radial-gradient(circle, rgba(195,0,47,0.12) 0%, rgba(195,0,47,0.05) 40%, transparent 70%)",
-                      boxShadow: "0 0 120px rgba(195,0,47,0.06)",
-                    }}
+          <div className={`flex-1 flex overflow-hidden ${chat.chatMode ? "flex-col pb-12" : ""}`}>
+            <div className={`flex-1 min-w-0 flex flex-col overflow-hidden ${chat.chatMode ? "" : "pb-12"}`}>
+              <AnimatePresence mode="wait">
+                {!chat.chatMode ? (
+                  <motion.div className="flex-1 flex flex-col items-center justify-center relative overflow-hidden px-6" animate={konamiSpinning ? { rotate: 360, scale: [1, 1.15, 1] } : {}} transition={{ duration: 0.8 }}>
+                    <div
+                      className="absolute pointer-events-none"
+                      style={{
+                        width: 720,
+                        height: 720,
+                        borderRadius: "50%",
+                        background: "radial-gradient(circle, rgba(195,0,47,0.10) 0%, rgba(195,0,47,0.04) 40%, transparent 70%)",
+                      }}
+                    />
+                    <Suspense fallback={null}>
+                      <HomeHampton state={hamptonState} image="./LogoIA.png" size={230} />
+                    </Suspense>
+                    <motion.p
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                      className="mt-5 text-[19px] tracking-tight text-center relative"
+                      style={{ fontFamily: "'Sora', sans-serif", color: "var(--foreground)" }}
+                    >
+                      {greeting}
+                    </motion.p>
+                  </motion.div>
+                ) : (
+                  <ChatView
+                    messages={chat.messages}
+                    hamptonState={hamptonState}
+                    isStreaming={isStreaming}
+                    isLoadingMessages={chat.isLoadingMessages}
+                    activeAgentName={currentAgent?.persona || chat.activeAgent}
+                    onStopStreaming={chat.stopStreaming}
+                    onEditMessage={chat.editMessage}
+                    onRegenerate={chat.regenerate}
+                    onStartNewChat={startNewChat}
+                    speechEnabled={tts.speechEnabled}
+                    hasVoiceConfigured={tts.hasVoiceConfigured}
+                    onToggleSpeech={() => tts.setSpeechEnabled(p => !p)}
                   />
-                  <Suspense fallback={null}>
-                    <HomeHampton state={hamptonState} image="./LogoIA.png" size={230} />
-                  </Suspense>
-                </motion.div>
-              ) : (
-                <ChatView
-                  messages={chat.messages}
-                  hamptonState={hamptonState}
-                  isStreaming={isStreaming}
-                  isLoadingMessages={chat.isLoadingMessages}
-                  activeAgentName={currentAgent?.persona || chat.activeAgent}
-                  onStopStreaming={chat.stopStreaming}
-                  onEditMessage={chat.editMessage}
-                  onRegenerate={chat.regenerate}
-                  onStartNewChat={startNewChat}
-                  speechEnabled={tts.speechEnabled}
-                  hasVoiceConfigured={tts.hasVoiceConfigured}
-                  onToggleSpeech={() => tts.setSpeechEnabled(p => !p)}
-                />
-              )}
-            </AnimatePresence>
+                )}
+              </AnimatePresence>
 
-            <VoiceLevelBar
-              volume={voiceVolume}
-              active={hamptonState === "listening" || hamptonState === "thinking"}
-              state={hamptonState}
-            />
-            <ChatInput
-              onSend={handleSendWithEggs}
-              onMicClick={voice.toggleRecording}
-              listening={hamptonState === "listening"}
-              volume={voiceVolume}
-              partialTranscript={voicePartial}
-              onSlashCommand={handleSlashCommand}
-            />
+              <VoiceLevelBar
+                volume={voiceVolume}
+                active={hamptonState === "listening" || hamptonState === "thinking"}
+                state={hamptonState}
+              />
+              <ChatInput
+                onSend={handleSendWithEggs}
+                onMicClick={voice.toggleRecording}
+                listening={hamptonState === "listening"}
+                volume={voiceVolume}
+                partialTranscript={voicePartial}
+                onSlashCommand={handleSlashCommand}
+              />
+            </div>
+            {!chat.chatMode && !focusMode && (
+              <aside className="hidden md:flex w-[290px] shrink-0 flex-col border-l overflow-hidden" style={{ borderColor: "var(--border)" }}>
+                <PulsePanel agentCount={agents.length} onOpenAgents={() => { nav.setAgentsOpen(true); nav.setActiveNav("agents"); }} />
+              </aside>
+            )}
           </div>
         )}
       </div>
 
       <Suspense fallback={null}>
         <CommandPalette open={commandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} onNavigate={(id) => {
-          if (id === "home") nav.setActiveNav("home");
+          if (id === "home") { nav.closeAll(); nav.setActiveNav("home"); }
+          else if (id === "world") { nav.closeAll(); nav.setActiveNav("world"); }
           else if (id === "agents") nav.setAgentsOpen(true);
           else if (id === "projects") nav.setProjectsOpen(true);
           else if (id === "settings") nav.setSettingsOpen(true);
           else if (id === "history") nav.setHistoryOpen(true);
-        }} onAgentSelect={(name) => handleSelectAgent(name)} onNewChat={startNewChat} />
+          else if (id === "memory") { nav.setMemoryOpen(true); nav.setActiveNav("memory"); }
+          else if (id === "neural") { nav.setNeuralOpen(true); nav.setActiveNav("neural"); }
+          else if (id === "files") { nav.setFilesOpen(true); nav.setActiveNav("files"); }
+          else if (id === "email") { nav.setEmailOpen(true); nav.setActiveNav("email"); }
+          else if (id === "calendar") { nav.setCalendarOpen(true); nav.setActiveNav("calendar"); }
+          else if (id === "activity") { nav.setActivityOpen(true); nav.setActiveNav("activity"); }
+        }} onOpenWorkspace={(wsId) => { nav.closeAll(); closeLocalOverlays(); nav.setWorkspaceOpen(wsId); }} onAgentSelect={(name) => handleSelectAgent(name)} onNewChat={startNewChat} />
       </Suspense>
 
       {nav.exportImportOpen && <div className="fixed inset-0 z-20" onClick={() => nav.setExportImportOpen(false)} />}
@@ -560,10 +683,6 @@ export function HomeScreen() {
       <Suspense fallback={null}>
         <PWAUpdatePrompt />
       </Suspense>
-
-      {/* CRT scan line + vignette overlays */}
-      <div className="fixed inset-0 pointer-events-none z-[9990]" style={{ background: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.025) 2px, rgba(0,0,0,0.025) 4px)" }} />
-      <div className="fixed inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at 55% 45%, rgba(192,0,24,0.038) 0%, transparent 55%)" }} />
     </div>
   );
 }

@@ -40,10 +40,12 @@ const plannerEngineModule = require("./planner-engine.cjs");
 const plannerSupabase = require("./planner-supabase.cjs");
 const memorySupabase = require("./memory-supabase.cjs");
 const { createAgentHub } = require("./agent-hub.cjs");
+const { createEventBus } = require("./event-bus.cjs");
 const { createAnalytics } = require("./analytics.cjs");
 const secretStore = require("./secret-store.cjs");
 const { initializeShield: initShield, shutdownShield } = require("./shield.cjs");
 const { initializeOptimizer: initOptimizer } = require("./optimizer.cjs");
+const { initializeSentinela: initSentinela } = require("./sentinela.cjs");
 const agentProcessor = require("./agent-processor.cjs");
 const { responseCache } = require("./response-cache.cjs");
 const { initAutoUpdater } = require("./auto-updater.cjs");
@@ -129,7 +131,7 @@ if (isDev) {
 
 const DEFAULT_AI_SETTINGS = {
   provider: "groq",
-  model: "llama-3.3-70b-versatile",
+  model: "openai/gpt-oss-120b",
   systemPrompt:
     "You are Hampton, the central autonomous AI agent of Orun OS — a personal AI operating system. " +
     "You are proactive, resourceful, and take initiative to help the user accomplish their goals. " +
@@ -149,23 +151,24 @@ const DEFAULT_AI_SETTINGS = {
 // removido. opencodezen "big-pickle" re-adicionado (free). Modelos free
 // revalidados por provider (openrouter :free, groq, nvidia, ollama_cloud).
 const AGENT_RECOMMENDED_MODELS = {
-  Hampton:    { provider: "groq",        model: "llama-3.3-70b-versatile" },
-  Developer:  { provider: "groq",        model: "llama-3.3-70b-versatile" },
+  Hampton:    { provider: "groq",        model: "openai/gpt-oss-120b" },
+  Developer:  { provider: "groq",        model: "openai/gpt-oss-120b" },
   Designer:   { provider: "opencodezen", model: "big-pickle" },
-  Creator:    { provider: "groq",        model: "llama-3.3-70b-versatile" },
-  Health:     { provider: "groq",        model: "llama-3.3-70b-versatile" },
-  Finance:    { provider: "groq",        model: "llama-3.3-70b-versatile" },
-  Teacher:    { provider: "groq",        model: "llama-3.3-70b-versatile" },
+  Creator:    { provider: "groq",        model: "openai/gpt-oss-120b" },
+  Health:     { provider: "groq",        model: "openai/gpt-oss-120b" },
+  Finance:    { provider: "groq",        model: "openai/gpt-oss-120b" },
+  Teacher:    { provider: "groq",        model: "openai/gpt-oss-120b" },
   Marketing:  { provider: "opencodezen", model: "big-pickle" },
-  "Personal Assistant": { provider: "groq", model: "llama-3.3-70b-versatile" },
-  "Home IA":       { provider: "groq",  model: "llama-3.3-70b-versatile" },
-  "Cyber Security": { provider: "groq", model: "llama-3.3-70b-versatile" },
-  Automation: { provider: "groq",        model: "llama-3.3-70b-versatile" },
-  Automotive: { provider: "groq",        model: "llama-3.3-70b-versatile" },
-  Juridico:   { provider: "groq",        model: "llama-3.3-70b-versatile" },
-  System:     { provider: "groq",        model: "llama-3.3-70b-versatile" },
-  "CaOS Commander": { provider: "groq",        model: "llama-3.3-70b-versatile" },
-  Carreiras: { provider: "groq",                model: "llama-3.3-70b-versatile" },
+  "Personal Assistant": { provider: "groq", model: "openai/gpt-oss-120b" },
+  "Home IA":       { provider: "groq",  model: "openai/gpt-oss-120b" },
+  "Cyber Security": { provider: "groq", model: "openai/gpt-oss-120b" },
+  Automation: { provider: "groq",        model: "openai/gpt-oss-120b" },
+  Automotive: { provider: "groq",        model: "openai/gpt-oss-120b" },
+  Juridico:   { provider: "groq",        model: "openai/gpt-oss-120b" },
+  System:     { provider: "groq",        model: "openai/gpt-oss-120b" },
+  "CaOS Commander": { provider: "groq",        model: "openai/gpt-oss-120b" },
+  Carreiras: { provider: "groq",                model: "openai/gpt-oss-120b" },
+  Neural:    { provider: "groq",                model: "openai/gpt-oss-120b" },
 };
 
 // ── Agent Tool Permissions ──────────────────────────────────────────────
@@ -177,8 +180,10 @@ const AGENT_TOOL_PERMISSIONS = {
     "read_file", "write_file", "edit_file", "list_files", "search_files",
     "search_content", "run_command", "web_fetch", "web_search",
     "git_status", "git_log", "git_diff", "git_stash", "git_remote", "gh_pr",
+    "git_commit", "git_branch", "git_checkout",
     "semgrep_scan", "library_docs",
-    "run_tests", "code_review",
+    "run_tests", "code_review", "generate_tests",
+    "refactor_rename", "refactor_move", "refactor_extract",
     "pdf_inspect",
     "memory_save", "memory_search", "rag_search", "trigger_agent", "open_workspace", "workspace_action",
   ],
@@ -186,6 +191,7 @@ const AGENT_TOOL_PERMISSIONS = {
     "read_file", "write_file", "list_files", "search_files",
     "generate_image", "generate_video", "web_fetch", "web_search",
     "memory_save", "memory_search", "rag_search", "trigger_agent", "open_workspace", "workspace_action",
+    "design_list_projects", "design_export_file",
   ],
   Health: [
     "read_file", "write_file", "list_files",
@@ -196,6 +202,7 @@ const AGENT_TOOL_PERMISSIONS = {
     "read_file", "write_file", "list_files",
     "memory_save", "memory_search", "rag_search",
     "notify", "schedule_task", "trigger_agent", "web_search", "get_weather", "open_workspace", "workspace_action",
+    "finance_list_accounts", "finance_create_transaction", "finance_budget_month",
   ],
   Teacher: [
     "read_file", "write_file", "list_files",
@@ -207,12 +214,16 @@ const AGENT_TOOL_PERMISSIONS = {
     "generate_image", "generate_video", "publish_to_social",
     "memory_save", "memory_search", "rag_search",
     "notify", "schedule_task", "trigger_agent", "web_search", "get_weather", "open_workspace", "workspace_action",
+    "social_schedule_post", "social_list_posts",
+    "postiz_list_channels", "postiz_list_posts", "postiz_create_post", "postiz_find_slot", "postiz_health",
   ],
   "Personal Assistant": [
     "read_file", "write_file", "list_files",
     "memory_save", "memory_search", "rag_search",
     "notify", "schedule_task", "web_search", "web_fetch", "get_weather",
     "trigger_agent", "open_workspace", "workspace_action",
+    "vault_save", "vault_search",
+    "photo_search",
   ],
   Automation: [
     "read_file", "write_file", "edit_file", "list_files", "search_files",
@@ -237,17 +248,20 @@ const AGENT_TOOL_PERMISSIONS = {
     "clipboard_read", "clipboard_write", "screenshot",
     "open_workspace", "workspace_action",
     "spotify_play", "spotify_search", "spotify_get_playlists", "spotify_get_now_playing",
+    "telemetry_track", "telemetry_health",
   ],
   "Home IA": [
     "read_file", "list_files",
     "memory_save", "memory_search", "rag_search",
     "notify", "schedule_task", "trigger_agent", "web_search", "get_weather",
     "open_workspace", "workspace_action",
+    "vault_save", "vault_search",
   ],
   "Cyber Security": [
     "read_file", "write_file", "list_files", "search_files",
     "search_content", "run_command", "web_fetch", "web_search",
     "semgrep_scan",
+    "secret_scan", "secret_allowlist_add",
     "memory_save", "memory_search", "rag_search",
     "notify", "schedule_task", "trigger_agent",
     "open_workspace", "workspace_action",
@@ -264,6 +278,12 @@ const AGENT_TOOL_PERMISSIONS = {
     "career_prepare_application", "career_stats",
     "web_fetch", "web_search",
     "memory_save", "memory_search", "rag_search", "notify", "open_workspace", "workspace_action",
+  ],
+  Neural: [
+    "neural_save_note", "neural_search_notes", "neural_list_notes",
+    "neural_get_note", "neural_backlinks_graph",
+    "web_search", "web_fetch",
+    "memory_save", "memory_search", "rag_search", "notify",
   ],
   Hampton: null, // null = all tools (default agent)
 };
@@ -288,6 +308,7 @@ let memoryEngine = null;
 let knowledgeEngine = null;
 let plannerEngine = null;
 let agentHub = null;
+let eventBus = null;
 let analytics = null;
 let quickChatWindow = null;
 let tray = null;
@@ -532,6 +553,38 @@ function createTray() {
 
 function getGlobalAISettings() {
   return { ...DEFAULT_AI_SETTINGS, ...db.getSetting("ai", {}) };
+}
+
+// Modelos Groq desligados em 16/08/2026 (console.groq.com/docs/deprecations).
+// Migra settings salvas uma �nica vez; idempotente.
+const DEPRECATED_MODEL_MAP = {
+  "llama-3.3-70b-versatile": "openai/gpt-oss-120b",
+  "llama-3.1-8b-instant": "openai/gpt-oss-20b",
+  "allam-2-7b": "openai/gpt-oss-20b",
+};
+
+function migrateDeprecatedModels() {
+  try {
+    const ai = db.getSetting("ai", {});
+    if (ai && DEPRECATED_MODEL_MAP[ai.model]) {
+      db.setSetting("ai", { ...ai, model: DEPRECATED_MODEL_MAP[ai.model] });
+      log.info(`[migration] modelo deprecated migrado: ${ai.model} → ${DEPRECATED_MODEL_MAP[ai.model]}`);
+    }
+    const overrides = db.getSetting("agentModels", {});
+    let changed = false;
+    for (const [agentId, cfg] of Object.entries(overrides)) {
+      if (cfg && cfg.model && DEPRECATED_MODEL_MAP[cfg.model]) {
+        overrides[agentId] = { ...cfg, model: DEPRECATED_MODEL_MAP[cfg.model] };
+        changed = true;
+      }
+    }
+    if (changed) {
+      db.setSetting("agentModels", overrides);
+      log.info("[migration] agentModels com modelos deprecated migrados");
+    }
+  } catch (e) {
+    log.warn("[migration] migrateDeprecatedModels falhou:", e.message);
+  }
 }
 
 function resolveAISettings(agentId) {
@@ -865,6 +918,7 @@ function registerIpcHandlers() {
   Object.defineProperty(ctx, "knowledgeEngine", { get: () => knowledgeEngine, enumerable: true });
   Object.defineProperty(ctx, "plannerEngine", { get: () => plannerEngine, enumerable: true });
   Object.defineProperty(ctx, "agentHub", { get: () => agentHub, enumerable: true });
+  Object.defineProperty(ctx, "eventBus", { get: () => eventBus, enumerable: true });
   Object.defineProperty(ctx, "analytics", { get: () => analytics, enumerable: true });
 
   require("./ipc/ai-handlers.cjs").register(ipcMain, ctx);
@@ -875,6 +929,7 @@ function registerIpcHandlers() {
   require("./ipc/knowledge-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/planner-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/agent-hub-handlers.cjs").register(ipcMain, ctx);
+  require("./ipc/event-bus-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/analytics-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/memory-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/auth-handlers.cjs").register(ipcMain, ctx);
@@ -889,9 +944,42 @@ function registerIpcHandlers() {
   require("./ipc/group-feed-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/career-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/ai-router-handlers.cjs").register(ipcMain, ctx);
+  require("./ipc/world-handlers.cjs").register(ipcMain, ctx);
+  require("./ipc/neural-handlers.cjs").register(ipcMain, ctx);
+
+  // Curador automático do Neural (Lima Barreto): conversa ociosa → nota(s).
+  const neuralAutoCapture = require("./neural-autocapture.cjs");
+  let neuralAutoCapturer = null;
+  const getNeuralAutoCapturer = () => {
+    if (!neuralAutoCapturer) {
+      neuralAutoCapturer = neuralAutoCapture.createAutoCapturer({
+        routeChat: aiRouter.routeChat,
+        getSettings: () => resolveAISettings("Neural"),
+        readApiKey: (provider) => secretStore.readSecretStore()[provider],
+        saveNote: (note) => knowledgeEngine.save({ kind: "note", title: note.title, content: note.content, tags: note.tags, date: new Date().toISOString().slice(0, 10) }),
+        listNoteTitles: async () => knowledgeEngine.load().filter((r) => (r.kind || "note") === "note").map((r) => r.title),
+        log: (...a) => log.info("[neural]", ...a),
+      });
+    }
+    return neuralAutoCapturer;
+  };
+  ipcMain.handle("neural:autoCapture", async (_event, payload) => {
+    if (!knowledgeEngine) return { ok: false, error: "unavailable" };
+    return getNeuralAutoCapturer().handle(payload || {});
+  });
+
+  // Integration handlers (telemetry, shield-secrets, finance, social, design, vault, photos)
+  try { require("./ipc/telemetry-handlers.cjs").register(ipcMain, ctx); } catch {}
+  try { require("./ipc/shield-secrets-handlers.cjs").register(ipcMain, ctx); } catch {}
+  try { require("./ipc/finance-handlers.cjs").register(ipcMain, ctx); } catch {}
+  try { require("./ipc/social-handlers.cjs").register(ipcMain, ctx); } catch {}
+  try { require("./ipc/design-sync-handlers.cjs").register(ipcMain, ctx); } catch {}
+  try { require("./ipc/memory-vault-handlers.cjs").register(ipcMain, ctx); } catch {}
+  try { require("./ipc/photos-handlers.cjs").register(ipcMain, ctx); } catch {}
+  try { require("./ipc/postiz-handlers.cjs").register(ipcMain, ctx); } catch {}
 
   // Auto-start HTTP server for dashboard (lazy init).
-  try { require("./ai-router-service.cjs").getAiRouterService(app, ctx.secretStore); } catch (_) {}
+  try { require("./ai-router-service.cjs").getAiRouterService(app, ctx.secretStore); } catch (e) { console.error("[main] ai-router-service init FAILED:", e); }
 
   // File system handlers (evidence management)
   registerFileSystemHandlers(ipcMain, ctx);
@@ -1240,6 +1328,7 @@ app.whenReady().then(() => {
   logger.db.info("Database initialized");
   // Store app working directory so DeveloperIDE can find project files
   db.setSetting("appPath", process.cwd());
+  migrateDeprecatedModels();
   registerIpcHandlers();
   agentProcessor.init({ db, agentPrompts, n8n, syncEnqueue });
   const identityResolver = require("./identity-resolver.cjs");
@@ -1249,7 +1338,7 @@ app.whenReady().then(() => {
   } catch (err) {
     log.warn("[identity] init failed:", err.message);
   }
-  toolsModule.init(app.getPath("userData"), { db, socialMedia, image3d, videoGenerator, readSecretStore: secretStore.readSecretStore, discordBot, log: logger.tools });
+  toolsModule.init(app.getPath("userData"), { db, socialMedia, image3d, videoGenerator, readSecretStore: secretStore.readSecretStore, discordBot, getKnowledgeEngine: () => knowledgeEngine, log: logger.tools });
   logger.tools.info("Tools module initialized");
   toolsModule.setAllowedRoots([app.getPath("userData"), app.getPath("documents"), app.getPath("desktop"), app.getPath("home")]);
   rag.init(app.getPath("userData"), db.getSetting("ollama", {}).baseUrl);
@@ -1279,11 +1368,16 @@ app.whenReady().then(() => {
     executeTask: plannerExecute,
     logger,
   });
+  eventBus = createEventBus({
+    maxHistory: 200,
+    logger,
+  });
   agentHub = createAgentHub({
     registry: buildAgentRegistry(),
     route: hubRoute,
     execute: hubExecute,
     escalate: hubEscalate,
+    eventBus,
   });
   analytics = createAnalytics({
     db: db.getDb(),
@@ -1294,6 +1388,25 @@ app.whenReady().then(() => {
     getKnowledge: () => knowledgeEngine,
     getSkills: () => (skillManager ? skillManager.list() : []),
   });
+
+  // Event Bus → OS notifications for critical events
+  if (eventBus) {
+    let lastOsNotifyTime = 0;
+    const CRITICAL_TOPICS = ["shield:threat:detected", "hub:delegate:escalated", "planner:task:failed"];
+    eventBus.subscribe(CRITICAL_TOPICS, (evt) => {
+      const now = Date.now();
+      if (now - lastOsNotifyTime < 5000) return; // Max 1 OS notification per 5s
+      lastOsNotifyTime = now;
+      const title = evt.topic === "shield:threat:detected" ? "🛡️ Ameaça Detectada"
+        : evt.topic === "hub:delegate:escalated" ? "⚠️ Escalação de Agente"
+        : "❌ Tarefa Falhou";
+      const body = typeof evt.data?.title === "string" ? evt.data.title
+        : typeof evt.data?.error === "string" ? evt.data.error
+        : typeof evt.data?.goal === "string" ? evt.data.goal
+        : evt.topic;
+      try { new Notification({ title, body, silent: false }).show(); } catch {}
+    });
+  }
   waAutomation.loadKeywordRules(app.getPath("userData"));
   // Restore N8N webhook URL from settings
   const waCfg = db.getSetting("whatsapp", {});
@@ -1307,9 +1420,116 @@ app.whenReady().then(() => {
   try {
     initShield(mainWindow);
     initOptimizer("shield-quarantine");
-    log.info("[shield] Orun Shield + Optimizer inicializados");
+    initSentinela();
+    log.info("[shield] Orun Shield + Optimizer + Sentinela inicializados");
   } catch (err) {
     log.warn("[shield] init falhou (opcional):", err.message);
+  }
+
+  // --- Integration modules (lazy init from settings) ---
+  try {
+    const intgSettings = db.getSetting("integrations", {});
+    
+    // Telemetry (PostHog)
+    if (intgSettings.telemetry?.host && intgSettings.telemetry?.apiKey) {
+      try {
+        const { PostHogTelemetryStore } = require("@orun/telemetry-node");
+        const { TelemetryClient } = require("@orun/telemetry-core");
+        const store = new PostHogTelemetryStore({ host: intgSettings.telemetry.host, apiKey: intgSettings.telemetry.apiKey, flushIntervalMs: 30000 });
+        const telemetry = new TelemetryClient({ store, platform: "desktop", appVersion: app.getVersion(), enabled: intgSettings.telemetry.enabled !== false });
+        Object.defineProperty(ctx, "telemetry", { get: () => telemetry, enumerable: true });
+        if (intgSettings.telemetry.personalApiKey && intgSettings.telemetry.projectId) {
+          const { PostHogMetricsReader } = require("@orun/telemetry-node");
+          Object.defineProperty(ctx, "telemetryReader", { get: () => new PostHogMetricsReader({ host: intgSettings.telemetry.host, personalApiKey: intgSettings.telemetry.personalApiKey, projectId: intgSettings.telemetry.projectId }), enumerable: true });
+        }
+        log.info("[integrations] telemetry (PostHog) initialized");
+      } catch (e) { log.warn("[integrations] telemetry init failed:", e.message); }
+    }
+
+    // Shield Secrets (Gitleaks)
+    try {
+      const { GitleaksScannerAdapter, FileAllowlistStore } = require("@orun/shield-secrets-node");
+      const scanner = new GitleaksScannerAdapter();
+      Object.defineProperty(ctx, "secretScanner", { get: () => scanner, enumerable: true });
+      const allowlistPath = path.join(app.getPath("userData"), "shields", "secrets-allowlist.json");
+      const allowlist = new FileAllowlistStore(allowlistPath);
+      Object.defineProperty(ctx, "secretAllowlist", { get: () => allowlist, enumerable: true });
+      log.info("[integrations] shield-secrets (Gitleaks) initialized");
+    } catch (e) { log.warn("[integrations] shield-secrets init failed:", e.message); }
+
+    // Finance (provider-agnostic: manual | actual-budget | pluggy)
+    const finCfg = intgSettings.finance || {};
+    const provider = finCfg.provider || (finCfg.dataDir ? "actual-budget" : "manual");
+    if (provider !== "manual" && finCfg.enabled !== false) {
+      try {
+        const { createFinanceStore } = require("@orun/finance-node");
+        const itemIds = Array.isArray(finCfg.itemIds)
+          ? finCfg.itemIds
+          : String(finCfg.itemIds || "").split(",").map((s) => s.trim()).filter(Boolean);
+        const storeConfig =
+          provider === "pluggy"
+            ? { provider: "pluggy", pluggy: { clientId: finCfg.clientId, clientSecret: finCfg.clientSecret, itemIds } }
+            : { provider: "actual-budget", actual: { dataDir: finCfg.dataDir, serverUrl: finCfg.serverUrl, serverPassword: finCfg.serverPassword, budgetSyncId: finCfg.budgetSyncId || "default" } };
+        const finance = createFinanceStore(storeConfig);
+        if (finance) {
+          Object.defineProperty(ctx, "financeStore", { get: () => finance, enumerable: true });
+          log.info(`[integrations] finance (${provider}) initialized`);
+        } else {
+          log.warn(`[integrations] finance provider '${provider}' produced no store`);
+        }
+      } catch (e) { log.warn("[integrations] finance init failed:", e.message); }
+    }
+
+    // Social (Postiz) — local client
+    try {
+      const postiz = require("./postiz.cjs");
+      const postizCfg = intgSettings.social || {};
+      postiz.init({
+        host: postizCfg.baseUrl || "http://localhost:5000",
+        email: postizCfg.email || "caique@orun.local",
+        password: postizCfg.password || "OrunPostiz2026!Secure",
+        log: logger,
+      });
+      Object.defineProperty(ctx, "postiz", { get: () => postiz, enumerable: true });
+      Object.defineProperty(ctx, "socialScheduler", { get: () => postiz, enumerable: true });
+      log.info("[integrations] postiz initialized (localhost)");
+    } catch (e) { log.warn("[integrations] postiz init failed:", e.message); }
+
+    // Social (Postiz) — legacy adapter (disabled)
+    // if (intgSettings.social?.baseUrl && intgSettings.social?.apiKey) { ... }
+
+    // Design Sync (Penpot)
+    const designCfg = intgSettings.designSync || intgSettings.design || {};
+    if (designCfg.baseUrl && designCfg.accessToken) {
+      try {
+        const { PenpotFileStoreAdapter } = require("@orun/design-sync-node");
+        const design = new PenpotFileStoreAdapter({ baseUrl: designCfg.baseUrl, accessToken: designCfg.accessToken });
+        Object.defineProperty(ctx, "designStore", { get: () => design, enumerable: true });
+        log.info("[integrations] design-sync (Penpot) initialized");
+      } catch (e) { log.warn("[integrations] design-sync init failed:", e.message); }
+    }
+
+    // Memory Vault (Karakeep)
+    if (intgSettings.memoryVault?.baseUrl && intgSettings.memoryVault?.apiKey) {
+      try {
+        const { KarakeepMemoryVaultAdapter } = require("@orun/memory-vault-node");
+        const vault = new KarakeepMemoryVaultAdapter({ baseUrl: intgSettings.memoryVault.baseUrl, apiKey: intgSettings.memoryVault.apiKey });
+        Object.defineProperty(ctx, "memoryVault", { get: () => vault, enumerable: true });
+        log.info("[integrations] memory-vault (Karakeep) initialized");
+      } catch (e) { log.warn("[integrations] memory-vault init failed:", e.message); }
+    }
+
+    // Photos (Immich)
+    if (intgSettings.photos?.baseUrl && intgSettings.photos?.apiKey) {
+      try {
+        const { ImmichPhotoLibraryAdapter } = require("@orun/photos-node");
+        const photos = new ImmichPhotoLibraryAdapter({ baseUrl: intgSettings.photos.baseUrl, apiKey: intgSettings.photos.apiKey });
+        Object.defineProperty(ctx, "photoLibrary", { get: () => photos, enumerable: true });
+        log.info("[integrations] photos (Immich) initialized");
+      } catch (e) { log.warn("[integrations] photos init failed:", e.message); }
+    }
+  } catch (err) {
+    log.warn("[integrations] module init error:", err.message);
   }
   providerHealth.startPeriodic((providerName) => secretStore.readSecretStore()[providerName]);
 
@@ -1349,11 +1569,22 @@ app.whenReady().then(() => {
       log.info("[ecosystem] heartbeat de dispositivo iniciado (30s)");
       // Inicia sync de settings entre devices
       try {
-        const settingsSyncEngine = supabaseSync.initSettingsSync();
+        const settingsSyncEngine = supabaseSync.initSettingsSync(auth);
         if (settingsSyncEngine) log.info("[ecosystem] settings sync engine iniciado");
       } catch (err) {
         log.warn("[ecosystem] settings sync init falhou:", err.message);
       }
+      // Reinit settings sync quando o user faz login (troca "local" pelo userId real)
+      auth.subscribe((state) => {
+        if (state?.status === "authenticated" && state?.user?.id) {
+          try {
+            supabaseSync.reinitSettingsSync(auth);
+            log.info("[ecosystem] settings sync reinicializado com userId:", state.user.id);
+          } catch (err) {
+            log.warn("[ecosystem] settings sync reinit falhou:", err.message);
+          }
+        }
+      });
     } else {
       log.info("[ecosystem] Orun-Core inativo — credenciais Supabase não configuradas (opcional)");
     }

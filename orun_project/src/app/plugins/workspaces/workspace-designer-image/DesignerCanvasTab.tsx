@@ -1,6 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from "react";
+import { Palette } from "lucide-react";
 import { useTranslation } from "../../../../i18n/I18nProvider";
 import { useDesignerStore, type CanvasElement } from "./designer-actions";
+import { P } from "../premium";
 import { WorkspaceButton } from "../../components/WorkspaceButton";
 import { WorkspaceCard } from "../../components/WorkspaceCard";
 import { WorkspaceEmptyState } from "../../components/WorkspaceEmptyState";
@@ -134,7 +136,7 @@ function LeftSidebar() {
   return (
     <div className="w-[200px] border-r flex flex-col shrink-0 ws-bg-card ws-bd-border">
       <div className="flex border-b ws-bd-border">
-        {tabs.map((t) => (<button key={t.id} onClick={() => setTab(t.id as any)} className="flex-1 py-2 text-[8px] tracking-wider uppercase transition-all ws-font-sora" style={{ color: tab === t.id ? "#FFFFFF" : "#A0A0A0", borderBottom: tab === t.id ? "2px solid #C3002F" : "2px solid transparent" }}>{t.label}</button>))}
+        {tabs.map((t) => (<button key={t.id} onClick={() => setTab(t.id as any)} className="flex-1 py-2 text-[8px] tracking-wider uppercase transition-all ws-font-sora" style={{ color: tab === t.id ? P.text : P.sub, borderBottom: tab === t.id ? "2px solid var(--primary)" : "2px solid transparent" }}>{t.label}</button>))}
       </div>
       <div className="flex-1 overflow-y-auto p-2 space-y-2 ws-scrollbar">
         {tab === "templates" && (
@@ -160,7 +162,7 @@ function LeftSidebar() {
           <div className="space-y-1.5">
             {[{label:"Heading",size:36,weight:"bold"},{label:"Subheading",size:24,weight:"600"},{label:"Body",size:14,weight:"normal"}].map((p) => (
               <button key={p.label} onClick={() => addEl({fill:"#374151",text:p.label,fontSize:p.size,bold:p.weight==="bold",width:200,height:p.size+10},"text")} className="w-full p-3 rounded-lg text-left ws-card-hover">
-                <div className="font-medium truncate" style={{ fontSize: `${Math.min(p.size/3,14)}px`, color: "#FFFFFF", fontWeight: p.weight }}>{p.label}</div>
+                <div className="font-medium truncate" style={{ fontSize: `${Math.min(p.size/3,14)}px`, color: P.text, fontWeight: p.weight }}>{p.label}</div>
                 <div className="text-[8px] mt-0.5 text-muted-foreground">{p.size}px</div>
               </button>
             ))}
@@ -178,7 +180,7 @@ function LeftSidebar() {
           <div>
             <div className="text-[9px] uppercase mb-2 text-muted-foreground ws-font-sora">Solid Colors</div>
             <div className="grid grid-cols-4 gap-1.5">
-              {solidColors.map((color) => (<button key={color} onClick={() => useDesignerStore.setState({ canvasBg: color })} className="aspect-square rounded-lg transition-all" style={{ background: color, border: `2px solid ${useDesignerStore.getState().canvasBg === color ? "#FFFFFF" : "transparent"}`, boxShadow: "0 1px 3px rgba(0,0,0,0.3)" }} />))}
+              {solidColors.map((color) => (<button key={color} onClick={() => useDesignerStore.setState({ canvasBg: color })} className="aspect-square rounded-lg transition-all" style={{ background: color, border: `2px solid ${useDesignerStore.getState().canvasBg === color ? P.text : "transparent"}`, boxShadow: "0 1px 3px rgba(0,0,0,0.3)" }} />))}
             </div>
           </div>
         )}
@@ -212,9 +214,9 @@ function RightPanel() {
           </div>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => update({ bold: !el.bold })} className="ws-btn-sm" style={{ background: el.bold ? "#C3002F" : "#141414" }}>B</button>
-          <button onClick={() => update({ italic: !el.italic })} className="ws-btn-sm italic" style={{ background: el.italic ? "#C3002F" : "#141414" }}>I</button>
-          <button onClick={() => update({ underline: !el.underline })} className="ws-btn-sm underline" style={{ background: el.underline ? "#C3002F" : "#141414" }}>U</button>
+          <button onClick={() => update({ bold: !el.bold })} className="ws-btn-sm" style={{ background: el.bold ? "var(--primary)" : "var(--surface-2)" }}>B</button>
+          <button onClick={() => update({ italic: !el.italic })} className="ws-btn-sm italic" style={{ background: el.italic ? "var(--primary)" : "var(--surface-2)" }}>I</button>
+          <button onClick={() => update({ underline: !el.underline })} className="ws-btn-sm underline" style={{ background: el.underline ? "var(--primary)" : "var(--surface-2)" }}>U</button>
         </div>
       </>)}
       <WorkspaceSection title="Fill">
@@ -320,7 +322,7 @@ function CanvasArea() {
     return (
       <div className="flex-1 flex items-center justify-center overflow-auto ws-bg-canvas">
         <WorkspaceCard className="text-center max-w-xs">
-          <WorkspaceEmptyState icon="🎨" message="Blank Canvas — click a shape or text preset in the left panel to start designing" />
+          <WorkspaceEmptyState icon={<Palette size={22} color="var(--primary)" strokeWidth={1.6} />} message="Blank Canvas — click a shape or text preset in the left panel to start designing" />
         </WorkspaceCard>
       </div>
     );
@@ -358,7 +360,7 @@ function BottomBar() {
       </div>
       <div className="flex items-center gap-3">
         <span>{canvasWidth} × {canvasHeight}</span>
-        <span style={{ color: "#C3002F" }}>Canvas</span>
+        <span style={{ color: "var(--primary)" }}>Canvas</span>
       </div>
     </div>
   );

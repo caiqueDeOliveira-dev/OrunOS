@@ -1,5 +1,8 @@
 // TimelineEditor — Bottom timeline (200px, full width)
+// NOTE: the timeline is a fixed-dark studio surface (like the preview viewport):
+// clip alpha-colors, white waveforms and the playhead glow are tuned for dark.
 import { useState, useCallback } from "react";
+import { Zap } from "lucide-react";
 import { useTranslation } from "../../../../i18n/I18nProvider";
 import { useVideoStore, pushUndo } from "./video-store";
 import { TRACK_CONFIG, MONO, SANS, ACCENT, btnBase, IEye, IEyeOff, ILock, IZoomIn, IZoomOut } from "./video-types";
@@ -94,8 +97,8 @@ export function TimelineEditor() {
                 )}
                 {track.controls === "solo-mute" && (
                   <>
-                    <button title={t("creator_video_solo")} onClick={() => useVideoStore.setState((s) => ({ trackSolo: { ...s.trackSolo, [idx]: !s.trackSolo[idx] } }))} style={{ ...btnBase, width: 16, height: 16, background: useVideoStore.getState().trackSolo[idx] ? "#FFB54730" : "transparent", border: useVideoStore.getState().trackSolo[idx] ? "1px solid #FFB547" : "1px solid transparent" }}>
-                      <span style={{ fontSize: 8, fontFamily: MONO, fontWeight: 700, color: useVideoStore.getState().trackSolo[idx] ? "#FFB547" : "#5C5C5C" }}>S</span>
+                    <button title={t("creator_video_solo")} onClick={() => useVideoStore.setState((s) => ({ trackSolo: { ...s.trackSolo, [idx]: !s.trackSolo[idx] } }))} style={{ ...btnBase, width: 16, height: 16, background: useVideoStore.getState().trackSolo[idx] ? "rgba(245,158,11,0.19)" : "transparent", border: useVideoStore.getState().trackSolo[idx] ? "1px solid #F59E0B" : "1px solid transparent" }}>
+                      <span style={{ fontSize: 8, fontFamily: MONO, fontWeight: 700, color: useVideoStore.getState().trackSolo[idx] ? "#F59E0B" : "#5C5C5C" }}>S</span>
                     </button>
                     <button title={t("creator_video_mute")} onClick={() => useVideoStore.setState((s) => ({ trackMuted: { ...s.trackMuted, [idx]: !s.trackMuted[idx] } }))} style={{ ...btnBase, width: 16, height: 16, background: useVideoStore.getState().trackMuted[idx] ? "#C3002F30" : "transparent", border: useVideoStore.getState().trackMuted[idx] ? "1px solid #C3002F" : "1px solid transparent" }}>
                       <span style={{ fontSize: 8, fontFamily: MONO, fontWeight: 700, color: useVideoStore.getState().trackMuted[idx] ? "#C3002F" : "#5C5C5C" }}>M</span>
@@ -113,12 +116,12 @@ export function TimelineEditor() {
 
             {/* Snap lines */}
             {snapEnabled && snapPoints.map((sp) => (
-              <div key={`snap-${sp}`} className="absolute top-0 bottom-0 pointer-events-none" style={{ left: sp * FRAME_W, width: 1, background: "rgba(255,181,71,0.3)", zIndex: 15 }} />
+              <div key={`snap-${sp}`} className="absolute top-0 bottom-0 pointer-events-none" style={{ left: sp * FRAME_W, width: 1, background: "rgba(245,158,11,0.3)", zIndex: 15 }} />
             ))}
             {/* Keyframe markers */}
             {keyframes.map((kf, i) => (
               <div key={`kf-${i}`} className="absolute pointer-events-none" style={{ left: kf.frame * FRAME_W - 3, top: -RULER_H, zIndex: 25 }}>
-                <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#FFB547", border: "1px solid #FFF" }} />
+                <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#F59E0B", border: "1px solid #FFF" }} />
               </div>
             ))}
             {/* Clips area */}
@@ -190,7 +193,7 @@ export function TimelineEditor() {
                       >
                         {/* Speed badge */}
                         {speed !== 1 && isSelected && (
-                          <div style={{ position: "absolute", top: 1, right: 2, fontSize: 7, fontFamily: MONO, color: "#FFB547", fontWeight: 700, zIndex: 2 }}>{speed}x</div>
+                          <div style={{ position: "absolute", top: 1, right: 2, fontSize: 7, fontFamily: MONO, color: "#F59E0B", fontWeight: 700, zIndex: 2 }}>{speed}x</div>
                         )}
                         {isAudio && (
                           <svg width="100%" height="100%" style={{ position: "absolute", top: 0, left: 0, opacity: 0.3 }}>
@@ -234,13 +237,14 @@ export function TimelineEditor() {
           <span style={{ fontSize: 7, fontFamily: MONO, color: "#5C5C5C" }}>FPS: {fps}</span>
           <span style={{ fontSize: 7, fontFamily: MONO, color: speed !== 1 ? "#FFB547" : "#5C5C5C" }}>SPEED: {speed}x</span>
           <button onClick={() => useVideoStore.setState((s) => ({ snapEnabled: !s.snapEnabled }))}
-            style={{ ...btnBase, width: 16, height: 14, background: snapEnabled ? `${ACCENT}30` : "transparent", border: snapEnabled ? `1px solid ${ACCENT}` : "1px solid transparent", fontSize: 7, fontFamily: MONO, color: snapEnabled ? ACCENT : "#5C5C5C" }}>
-            ⚡
+            title={t("creator_video_snap")}
+            style={{ ...btnBase, width: 16, height: 14, color: snapEnabled ? ACCENT : "#5C5C5C", background: snapEnabled ? `${ACCENT}30` : "transparent", border: snapEnabled ? `1px solid ${ACCENT}` : "1px solid transparent", fontSize: 7, fontFamily: MONO }}>
+            <Zap size={9} />
           </button>
         </div>
         <div className="flex items-center gap-1">
-          <button onClick={() => useVideoStore.setState((s) => ({ zoomLevel: Math.max(0.25, s.zoomLevel - 0.25) }))} style={{ ...btnBase, width: 18, height: 16, background: "#141414", border: "1px solid #1C1C1C" }}><IZoomOut /></button>
-          <button onClick={() => useVideoStore.setState((s) => ({ zoomLevel: Math.min(4, s.zoomLevel + 0.25) }))} style={{ ...btnBase, width: 18, height: 16, background: "#141414", border: "1px solid #1C1C1C" }}><IZoomIn /></button>
+          <button onClick={() => useVideoStore.setState((s) => ({ zoomLevel: Math.max(0.25, s.zoomLevel - 0.25) }))} style={{ ...btnBase, width: 18, height: 16, color: "#A0A0A0", background: "#141414", border: "1px solid #1C1C1C" }}><IZoomOut /></button>
+          <button onClick={() => useVideoStore.setState((s) => ({ zoomLevel: Math.min(4, s.zoomLevel + 0.25) }))} style={{ ...btnBase, width: 18, height: 16, color: "#A0A0A0", background: "#141414", border: "1px solid #1C1C1C" }}><IZoomIn /></button>
           <span style={{ fontSize: 8, fontFamily: MONO, color: "#5C5C5C", minWidth: 28, textAlign: "center" }}>{Math.round(zoomLevel * 100)}%</span>
         </div>
       </div>

@@ -1,1 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&family=Sora:wght@300;400;600&display=swap');
+/* Orun OS typography (v2)
+   - Sora: display/títulos/números
+   - Inter: UI geral
+   - JetBrains Mono: dados (preços, métricas, tempo) — sempre tabular-nums
+   - Cinzel: APENAS wordmark da marca e tela de boot */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&family=Sora:wght@300;400;600&display=swap');

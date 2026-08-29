@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import type { WorkoutSession, WorkoutExercise } from "../health-types";
 import { useHealthStore, addWorkout } from "../health-store";
 
@@ -61,7 +61,7 @@ export function WorkoutTab() {
     <div className="p-4 space-y-4">
       {todayWorkout && (
         <div className="p-3 rounded-xl border" style={{ borderColor: "var(--border)", background: "rgba(34,197,94,0.03)" }}>
-          <h3 className="text-[10px] tracking-wider uppercase mb-1" style={{ fontFamily: "'Sora', sans-serif", color: "#22C55E" }}>
+          <h3 className="text-[10px] tracking-wider uppercase mb-1" style={{ fontFamily: "'Sora', sans-serif", color: "var(--ok)" }}>
             Treino de Hoje: {todayWorkout.name} ✓
           </h3>
           <p className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>
@@ -89,7 +89,7 @@ export function WorkoutTab() {
               <h3 className="text-[10px] tracking-wider uppercase mb-2" style={{ fontFamily: "'Sora', sans-serif", color: "var(--muted-foreground)" }}>Histórico</h3>
               {workouts.filter((w) => w.date !== today).slice(-5).reverse().map((w) => (
                 <div key={w.id} className="flex justify-between py-1 border-b" style={{ borderColor: "var(--border)" }}>
-                  <span className="text-[9px]" style={{ fontFamily: "'JetBrains Mono', monospace", color: "#C00018" }}>{w.date}</span>
+                  <span className="text-[9px]" style={{ fontFamily: "'JetBrains Mono', monospace", color: "var(--primary)" }}>{w.date}</span>
                   <span className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>{w.name} — {w.exercises.filter((e) => e.done).length}/{w.exercises.length}</span>
                 </div>
               ))}
@@ -106,7 +106,7 @@ export function WorkoutTab() {
             </h3>
             <button onClick={finishWorkout}
               className="px-3 py-1.5 rounded-md text-[10px] tracking-wider uppercase"
-              style={{ fontFamily: "'Sora', sans-serif", background: "#22C55E", color: "white" }}>
+              style={{ fontFamily: "'Sora', sans-serif", background: "var(--ok)", color: "white" }}>
               Finalizar Treino
             </button>
           </div>
@@ -116,7 +116,7 @@ export function WorkoutTab() {
               style={{ borderColor: "var(--border)", background: ex.done ? "rgba(34,197,94,0.05)" : "var(--card)" }}>
               <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{
                 background: ex.done ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.05)",
-                color: ex.done ? "#22C55E" : "var(--muted-foreground)",
+                color: ex.done ? "var(--ok)" : "var(--muted-foreground)",
               }}>
                 <span className="text-[10px]">{ex.done ? "✓" : i + 1}</span>
               </div>

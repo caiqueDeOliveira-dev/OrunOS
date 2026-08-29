@@ -1,6 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from "react";
+import { Box, Pause, Play } from "lucide-react";
 import { WorkspaceCard } from "../../components/WorkspaceCard";
 import { WorkspaceEmptyState } from "../../components/WorkspaceEmptyState";
+import { P } from "../premium";
 import { WorkspaceBadge } from "../../components/WorkspaceBadge";
 import { WorkspaceInput } from "../../components/WorkspaceInput";
 import { WorkspaceSection } from "../../components/WorkspaceSection";
@@ -113,10 +115,10 @@ export function DesignerThreeDTab({ onSendMessage }: { onSendMessage: (msg: stri
         <span className="text-[9px] tracking-wider uppercase ws-font-sora text-muted-foreground">3D Studio — Modeler</span>
         <div className="flex items-center gap-2">
           <span className="text-[8px] text-muted-foreground">{objects.length} objects</span>
-          <button onClick={() => setIsAnimating((v) => !v)} className="ws-btn-sm text-[9px]" style={{ background: isAnimating ? "#C3002F" : "#141414" }}>
-            {isAnimating ? "⏸ Pause" : "▶ Play"}
+          <button onClick={() => setIsAnimating((v) => !v)} className="ws-btn-sm text-[9px] inline-flex items-center gap-1" style={{ background: isAnimating ? "var(--primary)" : "var(--surface-2)" }}>
+            {isAnimating ? <><Pause size={9} /> Pause</> : <><Play size={9} /> Play</>}
           </button>
-          <button onClick={() => { setObjects([]); setSelectedId(null); }} className="px-2 py-1 rounded text-[9px]" style={{ background: "rgba(239,68,68,0.2)", color: "#EF4444" }}>Clear Scene</button>
+          <button onClick={() => { setObjects([]); setSelectedId(null); }} className="px-2 py-1 rounded text-[9px]" style={{ background: "rgba(239,68,68,0.12)", color: "var(--err)" }}>Clear Scene</button>
         </div>
       </div>
       <div className="flex flex-1 min-h-0">
@@ -134,7 +136,7 @@ export function DesignerThreeDTab({ onSendMessage }: { onSendMessage: (msg: stri
             <div className="text-[8px] uppercase tracking-wider mb-1 text-muted-foreground ws-font-sora">Color</div>
             <div className="grid grid-cols-4 gap-1">
               {COLORS.map((c) => (
-                <button key={c} onClick={() => { setSelectedColor(c); if (selectedId) updateObj(selectedId, { color: c }); }} className="aspect-square rounded-lg" style={{ background: c, border: selectedColor === c ? "2px solid #FFFFFF" : "2px solid transparent", boxShadow: "0 1px 3px rgba(0,0,0,0.3)" }} />
+                <button key={c} onClick={() => { setSelectedColor(c); if (selectedId) updateObj(selectedId, { color: c }); }} className="aspect-square rounded-lg" style={{ background: c, border: selectedColor === c ? `2px solid ${P.text}` : "2px solid transparent", boxShadow: "0 1px 3px rgba(0,0,0,0.3)" }} />
               ))}
             </div>
           </div>
@@ -147,7 +149,7 @@ export function DesignerThreeDTab({ onSendMessage }: { onSendMessage: (msg: stri
         <div className="flex-1 flex items-center justify-center overflow-hidden" style={{ background: "linear-gradient(135deg, #0A0A0C 0%, #141414 50%, #0A0A0C 100%)" }}>
           {objects.length === 0 ? (
             <WorkspaceCard className="text-center max-w-xs" style={{ background: "rgba(15,15,26,0.8)" }}>
-              <WorkspaceEmptyState icon="🧊" message="Empty Scene — click a primitive from the left panel to add 3D objects" />
+              <WorkspaceEmptyState icon={<Box size={22} color="var(--primary)" strokeWidth={1.6} />} message="Empty Scene — click a primitive from the left panel to add 3D objects" />
             </WorkspaceCard>
           ) : (
             <svg width="300" height="300" viewBox="0 0 300 300">
@@ -194,7 +196,7 @@ export function DesignerThreeDTab({ onSendMessage }: { onSendMessage: (msg: stri
           )}
           {objects.map((obj) => (
             <div key={obj.id} className="flex items-center gap-2 px-2 py-1.5 rounded text-[10px] cursor-pointer"
-              style={{ background: obj.id === selectedId ? "rgba(195,0,47,0.14)" : "transparent", color: obj.id === selectedId ? "#FFFFFF" : "#A0A0A0" }}
+              style={{ background: obj.id === selectedId ? "color-mix(in srgb, var(--primary) 14%, transparent)" : "transparent", color: obj.id === selectedId ? P.text : P.sub }}
               onClick={() => setSelectedId(obj.id)}>
               <span className="w-3 h-3 rounded shrink-0" style={{ background: obj.color }} />
               <span className="flex-1 truncate">{obj.label}</span>
@@ -225,7 +227,7 @@ export function DesignerThreeDTab({ onSendMessage }: { onSendMessage: (msg: stri
           <div className="pt-3 border-t ws-bd-border">
             <div className="text-[8px] uppercase tracking-wider mb-1 text-muted-foreground ws-font-sora">Tripo AI</div>
             <div className="flex gap-1">
-              <input value={tripoPrompt} onChange={(e) => setTripoPrompt(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && tripoPrompt.trim()) { onSendMessage(`Generate a 3D model: ${tripoPrompt.trim()}`); setTripoPrompt(""); } }} placeholder="Describe a 3D model..." className="flex-1 px-2 py-1.5 rounded text-[9px]" style={{ background: "#0A0A0C", border: "1px solid #252525", color: "#FFFFFF" }} />
+              <input value={tripoPrompt} onChange={(e) => setTripoPrompt(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && tripoPrompt.trim()) { onSendMessage(`Generate a 3D model: ${tripoPrompt.trim()}`); setTripoPrompt(""); } }} placeholder="Describe a 3D model..." className="flex-1 px-2 py-1.5 rounded text-[9px]" style={{ background: "var(--surface-1)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
               <button onClick={() => { if (tripoPrompt.trim()) { onSendMessage(`Generate a 3D model: ${tripoPrompt.trim()}`); setTripoPrompt(""); } }} className="px-2 py-1 rounded text-[9px]" style={{ background: "#8B5CF6", color: "#FFF" }}>Go</button>
             </div>
           </div>

@@ -74,6 +74,30 @@ type TranslationKeys = {
   agentSpeechAudio: string;
   agentKnowledgeMemory: string;
   agentOSConfig: string;
+  agentTelemetry: string;
+  agentTelemetryDesc: string;
+  agentShieldSecrets: string;
+  agentShieldSecretsDesc: string;
+  agentFinanceReal: string;
+  agentFinanceRealDesc: string;
+
+  // Orun Music
+  orunMusicConnect: string;
+  orunMusicConnectDesc: string;
+  orunMusicConnecting: string;
+  orunMusicPlayer: string;
+  orunMusicPlaylists: string;
+  orunMusicLyrics: string;
+  orunMusicRadio: string;
+  orunMusicSearch: string;
+  orunMusicSearchPlaceholder: string;
+  orunMusicNothingPlaying: string;
+  orunMusicConnectToSpotify: string;
+  orunMusicLyricNotFound: string;
+  orunMusicPlayLyricHint: string;
+  orunMusicRadioHint: string;
+  orunMusicRadioBasedOn: string;
+  orunMusicTracks: string;
 
   // Navigation
   navHome: string;
@@ -84,6 +108,103 @@ type TranslationKeys = {
   navAutomation: string;
   navFiles: string;
   navGroupFeed: string;
+
+  // Spaces (SpaceRail v2)
+  navWorld: string;
+  navIntelligence: string;
+  navWorkspaces: string;
+  navDevices: string;
+  navMedia: string;
+  navSystem: string;
+  railPersonal: string;
+  railChannels: string;
+  railAgentsGroup: string;
+  railBrain: string;
+  railAutomationGroup: string;
+  railModelsGroup: string;
+  railHomeGroup: string;
+  railStudio: string;
+  railMusic: string;
+  railAccount: string;
+  railHelp: string;
+  railHistory: string;
+  railProjects: string;
+  railFiles: string;
+  railEmail: string;
+  railCalendar: string;
+  railWhatsapp: string;
+  railTelegram: string;
+  railSocial: string;
+  railActivity: string;
+  railAgents: string;
+  railAgentHub: string;
+  railMemory: string;
+  railNeural: string;
+  neuralSearchPlaceholder: string;
+  neuralNewNote: string;
+  neuralSave: string;
+  neuralDelete: string;
+  neuralBacklinks: string;
+  neuralGraph: string;
+  neuralUntitled: string;
+  neuralEmpty: string;
+  neuralAutoSaved: string;
+  agentNeural: string;
+  neuralTagsPlaceholder: string;
+  railAutomation: string;
+  railSchedules: string;
+  railSkills: string;
+  railPlanner: string;
+  railAgentModels: string;
+  railRouter: string;
+  railUsage: string;
+  railVoices: string;
+  railHomeIA: string;
+  railTelemetry: string;
+  railOrunMusic: string;
+  railCreatorAudio: string;
+  railCreatorVideo: string;
+  railDesigner: string;
+  railSettings: string;
+  railPlugins: string;
+  railAnalytics: string;
+  railExportImport: string;
+  railProfile: string;
+  railAchievements: string;
+  railSupport: string;
+  railShortcuts: string;
+  railChangelog: string;
+  railSpaces: string;
+
+  // World space
+  worldTitle: string;
+  worldSubtitle: string;
+  worldUnavailable: string;
+  worldFeelsLike: string;
+  worldModuleDaySummary: string;
+  worldModuleMarkets: string;
+  worldModuleNews: string;
+  worldModuleClimate: string;
+  worldModuleUniverse: string;
+  worldDescDaySummary: string;
+  worldDescMarkets: string;
+  worldDescNews: string;
+  worldDescClimate: string;
+  worldDescUniverse: string;
+
+  // Workspace launcher (Fase 3)
+  launcherSubtitle: string;
+  launcherSearch: string;
+  launcherDisabled: string;
+  launcherActiveCount: string;
+  launcherEmpty: string;
+
+  // HOME neural (Fase 1)
+  greetingMorning: string;
+  greetingAfternoon: string;
+  greetingEvening: string;
+  greetingNight: string;
+  activityStreamEmpty: string;
 
   // Group feed / Vigia de grupos
   groupFeedTabFeed: string;
@@ -1500,6 +1621,7 @@ export const translations: Record<Language, TranslationKeys> = {
     agentCyberSecurity: "Segurança Cibernética",
     agentCaOSCommander: "Comandante do Discord (Tropa do CaOS)",
     agentCarreiras: "Vagas de Emprego & Carreira",
+  agentNeural: "Segundo Cérebro (Neural)",
     agentSpeechAudio: "Fala & Áudio",
     agentKnowledgeMemory: "Conhecimento & Memória",
     agentOSConfig: "SO & Configuração",
@@ -1508,6 +1630,30 @@ export const translations: Record<Language, TranslationKeys> = {
     agentHealth: "Saúde",
     agentLearningLanguages: "Aprendizado & Idiomas",
     agentMarketingSocial: "Marketing & Social",
+    agentTelemetry: "Telemetry Dashboard",
+    agentTelemetryDesc: "Observabilidade dos agentes e MCPs",
+    agentShieldSecrets: "Shield Secrets",
+    agentShieldSecretsDesc: "Detecção de vazamento de credenciais",
+    agentFinanceReal: "Finance Real",
+    agentFinanceRealDesc: "Finanças reais conectadas ao Actual Budget",
+
+    // Orun Music
+    orunMusicConnect: "Conectar ao Spotify",
+    orunMusicConnectDesc: "Conecte sua conta Spotify Premium para ouvir música, ver letras sincronizadas e gerenciar playlists.",
+    orunMusicConnecting: "Conectando...",
+    orunMusicPlayer: "Player",
+    orunMusicPlaylists: "Playlists",
+    orunMusicLyrics: "Letras",
+    orunMusicRadio: "Rádio",
+    orunMusicSearch: "Buscar",
+    orunMusicSearchPlaceholder: "Buscar música...",
+    orunMusicNothingPlaying: "Nada tocando",
+    orunMusicConnectToSpotify: "Conecte ao Spotify",
+    orunMusicLyricNotFound: "Letra sincronizada não encontrada",
+    orunMusicPlayLyricHint: "Toque uma música para ver a letra",
+    orunMusicRadioHint: "Toque uma música e clique em Rádio",
+    orunMusicRadioBasedOn: "Baseada em:",
+    orunMusicTracks: "faixas",
 
     // Navigation
     navHome: "Início",
@@ -1518,6 +1664,102 @@ export const translations: Record<Language, TranslationKeys> = {
     navAutomation: "Automação",
     navFiles: "Arquivos",
     navGroupFeed: "Grupos",
+
+    // Spaces (SpaceRail v2)
+    navWorld: "Mundo",
+    navIntelligence: "Inteligência",
+    navWorkspaces: "Workspaces",
+    navDevices: "Dispositivos",
+    navMedia: "Mídia",
+    navSystem: "Sistema",
+    railPersonal: "Pessoal",
+    railChannels: "Canais",
+    railAgentsGroup: "Agentes",
+    railBrain: "Cérebro",
+    railAutomationGroup: "Automação",
+    railModelsGroup: "Modelos",
+    railHomeGroup: "Casa",
+    railStudio: "Estúdio",
+    railMusic: "Música",
+    railAccount: "Conta",
+    railHelp: "Ajuda",
+    railHistory: "Histórico",
+    railProjects: "Projetos",
+    railFiles: "Arquivos",
+    railEmail: "E-mail",
+    railCalendar: "Calendário",
+    railWhatsapp: "WhatsApp",
+    railTelegram: "Telegram",
+    railSocial: "Redes sociais",
+    railActivity: "Atividade",
+    railAgents: "Todos os agentes",
+    railAgentHub: "Central de agentes",
+    railMemory: "Memória",
+  railNeural: "Neural",
+  neuralSearchPlaceholder: "Buscar notas…",
+  neuralNewNote: "Nova nota",
+  neuralSave: "Salvar",
+  neuralDelete: "Excluir",
+  neuralBacklinks: "Backlinks",
+  neuralGraph: "Grafo",
+  neuralUntitled: "Sem título",
+  neuralEmpty: "Nenhuma nota ainda. Crie a primeira com [[links]].",
+  neuralAutoSaved: "Lima Barreto registrou {count} nota(s) no Neural",
+  neuralTagsPlaceholder: "tags, separadas por vírgula",
+    railAutomation: "Automações",
+    railSchedules: "Agendamentos",
+    railSkills: "Skills",
+    railPlanner: "Planner",
+    railAgentModels: "Modelos por agente",
+    railRouter: "Orun Router",
+    railUsage: "Uso de tokens",
+    railVoices: "Vozes",
+    railHomeIA: "Home IA",
+    railTelemetry: "Telemetria",
+    railOrunMusic: "Orun Música",
+    railCreatorAudio: "Creator Áudio",
+    railCreatorVideo: "Creator Vídeo",
+    railDesigner: "Designer Imagem",
+    railSettings: "Configurações",
+    railPlugins: "Plugins",
+    railAnalytics: "Analytics",
+    railExportImport: "Exportar & importar",
+    railProfile: "Perfil",
+    railAchievements: "Conquistas",
+    railSupport: "Suporte",
+    railShortcuts: "Atalhos de teclado",
+    railChangelog: "Novidades",
+    railSpaces: "Espaços",
+
+    // World space
+    worldTitle: "Mundo",
+    worldSubtitle: "O pulso do seu universo em tempo real",
+    worldUnavailable: "Indisponível",
+    worldFeelsLike: "Sensação",
+    worldModuleDaySummary: "Resumo do Dia",
+    worldModuleMarkets: "Mercados & Câmbio",
+    worldModuleNews: "Notícias",
+    worldModuleClimate: "Clima",
+    worldModuleUniverse: "Meu Universo",
+    worldDescDaySummary: "Compromissos, tarefas e o que importa hoje, num só lugar",
+    worldDescMarkets: "Dólar, euro, bitcoin e bolsas em tempo real",
+    worldDescNews: "Manchetes do Brasil e do mundo, filtradas pelos seus interesses",
+    worldDescClimate: "Previsão do tempo e alertas da sua região",
+    worldDescUniverse: "Seus dispositivos, agentes e espaços em um mapa vivo",
+
+    // Workspace launcher (Fase 3)
+    launcherSubtitle: "Todos os espaços de trabalho do Orun",
+    launcherSearch: "Buscar workspaces…",
+    launcherDisabled: "Desativado nas configurações",
+    launcherActiveCount: "{active} de {total} workspaces ativos",
+    launcherEmpty: "Nenhum workspace encontrado",
+
+    // HOME neural (Fase 1)
+    greetingMorning: "Bom dia",
+    greetingAfternoon: "Boa tarde",
+    greetingEvening: "Boa noite",
+    greetingNight: "Boa madrugada",
+    activityStreamEmpty: "Sem eventos no momento — o sistema está em silêncio.",
     groupFeedTabFeed: "Feed ao vivo",
     groupFeedTabWatch: "Vigia",
     groupFeedTabDeals: "Robô de promoções",
@@ -2926,6 +3168,7 @@ export const translations: Record<Language, TranslationKeys> = {
     agentCyberSecurity: "Cyber Security",
     agentCaOSCommander: "Discord Commander (Tropa do CaOS)",
     agentCarreiras: "Job Search & Career",
+  agentNeural: "Second Brain (Neural)",
     agentSpeechAudio: "Speech & Audio",
     agentKnowledgeMemory: "Knowledge & Memory",
     agentOSConfig: "OS & Configuration",
@@ -2934,6 +3177,30 @@ export const translations: Record<Language, TranslationKeys> = {
     agentHealth: "Health",
     agentLearningLanguages: "Learning & Languages",
     agentMarketingSocial: "Marketing & Social",
+    agentTelemetry: "Telemetry Dashboard",
+    agentTelemetryDesc: "Agent and MCP observability",
+    agentShieldSecrets: "Shield Secrets",
+    agentShieldSecretsDesc: "Credential leak detection",
+    agentFinanceReal: "Finance Real",
+    agentFinanceRealDesc: "Real finances connected to Actual Budget",
+
+    // Orun Music
+    orunMusicConnect: "Connect to Spotify",
+    orunMusicConnectDesc: "Connect your Spotify Premium account to listen to music, see synced lyrics and manage playlists.",
+    orunMusicConnecting: "Connecting...",
+    orunMusicPlayer: "Player",
+    orunMusicPlaylists: "Playlists",
+    orunMusicLyrics: "Lyrics",
+    orunMusicRadio: "Radio",
+    orunMusicSearch: "Search",
+    orunMusicSearchPlaceholder: "Search music...",
+    orunMusicNothingPlaying: "Nothing playing",
+    orunMusicConnectToSpotify: "Connect to Spotify",
+    orunMusicLyricNotFound: "Synced lyrics not found",
+    orunMusicPlayLyricHint: "Play a track to see lyrics",
+    orunMusicRadioHint: "Play a track and click Radio",
+    orunMusicRadioBasedOn: "Based on:",
+    orunMusicTracks: "tracks",
 
     // Navigation
     navHome: "Home",
@@ -2944,6 +3211,102 @@ export const translations: Record<Language, TranslationKeys> = {
     navAutomation: "Automation",
     navFiles: "Files",
     navGroupFeed: "Groups",
+
+    // Spaces (SpaceRail v2)
+    navWorld: "World",
+    navIntelligence: "Intelligence",
+    navWorkspaces: "Workspaces",
+    navDevices: "Devices",
+    navMedia: "Media",
+    navSystem: "System",
+    railPersonal: "Personal",
+    railChannels: "Channels",
+    railAgentsGroup: "Agents",
+    railBrain: "Brain",
+    railAutomationGroup: "Automation",
+    railModelsGroup: "Models",
+    railHomeGroup: "Home",
+    railStudio: "Studio",
+    railMusic: "Music",
+    railAccount: "Account",
+    railHelp: "Help",
+    railHistory: "History",
+    railProjects: "Projects",
+    railFiles: "Files",
+    railEmail: "Email",
+    railCalendar: "Calendar",
+    railWhatsapp: "WhatsApp",
+    railTelegram: "Telegram",
+    railSocial: "Social media",
+    railActivity: "Activity",
+    railAgents: "All agents",
+    railAgentHub: "Agent Hub",
+    railMemory: "Memory",
+  railNeural: "Neural",
+  neuralSearchPlaceholder: "Search notes…",
+  neuralNewNote: "New note",
+  neuralSave: "Save",
+  neuralDelete: "Delete",
+  neuralBacklinks: "Backlinks",
+  neuralGraph: "Graph",
+  neuralUntitled: "Untitled",
+  neuralEmpty: "No notes yet. Create the first one with [[links]].",
+  neuralAutoSaved: "Lima Barreto saved {count} note(s) to Neural",
+  neuralTagsPlaceholder: "tags, comma separated",
+    railAutomation: "Automations",
+    railSchedules: "Schedules",
+    railSkills: "Skills",
+    railPlanner: "Planner",
+    railAgentModels: "Per-agent models",
+    railRouter: "Orun Router",
+    railUsage: "Token usage",
+    railVoices: "Voices",
+    railHomeIA: "Home AI",
+    railTelemetry: "Telemetry",
+    railOrunMusic: "Orun Music",
+    railCreatorAudio: "Audio Creator",
+    railCreatorVideo: "Video Creator",
+    railDesigner: "Image Designer",
+    railSettings: "Settings",
+    railPlugins: "Plugins",
+    railAnalytics: "Analytics",
+    railExportImport: "Export & import",
+    railProfile: "Profile",
+    railAchievements: "Achievements",
+    railSupport: "Support",
+    railShortcuts: "Keyboard shortcuts",
+    railChangelog: "What's new",
+    railSpaces: "Spaces",
+
+    // World space
+    worldTitle: "World",
+    worldSubtitle: "The pulse of your universe in real time",
+    worldUnavailable: "Unavailable",
+    worldFeelsLike: "Feels like",
+    worldModuleDaySummary: "Day Summary",
+    worldModuleMarkets: "Markets & FX",
+    worldModuleNews: "News",
+    worldModuleClimate: "Weather",
+    worldModuleUniverse: "My Universe",
+    worldDescDaySummary: "Commitments, tasks and what matters today, in one place",
+    worldDescMarkets: "Dollar, euro, bitcoin and stock markets in real time",
+    worldDescNews: "Headlines from Brazil and the world, filtered by your interests",
+    worldDescClimate: "Weather forecast and alerts for your region",
+    worldDescUniverse: "Your devices, agents and spaces on a living map",
+
+    // Workspace launcher (Fase 3)
+    launcherSubtitle: "All Orun workspaces",
+    launcherSearch: "Search workspaces…",
+    launcherDisabled: "Disabled in settings",
+    launcherActiveCount: "{active} of {total} workspaces active",
+    launcherEmpty: "No workspaces found",
+
+    // HOME neural (Fase 1)
+    greetingMorning: "Good morning",
+    greetingAfternoon: "Good afternoon",
+    greetingEvening: "Good evening",
+    greetingNight: "Good night",
+    activityStreamEmpty: "No events yet — the system is quiet.",
     groupFeedTabFeed: "Live feed",
     groupFeedTabWatch: "Watch",
     groupFeedTabDeals: "Deals bot",
@@ -4350,6 +4713,7 @@ export const translations: Record<Language, TranslationKeys> = {
     agentCyberSecurity: "Ciberseguridad",
     agentCaOSCommander: "Comandante de Discord (Tropa do CaOS)",
     agentCarreiras: "Búsqueda de Empleo y Carrera",
+  agentNeural: "Segundo Cerebro (Neural)",
     agentSpeechAudio: "Habla y Audio",
     agentKnowledgeMemory: "Conocimiento y Memoria",
     agentOSConfig: "SO y Configuración",
@@ -4358,6 +4722,30 @@ export const translations: Record<Language, TranslationKeys> = {
     agentHealth: "Salud",
     agentLearningLanguages: "Aprendizaje & Idiomas",
     agentMarketingSocial: "Marketing & Social",
+    agentTelemetry: "Panel de Telemetría",
+    agentTelemetryDesc: "Observabilidad de agentes y MCPs",
+    agentShieldSecrets: "Escudo de Secretos",
+    agentShieldSecretsDesc: "Detección de filtración de credenciales",
+    agentFinanceReal: "Finanzas Reales",
+    agentFinanceRealDesc: "Finanzas reales conectadas a Actual Budget",
+
+    // Orun Music
+    orunMusicConnect: "Conectar a Spotify",
+    orunMusicConnectDesc: "Conecta tu cuenta Spotify Premium para escuchar música, ver letras sincronizadas y gestionar listas de reproducción.",
+    orunMusicConnecting: "Conectando...",
+    orunMusicPlayer: "Reproductor",
+    orunMusicPlaylists: "Listas",
+    orunMusicLyrics: "Letras",
+    orunMusicRadio: "Radio",
+    orunMusicSearch: "Buscar",
+    orunMusicSearchPlaceholder: "Buscar música...",
+    orunMusicNothingPlaying: "Nada reproduciendo",
+    orunMusicConnectToSpotify: "Conectar a Spotify",
+    orunMusicLyricNotFound: "Letra sincronizada no encontrada",
+    orunMusicPlayLyricHint: "Reproduce una canción para ver la letra",
+    orunMusicRadioHint: "Reproduce una canción y haz clic en Radio",
+    orunMusicRadioBasedOn: "Basada en:",
+    orunMusicTracks: "canciones",
 
     // Navigation
     navHome: "Inicio",
@@ -4368,6 +4756,102 @@ export const translations: Record<Language, TranslationKeys> = {
     navAutomation: "Automatización",
     navFiles: "Archivos",
     navGroupFeed: "Grupos",
+
+    // Spaces (SpaceRail v2)
+    navWorld: "Mundo",
+    navIntelligence: "Inteligencia",
+    navWorkspaces: "Workspaces",
+    navDevices: "Dispositivos",
+    navMedia: "Medios",
+    navSystem: "Sistema",
+    railPersonal: "Personal",
+    railChannels: "Canales",
+    railAgentsGroup: "Agentes",
+    railBrain: "Cerebro",
+    railAutomationGroup: "Automatización",
+    railModelsGroup: "Modelos",
+    railHomeGroup: "Hogar",
+    railStudio: "Estudio",
+    railMusic: "Música",
+    railAccount: "Cuenta",
+    railHelp: "Ayuda",
+    railHistory: "Historial",
+    railProjects: "Proyectos",
+    railFiles: "Archivos",
+    railEmail: "Correo",
+    railCalendar: "Calendario",
+    railWhatsapp: "WhatsApp",
+    railTelegram: "Telegram",
+    railSocial: "Redes sociales",
+    railActivity: "Actividad",
+    railAgents: "Todos los agentes",
+    railAgentHub: "Centro de agentes",
+    railMemory: "Memoria",
+  railNeural: "Neural",
+  neuralSearchPlaceholder: "Buscar notas…",
+  neuralNewNote: "Nueva nota",
+  neuralSave: "Guardar",
+  neuralDelete: "Eliminar",
+  neuralBacklinks: "Backlinks",
+  neuralGraph: "Grafo",
+  neuralUntitled: "Sin título",
+  neuralEmpty: "Aún no hay notas. Crea la primera con [[enlaces]].",
+  neuralAutoSaved: "Lima Barreto guardó {count} nota(s) en el Neural",
+  neuralTagsPlaceholder: "etiquetas, separadas por comas",
+    railAutomation: "Automatizaciones",
+    railSchedules: "Agendas",
+    railSkills: "Skills",
+    railPlanner: "Planificador",
+    railAgentModels: "Modelos por agente",
+    railRouter: "Orun Router",
+    railUsage: "Uso de tokens",
+    railVoices: "Voces",
+    railHomeIA: "Hogar IA",
+    railTelemetry: "Telemetría",
+    railOrunMusic: "Orun Música",
+    railCreatorAudio: "Creator Audio",
+    railCreatorVideo: "Creator Vídeo",
+    railDesigner: "Diseñador Imagen",
+    railSettings: "Configuración",
+    railPlugins: "Plugins",
+    railAnalytics: "Analíticas",
+    railExportImport: "Exportar e importar",
+    railProfile: "Perfil",
+    railAchievements: "Logros",
+    railSupport: "Soporte",
+    railShortcuts: "Atajos de teclado",
+    railChangelog: "Novedades",
+    railSpaces: "Espacios",
+
+    // World space
+    worldTitle: "Mundo",
+    worldSubtitle: "El pulso de tu universo en tiempo real",
+    worldUnavailable: "No disponible",
+    worldFeelsLike: "Sensación",
+    worldModuleDaySummary: "Resumen del Día",
+    worldModuleMarkets: "Mercados y Cambio",
+    worldModuleNews: "Noticias",
+    worldModuleClimate: "Clima",
+    worldModuleUniverse: "Mi Universo",
+    worldDescDaySummary: "Compromisos, tareas y lo que importa hoy, en un solo lugar",
+    worldDescMarkets: "Dólar, euro, bitcoin y bolsas en tiempo real",
+    worldDescNews: "Titulares de Brasil y del mundo, filtrados por tus intereses",
+    worldDescClimate: "Pronóstico del tiempo y alertas de tu región",
+    worldDescUniverse: "Tus dispositivos, agentes y espacios en un mapa vivo",
+
+    // Workspace launcher (Fase 3)
+    launcherSubtitle: "Todos los espacios de trabajo de Orun",
+    launcherSearch: "Buscar workspaces…",
+    launcherDisabled: "Desactivado en configuración",
+    launcherActiveCount: "{active} de {total} workspaces activos",
+    launcherEmpty: "No se encontraron workspaces",
+
+    // HOME neural (Fase 1)
+    greetingMorning: "Buenos días",
+    greetingAfternoon: "Buenas tardes",
+    greetingEvening: "Buenas noches",
+    greetingNight: "Buena madrugada",
+    activityStreamEmpty: "Sin eventos por ahora — el sistema está en silencio.",
     groupFeedTabFeed: "Feed en vivo",
     groupFeedTabWatch: "Vigía",
     groupFeedTabDeals: "Bot de ofertas",
@@ -5775,6 +6259,7 @@ export const translations: Record<Language, TranslationKeys> = {
     agentCyberSecurity: "Cybersécurité",
     agentCaOSCommander: "Commandant Discord (Tropa do CaOS)",
     agentCarreiras: "Recherche d'Emploi & Carrière",
+  agentNeural: "Second Cerveau (Neural)",
     agentSpeechAudio: "Parole & Audio",
     agentKnowledgeMemory: "Connaissance & Mémoire",
     agentOSConfig: "OS & Configuration",
@@ -5783,6 +6268,30 @@ export const translations: Record<Language, TranslationKeys> = {
     agentHealth: "Santé",
     agentLearningLanguages: "Apprentissage & Langues",
     agentMarketingSocial: "Marketing & Social",
+    agentTelemetry: "Tableau de Télémétrie",
+    agentTelemetryDesc: "Observabilité des agents et MCPs",
+    agentShieldSecrets: " bouclier Secrets",
+    agentShieldSecretsDesc: "Détection de fuite de credentials",
+    agentFinanceReal: "Finances Réelles",
+    agentFinanceRealDesc: "Finances réelles connectées à Actual Budget",
+
+    // Orun Music
+    orunMusicConnect: "Connecter Spotify",
+    orunMusicConnectDesc: "Connectez votre compte Spotify Premium pour écouter de la musique, voir les paroles synchronisées et gérer les playlists.",
+    orunMusicConnecting: "Connexion...",
+    orunMusicPlayer: "Lecteur",
+    orunMusicPlaylists: "Playlists",
+    orunMusicLyrics: "Paroles",
+    orunMusicRadio: "Radio",
+    orunMusicSearch: "Rechercher",
+    orunMusicSearchPlaceholder: "Rechercher une musique...",
+    orunMusicNothingPlaying: "Rien en cours",
+    orunMusicConnectToSpotify: "Connecter Spotify",
+    orunMusicLyricNotFound: "Paroles synchronisées introuvables",
+    orunMusicPlayLyricHint: "Lisez une chanson pour voir les paroles",
+    orunMusicRadioHint: "Lisez une chanson et cliquez sur Radio",
+    orunMusicRadioBasedOn: "Basée sur :",
+    orunMusicTracks: "morceaux",
 
     // Navigation
     navHome: "Accueil",
@@ -5793,6 +6302,102 @@ export const translations: Record<Language, TranslationKeys> = {
     navAutomation: "Automatisation",
     navFiles: "Fichiers",
     navGroupFeed: "Groupes",
+
+    // Spaces (SpaceRail v2)
+    navWorld: "Monde",
+    navIntelligence: "Intelligence",
+    navWorkspaces: "Workspaces",
+    navDevices: "Appareils",
+    navMedia: "Médias",
+    navSystem: "Système",
+    railPersonal: "Personnel",
+    railChannels: "Canaux",
+    railAgentsGroup: "Agents",
+    railBrain: "Cerveau",
+    railAutomationGroup: "Automatisation",
+    railModelsGroup: "Modèles",
+    railHomeGroup: "Maison",
+    railStudio: "Studio",
+    railMusic: "Musique",
+    railAccount: "Compte",
+    railHelp: "Aide",
+    railHistory: "Historique",
+    railProjects: "Projets",
+    railFiles: "Fichiers",
+    railEmail: "E-mail",
+    railCalendar: "Calendrier",
+    railWhatsapp: "WhatsApp",
+    railTelegram: "Telegram",
+    railSocial: "Réseaux sociaux",
+    railActivity: "Activité",
+    railAgents: "Tous les agents",
+    railAgentHub: "Centre d'agents",
+    railMemory: "Mémoire",
+  railNeural: "Neural",
+  neuralSearchPlaceholder: "Rechercher des notes…",
+  neuralNewNote: "Nouvelle note",
+  neuralSave: "Enregistrer",
+  neuralDelete: "Supprimer",
+  neuralBacklinks: "Backlinks",
+  neuralGraph: "Graphe",
+  neuralUntitled: "Sans titre",
+  neuralEmpty: "Aucune note. Créez la première avec [[liens]].",
+  neuralAutoSaved: "Lima Barreto a enregistré {count} note(s) dans le Neural",
+  neuralTagsPlaceholder: "tags, séparés par des virgules",
+    railAutomation: "Automatisations",
+    railSchedules: "Planifications",
+    railSkills: "Compétences",
+    railPlanner: "Planificateur",
+    railAgentModels: "Modèles par agent",
+    railRouter: "Orun Router",
+    railUsage: "Utilisation des tokens",
+    railVoices: "Voix",
+    railHomeIA: "Maison IA",
+    railTelemetry: "Télémétrie",
+    railOrunMusic: "Orun Musique",
+    railCreatorAudio: "Créateur Audio",
+    railCreatorVideo: "Créateur Vidéo",
+    railDesigner: "Designer Image",
+    railSettings: "Paramètres",
+    railPlugins: "Plugins",
+    railAnalytics: "Analytiques",
+    railExportImport: "Exporter et importer",
+    railProfile: "Profil",
+    railAchievements: "Succès",
+    railSupport: "Assistance",
+    railShortcuts: "Raccourcis clavier",
+    railChangelog: "Nouveautés",
+    railSpaces: "Espaces",
+
+    // World space
+    worldTitle: "Monde",
+    worldSubtitle: "Le pouls de votre univers en temps réel",
+    worldUnavailable: "Indisponible",
+    worldFeelsLike: "Ressenti",
+    worldModuleDaySummary: "Résumé du Jour",
+    worldModuleMarkets: "Marchés et Change",
+    worldModuleNews: "Actualités",
+    worldModuleClimate: "Météo",
+    worldModuleUniverse: "Mon Univers",
+    worldDescDaySummary: "Engagements, tâches et l'essentiel du jour, en un seul endroit",
+    worldDescMarkets: "Dollar, euro, bitcoin et bourses en temps réel",
+    worldDescNews: "Titres du Brésil et du monde, filtrés selon vos centres d'intérêt",
+    worldDescClimate: "Prévisions météo et alertes de votre région",
+    worldDescUniverse: "Vos appareils, agents et espaces sur une carte vivante",
+
+    // Workspace launcher (Fase 3)
+    launcherSubtitle: "Tous les espaces de travail Orun",
+    launcherSearch: "Rechercher un espace…",
+    launcherDisabled: "Désactivé dans les paramètres",
+    launcherActiveCount: "{active} sur {total} espaces actifs",
+    launcherEmpty: "Aucun espace trouvé",
+
+    // HOME neural (Fase 1)
+    greetingMorning: "Bonjour",
+    greetingAfternoon: "Bon après-midi",
+    greetingEvening: "Bonsoir",
+    greetingNight: "Bonne nuit",
+    activityStreamEmpty: "Aucun événement pour l'instant — le système est silencieux.",
     groupFeedTabFeed: "Flux en direct",
     groupFeedTabWatch: "Vigie",
     groupFeedTabDeals: "Bot de promos",

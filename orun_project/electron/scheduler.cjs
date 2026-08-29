@@ -51,7 +51,7 @@ function scheduleAgent(agentName, time, frequency) {
 
 async function runAgentTask(agentName) {
   const { db, aiRouter, agentPrompts, processAgentReply } = deps;
-  const globalAI = { ...{ provider: "groq", model: "llama-3.3-70b-versatile" }, ...db.getSetting("ai", {}) };
+  const globalAI = { ...{ provider: "groq", model: "openai/gpt-oss-120b" }, ...db.getSetting("ai", {}) };
   const override = db.getSetting("agentModels", {})[agentName];
   const provider = override?.provider || globalAI.provider;
   const model = override?.model || globalAI.model;

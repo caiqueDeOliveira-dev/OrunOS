@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
+import { Settings, RefreshCw, Link2, Check, X, Castle, MessageSquare, VolumeX } from "lucide-react";
 import { useTranslation } from "../../../../../i18n/I18nProvider";
 import { useMarketingStore } from "../marketing-store";
 import { WorkspaceCard } from "../../../components/WorkspaceCard";
@@ -6,6 +7,7 @@ import { WorkspaceBadge } from "../../../components/WorkspaceBadge";
 import { WorkspaceButton } from "../../../components/WorkspaceButton";
 import { WorkspaceInput } from "../../../components/WorkspaceInput";
 import { WorkspaceEmptyState } from "../../../components/WorkspaceEmptyState";
+import { P } from "../../premium";
 import type { DiscordState } from "../marketing-types";
 
 export function DiscordView() {
@@ -199,10 +201,10 @@ export function DiscordView() {
   };
 
   const statusColors: Record<string, string> = {
-    disconnected: "#A0A0A0",
-    connecting: "#F59E0B",
-    connected: "#22C55E",
-    error: "#EF4444",
+    disconnected: P.sub,
+    connecting: "var(--warn)",
+    connected: "var(--ok)",
+    error: "var(--err)",
   };
 
   const statusLabels: Record<string, string> = {
@@ -243,16 +245,16 @@ export function DiscordView() {
           </div>
         </WorkspaceCard>
 
-        <p className="text-[9px]" style={{ color: "#A0A0A0" }}>
+        <p className="text-[9px]" style={{ color: P.sub }}>
           {t("Insira o token do seu bot Discord para gerenciar servidores e canais de marketing")}
         </p>
 
         {logs.length > 0 && (
           <div className="mt-2 p-2 rounded" style={{ background: "rgba(0,0,0,0.2)" }}>
-            <p className="text-[9px] font-medium mb-1" style={{ color: "#A0A0A0" }}>{t("Log")}</p>
+            <p className="text-[9px] font-medium mb-1" style={{ color: P.sub }}>{t("Log")}</p>
             <div className="space-y-0.5 max-h-32 overflow-y-auto ws-scrollbar">
               {logs.map((log, i) => (
-                <p key={i} className="text-[8px]" style={{ color: "#A0A0A0", fontFamily: "'JetBrains Mono', monospace" }}>{log}</p>
+                <p key={i} className="text-[8px]" style={{ color: P.sub, fontFamily: "'JetBrains Mono', monospace" }}>{log}</p>
               ))}
             </div>
           </div>
@@ -273,7 +275,7 @@ export function DiscordView() {
           <WorkspaceBadge variant="green">{`${String(discord.guilds.length)} ${t("servidores")}`}</WorkspaceBadge>
         </div>
         <div className="flex gap-1">
-          <label className="flex items-center gap-1.5 text-[9px]" style={{ color: "#A0A0A0" }}>
+          <label className="flex items-center gap-1.5 text-[9px]" style={{ color: P.sub }}>
             <input
               type="checkbox"
               checked={discord.autoResponse}
@@ -287,17 +289,23 @@ export function DiscordView() {
       </div>
 
       <WorkspaceCard>
-        <p className="text-[9px] font-medium mb-1" style={{ color: "#A0A0A0" }}>⚙️ {t("Comandos slash")}</p>
+        <p className="text-[9px] font-medium mb-1 flex items-center gap-1" style={{ color: P.sub }}>
+          <Settings size={11} strokeWidth={1.8} /> {t("Comandos slash")}
+        </p>
         <div className="flex gap-1 flex-wrap">
           <WorkspaceButton onClick={handleRedeploy} variant="primary" size="sm" disabled={deploying}>
-            {deploying ? t("Enviando...") : "🔄 " + t("Reenviar comandos")}
+            {deploying ? t("Enviando...") : (
+              <span className="flex items-center gap-1"><RefreshCw size={10} />{t("Reenviar comandos")}</span>
+            )}
           </WorkspaceButton>
-          <WorkspaceButton onClick={handleGetInviteUrl} variant="ghost" size="sm">🔗 {t("Link de convite")}</WorkspaceButton>
+          <WorkspaceButton onClick={handleGetInviteUrl} variant="ghost" size="sm">
+            <span className="flex items-center gap-1"><Link2 size={10} />{t("Link de convite")}</span>
+          </WorkspaceButton>
         </div>
 
         {inviteUrl && (
-          <div className="mt-2 p-2 rounded" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid #252525" }}>
-            <p className="text-[8px] break-all" style={{ color: "#C0C0C0", fontFamily: "'JetBrains Mono', monospace" }}>
+          <div className="mt-2 p-2 rounded" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid var(--border)" }}>
+            <p className="text-[8px] break-all" style={{ color: P.dim, fontFamily: "'JetBrains Mono', monospace" }}>
               {inviteUrl}
             </p>
             <div className="mt-1">
@@ -310,13 +318,13 @@ export function DiscordView() {
 
         {deployLog && (
           <div className="mt-2 p-2 rounded" style={{ background: "rgba(0,0,0,0.2)" }}>
-            <p className="text-[8px]" style={{ color: "#A0A0A0" }}>
+            <p className="text-[8px]" style={{ color: P.sub }}>
               {t("Último deploy")}: {new Date(deployLog.at).toLocaleString("pt-BR")} — {deployLog.commands} {t("comandos")}
             </p>
             <div className="space-y-0.5 max-h-20 overflow-y-auto ws-scrollbar mt-1">
               {deployLog.results.map((r) => (
-                <p key={r.guild.id} className="text-[8px]" style={{ color: r.ok ? "#22C55E" : "#EF4444", fontFamily: "'JetBrains Mono', monospace" }}>
-                  {r.ok ? "✅" : "❌"} {r.guild.name}: {r.ok ? `${r.commands} ${t("comandos")}` : (r.error || "erro")}
+                <p key={r.guild.id} className="text-[8px] flex items-center gap-1" style={{ color: r.ok ? "var(--ok)" : "var(--err)", fontFamily: "'JetBrains Mono', monospace" }}>
+                  {r.ok ? <Check size={9} strokeWidth={2.5} /> : <X size={9} strokeWidth={2.5} />} {r.guild.name}: {r.ok ? `${r.commands} ${t("comandos")}` : (r.error || "erro")}
                 </p>
               ))}
             </div>
@@ -326,9 +334,9 @@ export function DiscordView() {
 
       <div className="grid grid-cols-2 gap-2">
         <WorkspaceCard>
-          <p className="text-[9px] font-medium mb-1" style={{ color: "#A0A0A0" }}>{t("Servidores")}</p>
+          <p className="text-[9px] font-medium mb-1" style={{ color: P.sub }}>{t("Servidores")}</p>
           {discord.guilds.length === 0 ? (
-            <WorkspaceEmptyState icon={<span style={{ fontSize: 14 }}>🏰</span>} message={t("Nenhum servidor")} />
+            <WorkspaceEmptyState icon={<Castle size={14} color="var(--primary)" strokeWidth={1.6} />} message={t("Nenhum servidor")} />
           ) : (
             <div className="space-y-1 max-h-48 overflow-y-auto ws-scrollbar">
               {discord.guilds.map((g) => (
@@ -337,8 +345,8 @@ export function DiscordView() {
                   onClick={() => handleSelectGuild(g.id)}
                   className="w-full text-left px-2 py-1.5 rounded text-[9px] transition-colors"
                   style={{
-                    background: discord.selectedGuildId === g.id ? "rgba(195,0,47,0.14)" : "transparent",
-                    color: discord.selectedGuildId === g.id ? "#FFFFFF" : "#A0A0A0",
+                    background: discord.selectedGuildId === g.id ? "color-mix(in srgb, var(--primary) 14%, transparent)" : "transparent",
+                    color: discord.selectedGuildId === g.id ? P.text : P.sub,
                   }}
                 >
                   <span className="font-medium">{g.name}</span>
@@ -350,13 +358,13 @@ export function DiscordView() {
         </WorkspaceCard>
 
         <WorkspaceCard>
-          <p className="text-[9px] font-medium mb-1" style={{ color: "#A0A0A0" }}>
+          <p className="text-[9px] font-medium mb-1" style={{ color: P.sub }}>
             {selectedGuild ? `${t("Canais")} — ${selectedGuild.name}` : t("Canais")}
           </p>
           {!discord.selectedGuildId ? (
-            <WorkspaceEmptyState icon={<span style={{ fontSize: 14 }}>💬</span>} message={t("Selecione um servidor")} />
+            <WorkspaceEmptyState icon={<MessageSquare size={14} color="var(--primary)" strokeWidth={1.6} />} message={t("Selecione um servidor")} />
           ) : discord.channels.length === 0 ? (
-            <WorkspaceEmptyState icon={<span style={{ fontSize: 14 }}>🔇</span>} message={t("Nenhum canal de texto")} />
+            <WorkspaceEmptyState icon={<VolumeX size={14} color="var(--primary)" strokeWidth={1.6} />} message={t("Nenhum canal de texto")} />
           ) : (
             <div className="space-y-1 max-h-48 overflow-y-auto ws-scrollbar">
               {discord.channels.map((ch) => (
@@ -370,8 +378,8 @@ export function DiscordView() {
                   }}
                   className="w-full text-left px-2 py-1 rounded text-[9px] transition-colors"
                   style={{
-                    background: discord.selectedChannelId === ch.id ? "rgba(195,0,47,0.14)" : "transparent",
-                    color: discord.selectedChannelId === ch.id ? "#FFFFFF" : "#A0A0A0",
+                    background: discord.selectedChannelId === ch.id ? "color-mix(in srgb, var(--primary) 14%, transparent)" : "transparent",
+                    color: discord.selectedChannelId === ch.id ? P.text : P.sub,
                   }}
                 >
                   # {ch.name}
@@ -383,7 +391,7 @@ export function DiscordView() {
       </div>
 
       <WorkspaceCard>
-        <p className="text-[9px] font-medium mb-1" style={{ color: "#A0A0A0" }}>
+        <p className="text-[9px] font-medium mb-1" style={{ color: P.sub }}>
           {selectedChannel ? `#${selectedChannel.name}` : t("Selecione um canal para enviar mensagem")}
         </p>
         <div className="space-y-2">
@@ -392,7 +400,7 @@ export function DiscordView() {
             onChange={(e) => setMessageText(e.target.value)}
             placeholder={t("Digite sua mensagem...")}
             className="w-full text-[10px] rounded-md px-2 py-1.5 resize-none"
-            style={{ background: "rgba(255,255,255,0.03)", border: "1px solid #252525", color: "#FFFFFF", minHeight: 50 }}
+            style={{ background: "rgba(255,255,255,0.03)", border: "1px solid var(--border)", color: P.text, minHeight: 50 }}
             disabled={!discord.selectedChannelId}
           />
           <WorkspaceButton
@@ -408,10 +416,10 @@ export function DiscordView() {
 
       {logs.length > 0 && (
         <div className="p-2 rounded" style={{ background: "rgba(0,0,0,0.2)" }}>
-          <p className="text-[9px] font-medium mb-1" style={{ color: "#A0A0A0" }}>{t("Log")}</p>
+          <p className="text-[9px] font-medium mb-1" style={{ color: P.sub }}>{t("Log")}</p>
           <div className="space-y-0.5 max-h-24 overflow-y-auto ws-scrollbar">
             {logs.map((log, i) => (
-              <p key={i} className="text-[8px]" style={{ color: "#A0A0A0", fontFamily: "'JetBrains Mono', monospace" }}>{log}</p>
+              <p key={i} className="text-[8px]" style={{ color: P.sub, fontFamily: "'JetBrains Mono', monospace" }}>{log}</p>
             ))}
           </div>
         </div>

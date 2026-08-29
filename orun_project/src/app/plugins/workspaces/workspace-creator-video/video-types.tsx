@@ -1,4 +1,5 @@
 // Shared types, constants, and icons for Creator Video workspace
+import { P } from "../premium";
 
 export interface VideoClip {
   id: string;
@@ -27,8 +28,9 @@ export interface AIGenerationState {
   result?: string;
 }
 
-export interface VideoState {
-  [key: string]: unknown;
+// Type alias (not interface) so VideoState satisfies Record<string, unknown>
+// for createStore<T extends Record<string, unknown>>.
+export type VideoState = {
   clips: VideoClip[];
   currentTimeFrame: number;
   totalFrames: number;
@@ -75,10 +77,10 @@ export const TOTAL_SECONDS = 204;
 export const TOTAL_FRAMES = TOTAL_SECONDS * FPS;
 
 export const TRACK_CONFIG = [
-  { name: "\u{1F4F9} V\u00eddeo", color: "#C3002F", controls: "eye-lock" as const },
-  { name: "\u{1F3B5} M\u00fasica", color: "#8B5CF6", controls: "solo-mute" as const },
-  { name: "\u{1F3A4} Narra\u00e7\u00e3o", color: "#00D26A", controls: "solo-mute" as const },
-  { name: "\u270F\uFE0F Texto", color: "#FFB547", controls: "eye" as const },
+  { name: "V\u00eddeo", color: "#C3002F", controls: "eye-lock" as const },
+  { name: "M\u00fasica", color: "#8B5CF6", controls: "solo-mute" as const },
+  { name: "Narra\u00e7\u00e3o", color: "#22C55E", controls: "solo-mute" as const },
+  { name: "Texto", color: "#F59E0B", controls: "eye" as const },
 ];
 
 export const MEDIA_TABS = ["M\u00eddia", "Texto", "Efeitos", "Transi\u00e7\u00f5es"];
@@ -101,7 +103,7 @@ export const EFFECTS = [
   { label: "Vivido", color: "#C3002F" },
   { label: "Frio", color: "#4DA3FF" },
   { label: "Cinematic", color: "#8B5CF6" },
-  { label: "VHS", color: "#FFB547" },
+  { label: "VHS", color: "#F59E0B" },
 ];
 
 export const TRANSITIONS = [
@@ -109,15 +111,19 @@ export const TRANSITIONS = [
   { label: "Slide", arrow: "\u2190" },
   { label: "Zoom", arrow: "\u2295" },
   { label: "Dissolve", arrow: "\u25CE" },
-  { label: "Glitch", arrow: "\u26A1" },
+  { label: "Glitch", arrow: "\u21AF" },
 ];
 
+// ACCENT must stay a literal hex: consumers build 8-digit hex colors from it
+// (e.g. `${ACCENT}40`), which breaks with var() strings. Track/clip/effect
+// colors are data colors (like NLE track colors) and stay fixed too.
 export const ACCENT = "#C3002F";
-export const STRIP = "#0A0A0C";
-export const BORDER = "#252525";
-export const TEXT_DIM = "#5C5C5C";
-export const TEXT_MED = "#A0A0A0";
-export const TEXT_BRI = "#FFFFFF";
+// Chrome surfaces follow the app theme via tokens.
+export const STRIP = P.panel;
+export const BORDER = P.border;
+export const TEXT_DIM = P.dim;
+export const TEXT_MED = P.sub;
+export const TEXT_BRI = P.text;
 export const MONO = "'JetBrains Mono', monospace";
 export const SANS = "'Sora', sans-serif";
 
@@ -136,20 +142,20 @@ export const btnBase: React.CSSProperties = {
 export const inputStyle: React.CSSProperties = {
   width: "100%",
   height: 22,
-  background: "#141414",
-  border: "1px solid #383838",
+  background: P.card2,
+  border: `1px solid ${P.borderHi}`,
   borderRadius: 6,
   padding: "0 5px",
   fontSize: 10,
   fontFamily: MONO,
-  color: TEXT_BRI,
+  color: P.text,
   outline: "none",
   boxSizing: "border-box",
 };
 
 export const labelStyle: React.CSSProperties = {
   fontSize: 9,
-  color: TEXT_MED,
+  color: P.dim,
   fontFamily: SANS,
   marginBottom: 2,
   display: "block",

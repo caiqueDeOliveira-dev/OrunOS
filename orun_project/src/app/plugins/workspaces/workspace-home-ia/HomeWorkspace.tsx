@@ -1,4 +1,4 @@
-// workspace-home-ia / HomeWorkspace.tsx
+﻿// workspace-home-ia / HomeWorkspace.tsx
 // Premium Orun OS Home dashboard — dark, minimal, Samsung SmartThings / Apple Home inspired.
 // Navegação interna por páginas: Home (dashboard 3 colunas), Assistente, Casa,
 // Dispositivos, Câmeras, Cenários, Automações, Sistema e Configurações.
@@ -15,6 +15,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { WorkspaceProps } from "../../types";
+import { P, HS_SCROLL } from "../premium";
 import { usePersonalization } from "../../../hooks/usePersonalization";
 import { HomeHampton } from "./HomeHampton";
 import {
@@ -24,22 +25,6 @@ import {
 } from "./home-store";
 import type { HomeDevice, HomeAutomation, HomeScene, HomeStatus, HomeConfig } from "./home-types";
 
-// ── Fixed premium dark palette ─────────────────────────────────────────
-const P = {
-  bg: "#050505",
-  panel: "#0A0A0C",
-  card: "#141414",
-  card2: "#1C1C1C",
-  border: "#252525",
-  borderHi: "#383838",
-  text: "#FFFFFF",
-  sub: "#A0A0A0",
-  dim: "#5C5C5C",
-  primary: "#C3002F",
-  success: "#00D26A",
-  alert: "#FFB547",
-  error: "#FF4B4B",
-};
 
 type HomePage =
   | "home" | "assistente" | "casa" | "dispositivos"
@@ -158,13 +143,13 @@ function PageHeader({ icon: Icon, title, subtitle, onBack }: {
     <div className="flex items-center gap-3 mb-6">
       <button
         onClick={onBack}
-        className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all hover:scale-105 hover:shadow-[0_0_16px_rgba(195,0,47,0.15)]"
+        className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all hover:scale-105 hover:shadow-[0_0_16px_color-mix(in srgb, var(--primary) 15%, transparent)]"
         style={{ background: P.card, border: `1px solid ${P.border}`, color: P.sub }}
         title="Voltar para a Home"
       >
         <ArrowLeft size={16} />
       </button>
-      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(195,0,47,0.14)", color: P.primary }}>
+      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "color-mix(in srgb, var(--primary) 14%, transparent)", color: P.primary }}>
         <Icon size={18} strokeWidth={1.7} />
       </div>
       <div className="min-w-0">
@@ -205,7 +190,7 @@ function CasaSeguraCard({ temp, humidity, online, onClick }: { temp: string; hum
   return (
     <button
       onClick={onClick}
-      className="rounded-[20px] p-5 flex flex-col gap-4 text-left transition-all hover:scale-[1.01] hover:shadow-[0_0_24px_rgba(195,0,47,0.08)]"
+      className="rounded-[20px] p-5 flex flex-col gap-4 text-left transition-all hover:scale-[1.01] hover:shadow-[0_0_24px_color-mix(in srgb, var(--primary) 8%, transparent)]"
       style={{ background: P.card, border: `1px solid ${P.border}`, cursor: "pointer" }}
     >
       <div className="flex items-center justify-between">
@@ -215,7 +200,7 @@ function CasaSeguraCard({ temp, humidity, online, onClick }: { temp: string; hum
       <div>
         <p className="text-[9px] font-semibold uppercase tracking-[0.2em] mb-3" style={{ color: P.dim }}>Clima</p>
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={{ background: "rgba(195,0,47,0.1)", color: P.primary }}>
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)", color: P.primary }}>
             <CloudSun size={24} strokeWidth={1.6} />
           </div>
           <div>
@@ -262,7 +247,7 @@ function AutomationRow({ automation }: { automation: HomeAutomation }) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-[18px] px-4 py-3" style={{ background: P.card, border: `1px solid ${P.border}` }}>
       <div className="flex items-center gap-3 min-w-0">
-        <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(0,210,106,0.1)", color: P.success }}>
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "color-mix(in srgb, var(--ok) 10%, transparent)", color: P.success }}>
           <Icon size={16} strokeWidth={1.7} />
         </div>
         <div className="min-w-0">
@@ -285,12 +270,12 @@ function SceneTile({ scene, active, onActivate }: { scene: HomeScene; active: bo
       onClick={onActivate}
       className="flex items-center gap-2.5 rounded-[18px] px-4 py-3 text-left transition-all hover:scale-[1.02] active:scale-95"
       style={{
-        background: "linear-gradient(160deg, rgba(195,0,47,0.08), #141414 65%)",
-        border: active ? `1px solid rgba(195,0,47,0.55)` : `1px solid ${P.border}`,
-        boxShadow: active ? "0 0 18px rgba(195,0,47,0.14)" : "none",
+        background: "linear-gradient(160deg, color-mix(in srgb, var(--primary) 8%, transparent), var(--surface-2) 65%)",
+        border: active ? `1px solid color-mix(in srgb, var(--primary) 55%, transparent)` : `1px solid ${P.border}`,
+        boxShadow: active ? "0 0 18px color-mix(in srgb, var(--primary) 14%, transparent)" : "none",
       }}
     >
-      <span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(195,0,47,0.12)", color: P.primary }}>
+      <span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)", color: P.primary }}>
         <Icon size={14} strokeWidth={1.7} />
       </span>
       <span className="text-[11px] font-medium truncate" style={{ color: active ? P.text : P.sub }}>{scene.name}</span>
@@ -337,16 +322,16 @@ function FavoriteDeviceCard({ device }: { device: HomeDevice }) {
   else statusText = String(device.value);
 
   return (
-    <div className="flex flex-col gap-3 rounded-[18px] p-4 transition-all hover:scale-[1.02] hover:shadow-[0_0_24px_rgba(195,0,47,0.1)]" style={{ background: P.card, border: `1px solid ${P.border}` }}>
+    <div className="flex flex-col gap-3 rounded-[18px] p-4 transition-all hover:scale-[1.02] hover:shadow-[0_0_24px_color-mix(in srgb, var(--primary) 10%, transparent)]" style={{ background: P.card, border: `1px solid ${P.border}` }}>
       <div className="flex items-center justify-between gap-2 min-w-0">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: active ? "rgba(195,0,47,0.14)" : P.card2, boxShadow: active ? "0 0 14px rgba(195,0,47,0.2)" : "none", color: active ? P.primary : P.sub }}>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: active ? "color-mix(in srgb, var(--primary) 14%, transparent)" : P.card2, boxShadow: active ? "0 0 14px color-mix(in srgb, var(--primary) 20%, transparent)" : "none", color: active ? P.primary : P.sub }}>
             <Icon size={18} strokeWidth={1.7} />
           </div>
           <div className="min-w-0">
             <p className="text-xs font-medium truncate" style={{ color: P.text }}>{device.name}</p>
             <p className="text-[10px] mt-1 flex items-center gap-1.5" style={{ color: P.sub }}>
-              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: active ? P.success : "#4a4a4a", boxShadow: active ? `0 0 6px ${P.success}` : "none" }} />
+              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: active ? P.success : P.dim, boxShadow: active ? `0 0 6px ${P.success}` : "none" }} />
               {statusText}
             </p>
           </div>
@@ -356,9 +341,9 @@ function FavoriteDeviceCard({ device }: { device: HomeDevice }) {
             onClick={() => run(() => toggleDevice(device.id))}
             disabled={busy}
             className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all"
-            style={{ background: active ? "rgba(0,210,106,0.14)" : P.card2, border: `1px solid ${active ? "rgba(0,210,106,0.4)" : P.borderHi}` }}
+            style={{ background: active ? "color-mix(in srgb, var(--ok) 14%, transparent)" : P.card2, border: `1px solid ${active ? "color-mix(in srgb, var(--ok) 40%, transparent)" : P.borderHi}` }}
           >
-            <span className="w-3 h-3 rounded-full" style={{ background: active ? P.success : "#4a4a4a" }} />
+            <span className="w-3 h-3 rounded-full" style={{ background: active ? P.success : P.dim }} />
           </button>
         )}
         {isLock && (
@@ -366,7 +351,7 @@ function FavoriteDeviceCard({ device }: { device: HomeDevice }) {
             onClick={() => run(() => lockDevice(device.id, !device.locked))}
             disabled={busy}
             className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-            style={{ background: active ? "rgba(195,0,47,0.14)" : P.card2, border: `1px solid ${P.borderHi}`, color: active ? P.primary : P.sub }}
+            style={{ background: active ? "color-mix(in srgb, var(--primary) 14%, transparent)" : P.card2, border: `1px solid ${P.borderHi}`, color: active ? P.primary : P.sub }}
           >
             {active ? <Lock size={14} /> : <Unlock size={14} />}
           </button>
@@ -379,7 +364,7 @@ function FavoriteDeviceCard({ device }: { device: HomeDevice }) {
             onClick={() => run(() => toggleDevice(device.id))}
             disabled={busy}
             className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all"
-            style={{ background: active ? "rgba(195,0,47,0.14)" : P.card2, border: `1px solid ${P.borderHi}`, color: active ? P.primary : P.sub }}
+            style={{ background: active ? "color-mix(in srgb, var(--primary) 14%, transparent)" : P.card2, border: `1px solid ${P.borderHi}`, color: active ? P.primary : P.sub }}
           >
             <Lightbulb size={13} />
           </button>
@@ -399,7 +384,7 @@ function FavoriteDeviceCard({ device }: { device: HomeDevice }) {
             onClick={() => run(() => toggleDevice(device.id))}
             disabled={busy}
             className="w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{ background: active ? "rgba(195,0,47,0.14)" : P.card2, border: `1px solid ${P.borderHi}`, color: active ? P.primary : P.sub }}
+            style={{ background: active ? "color-mix(in srgb, var(--primary) 14%, transparent)" : P.card2, border: `1px solid ${P.borderHi}`, color: active ? P.primary : P.sub }}
           >
             <Snowflake size={13} />
           </button>
@@ -431,7 +416,7 @@ function CameraCard({ name, bg, device, onClick }: { name: string; bg: string; d
     <button
       onClick={onClick}
       disabled={!onClick}
-      className="relative rounded-[18px] overflow-hidden aspect-video text-left transition-all hover:scale-[1.02] hover:shadow-[0_0_24px_rgba(195,0,47,0.08)] disabled:cursor-default"
+      className="relative rounded-[18px] overflow-hidden aspect-video text-left transition-all hover:scale-[1.02] hover:shadow-[0_0_24px_color-mix(in srgb, var(--primary) 8%, transparent)] disabled:cursor-default"
       style={{ background: bg, border: `1px solid ${P.border}`, cursor: onClick ? "pointer" : "default" }}
     >
       <div className="absolute inset-0 pointer-events-none" style={{ background: "repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.18) 3px, rgba(0,0,0,0.18) 6px)", opacity: 0.5 }} />
@@ -439,7 +424,7 @@ function CameraCard({ name, bg, device, onClick }: { name: string; bg: string; d
         <Cctv size={22} strokeWidth={1.5} color="rgba(255,255,255,0.22)" />
       </div>
 
-      <div className="absolute top-2 left-2 flex items-center gap-1.5 px-2 py-1 rounded-full" style={{ background: "rgba(0,0,0,0.55)", border: `1px solid ${live ? "rgba(0,210,106,0.35)" : "rgba(255,75,75,0.35)"}` }}>
+      <div className="absolute top-2 left-2 flex items-center gap-1.5 px-2 py-1 rounded-full" style={{ background: "rgba(0,0,0,0.55)", border: `1px solid ${live ? "color-mix(in srgb, var(--ok) 35%, transparent)" : "color-mix(in srgb, var(--err) 35%, transparent)"}` }}>
         <span className="w-1.5 h-1.5 rounded-full" style={{ background: live ? P.success : P.error, boxShadow: live ? `0 0 6px ${P.success}` : "none", animation: live ? "orunStatePulse 1.4s ease-in-out infinite" : "none" }} />
         <span className="text-[8px] font-semibold tracking-wider" style={{ color: live ? P.success : P.error }}>{live ? "AO VIVO" : "OFFLINE"}</span>
       </div>
@@ -524,7 +509,7 @@ function HomeDashboard({ now, effectiveState, listening, micActive, level, parti
           style={{ background: P.card2, border: `1px solid ${P.border}` }}
         >
           <span className="flex items-center gap-3 text-[12px] font-medium" style={{ color: P.text }}>
-            <span className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "rgba(195,0,47,0.12)", color: P.primary }}>
+            <span className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)", color: P.primary }}>
               <Lightbulb size={14} />
             </span>
             Todas Luzes
@@ -541,7 +526,7 @@ function HomeDashboard({ now, effectiveState, listening, micActive, level, parti
       </div>
 
       {/* Coluna B — Hampton central + câmeras */}
-      <div className="flex flex-col gap-5 px-5 py-6 min-w-0" style={{ borderLeft: "1px solid rgba(255,255,255,0.05)" }}>
+      <div className="flex flex-col gap-5 px-5 py-6 min-w-0" style={{ borderLeft: "1px solid var(--border)" }}>
         <div className="flex flex-col items-center">
           <p className="text-[9px] font-semibold uppercase tracking-[0.3em] mb-4" style={{ color: P.dim }}>Orun IA</p>
           <HomeHampton state={effectiveState as never} size={188} image="./LogoIA.png" />
@@ -552,9 +537,9 @@ function HomeDashboard({ now, effectiveState, listening, micActive, level, parti
             onClick={onMic}
             disabled={!onMic}
             className="mt-4 flex items-center gap-2.5 pl-3 pr-5 py-2 rounded-full transition-all hover:scale-[1.03] active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
-            style={{ background: "rgba(195,0,47,0.12)", border: "1px solid rgba(195,0,47,0.45)" }}
+            style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 45%, transparent)" }}
           >
-            <span className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: P.primary, boxShadow: micActive ? "0 0 20px rgba(195,0,47,0.75)" : "0 0 10px rgba(195,0,47,0.45)", animation: micActive ? "orunAuraPulse 1.2s ease-in-out infinite" : "none" }}>
+            <span className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: P.primary, boxShadow: micActive ? "0 0 20px color-mix(in srgb, var(--primary) 75%, transparent)" : "0 0 10px color-mix(in srgb, var(--primary) 45%, transparent)", animation: micActive ? "orunAuraPulse 1.2s ease-in-out infinite" : "none" }}>
               <Mic size={16} color="#fff" />
             </span>
             <span className="text-[12px] font-medium" style={{ color: P.text }}>
@@ -592,7 +577,7 @@ function HomeDashboard({ now, effectiveState, listening, micActive, level, parti
       </div>
 
       {/* Coluna C — relógio / status / automações / cenários / sistema */}
-      <div className="flex flex-col gap-5 px-5 py-6 min-w-0" style={{ borderLeft: "1px solid rgba(255,255,255,0.05)" }}>
+      <div className="flex flex-col gap-5 px-5 py-6 min-w-0" style={{ borderLeft: "1px solid var(--border)" }}>
         <ClockBlock now={now} />
 
         <div>
@@ -702,9 +687,9 @@ function AssistentePage({ hamptonState, onMicClick, voiceVolume, partialTranscri
         onClick={onMicClick}
         disabled={!onMicClick}
         className="flex items-center gap-2.5 pl-3 pr-5 py-2 rounded-full transition-all hover:scale-[1.03] active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
-        style={{ background: "rgba(195,0,47,0.12)", border: "1px solid rgba(195,0,47,0.45)" }}
+        style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 45%, transparent)" }}
       >
-        <span className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: P.primary, boxShadow: micActive ? "0 0 20px rgba(195,0,47,0.75)" : "0 0 10px rgba(195,0,47,0.45)", animation: micActive ? "orunAuraPulse 1.2s ease-in-out infinite" : "none" }}>
+        <span className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: P.primary, boxShadow: micActive ? "0 0 20px color-mix(in srgb, var(--primary) 75%, transparent)" : "0 0 10px color-mix(in srgb, var(--primary) 45%, transparent)", animation: micActive ? "orunAuraPulse 1.2s ease-in-out infinite" : "none" }}>
           <Mic size={16} color="#fff" />
         </span>
         <span className="text-[12px] font-medium" style={{ color: P.text }}>
@@ -861,12 +846,12 @@ function CenariosPage({ activeSceneId, onActivate, onNavigate }: {
               onClick={() => onActivate(scene)}
               className="flex flex-col items-start gap-3 rounded-[20px] p-5 text-left transition-all hover:scale-[1.02] active:scale-95"
               style={{
-                background: "linear-gradient(160deg, rgba(195,0,47,0.08), #141414 65%)",
-                border: active ? `1px solid rgba(195,0,47,0.55)` : `1px solid ${P.border}`,
-                boxShadow: active ? "0 0 22px rgba(195,0,47,0.16)" : "none",
+                background: "linear-gradient(160deg, color-mix(in srgb, var(--primary) 8%, transparent), var(--surface-2) 65%)",
+                border: active ? `1px solid color-mix(in srgb, var(--primary) 55%, transparent)` : `1px solid ${P.border}`,
+                boxShadow: active ? "0 0 22px color-mix(in srgb, var(--primary) 16%, transparent)" : "none",
               }}
             >
-              <div className="w-11 h-11 rounded-2xl flex items-center justify-center" style={{ background: "rgba(195,0,47,0.12)", color: P.primary }}>
+              <div className="w-11 h-11 rounded-2xl flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)", color: P.primary }}>
                 <Icon size={18} strokeWidth={1.7} />
               </div>
               <div>
@@ -891,7 +876,7 @@ function AutomationCard({ automation, busy, onToggle, onRun }: {
   return (
     <div className="rounded-[18px] p-4 flex items-center justify-between gap-3 transition-all hover:scale-[1.01]" style={{ background: P.card, border: `1px solid ${P.border}` }}>
       <div className="flex items-center gap-3 min-w-0">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: running ? "rgba(0,210,106,0.12)" : P.card2, color: running ? P.success : P.sub }}>
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: running ? "color-mix(in srgb, var(--ok) 12%, transparent)" : P.card2, color: running ? P.success : P.sub }}>
           <Icon size={17} strokeWidth={1.7} />
         </div>
         <div className="min-w-0">
@@ -1156,19 +1141,13 @@ export function HomeWorkspace({ onSendMessage, hamptonState, onMicClick, voiceVo
 
   return (
     <div className="flex flex-col h-full overflow-hidden" style={{ background: P.bg, color: P.text, fontFamily: "'Inter', sans-serif" }}>
-      <style>{`
-        .hs-scroll { scrollbar-width: thin; scrollbar-color: #2a2a2a #050505; }
-        .hs-scroll::-webkit-scrollbar { width: 8px; }
-        .hs-scroll::-webkit-scrollbar-track { background: #050505; }
-        .hs-scroll::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 8px; }
-        .hs-scroll::-webkit-scrollbar-thumb:hover { background: #3a3a3a; }
-      `}</style>
+      <style>{HS_SCROLL}</style>
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
         <aside className="w-[172px] shrink-0 hidden lg:flex flex-col px-3 pt-5 pb-4" style={{ background: P.panel, borderRight: `1px solid ${P.border}` }}>
           <div className="flex items-center gap-2.5 px-2 pb-5">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg, #C3002F, #7A001C)", boxShadow: "0 0 16px rgba(195,0,47,0.35)" }}>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg, var(--primary), color-mix(in srgb, var(--primary) 45%, black))", boxShadow: "0 0 16px color-mix(in srgb, var(--primary) 35%, transparent)" }}>
               <HomeIcon size={16} color="#fff" strokeWidth={1.8} />
             </div>
             <div>
@@ -1186,7 +1165,7 @@ export function HomeWorkspace({ onSendMessage, hamptonState, onMicClick, voiceVo
                   key={item.id}
                   onClick={() => handleMenu(item)}
                   className="flex items-center gap-3 px-2.5 py-2.5 rounded-xl text-[12px] font-medium transition-all hover:scale-[1.02]"
-                  style={{ background: active ? "rgba(195,0,47,0.14)" : "transparent", color: active ? P.text : P.sub }}
+                  style={{ background: active ? "color-mix(in srgb, var(--primary) 14%, transparent)" : "transparent", color: active ? P.text : P.sub }}
                 >
                   <Icon size={16} strokeWidth={1.7} color={active ? P.primary : P.sub} />
                   {item.label}
@@ -1196,7 +1175,7 @@ export function HomeWorkspace({ onSendMessage, hamptonState, onMicClick, voiceVo
           </nav>
 
           <div className="mt-auto flex items-center gap-2.5 px-2 pt-4">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold shrink-0" style={{ background: "rgba(195,0,47,0.16)", color: P.primary }}>
+            <div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold shrink-0" style={{ background: "color-mix(in srgb, var(--primary) 16%, transparent)", color: P.primary }}>
               C
             </div>
             <div className="min-w-0">

@@ -1,4 +1,4 @@
-// TopBar — Transport controls, tempo, BPM, deck info, tap
+﻿// TopBar — Transport controls, tempo, BPM, deck info, tap
 import { useCallback } from "react";
 import { useTranslation } from "../../../../i18n/I18nProvider";
 import { useDJStore } from "./creator-audio-store";
@@ -14,10 +14,10 @@ export function TopBar() {
   const deckB = useDJStore((s) => s.deckB);
 
   const btn = useCallback((active = false, accent?: string): React.CSSProperties => ({
-    height: 26, padding: "0 10px", borderRadius: 6, border: `1px solid ${active && accent ? "transparent" : "#252525"}`,
+    height: 26, padding: "0 10px", borderRadius: 6, border: `1px solid ${active && accent ? "transparent" : "var(--border)"}`,
     fontSize: 10, fontFamily: FONT_LABEL, fontWeight: 600, cursor: "pointer",
     display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
-    background: active && accent ? accent : "#141414",
+    background: active && accent ? accent : "var(--surface-2)",
     color: active && accent ? "#fff" : TEXT_MED,
     transition: "all 0.15s",
   }), []);
@@ -78,7 +78,7 @@ export function TopBar() {
           <span style={{ fontSize: 9, color: TEXT_MED, fontFamily: FONT_MONO }}>A: {deckA.track || t("creator_audio_none")}</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#4DA3FF" }} />
+          <div style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--info)" }} />
           <span style={{ fontSize: 9, color: TEXT_MED, fontFamily: FONT_MONO }}>B: {deckB.track || t("creator_audio_none")}</span>
         </div>
       </div>

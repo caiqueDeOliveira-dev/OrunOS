@@ -17,6 +17,20 @@ const developerTools = require("./developer-tools.cjs");
 const firecrawl = require("./firecrawl.cjs");
 const discordBridge = require("./discord-bridge.cjs");
 const careerBridge = require("./career.cjs");
+const neuralHandlers = require("./ipc/neural-handlers.cjs");
+
+/** Acesso lazy ao Knowledge Engine (criado depois do init no main). */
+function getKnowledgeEngine() {
+  try {
+    return ctx && typeof ctx.getKnowledgeEngine === "function" ? ctx.getKnowledgeEngine() : null;
+  } catch {
+    return null;
+  }
+}
+
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
 
 // ── Rate limiter (simple in-memory) ────────────────────────────────────
 const agentRateLimiter = {
@@ -606,6 +620,76 @@ const TOOL_DEFINITIONS = [
   {
     type: "function",
     function: {
+      name: "neural_save_note",
+      description:
+        "Salva uma nota interligada no Neural (segundo cérebro). Use markdown denso no content com [[Título de outra nota]] SOMENTE quando houver relação real. Só salve conhecimento reutilizável — conversa trivial não vira nota.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string", description: "Título curto e reutilizável da nota (âncora para wikilinks)" },
+          content: { type: "string", description: "Conteúdo em markdown, pt-BR, denso e autossuficiente" },
+          tags: { type: "array", items: { type: "string" }, description: "Tags opcionais (máx 8)" },
+        },
+        required: ["title", "content"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "neural_search_notes",
+      description:
+        "Busca notas do Neural por termo (título, conteúdo e tags). Use ANTES de salvar para evitar duplicatas.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Termo de busca" },
+          limit: { type: "number", description: "Máximo de resultados (padrão 8)" },
+        },
+        required: ["query"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "neural_list_notes",
+      description:
+        "Lista as notas mais relevantes do Neural (títulos + resumo). Use antes de escrever novas notas.",
+      parameters: {
+        type: "object",
+        properties: { limit: { type: "number", description: "Máximo de notas (padrão 20)" } },
+        required: [],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "neural_get_note",
+      description: "Retorna uma nota completa do Neural por id ou título exato.",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "string", description: "Id da nota (se souber)" },
+          title: { type: "string", description: "Título exato da nota" },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "neural_backlinks_graph",
+      description:
+        "Retorna o mapa do Neural: nós (notas reais + conceitos órfãos), arestas ([[wikilinks]]) e backlinks por nota. Útil para enxergar conexões antes de linkar.",
+      parameters: { type: "object", properties: {}, required: [] },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "rag_search",
       description: "Semantic search through long-term memory using AI embeddings. More intelligent than memory_search.",
       parameters: {
@@ -904,6 +988,118 @@ const TOOL_DEFINITIONS = [
       },
     },
   },
+  // --- Developer Elite: Git Write Operations ---
+  {
+    type: "function",
+    function: {
+      name: "git_commit",
+      description: "Stage files and create a git commit. Stages all changes if no files specified.",
+      parameters: {
+        type: "object",
+        properties: {
+          message: { type: "string", description: "Commit message." },
+          files: { type: "array", items: { type: "string" }, description: "Specific files to stage (default: all changes)." },
+        },
+        required: ["message"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "git_branch",
+      description: "List, create, or delete git branches.",
+      parameters: {
+        type: "object",
+        properties: {
+          action: { type: "string", enum: ["list", "create", "delete"], description: "Action (default list)." },
+          name: { type: "string", description: "Branch name (required for create/delete)." },
+          startPoint: { type: "string", description: "Start point for create (e.g. main, HEAD~3)." },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "git_checkout",
+      description: "Switch branches or restore working tree files.",
+      parameters: {
+        type: "object",
+        properties: {
+          branch: { type: "string", description: "Branch to switch to." },
+          create: { type: "boolean", description: "Create a new branch (git checkout -b)." },
+          file: { type: "string", description: "Restore a specific file from HEAD." },
+        },
+      },
+    },
+  },
+  // --- Developer Elite: Test Generator ---
+  {
+    type: "function",
+    function: {
+      name: "generate_tests",
+      description: "Generate a test scaffold from a source file. Analyzes exports and creates a test file with placeholder tests for vitest/jest/mocha/pytest/go/cargo.",
+      parameters: {
+        type: "object",
+        properties: {
+          sourceFile: { type: "string", description: "Source file to generate tests for (relative to workspace)." },
+          framework: { type: "string", enum: ["vitest", "jest", "mocha", "pytest", "go", "cargo"], description: "Test framework (auto-detected if omitted)." },
+        },
+        required: ["sourceFile"],
+      },
+    },
+  },
+  // --- Developer Elite: Refactor Tools ---
+  {
+    type: "function",
+    function: {
+      name: "refactor_rename",
+      description: "Safely rename a symbol (function/class/const) across all files in the workspace. Finds all references and updates them atomically.",
+      parameters: {
+        type: "object",
+        properties: {
+          oldName: { type: "string", description: "Current name to rename." },
+          newName: { type: "string", description: "New name." },
+          dir: { type: "string", description: "Subdirectory to search (default: workspace root)." },
+        },
+        required: ["oldName", "newName"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "refactor_move",
+      description: "Safely move a file to a new location, updating all imports/requires that reference it.",
+      parameters: {
+        type: "object",
+        properties: {
+          from: { type: "string", description: "Source path (relative to workspace)." },
+          to: { type: "string", description: "Destination path (relative to workspace)." },
+        },
+        required: ["from", "to"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "refactor_extract",
+      description: "Extract a block of lines from a source file into a new file, replacing the original with an import placeholder.",
+      parameters: {
+        type: "object",
+        properties: {
+          sourceFile: { type: "string", description: "Source file (relative to workspace)." },
+          startLine: { type: "number", description: "Start line (1-indexed, inclusive)." },
+          endLine: { type: "number", description: "End line (1-indexed, inclusive)." },
+          targetFile: { type: "string", description: "Target file name (default: extracted.<ext>)." },
+          functionName: { type: "string", description: "Name for the import placeholder comment." },
+        },
+        required: ["sourceFile", "startLine", "endLine"],
+      },
+    },
+  },
   {
     type: "function",
     function: {
@@ -921,6 +1117,27 @@ const TOOL_DEFINITIONS = [
       },
     },
   },
+  // --- Integration tools ---
+  { type: "function", function: { name: "telemetry_track", description: "Track an event for observability (agent health, errors, actions).", parameters: { type: "object", properties: { type: { type: "string", description: "Event type (agent.invoked, agent.error, etc.)" }, agentId: { type: "string" }, agentName: { type: "string" }, skillsUsed: { type: "array", items: { type: "string" } }, error: { type: "string" }, isBoundaryError: { type: "boolean" } }, required: ["type"] } } },
+  { type: "function", function: { name: "telemetry_health", description: "Get health metrics for a specific agent or all agents.", parameters: { type: "object", properties: { agentId: { type: "string", description: "Agent ID. Omit for all agents." } } } } },
+  { type: "function", function: { name: "secret_scan", description: "Scan a directory for leaked secrets (API keys, tokens, passwords) using Gitleaks.", parameters: { type: "object", properties: { path: { type: "string", description: "Directory to scan" }, kind: { type: "string", enum: ["working_tree", "full_history", "staged"], description: "Scan mode" } }, required: ["path"] } } },
+  { type: "function", function: { name: "secret_allowlist_add", description: "Add a secret finding to the allowlist (acknowledge as safe/false positive).", parameters: { type: "object", properties: { ruleId: { type: "string" }, filePath: { type: "string" }, reason: { type: "string" } }, required: ["ruleId", "filePath", "reason"] } } },
+  { type: "function", function: { name: "finance_list_accounts", description: "List all financial accounts (checking, savings, credit, etc.).", parameters: { type: "object", properties: {} } } },
+  { type: "function", function: { name: "finance_create_transaction", description: "Create a financial transaction (expense or income).", parameters: { type: "object", properties: { accountId: { type: "string" }, date: { type: "string", description: "YYYY-MM-DD" }, amountCents: { type: "number", description: "Amount in cents (integer)" }, payee: { type: "string" }, notes: { type: "string" }, categoryId: { type: "string" }, cleared: { type: "boolean" } }, required: ["accountId", "date", "amountCents"] } } },
+  { type: "function", function: { name: "finance_budget_month", description: "Get budget summary for a specific month.", parameters: { type: "object", properties: { month: { type: "string", description: "YYYY-MM" } }, required: ["month"] } } },
+  { type: "function", function: { name: "social_schedule_post", description: "Schedule a post on social media (Instagram, Twitter, TikTok).", parameters: { type: "object", properties: { accountIds: { type: "array", items: { type: "string" } }, content: { type: "string" }, mediaUrls: { type: "array", items: { type: "string" } }, scheduledFor: { type: "string", description: "ISO datetime" } }, required: ["accountIds", "content", "scheduledFor"] } } },
+  { type: "function", function: { name: "social_list_posts", description: "List scheduled social media posts.", parameters: { type: "object", properties: { status: { type: "string", enum: ["pending", "published", "cancelled"] } } } } },
+  { type: "function", function: { name: "design_list_projects", description: "List design projects from Penpot.", parameters: { type: "object", properties: {} } } },
+  { type: "function", function: { name: "design_export_file", description: "Export a design file from Penpot as SVG/PNG/PDF.", parameters: { type: "object", properties: { fileId: { type: "string" }, format: { type: "string", enum: ["svg", "png", "pdf"] }, pageId: { type: "string" } }, required: ["fileId", "format"] } } },
+  { type: "function", function: { name: "vault_save", description: "Save a bookmark/link to the memory vault (Karakeep).", parameters: { type: "object", properties: { type: { type: "string", enum: ["link", "text", "note"] }, content: { type: "string" }, tags: { type: "array", items: { type: "string" } }, title: { type: "string" } }, required: ["type", "content"] } } },
+  { type: "function", function: { name: "vault_search", description: "Search the memory vault in natural language.", parameters: { type: "object", properties: { query: { type: "string" }, limit: { type: "number" } }, required: ["query"] } } },
+  { type: "function", function: { name: "photo_search", description: "Search photos in the Immich library.", parameters: { type: "object", properties: { text: { type: "string" }, personName: { type: "string" }, albumId: { type: "string" }, favorite: { type: "boolean" } } } } },
+  // ── Postiz tools ──
+  { type: "function", function: { name: "postiz_list_channels", description: "List connected social media channels in Postiz (X, Instagram, etc).", parameters: { type: "object", properties: {} } } },
+  { type: "function", function: { name: "postiz_list_posts", description: "List posts in Postiz for a date range.", parameters: { type: "object", properties: { startDate: { type: "string", description: "ISO date (default: first of current month)" }, endDate: { type: "string", description: "ISO date (default: last of current month)" } } } } },
+  { type: "function", function: { name: "postiz_create_post", description: "Create a post in Postiz. For X/Twitter: content max 280 chars. Use integrationId from postiz_list_channels.", parameters: { type: "object", properties: { integrationId: { type: "string", description: "Channel integration ID from postiz_list_channels" }, content: { type: "string", description: "Post text content" }, date: { type: "string", description: "Scheduled date/time ISO (optional, for schedule type)" }, type: { type: "string", enum: ["schedule", "draft", "now"], description: "schedule=scheduled, draft=draft, now=publish immediately" }, whoCanReply: { type: "string", enum: ["everyone", "following", "mentionedUsers", "subscribers", "verified"], description: "X/Twitter reply setting (default: everyone)" } }, required: ["integrationId", "content"] } } },
+  { type: "function", function: { name: "postiz_find_slot", description: "Find next available posting slot in Postiz.", parameters: { type: "object", properties: { integrationId: { type: "string", description: "Optional: specific channel ID" } } } } },
+  { type: "function", function: { name: "postiz_health", description: "Check Postiz connection status.", parameters: { type: "object", properties: {} } } },
 ];
 
 // Ferramentas do CaOS Commander (ponte cérebro ↔ bot Discord — Fase 3)
@@ -1268,6 +1485,7 @@ const SENSITIVE_TOOL_ACTIONS = {
   generate_image: ["api_key_access", "network_request"],
   generate_video: ["api_key_access", "network_request"],
   git_stash: ["git_write"],
+  postiz_create_post: ["social_post"],
 };
 
 function buildAuditDetails(name, args) {
@@ -1382,6 +1600,35 @@ async function executeToolRaw(name, args) {
     case "career_generate_profile": return careerBridge.generateProfileContent(args.profileKey);
     case "career_prepare_application": return careerBridge.prepareApplication(args.jobId, args.profileKey, { querySummary: args.querySummary });
     case "career_stats": return careerBridge.getStats();
+    case "neural_save_note": {
+      const ke = getKnowledgeEngine();
+      if (!ke) return { ok: false, error: "Knowledge Engine indisponível" };
+      const title = String(args.title || "").trim().slice(0, 120);
+      const content = String(args.content || "").trim();
+      if (title.length < 3 || content.length < 10) return { ok: false, error: "Título (3+) e conteúdo (10+) obrigatórios" };
+      return ke.save({ kind: "note", title, content, tags: Array.isArray(args.tags) ? args.tags.slice(0, 8).map(String) : [], date: todayISO() });
+    }
+    case "neural_search_notes": {
+      const ke = getKnowledgeEngine();
+      if (!ke) return { ok: false, error: "Knowledge Engine indisponível" };
+      return neuralHandlers.searchNotes(ke.load(), String(args.query || ""), Number(args.limit) > 0 ? Math.min(Number(args.limit), 25) : 8);
+    }
+    case "neural_list_notes": {
+      const ke = getKnowledgeEngine();
+      if (!ke) return { ok: false, error: "Knowledge Engine indisponível" };
+      const limit = Number(args.limit) > 0 ? Math.min(Number(args.limit), 50) : 20;
+      return neuralHandlers.listNotes(ke.load(), limit);
+    }
+    case "neural_get_note": {
+      const ke = getKnowledgeEngine();
+      if (!ke) return { ok: false, error: "Knowledge Engine indisponível" };
+      return neuralHandlers.getNote(ke.load(), args.id ? String(args.id) : null, args.title ? String(args.title) : null);
+    }
+    case "neural_backlinks_graph": {
+      const ke = getKnowledgeEngine();
+      if (!ke) return { ok: false, error: "Knowledge Engine indisponível" };
+      return neuralHandlers.buildSnapshot(ke.load());
+    }
     case "web_search": {
       const { query, numResults = 5 } = args;
       const keys = ctx && ctx.readSecretStore ? ctx.readSecretStore() : {};
@@ -1582,6 +1829,27 @@ async function executeToolRaw(name, args) {
     case "code_review": {
       return developerTools.codeReview(getWorkspaceDir(), args);
     }
+    case "git_commit": {
+      return developerTools.gitCommit(getWorkspaceDir(), args);
+    }
+    case "git_branch": {
+      return developerTools.gitBranch(getWorkspaceDir(), args);
+    }
+    case "git_checkout": {
+      return developerTools.gitCheckout(getWorkspaceDir(), args);
+    }
+    case "generate_tests": {
+      return developerTools.generateTests(getWorkspaceDir(), args);
+    }
+    case "refactor_rename": {
+      return developerTools.refactorRename(getWorkspaceDir(), args);
+    }
+    case "refactor_move": {
+      return developerTools.refactorMove(getWorkspaceDir(), args);
+    }
+    case "refactor_extract": {
+      return developerTools.refactorExtract(getWorkspaceDir(), args);
+    }
     case "semgrep_scan": {
       return developerTools.semgrepScan(getWorkspaceDir(), args);
     }
@@ -1592,6 +1860,94 @@ async function executeToolRaw(name, args) {
       const weatherTools = require("./weather-tools.cjs");
       return await weatherTools.getWeather(args);
     }
+      // --- Integration tools ---
+      case "telemetry_track": {
+        if (!ctx.telemetry) return { error: "Telemetry not configured" };
+        await ctx.telemetry.track(args);
+        return { ok: true };
+      }
+      case "telemetry_health": {
+        if (!ctx.telemetryReader) return { error: "Telemetry reader not configured" };
+        if (args.agentId) return ctx.telemetryReader.getAgentHealth(args.agentId);
+        return ctx.telemetryReader.getAllAgentsHealth();
+      }
+      case "secret_scan": {
+        if (!ctx.secretScanner) return { error: "Secret scanner not configured (install Gitleaks)" };
+        if (!ctx.secretAllowlist) return { error: "Secret allowlist not configured" };
+        const { applyAllowlist } = require("@orun/shield-secrets-core");
+        const raw = await ctx.secretScanner.scan({ kind: args.kind || "working_tree", path: args.path });
+        return applyAllowlist(raw, ctx.secretAllowlist);
+      }
+      case "secret_allowlist_add": {
+        if (!ctx.secretAllowlist) return { error: "Secret allowlist not configured" };
+        await ctx.secretAllowlist.add({ ruleId: args.ruleId, filePath: args.filePath, reason: args.reason, addedBy: "agent", addedAt: new Date().toISOString() });
+        return { ok: true };
+      }
+      case "finance_list_accounts": {
+        if (!ctx.financeStore) return { error: "Finance store not configured" };
+        return ctx.financeStore.listAccounts();
+      }
+      case "finance_create_transaction": {
+        if (!ctx.financeStore) return { error: "Finance store not configured" };
+        return ctx.financeStore.createTransaction(args);
+      }
+      case "finance_budget_month": {
+        if (!ctx.financeStore) return { error: "Finance store not configured" };
+        return ctx.financeStore.getBudgetMonth(args.month);
+      }
+      case "social_schedule_post": {
+        if (!ctx.socialScheduler) return { error: "Social scheduler not configured" };
+        return ctx.socialScheduler.schedulePost(args);
+      }
+      case "social_list_posts": {
+        if (!ctx.socialScheduler) return { error: "Social scheduler not configured" };
+        return ctx.socialScheduler.listScheduledPosts(args);
+      }
+      case "design_list_projects": {
+        if (!ctx.designStore) return { error: "Design store not configured" };
+        return ctx.designStore.listProjects();
+      }
+      case "design_export_file": {
+        if (!ctx.designStore) return { error: "Design store not configured" };
+        return ctx.designStore.exportFile(args.fileId, args.format, args.pageId);
+      }
+      case "vault_save": {
+        if (!ctx.memoryVault) return { error: "Memory vault not configured" };
+        return ctx.memoryVault.save(args);
+      }
+      case "vault_search": {
+        if (!ctx.memoryVault) return { error: "Memory vault not configured" };
+        return ctx.memoryVault.search(args.query, { limit: args.limit });
+      }
+      case "photo_search": {
+        if (!ctx.photoLibrary) return { error: "Photo library not configured" };
+        return ctx.photoLibrary.search(args);
+      }
+      // ── Postiz tools ──
+      case "postiz_list_channels": {
+        if (!ctx.postiz) return { error: "Postiz not configured" };
+        return ctx.postiz.listIntegrations();
+      }
+      case "postiz_list_posts": {
+        if (!ctx.postiz) return { error: "Postiz not configured" };
+        return ctx.postiz.listPosts(args.startDate, args.endDate);
+      }
+      case "postiz_create_post": {
+        if (!ctx.postiz) return { error: "Postiz not configured" };
+        return ctx.postiz.createPost({
+          posts: [{ integrationId: args.integrationId, content: args.content, whoCanReply: args.whoCanReply || "everyone" }],
+          type: args.type || "schedule",
+          date: args.date || new Date().toISOString(),
+        });
+      }
+      case "postiz_find_slot": {
+        if (!ctx.postiz) return { error: "Postiz not configured" };
+        return ctx.postiz.findFreeSlot(args.integrationId);
+      }
+      case "postiz_health": {
+        if (!ctx.postiz) return { error: "Postiz not configured" };
+        return ctx.postiz.healthCheck();
+      }
     default: return { error: `Unknown tool: ${name}` };
   }
 }

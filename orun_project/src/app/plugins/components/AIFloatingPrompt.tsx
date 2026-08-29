@@ -37,8 +37,8 @@ export function AIFloatingPrompt({ onSendMessage, label = "Agent" }: Props) {
       )}
       <button
         onClick={handleClick}
-        className="flex items-center gap-1.5 px-3 py-2 rounded-full text-[10px] shadow-lg transition-all hover:scale-[1.05]"
-        style={{ background: "linear-gradient(135deg, #C00018, #8B0000)", color: "#fff" }}
+        className="flex items-center gap-1.5 px-3 py-2 rounded-full text-[10px] shadow-lg transition-all hover:brightness-110"
+        style={{ background: "var(--primary)", color: "#fff" }}
       >
         <Shield size={12} /> {aiPrompt && aiPrompt.trim() ? "Execute" : label}
       </button>

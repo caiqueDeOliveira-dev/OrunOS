@@ -1,6 +1,51 @@
 import { describe, it, expect } from "vitest";
-import { routeChat, streamChat, trimContext, buildContext, testConnection, resolveApiKeys, isKeyQuotaError, markKeyExhausted, isKeyExhausted } from "../ai-router.cjs";
+import { routeChat, streamChat, trimContext, buildContext, testConnection, resolveApiKeys, isKeyQuotaError, isPayloadTooLargeError, truncateMessagesForRetry, markKeyExhausted, isKeyExhausted } from "../ai-router.cjs";
 import { checkAll, getStatus } from "../provider-health.cjs";
+
+describe("isPayloadTooLargeError", () => {
+  it("detects HTTP 413 and Groq TPM errors", () => {
+    const groq413 = new Error('HTTP 413: {"error":{"message":"Request too large for model on tokens per minute (TPM): Limit 8000","code":"rate_limit_exceeded"}}');
+    expect(isPayloadTooLargeError(groq413)).toBe(true);
+    expect(isPayloadTooLargeError(new Error("request too large for model"))).toBe(true);
+  });
+
+  it("does not match quota, auth or generic errors", () => {
+    expect(isPayloadTooLargeError(new Error("HTTP 429: rate_limit_exceeded"))).toBe(false);
+    expect(isPayloadTooLargeError(new Error("HTTP 401: Missing Authentication header"))).toBe(false);
+    expect(isPayloadTooLargeError(new Error("HTTP 404: model does not exist"))).toBe(false);
+  });
+});
+
+describe("truncateMessagesForRetry", () => {
+  it("keeps system messages plus the most recent messages within budget", () => {
+    const messages = [
+      { role: "system", content: "S".repeat(1000) },
+      ...Array.from({ length: 30 }, (_, i) => ({ role: i % 2 ? "user" : "assistant", content: "x".repeat(2000) })),
+      { role: "user", content: "latest question" },
+    ];
+    const out = truncateMessagesForRetry(messages, 8000);
+    expect(out[0].role).toBe("system");
+    expect(out[out.length - 1].content).toBe("latest question");
+    const total = out.reduce((n, m) => n + m.content.length, 0);
+    expect(total).toBeLessThanOrEqual(1000 + 8000);
+  });
+
+  it("returns the input untouched when it is not an array", () => {
+    expect(truncateMessagesForRetry(undefined)).toBeUndefined();
+  });
+
+  it("truncates oversized system prompts instead of failing", () => {
+    const messages = [
+      { role: "system", content: "S".repeat(50000) },
+      ...Array.from({ length: 10 }, (_, i) => ({ role: "user", content: "y".repeat(2000) })),
+    ];
+    const out = truncateMessagesForRetry(messages, 20000);
+    const total = out.reduce((n, m) => n + m.content.length, 0);
+    expect(total).toBeLessThanOrEqual(20000 + 200);
+    expect(out[0].content).toContain("[Contexto truncado");
+    expect(out[out.length - 1].content).toBe("y".repeat(2000));
+  });
+});
 
 describe("trimContext", () => {
   it("keeps everything when under the limit", () => {
@@ -137,7 +182,7 @@ describe("multi-key rotation", () => {
     markKeyExhausted("groq", 0, 60000);
     markKeyExhausted("groq", 1, 60000);
     await expect(
-      routeChat({ provider: "groq", model: "llama-3.3-70b-versatile", apiKeys: ["k1", "k2"], messages: [{ role: "user", content: "hi" }] })
+      routeChat({ provider: "groq", model: "openai/gpt-oss-120b", apiKeys: ["k1", "k2"], messages: [{ role: "user", content: "hi" }] })
     ).rejects.toThrow(/All API keys for groq are exhausted or rate-limited/);
     markKeyExhausted("groq", 0, 0);
     markKeyExhausted("groq", 1, 0);

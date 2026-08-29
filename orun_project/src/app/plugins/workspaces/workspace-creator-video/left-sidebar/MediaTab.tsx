@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { useTranslation } from "../../../../../i18n/I18nProvider";
+import { P } from "../../premium";
 import { useVideoStore, pushUndo } from "../video-store";
 import { FPS, SANS, MONO, MEDIA_ITEMS_GRID, type VideoClip } from "../video-types";
 
@@ -27,12 +28,12 @@ export function MediaTab() {
     <div className="flex flex-col gap-2">
       <button
         style={{
-          width: "100%", height: 28, background: "#C3002F", color: "#fff",
+          width: "100%", height: 28, background: "var(--primary)", color: "#fff",
           border: "none", borderRadius: 6, fontSize: 10, fontFamily: SANS,
-          fontWeight: 600, cursor: "pointer", boxShadow: "0 0 10px rgba(195,0,47,0.3)",
+          fontWeight: 600, cursor: "pointer",
         }}
         onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(195,0,47,0.8)"; }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = "#C3002F"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = "var(--primary)"; }}
         onClick={() => fileInputRef.current?.click()}
       >
         + {t("importar") ?? "Importar"}
@@ -69,7 +70,7 @@ export function MediaTab() {
             onClick={() => addClip(item.label.replace(/\.[^.]+$/, ""), "video", item.color)}
             style={{
               borderRadius: 6, overflow: "hidden",
-              border: "1px solid #141414",
+              border: `1px solid ${P.border}`,
               transition: "border-color 0.15s",
             }}
           >
@@ -82,9 +83,9 @@ export function MediaTab() {
             >
               <span style={{ fontSize: 16, opacity: 0.3, color: "#FFFFFF" }}>&#9654;</span>
             </div>
-            <div style={{ padding: "3px 4px", background: "#0A0A0C" }}>
-              <div style={{ fontSize: 8, color: "#FFFFFF", fontFamily: SANS, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.label}</div>
-              <div style={{ fontSize: 7, color: "#5C5C5C", fontFamily: MONO }}>{item.dur}</div>
+            <div style={{ padding: "3px 4px", background: P.card }}>
+              <div style={{ fontSize: 8, color: P.text, fontFamily: SANS, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.label}</div>
+              <div style={{ fontSize: 7, color: P.dim, fontFamily: MONO }}>{item.dur}</div>
             </div>
           </div>
         ))}

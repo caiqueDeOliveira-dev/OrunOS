@@ -1,4 +1,4 @@
-// MixerCenter.tsx — Virtual DJ 2026 Center Mixer with Neon VU Meters, Faders, EQ, Crossfader
+﻿// MixerCenter.tsx — Virtual DJ 2026 Center Mixer with Neon VU Meters, Faders, EQ, Crossfader
 import { useTranslation } from "../../../../i18n/I18nProvider";
 import { useDJStore } from "./creator-audio-store";
 import { Knob } from "./creator-audio-ui";
@@ -12,7 +12,7 @@ export function MixerCenter() {
   const crossfader = useDJStore((s) => s.crossfader);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", borderRadius: 12, background: "linear-gradient(180deg, #101013 0%, #0A0A0C 100%)", border: "1px solid #252525", boxShadow: "0 8px 32px rgba(0,0,0,0.6)", overflow: "hidden", minWidth: 0, flex: 1 }}>
+    <div style={{ display: "flex", flexDirection: "column", borderRadius: 12, background: "linear-gradient(180deg, var(--surface-2) 0%, var(--surface-1) 100%)", border: "1px solid var(--border)", boxShadow: "0 8px 32px rgba(0,0,0,0.6)", overflow: "hidden", minWidth: 0, flex: 1 }}>
       {/* Mixer header */}
       <div style={{ padding: "6px 8px", borderBottom: `1px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(0,0,0,0.3)" }}>
         <span style={{ fontSize: 9, color: GREEN, fontFamily: FONT_MONO, fontWeight: 700 }}>NEON VU METERS</span>

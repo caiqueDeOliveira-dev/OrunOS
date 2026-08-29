@@ -1,4 +1,4 @@
-import { lazy } from "react";
+﻿import { lazy } from "react";
 import { registerPlugin } from "../../PluginRegistry";
 import type { WorkspacePlugin } from "../../types";
 
@@ -9,8 +9,8 @@ const GroupFeedWorkspace = lazy(() =>
 const plugin: WorkspacePlugin = {
   id: "GroupFeed",
   name: "Grupos",
-  version: "1.0.0",
-  description: "Feed de mensagens dos grupos de WhatsApp com fotos, links e descrições dos produtos em tempo real",
+  version: "1.1.0",
+  description: "Feed de mensagens dos grupos de WhatsApp com fotos, links e descriÃ§Ãµes dos produtos em tempo real",
   icon: "MessageSquareText",
   requirements: { minRamMB: 256, estimatedRAMMB: 60, features: [] },
   tabs: null,

@@ -42,6 +42,7 @@ export const ChatInput = React.memo(function ChatInput({
   const [slashOpen, setSlashOpen] = useState(false);
   const [slashFilter, setSlashFilter] = useState("");
   const [slashIndex, setSlashIndex] = useState(0);
+  const [focused, setFocused] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const lastSubmitRef = useRef<number>(0);
@@ -159,7 +160,7 @@ export const ChatInput = React.memo(function ChatInput({
             >
               <Command size={12} style={{ color: "var(--primary)" }} />
               <div className="flex-1 min-w-0">
-                <span className="text-[11px] font-medium" style={{ color: "var(--foreground)" }}>{cmd.command}</span>
+                <span className="text-[10.5px] font-medium" style={{ fontFamily: "'JetBrains Mono', monospace", color: "var(--foreground)" }}>{cmd.command}</span>
                 <span className="text-[10px] ml-2" style={{ color: "var(--muted-foreground)" }}>{cmd.description}</span>
               </div>
             </button>
@@ -168,11 +169,13 @@ export const ChatInput = React.memo(function ChatInput({
       )}
 
       <div
-        className="flex items-center gap-3 px-5 py-4 rounded-2xl border"
+        className="flex items-center gap-3 px-5 py-4 rounded-xl border transition-all duration-200"
         style={{
           background: "var(--card)",
-          borderColor: "var(--border)",
-          boxShadow: "0 0 0 1px color-mix(in srgb, var(--primary) 4%, transparent), 0 8px 40px rgba(0,0,0,0.15)",
+          borderColor: focused ? "var(--line-hi)" : "var(--border)",
+          boxShadow: focused
+            ? "0 0 0 1px color-mix(in srgb, var(--primary) 10%, transparent), 0 8px 40px rgba(0,0,0,0.15)"
+            : "0 0 0 1px color-mix(in srgb, var(--primary) 4%, transparent), 0 8px 40px rgba(0,0,0,0.15)",
         }}
       >
         <button
@@ -218,6 +221,8 @@ export const ChatInput = React.memo(function ChatInput({
           value={value}
           onChange={e => handleChange(e.target.value)}
           onKeyDown={handleKeyDown}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
           placeholder={t("chatPlaceholder")}
           className="flex-1 bg-transparent outline-none text-sm"
           role={slashOpen ? "combobox" : undefined}
@@ -225,7 +230,8 @@ export const ChatInput = React.memo(function ChatInput({
           aria-controls={slashOpen ? "slash-command-listbox" : undefined}
           aria-activedescendant={slashOpen && filteredCommands.length > 0 ? `slash-command-option-${slashIndex}` : undefined}
           style={{
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: value.startsWith("/") ? "'JetBrains Mono', monospace" : "'Inter', sans-serif",
+            fontSize: value.startsWith("/") ? "13px" : undefined,
             color: "var(--foreground)",
             fontWeight: 300,
           }}

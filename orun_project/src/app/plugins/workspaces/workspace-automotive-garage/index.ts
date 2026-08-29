@@ -1,4 +1,4 @@
-import { lazy } from "react";
+﻿import { lazy } from "react";
 import { registerPlugin } from "../../PluginRegistry";
 import type { WorkspacePlugin } from "../../types";
 
@@ -9,7 +9,7 @@ const AutomotiveGarage = lazy(() =>
 const plugin: WorkspacePlugin = {
   id: "Automotive",
   name: "Automotive Garage",
-  version: "1.0.0",
+  version: "1.1.0",
   description: "Consultor automotivo completo - diagnostico, servicos, gastos e pecas",
   icon: "Car",
   requirements: { minRamMB: 512, estimatedRAMMB: 80, features: [] },

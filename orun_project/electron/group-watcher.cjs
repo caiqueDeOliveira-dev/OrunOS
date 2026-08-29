@@ -330,14 +330,78 @@ function createGroupWatcher({ db, log, aiRouter, secretStore, resolveAISettings,
     persist();
   }
 
-  function formatDeals(all) {
-    const blocks = all.map((entry) => {
-      const items = (entry.results || []).slice(0, 3)
-        .map((r) => `- ${r.title}\n  ${r.url}`)
-        .join("\n");
-      return `🔎 *${entry.term}*\n${items || "nada encontrado"}`;
+  // ── Enriquecimento de ofertas (detalhes = foto, loja, preço, cupom, link) ──
+
+  const PRICE_RE = /R\$\s?[\d.]{3,}(?:[,]\d{2})?/i;
+  const IMAGE_RE = /!\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/i;
+  const COUPON_RE = /(cupom[:\s]*|c[oó]digo[:\s]*|desconto[:\s]*)[a-z0-9]{4,12}/i;
+  const CONDITION_RE = /(promo[açã]o|oferta|desconto de \d+%|[\d]{1,2}% off|\d+% de desconto)/i;
+
+  function storeOf(url) {
+    try {
+      let host = new URL(url).hostname;
+      host = host.replace(/^www\./, "");
+      if (host.endsWith(".com.br")) host = host.replace(/\.com\.br$/, ".com.br");
+      return host.split(".").slice(-2).join(".");
+    } catch {
+      return "";
+    }
+  }
+
+  function extractFromMarkdown(md = "") {
+    if (!md) return {};
+    const image = (md.match(IMAGE_RE) || [])[1];
+    const price = (md.match(PRICE_RE) || [])[0];
+    const coupon = (md.match(COUPON_RE) || [])[0]?.trim();
+    let title = "";
+    const heading = md.match(/^#{1,3}\s+(.+)$/m);
+    if (heading) title = heading[1].replace(/\s+/g, " ").trim();
+    const cond = (md.match(CONDITION_RE) || [])[0];
+    if (price && title.length < 3) {
+      const line = md.split("\n").find((l) => PRICE_RE.test(l));
+      if (line) title = line.replace(PRICE_RE, "").replace(/[|*#\-]/g, "").trim().slice(0, 140);
+    }
+    return { image, price, coupon, title, condition: cond || "" };
+  }
+
+  async function enrichDeal(apiKey, result, term) {
+    const base = {
+      title: result.title || "",
+      url: result.url || "",
+      description: result.description || "",
+    };
+    try {
+      const scraped = await firecrawl.scrape(result.url, { formats: ["markdown"], onlyMainContent: true, timeout: 15000 }, apiKey);
+      if (scraped && scraped.ok) {
+        const extra = extractFromMarkdown(scraped.markdown);
+        return {
+          ...base,
+          image: extra.image || "",
+          price: extra.price || "",
+          coupon: extra.coupon || "",
+          condition: extra.condition || "",
+          store: storeOf(result.url),
+        };
+      }
+    } catch { /* segue com dados da busca */ }
+    return { ...base, image: "", price: "", coupon: "", condition: "", store: storeOf(result.url) };
+  }
+
+  function formatRichDeal(entry) {
+    const lines = [`🛒 *${entry.term}*`, `──────────`];
+    const deals = (entry.deals || []).slice(0, 3);
+    deals.forEach((d, i) => {
+      lines.push(`*${i + 1}. ${d.title || "Oferta encontrada"}*`);
+      if (d.price) lines.push(`💵 Preço: ${d.price}`);
+      if (d.store) lines.push(`🏪 Onde: ${d.store}`);
+      if (d.condition) lines.push(`🔥 ${d.condition}`);
+      if (d.coupon) lines.push(`🎟️ Cupom: ${d.coupon}`);
+      if (d.description) lines.push(`📄 ${(d.description || "").slice(0, 200)}`);
+      if (d.url) lines.push(`🔗 ${d.url}`);
+      if (d.image) lines.push(`📷 ${d.image}`);
+      if (i < deals.length - 1) lines.push(`—`);
     });
-    return blocks.join("\n\n");
+    return lines.join("\n");
   }
 
   async function runDealsScan() {
@@ -355,8 +419,16 @@ function createGroupWatcher({ db, log, aiRouter, secretStore, resolveAISettings,
     const all = [];
     for (const w of enabled) {
       try {
-        const res = await firecrawl.search(`${w.term} promoção`, { limit: 5, country: "br", langs: ["pt"] }, keys.firecrawl);
-        if (res.results) all.push({ term: w.term, results: res.results });
+        const res = await firecrawl.search(`${w.term} promoção`, { limit: 5, country: "br", lang: "pt" }, keys.firecrawl);
+        if (!res.results || !res.results.length) continue;
+        // Scrape os 2 primeiros para extrair foto/preço/loja/cupom.
+        const results = res.results.slice(0, 5);
+        const deals = [];
+        for (const r of results.slice(0, 2)) {
+          const enriched = await enrichDeal(keys.firecrawl, r, w.term);
+          deals.push(enriched);
+        }
+        all.push({ term: w.term, deals, raw: results });
       } catch (err) {
         logg.warn(`[group-watcher] busca por "${w.term}" falhou:`, err.message);
       }
@@ -366,7 +438,7 @@ function createGroupWatcher({ db, log, aiRouter, secretStore, resolveAISettings,
     updateSettings({ deals: { ...settings.deals, lastRun: now, status: all.length ? "ok" : "empty" } });
 
     if (all.length) {
-      const summary = formatDeals(all);
+      const summary = all.map(formatRichDeal).join("\n\n");
       await sendAlert(`🛒 Robô de promoções\n\n${summary}`, { source: "deals" });
       if (opts && typeof opts.onDeals === "function") {
         try { opts.onDeals({ ok: true, at: now, deals: all }); } catch { /* ignore */ }

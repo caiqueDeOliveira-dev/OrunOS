@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { createStore } from "../../lib/store";
 import { Car, Wrench, DollarSign, FileText, Plus, Trash2, Gauge, Shield, X, ChevronDown } from "lucide-react";
 import { registerAutomotiveActions, unregisterAutomotiveActions, setAutomotiveStoreGetter } from "./automotive-actions";
@@ -277,7 +277,7 @@ export function AutomotiveGarage({ onSendMessage }: WorkspaceProps) {
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b shrink-0" style={{ borderColor: P.border, background: P.panel }}>
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `linear-gradient(135deg, #0e3a86, ${P.info})`, boxShadow: "0 0 14px rgba(77,163,255,0.25)" }}>
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `linear-gradient(135deg, color-mix(in srgb, var(--info) 40%, black), ${P.info})`, boxShadow: "0 0 14px color-mix(in srgb, var(--info) 25%, transparent)" }}>
             <Car size={18} color="#FFF" />
           </div>
           <div>
@@ -433,7 +433,7 @@ export function AutomotiveGarage({ onSendMessage }: WorkspaceProps) {
                     <div key={v.id} className="rounded-[18px] border p-4 transition-all hover:scale-[1.01]" style={{ background: P.card, borderColor: P.border }}>
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center gap-2">
-                          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `linear-gradient(135deg, #0e3a86, ${P.info})` }}>
+                          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `linear-gradient(135deg, color-mix(in srgb, var(--info) 40%, black), ${P.info})` }}>
                             <Car size={18} color="#FFF" />
                           </div>
                           <div>
@@ -656,12 +656,12 @@ export function AutomotiveGarage({ onSendMessage }: WorkspaceProps) {
               <div className="space-y-2">
                 <h4 className="text-[9px] uppercase tracking-[0.14em] font-semibold mb-2" style={{ color: P.dim }}>Onde Comprar</h4>
                 {[
-                  { name: "Mercado Livre", url: "https://lista.mercadolivre.com.br", icon: "🛒", color: "#FFE600", desc: "Maior marketplace da América Latina" },
-                  { name: "Shopee", url: "https://shopee.com.br", icon: "🛍️", color: "#EE4D2D", desc: "Preços competitivos e frete grátis" },
-                  { name: "OLX Peças", url: "https://www.olx.com.br/autos-e-pecas/pecas-e-acessorios", icon: "🔧", color: "#6B0E8A", desc: "Anúncios de peças usadas e novas" },
-                  { name: "Google Shopping", url: "https://www.google.com/search?tbm=shop", icon: "🔍", color: "#4285F4", desc: "Compare preços em várias lojas" },
-                  { name: "AutoParts", url: "https://www.autoparts.com.br", icon: "🚗", color: "#C00018", desc: "Loja especializada em peças automotivas" },
-                  { name: "Nakata", url: "https://www.nakata.com.br", icon: "⚙️", color: "#0047AB", desc: "Suspensão e direção" },
+                  { name: "Mercado Livre", url: "https://lista.mercadolivre.com.br", icon: "ML", color: "#FFE600", desc: "Maior marketplace da América Latina" },
+                  { name: "Shopee", url: "https://shopee.com.br", icon: "SP", color: "#EE4D2D", desc: "Preços competitivos e frete grátis" },
+                  { name: "OLX Peças", url: "https://www.olx.com.br/autos-e-pecas/pecas-e-acessorios", icon: "OLX", color: "#6B0E8A", desc: "Anúncios de peças usadas e novas" },
+                  { name: "Google Shopping", url: "https://www.google.com/search?tbm=shop", icon: "GS", color: "#4285F4", desc: "Compare preços em várias lojas" },
+                  { name: "AutoParts", url: "https://www.autoparts.com.br", icon: "AP", color: "#C00018", desc: "Loja especializada em peças automotivas" },
+                  { name: "Nakata", url: "https://www.nakata.com.br", icon: "NK", color: "#0047AB", desc: "Suspensão e direção" },
                 ].map((site, i) => (
                   <button key={i} onClick={() => window.open(`${site.url}?q=${encodeURIComponent(partsQuery || "pecas automotivas")}`, "_blank")}
                     className="w-full flex items-center gap-3 p-3 rounded-[14px] border transition-all hover:scale-[1.01] text-left"

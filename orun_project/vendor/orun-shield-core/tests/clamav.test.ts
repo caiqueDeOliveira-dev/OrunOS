@@ -1,10 +1,9 @@
+// @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { EventEmitter } from "node:events";
 
 // Mock de child_process.spawn para testar o parsing sem depender do binário clamav real instalado no CI.
-vi.mock("node:child_process", () => ({
-  spawn: vi.fn(),
-}));
+vi.mock("node:child_process", () => ({ spawn: vi.fn() }));
 
 import { spawn } from "node:child_process";
 import { ClamAVScanner } from "../src/clamav/ClamAVScanner.js";

@@ -27,7 +27,7 @@ export function AvatarHome({ hamptonState }: AvatarHomeProps) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
       >
-        <p className="text-3xl tracking-wide" style={{ fontFamily: "'Cormorant Garamond', serif", color: "var(--foreground)", fontWeight: 300 }}>
+        <p className="text-3xl tracking-tight" style={{ fontFamily: "'Sora', sans-serif", color: "var(--foreground)", fontWeight: 300 }}>
           {t("homeWelcomeBack")}
         </p>
         <p className="text-sm" style={{ fontFamily: "'Inter', sans-serif", color: "var(--muted-foreground)", fontWeight: 300 }}>

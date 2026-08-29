@@ -4,7 +4,9 @@
 // Eliminates 3x duplicated fallback logic across ai-router.cjs.
 
 const KNOWN_FREE_MODELS = {
-  groq: ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "openai/gpt-oss-120b", "openai/gpt-oss-20b", "allam-2-7b", "groq/compound", "groq/compound-mini"],
+  // Groq desligou llama-3.3-70b-versatile e llama-3.1-8b-instant em 16/08/2026.
+  // Substitutos oficiais: openai/gpt-oss-120b (era 70b) e openai/gpt-oss-20b (era 8b).
+  groq: ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.6-27b", "groq/compound", "groq/compound-mini"],
   openrouter: ["openai/gpt-oss-20b:free", "nvidia/nemotron-3-ultra-550b-a55b:free", "nvidia/nemotron-3-super-120b-a12b:free", "nvidia/nemotron-3-nano-30b-a3b:free", "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free", "nvidia/nemotron-3.5-lightning:free", "nvidia/nemotron-3.5-content-safety:free", "nvidia/nemotron-nano-9b-v2:free", "nvidia/nemotron-nano-12b-v2-vl:free", "google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "cohere/north-mini-code:free", "poolside/laguna-s-2.1:free", "poolside/laguna-xs-2.1:free", "liquid/lfm-2.5-2.6b:free", "openrouter/free"],
   opencodezen: ["big-pickle", "deepseek-v4-flash-free", "mimo-v2.5-free", "hy3-free", "nemotron-3-ultra-free", "nemotron-3.5-lightning-free", "laguna-s-2.1-free"],
   // NVIDIA NIM — free tier mensal por modelo (5k créditos).

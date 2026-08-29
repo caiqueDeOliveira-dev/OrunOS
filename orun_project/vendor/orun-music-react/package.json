@@ -1,0 +1,27 @@
+{
+  "name": "@orun/music-react",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./dist/hooks.js",
+  "types": "./dist/hooks.d.ts",
+  "exports": {
+    ".": "./dist/hooks.js",
+    "./hooks": "./dist/hooks.js",
+    "./useKeyboardShortcuts": "./dist/useKeyboardShortcuts.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@orun/music-core": "*"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.0",
+    "react": "^18.3.0",
+    "typescript": "^5.5.0"
+  }
+}

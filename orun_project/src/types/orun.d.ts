@@ -234,6 +234,46 @@ export interface KnowledgeDocInput {
   date?: string;
 }
 
+export interface NeuralNode {
+  id: string;
+  title: string;
+  kind: string;
+  tags: string[];
+  date: string | null;
+  updated_at: number;
+  linkCount: number;
+  ghost: boolean;
+}
+
+export interface NeuralEdge {
+  source: string;
+  target: string;
+}
+
+export interface NeuralSearchResult {
+  id: string;
+  title: string;
+  kind: string | null;
+  tags: string[] | null;
+  date: string | null;
+  updated_at: number | null;
+  snippet: string;
+}
+
+export interface NeuralBacklink {
+  id: string;
+  title: string;
+  snippet: string;
+}
+
+export interface NeuralSnapshot {
+  ok: boolean;
+  error?: string;
+  nodes: NeuralNode[];
+  edges: NeuralEdge[];
+  stats: { totalNotes?: number; ghosts?: number; links?: number };
+}
+
 export type PlannerStatus = "pending" | "running" | "done" | "failed" | "blocked" | "cancelled";
 
 export interface PlannerTask {
@@ -411,6 +451,52 @@ export interface OrunFinanceDaily {
   entries: OrunFinanceEntry[];
   totals: { income: number; expenses: number };
   balance: number;
+}
+
+export interface OrunFinanceAccount {
+  id: string;
+  name: string;
+  type: string;
+  balance: number;
+  currency?: string;
+  offbudget?: boolean;
+  closed?: boolean;
+}
+
+export interface OrunFinanceCategory {
+  id: string;
+  name: string;
+  group: string;
+  is_income?: boolean;
+  hidden?: boolean;
+}
+
+export interface OrunFinanceTransaction {
+  id: string;
+  account: string;
+  date: string;
+  amount: number;
+  payee?: string;
+  notes?: string;
+  category?: string;
+  cleared?: boolean;
+  reconciled?: boolean;
+}
+
+export interface OrunFinanceBudgetCategory {
+  category: string;
+  categoryId: string;
+  budgeted: number;
+  spent: number;
+  available: number;
+}
+
+export interface OrunFinanceBudgetMonth {
+  month: string;
+  totalBudgeted: number;
+  totalSpent: number;
+  totalAvailable: number;
+  categories: OrunFinanceBudgetCategory[];
 }
 
 export interface OrunHealthEntry {
@@ -657,15 +743,33 @@ export interface OrunGroupWatcherSettings {
     enabled: boolean;
     intervalHours: number;
     lastRun: number | null;
-    status: "idle" | "ok" | "empty" | "no-key" | "no-watchlist";
+    status: "idle" | "ok" | "no-key" | "no-watchlist" | "empty";
   };
 }
+
+export type OrunGroupWatcherSettingsPatch = Partial<Omit<OrunGroupWatcherSettings, "deals"> & { deals: Partial<OrunGroupWatcherSettings["deals"]> }>;
 
 export interface OrunGroupFeedState {
   history: OrunGroupFeedMessage[];
   groups: OrunGroupInfo[];
   settings: OrunGroupWatcherSettings;
   groupsCount: number;
+}
+
+export interface OrunGroupDeal {
+  title: string;
+  url: string;
+  description?: string;
+  image?: string;
+  price?: string;
+  store?: string;
+  coupon?: string;
+  condition?: string;
+}
+
+export interface OrunGroupWatchlistTermExport {
+  term: string;
+  deals: OrunGroupDeal[];
 }
 
 export type OrunJobStatus = "nova" | "curriculo_pronto" | "enviada" | "descartada";
@@ -754,6 +858,19 @@ export interface OrunRouterCombo {
   cacheSimilarityThreshold?: number;
 }
 
+export interface OrunRouterProvider {
+  id: string;
+  label: string;
+  tier: "free" | "paid" | "subscription";
+  authMethod: "none" | "api-key" | "oauth";
+  baseUrl?: string;
+  requiresLocalRuntime?: boolean;
+  hasKey: boolean;
+  keyMasked: string | null;
+  configured: boolean;
+  configModelCount: number;
+}
+
 export interface OrunRouterUsageEvent {
   timestamp: number;
   comboId: string;
@@ -823,6 +940,7 @@ interface OrunAPI {
   aiRouter: {
     health: () => Promise<OrunRouterHealth>;
     listCombos: () => Promise<OrunRouterCombo[]>;
+    listProviders: () => Promise<OrunRouterProvider[]>;
     getCombo: (comboId: string) => Promise<OrunRouterCombo | null>;
     saveCombo: (combo: OrunRouterCombo) => Promise<OrunRouterCombo>;
     deleteCombo: (comboId: string) => Promise<{ ok: boolean }>;
@@ -929,6 +1047,14 @@ interface OrunAPI {
   finance: {
     getDaily: (date?: string) => Promise<OrunFinanceDaily>;
     getRange: (startDate: string, endDate: string) => Promise<OrunFinanceRange>;
+    listAccounts: () => Promise<{ ok: boolean; data?: OrunFinanceAccount[]; error?: string }>;
+    listCategories: () => Promise<{ ok: boolean; data?: OrunFinanceCategory[]; error?: string }>;
+    listTransactions: (accountId: string, options?: { limit?: number; offset?: number }) => Promise<{ ok: boolean; data?: OrunFinanceTransaction[]; error?: string }>;
+    getBudgetMonth: (month: string) => Promise<{ ok: boolean; data?: OrunFinanceBudgetMonth; error?: string }>;
+    createTransaction: (input: { accountId: string; date: string; amountCents: number; payee?: string; notes?: string; categoryId?: string; cleared?: boolean }) => Promise<{ ok: boolean; data?: OrunFinanceTransaction; error?: string }>;
+    categorizeTransaction: (transactionId: string, categoryId: string) => Promise<{ ok: boolean; error?: string }>;
+    setBudgetAmount: (categoryId: string, month: string, amountCents: number) => Promise<{ ok: boolean; error?: string }>;
+    sync: () => Promise<{ ok: boolean; error?: string }>;
   };
   health: {
     getDaily: (date?: string) => Promise<OrunHealthEntry[]>;
@@ -1029,15 +1155,15 @@ interface OrunAPI {
   groupFeed: {
     getState: () => Promise<OrunGroupFeedState>;
     getSettings: () => Promise<{ settings: OrunGroupWatcherSettings | null }>;
-    setSettings: (patch: Partial<OrunGroupWatcherSettings>) => Promise<{ settings: OrunGroupWatcherSettings }>;
+    setSettings: (patch: OrunGroupWatcherSettingsPatch) => Promise<{ settings: OrunGroupWatcherSettings }>;
     addWatchlistTerm: (term: string) => Promise<{ item?: OrunWatchlistItem; settings?: OrunGroupWatcherSettings; error?: string }>;
     removeWatchlistTerm: (id: string) => Promise<{ settings: OrunGroupWatcherSettings }>;
     toggleWatchlistTerm: (id: string, enabled: boolean) => Promise<{ settings: OrunGroupWatcherSettings }>;
-    clearHistory: () => Promise<{ ok: boolean }>;
-    runDealsScan: () => Promise<{ ok: boolean; error?: string; deals?: Array<{ term: string; results: Array<{ title: string; url: string; description?: string }> }> }>;
+clearHistory: () => Promise<{ ok: boolean }>;
+    runDealsScan: () => Promise<{ ok: boolean; error?: string; deals?: Array<OrunGroupWatchlistTermExport> }>;
     onMessage: (callback: (msg: OrunGroupFeedMessage) => void) => () => void;
-    onAlert: (callback: (alert: unknown) => void) => () => void;
-    onDeals: (callback: (result: unknown) => void) => () => void;
+    onAlert: (callback: (alert: { type?: string; message?: string }) => void) => () => void;
+    onDeals: (callback: (result: { ok: boolean; error?: string; deals?: Array<OrunGroupWatchlistTermExport> }) => void) => () => void;
   };
   career: {
     getState: () => Promise<OrunCareerState>;
@@ -1135,6 +1261,12 @@ interface OrunAPI {
     get: (id: string) => Promise<{ ok: boolean; record?: KnowledgeDoc; error?: string }>;
     remove: (id: string) => Promise<{ ok: boolean; removed?: number }>;
     stats: () => Promise<{ total: number; byKind: Record<string, number>; sizeKB: number }>;
+  };
+  neural: {
+    snapshot: () => Promise<NeuralSnapshot>;
+    search: (q: string) => Promise<{ ok: boolean; results?: NeuralSearchResult[]; error?: string }>;
+    backlinks: (id: string) => Promise<{ ok: boolean; items?: NeuralBacklink[]; error?: string }>;
+    autoCapture: (payload: { conversationId: string | null; transcript: string }) => Promise<{ ok: boolean; skipped?: boolean; reason?: string; saved?: number; titles?: string[]; parseError?: boolean; error?: string }>;
   };
   planner: {
     create: (opts?: PlannerTaskInput) => Promise<{ ok: boolean; task?: PlannerTask; updated?: boolean; error?: string }>;
@@ -1261,6 +1393,9 @@ interface OrunAPI {
     clear: () => Promise<boolean>;
     onNewEntry: (handler: (entry: { timestamp: number; agentId: string; action: string; details: string; result: string }) => void) => () => void;
   };
+  world: {
+    news: (opts?: { limit?: number }) => Promise<{ ok: boolean; items?: OrunNewsItem[]; videos?: OrunNewsVideo[]; error?: string }>;
+  };
   fileSystem: {
     saveFile: (payload: { fileName: string; base64: string; subfolder?: string }) => Promise<{ ok: boolean; filePath?: string; error?: string }>;
     getFolderPath: (subfolder?: string) => Promise<string>;
@@ -1372,8 +1507,56 @@ interface OrunAPI {
     runUpdate: (packageId: string) => Promise<OrunUpdateActionResult>;
     runUpdatesBatch: (packageIds: string[]) => Promise<OrunUpdateActionResult[]>;
   };
+  shieldSecrets: {
+    isAvailable: () => Promise<boolean>;
+    scan: (opts: { path: string; kind: string }) => Promise<{ findings: Array<{ id: string; file: string; line: string; column: number; match: string; ruleId: string; description: string; severity: "critical" | "high" | "medium" | "low"; entropy?: number; tags?: string[] }>; scanPath: string; scannedAt: string; durationMs: number; filesScanned: number } | { error: string }>;
+    allowlist: {
+      list: () => Promise<Array<{ id: string; ruleId?: string; file?: string; description: string }>>;
+      add: (entry: { ruleId?: string; file?: string; description: string }) => Promise<{ ok: boolean; entry?: { id: string; ruleId?: string; file?: string; description: string }; error?: string }>;
+      remove: (id: string) => Promise<{ ok: boolean; error?: string }>;
+    };
+  };
+  sentinela: {
+    explainFinding: (finding: {
+      id: string;
+      source: string;
+      severity: string;
+      title: string;
+      description: string;
+      filePath?: string;
+      processName?: string;
+      pid?: number;
+      remoteAddress?: string;
+      sha256?: string;
+      ruleName?: string;
+      detectedAt: string;
+      raw?: unknown;
+    }) => Promise<{
+      findingId: string;
+      explanation: string;
+      generatedAt: string;
+      isFallback: boolean;
+    }>;
+    summarizeBatch: (findings: Array<{
+      id: string;
+      source: string;
+      severity: string;
+      title: string;
+      description: string;
+      detectedAt: string;
+    }>) => Promise<string>;
+    clearCache: () => Promise<{ ok: boolean }>;
+  };
   shell: {
     openExternal: (url: string) => Promise<void>;
+  };
+  eventBus: {
+    emit: (topic: string, data?: Record<string, unknown>, meta?: { source?: string; priority?: string }) => Promise<{ ok: boolean; delivered: number; topic: string }>;
+    subscribe: (topics: string | string[], callback: (event: OrunBusEvent) => void) => { id: string; unsubscribe: () => void };
+    once: (topics: string | string[], callback: (event: OrunBusEvent) => void) => { id: string; unsubscribe: () => void };
+    unsubscribe: (subId: string) => void;
+    history: (filter?: { topic?: string; source?: string; since?: number; limit?: number }) => Promise<OrunBusEvent[]>;
+    stats: () => Promise<{ totalEmitted: number; totalListeners: number; historySize: number; patterns: number }>;
   };
 }
 
@@ -1453,6 +1636,34 @@ interface OrunDiscordChannel {
   id: string;
   name: string;
   type: number;
+}
+
+interface OrunNewsItem {
+  title: string;
+  source: string;
+  link: string;
+  image?: string;
+  publishedAt: number;
+}
+
+interface OrunNewsVideo {
+  title: string;
+  source: string;
+  link: string;
+  image: string;
+  publishedAt: number;
+}
+
+interface OrunBusEvent {
+  id: string;
+  topic: string;
+  data: Record<string, unknown>;
+  meta: {
+    timestamp: number;
+    source: string;
+    priority: string;
+    [key: string]: unknown;
+  };
 }
 
 declare global {

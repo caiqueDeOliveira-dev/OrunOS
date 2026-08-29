@@ -16,6 +16,7 @@ function createAgentHub(opts = {}) {
   const routeWith = opts.route || null;       // (request, context) => { agent, reason }
   const executeWith = opts.execute || null;   // (agent, request, context) => { ok, result?, error? }
   const escalateWith = opts.escalate || null; // (request, context, error) => { ok, result? }
+  const bus = opts.eventBus || null;          // Event Bus opcional
 
   function getSchema(id) {
     return registry.find((a) => a.id === id) || null;
@@ -57,6 +58,15 @@ function createAgentHub(opts = {}) {
     }
     steps.push({ step: "route", agent: decision.agent || null, reason: decision.reason || "" });
 
+    // Event Bus: delegação iniciada
+    if (bus) {
+      bus.emit("hub:delegate:started", {
+        request: request.slice(0, 200),
+        targetAgent: decision.agent,
+        reason: decision.reason,
+      }, { source: "agent-hub" });
+    }
+
     const target = decision.agent ? getSchema(decision.agent) : null;
     if (decision.agent && !target) {
       return {
@@ -84,12 +94,27 @@ function createAgentHub(opts = {}) {
     });
 
     if (res && res.ok) {
+      // Event Bus: delegação completada
+      if (bus) {
+        bus.emit("hub:delegate:completed", {
+          agent: decision.agent,
+          resultPreview: typeof res.result === "string" ? res.result.slice(0, 200) : undefined,
+        }, { source: "agent-hub" });
+      }
       return { ok: true, agent: decision.agent || null, reason: decision.reason || "", result: res.result, steps };
     }
 
     // Passo 3 — Escalação (central assume com aviso).
     const err = (res && res.error) || "execução falhou";
     steps.push({ step: "escalate", agent: null, error: err });
+
+    // Event Bus: escalação
+    if (bus) {
+      bus.emit("hub:delegate:escalated", {
+        agent: decision.agent,
+        error: err,
+      }, { source: "agent-hub" });
+    }
     if (escalateWith) {
       const fallback = await Promise.resolve(escalateWith(request, context, err)).catch((e) => ({
         ok: false,

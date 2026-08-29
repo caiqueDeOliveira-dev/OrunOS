@@ -1,4 +1,4 @@
-import { lazy } from "react";
+﻿import { lazy } from "react";
 import { registerPlugin } from "../../PluginRegistry";
 import type { WorkspacePlugin } from "../../types";
 
@@ -9,7 +9,7 @@ const MarketingWorkspace = lazy(() =>
 const plugin: WorkspacePlugin = {
   id: "Marketing",
   name: "Marketing Studio",
-  version: "1.0.0",
+  version: "1.1.0",
   description: "Campaign builder, content calendar, A/B test preview, and analytics dashboard",
   icon: "Megaphone",
   requirements: { minRamMB: 512, estimatedRAMMB: 80, features: [] },

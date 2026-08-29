@@ -14,7 +14,7 @@ Orun OS is a **desktop AI operating system** built with Electron + React + Vite.
 - **AI Providers**: OpenCodeZen (primary), Groq, OpenRouter (fallback chain); Ollama local-only; GitHub Models retired (410); DeepSeek/PaLM reachable via OpenCodeZen proxy; **Orun AI Router** integrado (dashboard + API REST)
 - **DB**: SQLite (local) + Supabase/PostgreSQL (cloud sync, push-first, same shared project used by mobile/core: ref `kmfmeewibravdsxemzuj`)
 - **Language**: Portuguese (pt-BR) default, English/Spanish/French supported
-- **Tests**: 1070 passed / 9 skipped (59 test files)
+- **Tests**: 1200 passed / 9 skipped (78 test files)
 - **Repo**: all code in `orun_project/` subdirectory
 - **Docs**: `docs/roadmap-v1.md` (plataforma), `docs/voice-roadmap.md` (voz), `docs/so-orun-roadmap.md` (visão SO) — curados, atualizados por sessão
 
@@ -35,7 +35,7 @@ Todos os apps usam o **mesmo Supabase compartilhado** (`kmfmeewibravdsxemzuj`) e
 | 3 | **Orun-Core** | v0.1.2 — 60 testes | `C:\Users\Caiqu\OneDrive\Desktop\Orun-Core` | TypeScript | Core compartilhado: `getSupabaseClient` (transport WebSocket p/ Electron), hub `devices`/`commands`, satélites (`home`, `tv`, `shield`) |
 | 4 | **OrunVS** | **v0.3.7** — 14 arquivos com falha (sem testes rodando) | `C:\Users\Caiqu\OneDrive\Desktop\OrunVS` | VS Code extension, TS | Extensão VS Code com chat IA multi-provider (OpenCodeZen/Gemini/Groq/OpenRouter/DeepSeek/HF/Ollama), fallback chain, memória local, skills, **client MCP stdio + catálogo on-demand** |
 | 5 | **OrunTV** | v0.1.0 — sem git | `C:\Users\Caiqu\Downloads\oruntv_2\oruntv` | Jellyfin + Sonarr/Radarr/Prowlarr/Bazarr/qBittorrent; apps dashboard/desktop/mobile/tizen; packages core/shared-logic | Media stack completo |
-| 6 | **Orun Shield** | **v0.3.2** — app separado, commitado | `C:\Users\Caiqu\OneDrive\Desktop\Orun Shield\orun-security-suite` | 5 pacotes TS (shield-core, sentinela-agent, shield-mobile, system-optimizer) + orun-shield-app | Suíte de segurança (proteção, otimização, monitoramento) — app standalone Electron |
+| 6 | **Orun Shield** | **v0.3.2 — integrado no desktop (vendored)** | `orun_project/vendor/orun-shield-core/`, `vendor/orun-system-optimizer/`, `vendor/orun-sentinela-agent/` | 3 pacotes TS (shield-core, system-optimizer, sentinela-agent); shield-mobile descartado p/ desktop | Suíte de segurança (ClamAV, Defender, Firewall, Sentinel, Ransomware Heuristic, Integrity, Quarantine, Disk Cleanup, Junk Scan, Update Check, Sentinela AI). **Integrado no desktop (v0.6.19+)** — IPC `shield:*`, `optimizer:*`, `sentinela:*` + preload APIs |
 | 7 | **Orun Home (home-app)** | ativo — APK via EAS | `packages/home-app` no monorepo | Expo SDK 54, RN, expo-router, zustand, supabase-js | App tablet smarthome (landscape): dashboard, dispositivos, cenários, automações, assistente (agente Home IA), satélite `home` do hub; HA opcional |
 | 8 | **Orun Auth (@orun/identity)** | **v0.1.0 — integrado no desktop (vendored)** | `C:\Users\Caiqu\OneDrive\Desktop\Orun Auth\Orun Auth\packages\identity` + vendored em `orun_project/vendor/orun-identity/` | TS (pacote puro), vitest, Deno Edge Functions | Camada centralizada de identidade/auth do ecossistema: sign in/up/out, OAuth, magic link, refresh, storage seguro, SessionRegistry multi-device, Turnstile, billing Stripe, licenciamento offline (JWT), MFA/TOTP, audit log, LGPD, passkeys (beta). 5 Edge Functions deployadas. **Integrado no desktop (v0.6.10+)** — auth gate, login/signup, licença, LGPD |
 | 9 | **Orun Files** | **bruto (v0.1.0) — sem git** | `C:\Users\Caiqu\OneDrive\Desktop\orun-files\orun-files` (+ zip em `Downloads\orun-files.zip`) | Electron, JS puro, Gemini API (`text-embedding-004` + `gemini-2.0-flash`), electron-store, chokidar | Gerenciador de arquivos com IA: busca semântica (embeddings + cosseno, fallback textual), organização automática, preview universal, indexação com chokidar |
@@ -108,7 +108,16 @@ Routes requests through providers with fallback chain: **OpenCodeZen → Groq �
 Hampton's tool-calling loop: up to 15 iterations, tool results fed back into context, `reasoning_content` preserved on assistant messages, timeout 120s per iteration (was 60s), transient errors (timeout/429/5xx/network) retry on the SAME provider before switching. Detects when tools produce images/files and re-inserts them as attachments.
 
 ### Tool System
-~20+ tools defined in `electron/tools.cjs`: `generate_image` (Fooocus local first, Fal AI fallback), `generate_3d`, `generate_video`, `generate_music`, `web_search` (Tavily), `web_scrape`, `create_reminder`, `get_agenda`, `create_event`, `delete_event`, `list_emails`, `send_email`, `save_file`, `read_file`, `run_command`, `publish_to_social`, `read_memory`, `save_memory`, `execute_n8n`, `report_bug`.
+~35+ tools defined in `electron/tools.cjs`: `generate_image` (Fooocus local first, Fal AI fallback), `generate_3d`, `generate_video`, `generate_music`, `web_search` (Tavily), `web_scrape`, `create_reminder`, `get_agenda`, `create_event`, `delete_event`, `list_emails`, `send_email`, `save_file`, `read_file`, `run_command`, `publish_to_social`, `read_memory`, `save_memory`, `execute_n8n`, `report_bug`, `pdf_inspect`, `git_status`, `git_log`, `git_diff`, `git_stash`, `git_remote`, `gh_pr`, `semgrep_scan`, `library_docs`, `run_tests`, `code_review`.
+
+**Integration tools** (7 integrations from `@orun/*` packages in the monorepo):
+- **Telemetry** (`telemetry_track`, `telemetry_health`): PostHog observability (agent health, MCP success rates)
+- **Shield Secrets** (`secret_scan`, `secret_allowlist_add`): Gitleaks-based credential leak detection
+- **Finance** (`finance_list_accounts`, `finance_create_transaction`, `finance_budget_month`): Actual Budget integration
+- **Social** (`social_schedule_post`, `social_list_posts`): Postiz social media scheduling
+- **Design** (`design_list_projects`, `design_export_file`): Penpot design file management
+- **Memory Vault** (`vault_save`, `vault_search`): Karakeep bookmark/knowledge base
+- **Photos** (`photo_search`): Immich photo library search
 
 Tools are **individually assigned** to agents via `agentTools` map in `main.cjs`. Each agent gets only its permitted tools.
 
@@ -261,7 +270,7 @@ In-memory, per `(lastUserMsg, agentId)`, 1h TTL, **not persisted** — restart c
 - Tab management (if plugin declares tabs)
 - Lifecycle hooks: `onMount`, `onUnmount`, `onActivate`, `onDeactivate`
 
-### 19 Workspace Plugins
+### 22 Workspace Plugins
 
 | Plugin ID | Agent | Path |
 |-----------|-------|------|
@@ -284,11 +293,14 @@ In-memory, per `(lastUserMsg, agentId)`, 1h TTL, **not persisted** — restart c
 | `CyberSecurity` | Cyber Security | `workspace-cyber-security/` |
 | `GroupFeed` | WhatsApp Grupos | `workspace-group-feed/` |
 | `Career` | Carreiras | `workspace-career/` |
+| `Telemetry` | System (observabilidade) | `workspace-telemetry-dashboard/` |
+| `ShieldSecrets` | Cyber Security (creds) | `workspace-shield-secrets/` |
+| `FinanceReal` | Finance (Actual Budget) | `workspace-finance-real/` |
 
 Each workspace has: `index.ts` (registers plugin), a main component, and optionally `*-actions.ts` for registering tool actions.
 
 ### Workspace UI (premium redesign)
-- All 19 workspaces share the premium dark design system (`src/app/plugins/workspaces/premium.tsx`): consistent palette (black `#050505`/`#0A0A0C`, cards `#141414`, blood red `#C3002F`), `ws-*` typography/utility classes in `theme.css`, shared components (PanelHeader, StatCard, MetricGrid, charts, etc.).
+- All 22 workspaces share the premium dark design system (`src/app/plugins/workspaces/premium.tsx`): consistent palette (black `#050505`/`#0A0A0C`, cards `#141414`, blood red `#C3002F`), `ws-*` typography/utility classes in `theme.css`, shared components (PanelHeader, StatCard, MetricGrid, charts, etc.).
 - Workspaces render **full-screen** inside `WorkspaceView.tsx`; a draggable **floating chat bubble** (`src/app/components/FloatingWorkspaceChat.tsx`, LogoIA icon) opens a 340×460 chat panel with mic/input/send wired to the workspace agent.
 - Home IA workspace also exports `HomeHampton.tsx` (`{ state, size, image }`), used by the central HomeScreen (230px, `/LogoIA.png`) and by the Home IA workspace itself.
 
@@ -350,6 +362,9 @@ Each workspace has: `index.ts` (registers plugin), a main component, and optiona
 - `electron/ipc/career-handlers.cjs` — IPC for career module
 - `electron/discord-bridge.cjs` — Brain↔Discord bridge (7 tools: discord_status/server_info/channels/roles/plan/apply/archive_game)
 - `electron/tropa-modules.cjs` — Tropa do CaOS community modules (jogos, guildas, cargos, painel)
+- `electron/shield.cjs` — ShieldCore IPC integration (ClamAV, Defender, Firewall, Sentinel, Ransomware Heuristic, Integrity, Quarantine)
+- `electron/optimizer.cjs` — SystemOptimizer IPC integration (Disk Cleanup, Junk Scan, Update Check)
+- `electron/sentinela.cjs` — Sentinela Agent IPC (explain findings, summarize batch, cache)
 - `electron/palworld-setup.cjs` — Palworld server setup engine (analyze/plan/execute with confirmation)
 - `electron/firecrawl.cjs` — Firecrawl API client (scrape, search, setBaseUrl)
 - `electron/developer-tools.cjs` — Developer elite tools (gitStatus/gitLog/gitDiff/gitStash/semgrepScan/libraryDocs/runTests/codeReview/ghPr)

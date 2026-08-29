@@ -1,12 +1,13 @@
-// workspace-home-ia / HomeHampton.tsx
+﻿// workspace-home-ia / HomeHampton.tsx
 // Premium circular Hampton avatar for the Home dashboard.
 // Black wolf head, glowing red eyes, luminous red ring that pulses
 // while listening, waveform while speaking. No cartoon.
 
 import { useEffect, useState } from "react";
 import type { HamptonState } from "../../../types";
+import { P } from "../premium";
 
-const RED = "#C3002F";
+
 
 export function HomeHampton({ state, size = 190, image }: { state: HamptonState; size?: number; image?: string }) {
   const [tick, setTick] = useState(0);
@@ -34,11 +35,11 @@ export function HomeHampton({ state, size = 190, image }: { state: HamptonState;
         <>
           <div
             className="absolute rounded-full pointer-events-none"
-            style={{ inset: -size * 0.18, border: "1px solid rgba(195,0,47,0.35)", animation: "orunRipple 2s ease-out infinite" }}
+            style={{ inset: -size * 0.18, border: "1px solid color-mix(in srgb, var(--primary) 35%, transparent)", animation: "orunRipple 2s ease-out infinite" }}
           />
           <div
             className="absolute rounded-full pointer-events-none"
-            style={{ inset: -size * 0.18, border: "1px solid rgba(195,0,47,0.2)", animation: "orunRipple 2s ease-out 0.7s infinite" }}
+            style={{ inset: -size * 0.18, border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)", animation: "orunRipple 2s ease-out 0.7s infinite" }}
           />
         </>
       )}
@@ -48,7 +49,7 @@ export function HomeHampton({ state, size = 190, image }: { state: HamptonState;
         className="absolute rounded-full pointer-events-none"
         style={{
           inset: -size * 0.1,
-          background: `radial-gradient(circle, rgba(195,0,47,${glow}) 0%, transparent 65%)`,
+          background: `radial-gradient(circle, color-mix(in srgb, var(--primary) ${Math.round(glow * 100)}%, transparent) 0%, transparent 65%)`,
           animation: `orunAuraPulse ${ringPulse} ease-in-out infinite`,
         }}
       />
@@ -58,8 +59,8 @@ export function HomeHampton({ state, size = 190, image }: { state: HamptonState;
         className="absolute rounded-full pointer-events-none"
         style={{
           inset: -2,
-          border: "1px solid rgba(195,0,47,0.45)",
-          boxShadow: `0 0 ${Math.round(size * 0.07)}px rgba(195,0,47,${active ? 0.5 : 0.3}), inset 0 0 ${Math.round(size * 0.05)}px rgba(195,0,47,0.12)`,
+          border: "1px solid color-mix(in srgb, var(--primary) 45%, transparent)",
+          boxShadow: `0 0 ${Math.round(size * 0.07)}px color-mix(in srgb, var(--primary) ${active ? 50 : 30}%, transparent), inset 0 0 ${Math.round(size * 0.05)}px color-mix(in srgb, var(--primary) 12%, transparent)`,
           animation: `orunAuraPulse ${ringPulse} ease-in-out infinite`,
         }}
       />
@@ -70,13 +71,13 @@ export function HomeHampton({ state, size = 190, image }: { state: HamptonState;
         style={{
           inset: 0,
           background: "radial-gradient(circle at 50% 28%, #17171b 0%, #0c0c0f 55%, #050505 100%)",
-          border: "1px solid #252525",
+          border: "1px solid var(--border)",
         }}
       >
         {/* Subtle red ambient light from below */}
         <div
           className="absolute inset-0 pointer-events-none"
-          style={{ background: "radial-gradient(ellipse at 50% 110%, rgba(195,0,47,0.12) 0%, transparent 55%)" }}
+          style={{ background: "radial-gradient(ellipse at 50% 110%, color-mix(in srgb, var(--primary) 12%, transparent) 0%, transparent 55%)" }}
         />
 
         {image && !imgFailed ? (
@@ -151,8 +152,8 @@ export function HomeHampton({ state, size = 190, image }: { state: HamptonState;
 
           {/* Eyes — glowing red */}
           <g>
-            <path d="M58 116 Q74 108, 90 116 Q74 124, 58 116 Z" fill="#08080a" stroke="rgba(195,0,47,0.45)" strokeWidth="1" />
-            <path d="M110 116 Q126 108, 142 116 Q126 124, 110 116 Z" fill="#08080a" stroke="rgba(195,0,47,0.45)" strokeWidth="1" />
+            <path d="M58 116 Q74 108, 90 116 Q74 124, 58 116 Z" fill="#08080a" stroke="color-mix(in srgb, var(--primary) 45%, transparent)" strokeWidth="1" />
+            <path d="M110 116 Q126 108, 142 116 Q126 124, 110 116 Z" fill="#08080a" stroke="color-mix(in srgb, var(--primary) 45%, transparent)" strokeWidth="1" />
             <ellipse cx="74" cy="116" rx="5" ry="2.6" fill="#ff1f4d" opacity={eyeOpL} filter="url(#homeWolfEyeGlow)" />
             <ellipse cx="126" cy="116" rx="5" ry="2.6" fill="#ff1f4d" opacity={eyeOpR} filter="url(#homeWolfEyeGlow)" />
             <ellipse cx="74" cy="116" rx="2" ry="1.2" fill="#ffb3c2" opacity={0.7 + Math.sin(tick * 0.14) * 0.3} />
@@ -160,7 +161,7 @@ export function HomeHampton({ state, size = 190, image }: { state: HamptonState;
           </g>
 
           {/* Nose */}
-          <path d="M92 148 L100 143 L108 148 L100 155 Z" fill="#000000" stroke="rgba(195,0,47,0.4)" strokeWidth="0.8" />
+          <path d="M92 148 L100 143 L108 148 L100 155 Z" fill="#000000" stroke="color-mix(in srgb, var(--primary) 40%, transparent)" strokeWidth="0.8" />
           {/* Mouth line */}
           <path d="M86 164 Q100 172, 114 164" fill="none" stroke="#232327" strokeWidth="1.2" strokeLinecap="round" />
 
@@ -179,7 +180,7 @@ export function HomeHampton({ state, size = 190, image }: { state: HamptonState;
         {/* Inner vignette */}
         <div
           className="absolute inset-0 pointer-events-none rounded-full"
-          style={{ boxShadow: "inset 0 0 40px rgba(0,0,0,0.6), inset 0 0 8px rgba(195,0,47,0.08)" }}
+          style={{ boxShadow: "inset 0 0 40px rgba(0,0,0,0.6), inset 0 0 8px color-mix(in srgb, var(--primary) 8%, transparent)" }}
         />
       </div>
 
@@ -195,7 +196,7 @@ export function HomeHampton({ state, size = 190, image }: { state: HamptonState;
               style={{
                 width: 3,
                 height: 4 + Math.abs(Math.sin((tick + i) * 0.28)) * 14,
-                background: i % 2 === 0 ? RED : "#8B0021",
+                background: i % 2 === 0 ? "var(--primary)" : "color-mix(in srgb, var(--primary) 55%, black)",
                 borderRadius: 2,
                 opacity: 0.75,
                 transition: "height 0.06s ease",
@@ -212,7 +213,7 @@ export function HomeHampton({ state, size = 190, image }: { state: HamptonState;
           style={{
             width: 2,
             height: 34,
-            background: "linear-gradient(to top, #C3002F, transparent)",
+            background: "linear-gradient(to top, var(--primary), transparent)",
             top: -30,
             left: "50%",
             borderRadius: 1,
@@ -233,7 +234,7 @@ export function HomeHampton({ state, size = 190, image }: { state: HamptonState;
           letterSpacing: "0.18em",
           textTransform: "uppercase",
           whiteSpace: "nowrap",
-          color: active ? RED : "#A0A0A0",
+          color: active ? "var(--primary)" : P.sub,
           animation: active ? "orunStatePulse 1s ease-in-out infinite" : "none",
         }}
       >

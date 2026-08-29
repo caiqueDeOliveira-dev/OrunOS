@@ -1,11 +1,25 @@
 {
   "name": "@orun/ai-router-core",
   "version": "0.1.0",
-  "description": "Schema, registry de providers, adapters de formato, ModelRouter/MediaRouter, OAuth e skills - 100% agnostico de plataforma (Electron/Expo/Tizen).",
+  "private": true,
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./token-saver": {
+      "types": "./dist/token-saver.d.ts",
+      "import": "./dist/token-saver.js",
+      "require": "./dist/token-saver.js",
+      "default": "./dist/token-saver.js"
+    }
+  },
+  "description": "Schema, registry de providers, adapters de formato, ModelRouter/MediaRouter, OAuth e skills — 100% agnostico de plataforma (Electron/Expo/Tizen).",
   "dependencies": {
     "zod": "^4.0.0"
-  },
-  "license": "ISC"
+  }
 }

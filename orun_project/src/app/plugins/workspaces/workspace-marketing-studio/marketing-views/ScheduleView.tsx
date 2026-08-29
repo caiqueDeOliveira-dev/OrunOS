@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef } from "react";
+import { CalendarDays } from "lucide-react";
 import { useTranslation } from "../../../../../i18n/I18nProvider";
 import { useMarketingStore } from "../marketing-store";
 import { WorkspaceCard } from "../../../components/WorkspaceCard";
@@ -6,6 +7,7 @@ import { WorkspaceBadge } from "../../../components/WorkspaceBadge";
 import { WorkspaceButton } from "../../../components/WorkspaceButton";
 import { WorkspaceInput } from "../../../components/WorkspaceInput";
 import { WorkspaceEmptyState } from "../../../components/WorkspaceEmptyState";
+import { P } from "../../premium";
 import type { ScheduledPost } from "../marketing-types";
 
 const PLATFORMS = ["instagram", "tiktok", "twitter"] as const;
@@ -145,9 +147,9 @@ export function ScheduleView() {
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-medium" style={{ color: "#FFFFFF" }}>{t("Posts Agendados")}</span>
+        <span className="text-[11px] font-medium" style={{ color: P.text }}>{t("Posts Agendados")}</span>
         <div className="flex gap-2 items-center">
-          <label className="flex items-center gap-1.5 text-[9px]" style={{ color: "#A0A0A0" }}>
+          <label className="flex items-center gap-1.5 text-[9px]" style={{ color: P.sub }}>
             <input
               type="checkbox"
               checked={autoPublish}
@@ -181,11 +183,11 @@ export function ScheduleView() {
               onChange={(e) => setContent(e.target.value)}
               placeholder={t("Conteúdo do post")}
               className="w-full text-[10px] rounded-md px-2 py-1.5 resize-none"
-              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid #252525", color: "#FFFFFF", minHeight: 60 }}
+              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid var(--border)", color: P.text, minHeight: 60 }}
             />
             <div className="flex gap-2 flex-wrap">
               {PLATFORMS.map((p) => (
-                <label key={p} className="flex items-center gap-1 text-[9px]" style={{ color: "#A0A0A0" }}>
+                <label key={p} className="flex items-center gap-1 text-[9px]" style={{ color: P.sub }}>
                   <input
                     type="checkbox"
                     checked={platforms.includes(p)}
@@ -218,7 +220,7 @@ export function ScheduleView() {
 
       {scheduledPosts.length === 0 && !showForm ? (
         <WorkspaceEmptyState
-          icon={<span style={{ fontSize: 18 }}>📅</span>}
+          icon={<CalendarDays size={22} color="var(--primary)" strokeWidth={1.6} />}
           message={t("Nenhum post agendado")}
         />
       ) : (
@@ -226,8 +228,8 @@ export function ScheduleView() {
           <WorkspaceCard key={post.id}>
             <div className="flex items-start justify-between mb-1">
               <div className="flex-1 min-w-0">
-                <p className="text-[11px] font-medium truncate" style={{ color: "#FFFFFF" }}>{post.title}</p>
-                <p className="text-[9px] text-ellipsis overflow-hidden whitespace-nowrap" style={{ color: "#A0A0A0" }}>
+                <p className="text-[11px] font-medium truncate" style={{ color: P.text }}>{post.title}</p>
+                <p className="text-[9px] text-ellipsis overflow-hidden whitespace-nowrap" style={{ color: P.sub }}>
                   {post.content}
                 </p>
               </div>
@@ -239,7 +241,7 @@ export function ScheduleView() {
               ))}
             </div>
             <div className="flex items-center justify-between mt-2">
-              <span className="text-[8px]" style={{ color: "#A0A0A0" }}>
+              <span className="text-[8px]" style={{ color: P.sub }}>
                 {new Date(post.scheduledAt).toLocaleString("pt-BR")}
                 {post.hashtags.length > 0 && ` • ${post.hashtags.map((h) => `#${h}`).join(" ")}`}
               </span>
@@ -254,7 +256,7 @@ export function ScheduleView() {
               <p className="text-[8px] mt-1 text-red-400">{post.error}</p>
             )}
             {post.publishedAt && (
-              <p className="text-[8px] mt-1" style={{ color: "#A0A0A0" }}>
+              <p className="text-[8px] mt-1" style={{ color: P.sub }}>
                 {t("Publicado em")}: {new Date(post.publishedAt).toLocaleString("pt-BR")}
               </p>
             )}

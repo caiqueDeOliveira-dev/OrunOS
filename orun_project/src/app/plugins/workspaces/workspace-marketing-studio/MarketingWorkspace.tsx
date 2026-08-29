@@ -5,7 +5,7 @@ import { useMarketingStore } from "./marketing-store";
 import { usePersonalization } from "../../../hooks/usePersonalization";
 import { AIFloatingPrompt } from "../../components/AIFloatingPrompt";
 import { WorkspaceSkeleton } from "../../components/WorkspaceSkeleton";
-import { PremiumRoot, ScrollArea } from "../premium";
+import { PremiumRoot, ScrollArea, P } from "../premium";
 import { CampaignsView } from "./marketing-views/CampaignsView";
 import { CalendarView } from "./marketing-views/CalendarView";
 import { ABTestsView } from "./marketing-views/ABTestsView";
@@ -45,15 +45,15 @@ export function MarketingWorkspace({ plugin, activeTab, onTabChange, onSendMessa
     <PremiumRoot>
       <ScrollArea>
         <div className="flex items-center justify-between px-4 py-1">
-          <span className="text-xs font-medium" style={{ fontFamily: "'Sora', sans-serif", color: "#FFFFFF" }}>
+          <span className="text-xs font-medium" style={{ fontFamily: "'Sora', sans-serif", color: P.text }}>
             {greeting || "Olá"}, {userName || "usuário"}
           </span>
-          <div className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold" style={{ background: "#EC4899", color: "#fff" }} aria-label={avatarInitials || "User"}>
+          <div className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold" style={{ background: "var(--primary)", color: "#fff" }} aria-label={avatarInitials || "User"}>
             {avatarInitials || "U"}
           </div>
         </div>
 
-        <div className="flex items-center gap-1 px-4 py-2 border-b" style={{ borderColor: "#252525" }} role="tablist" aria-label="Views">
+        <div className="flex items-center gap-1 px-4 py-2 border-b" style={{ borderColor: "var(--border)" }} role="tablist" aria-label="Views">
           {VIEWS.map((v) => (
             <button
               key={v.key}
@@ -64,8 +64,8 @@ export function MarketingWorkspace({ plugin, activeTab, onTabChange, onSendMessa
               style={{
                 fontFamily: "'Sora', sans-serif",
                 fontWeight: activeView === v.key ? 500 : 300,
-                color: activeView === v.key ? "#FFFFFF" : "#A0A0A0",
-                background: activeView === v.key ? "rgba(195,0,47,0.14)" : "transparent",
+                color: activeView === v.key ? P.text : P.sub,
+                background: activeView === v.key ? "color-mix(in srgb, var(--primary) 14%, transparent)" : "transparent",
               }}
             >
               {v.label}

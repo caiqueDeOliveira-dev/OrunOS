@@ -1,8 +1,10 @@
+import { Megaphone } from "lucide-react";
 import { useTranslation } from "../../../../../i18n/I18nProvider";
 import { useMarketingStore } from "../marketing-store";
 import { WorkspaceCard } from "../../../components/WorkspaceCard";
 import { WorkspaceBadge } from "../../../components/WorkspaceBadge";
 import { WorkspaceEmptyState } from "../../../components/WorkspaceEmptyState";
+import { P } from "../../premium";
 
 const MONO = "'JetBrains Mono', monospace";
 
@@ -22,7 +24,7 @@ export function CampaignsView() {
     return (
       <div className="p-4">
         <WorkspaceEmptyState
-          icon={<span style={{ fontSize: 18 }}>📢</span>}
+          icon={<Megaphone size={22} color="var(--primary)" strokeWidth={1.6} />}
           message={t("Nenhuma campanha ainda")}
         />
       </div>
@@ -39,8 +41,8 @@ export function CampaignsView() {
         ].map((s, i) => (
           <WorkspaceCard key={i} padding={false}>
             <div className="p-2">
-              <span className="text-[9px]" style={{ color: "#A0A0A0" }}>{s.label}</span>
-              <p className="text-[13px] font-medium" style={{ fontFamily: MONO, color: "#FFFFFF" }}>{s.value}</p>
+              <span className="text-[9px]" style={{ color: P.sub }}>{s.label}</span>
+              <p className="text-[13px] font-medium" style={{ fontFamily: MONO, color: P.text }}>{s.value}</p>
             </div>
           </WorkspaceCard>
         ))}
@@ -53,24 +55,24 @@ export function CampaignsView() {
           <WorkspaceCard key={c.id}>
             <div className="flex items-start justify-between mb-2">
               <div>
-                <p className="text-[11px] font-medium" style={{ color: "#FFFFFF" }} role="heading" aria-level={3}>{c.name}</p>
-                <p className="text-[9px]" style={{ color: "#A0A0A0" }}>{c.startDate} — {c.endDate}</p>
+                <p className="text-[11px] font-medium" style={{ color: P.text }} role="heading" aria-level={3}>{c.name}</p>
+                <p className="text-[9px]" style={{ color: P.sub }}>{c.startDate} — {c.endDate}</p>
               </div>
               <WorkspaceBadge variant={c.status === "active" ? "green" : c.status === "paused" ? "yellow" : "default"}>
                 {c.status}
               </WorkspaceBadge>
             </div>
             <div className="flex gap-3 mb-2">
-              <span className="text-[9px]" style={{ color: "#A0A0A0" }}>{c.impressions.toLocaleString()} imp.</span>
-              <span className="text-[9px]" style={{ color: "#A0A0A0" }}>{ctr}% CTR</span>
-              <span className="text-[9px]" style={{ color: "#22C55E" }}>{c.conversions} conv.</span>
+              <span className="text-[9px]" style={{ color: P.sub }}>{c.impressions.toLocaleString()} imp.</span>
+              <span className="text-[9px]" style={{ color: P.sub }}>{ctr}% CTR</span>
+              <span className="text-[9px]" style={{ color: "var(--ok)" }}>{c.conversions} conv.</span>
             </div>
             <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.05)" }}>
-              <div className="h-full rounded-full transition-all" style={{ width: `${progress}%`, background: progress > 80 ? "#F59E0B" : "#C3002F" }} />
+              <div className="h-full rounded-full transition-all" style={{ width: `${progress}%`, background: progress > 80 ? "var(--warn)" : "var(--primary)" }} />
             </div>
             <div className="flex justify-between mt-1">
-              <span className="text-[8px]" style={{ color: "#A0A0A0" }}>{fmtCurrency(c.spent)}</span>
-              <span className="text-[8px]" style={{ color: "#A0A0A0" }}>{fmtCurrency(c.budget)}</span>
+              <span className="text-[8px]" style={{ color: P.dim }}>{fmtCurrency(c.spent)}</span>
+              <span className="text-[8px]" style={{ color: P.dim }}>{fmtCurrency(c.budget)}</span>
             </div>
             <div className="flex gap-1 mt-2">
               {c.channels.map((ch) => (

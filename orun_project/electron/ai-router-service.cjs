@@ -82,7 +82,7 @@ function getAiRouterService(app, secretStore) {
   log.info(`[ai-router] service ready db=${dbPath} combos=${BUILTIN_FREE_COMBOS.length}`);
 
   // Auto-start HTTP server so dashboard is always accessible.
-  try { startHttpServer(app, secretStore); } catch (e) { log.warn("[ai-router] auto-start http failed:", e); }
+  try { startHttpServer(app, secretStore); } catch (e) { log.warn("[ai-router] auto-start http failed:", e); console.error("[ai-router] auto-start http FAILED:", e); }
 
   return _state;
 }
@@ -111,9 +111,11 @@ function startHttpServer(app, secretStore) {
   const dashboardDir = candidateDirs.find((d) => {
     const hasIndex = fs.existsSync(path.join(d, "index.html"));
     log.info(`[ai-router] dashboard check ${d} => ${hasIndex}`);
+    console.log(`[ai-router] dashboard check ${d} => ${hasIndex}`);
     return hasIndex;
   }) || undefined;
   log.info(`[ai-router] resolved dashboardDir=${dashboardDir ?? "null"}`);
+  console.log(`[ai-router] resolved dashboardDir=${dashboardDir ?? "null"}`);
 
   const server = createAiRouterServer({
     router,

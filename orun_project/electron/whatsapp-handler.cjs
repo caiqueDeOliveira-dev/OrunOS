@@ -21,6 +21,7 @@ const identityResolver = require("./identity-resolver.cjs");
 const sttRouter = require("./stt-router.cjs");
 const ttsRouter = require("./tts-router.cjs");
 const careerBridge = require("./career.cjs");
+const vehicleProfile = require("./vehicle-profile.cjs");
 
 /**
  * Find which agent is assigned to a given JID (legacy agentJids mapping).
@@ -289,7 +290,7 @@ async function handleWhatsAppMessage(payload, ctx) {
   // Rota determinística do agente Carreiras: perguntas de vagas/currículo
   // respondem direto do estado (sem chamada de LLM) — estilo rota do CaOS.
   if (careerBridge.isCareerQuestion(finalText)) {
-    const careerReply = careerBridge.buildWhatsAppReply(finalText);
+    const careerReply = await careerBridge.buildWhatsAppReply(finalText);
     const { conversationId: careerConvId } = persistInbound(db, {
       jid, agentId, userId, workspaceId, senderKey, externalMessageId,
       text: finalText, imageBase64, audioBase64, timestamp,
@@ -316,6 +317,15 @@ async function handleWhatsAppMessage(payload, ctx) {
   let systemPrompt = buildSystemPrompt(settings.systemPrompt, agentId);
   if (resolved.profile?.display_name) {
     systemPrompt += `\n\nUsuário: ${resolved.profile.display_name}`;
+  }
+
+  // Perfil de veículo (anti-loop do agente Automotive): extrai/grava dados
+  // determinísticos e injeta no prompt para o LLM nunca re-perguntar.
+  if (agentId === "Automotive") {
+    const extracted = vehicleProfile.extractVehicleInfo(finalText);
+    if (extracted) vehicleProfile.saveVehicleInfo(db, userId, extracted);
+    const vehicleBlock = vehicleProfile.buildVehicleContext(db, userId);
+    if (vehicleBlock) systemPrompt += vehicleBlock;
   }
 
   // Memória escopada (workspace + user + agent + conversation).

@@ -1,0 +1,10 @@
+# gerado 2026-08-22 - falsos positivos revisados (keys de teste + anon key publica)
+7c3e8efc76c6cae0338c5418a7c3e854c4721091:orun_project/electron/__tests__/logger-sanitize.test.cjs:generic-api-key:6
+03b309edba1f9867e31719c45361de6804255f2f:orun_project/electron/__tests__/audit-log.test.cjs:generic-api-key:151
+03b309edba1f9867e31719c45361de6804255f2f:orun_project/electron/__tests__/audit-log.test.cjs:generic-api-key:159
+03b309edba1f9867e31719c45361de6804255f2f:orun_project/electron/__tests__/audit-log.test.cjs:generic-api-key:166
+03b309edba1f9867e31719c45361de6804255f2f:ORUN_OS_PROMPT.md:generic-api-key:129
+63936f480197b1e28b6feb5c229bc67a3b1ee503:orun_project/electron/__tests__/audit-log.test.cjs:generic-api-key:151
+63936f480197b1e28b6feb5c229bc67a3b1ee503:orun_project/electron/__tests__/audit-log.test.cjs:generic-api-key:159
+63936f480197b1e28b6feb5c229bc67a3b1ee503:orun_project/electron/__tests__/audit-log.test.cjs:generic-api-key:166
+63936f480197b1e28b6feb5c229bc67a3b1ee503:ORUN_OS_PROMPT.md:generic-api-key:129

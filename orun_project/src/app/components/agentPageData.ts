@@ -27,10 +27,10 @@ export const AGENT_ENVIRONMENTS: Record<string, {
 }> = {
   Health: {
     icon: HeartPulse,
-    accent: "#E53E3E",
-    secondary: "#C53030",
-    bg: "linear-gradient(135deg, #FFF5F5 0%, #FED7D7 50%, #FEB2B2 100%)",
-    pattern: "radial-gradient(circle at 20% 80%, rgba(229,62,62,0.08) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(197,48,48,0.06) 0%, transparent 50%)",
+    accent: "#E50914",
+    secondary: "#991B1E",
+    bg: "linear-gradient(135deg, #0F0F12 0%, #121216 50%, #1A1A20 100%)",
+    pattern: "radial-gradient(circle at 20% 80%, rgba(229,9,20,0.06) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(229,9,20,0.04) 0%, transparent 50%)",
     particles: ["🏥", "💊", "🩺", "❤️", "🩹", "🔬"],
     ambientIcons: [Stethoscope, Pill, Thermometer, HeartPulse, BrainCircuit, Microscope, TestTube, ClipboardList, UserCheck, Activity],
     description: "Consultorio Digital de Saude",

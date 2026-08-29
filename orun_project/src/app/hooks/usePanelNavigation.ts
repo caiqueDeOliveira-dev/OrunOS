@@ -103,6 +103,7 @@ export function usePanelNavigation(onNewChat?: () => void) {
   const setProjectsOpen = useCallback(makePanelSetter("projects"), []);
   const setFilesOpen = useCallback(makePanelSetter("files"), []);
   const setMemoryOpen = useCallback(makePanelSetter("memory"), []);
+  const setNeuralOpen = useCallback(makePanelSetter("neural"), []);
   const setSkillsOpen = useCallback(makePanelSetter("skills"), []);
   const setPlannerOpen = useCallback(makePanelSetter("planner"), []);
   const setAgentHubOpen = useCallback(makePanelSetter("agentHub"), []);
@@ -156,13 +157,14 @@ export function usePanelNavigation(onNewChat?: () => void) {
       if (id === "projects") setProjectsOpen(true);
       if (id === "files") setFilesOpen(true);
       if (id === "memory") setMemoryOpen(true);
+      if (id === "neural") setNeuralOpen(true);
       if (id === "skills") setSkillsOpen(true);
       if (id === "planner") setPlannerOpen(true);
       if (id === "agentHub") setAgentHubOpen(true);
       if (id === "analytics") setAnalyticsOpen(true);
       if (id === "groupFeed") setWorkspaceOpen("GroupFeed");
     },
-    [setActiveNav, setAgentsOpen, setHistoryOpen, setAutomationOpen, setProjectsOpen, setFilesOpen, setMemoryOpen, setSkillsOpen, setPlannerOpen, setAgentHubOpen, setAnalyticsOpen, setWorkspaceOpen],
+    [setActiveNav, setAgentsOpen, setHistoryOpen, setAutomationOpen, setProjectsOpen, setFilesOpen, setMemoryOpen, setNeuralOpen, setSkillsOpen, setPlannerOpen, setAgentHubOpen, setAnalyticsOpen, setWorkspaceOpen],
   );
 
   // ── Escape key closes all panels ─────────────────────────────────────────
@@ -199,6 +201,7 @@ export function usePanelNavigation(onNewChat?: () => void) {
   const projectsOpen = state.currentPanel === "projects";
   const filesOpen = state.currentPanel === "files";
   const memoryOpen = state.currentPanel === "memory";
+  const neuralOpen = state.currentPanel === "neural";
   const skillsOpen = state.currentPanel === "skills";
   const plannerOpen = state.currentPanel === "planner";
   const agentHubOpen = state.currentPanel === "agentHub";
@@ -216,7 +219,7 @@ export function usePanelNavigation(onNewChat?: () => void) {
     routerOpen,
     automationOpen, schedulesOpen, voicesOpen, modelPickerOpen, whatsappOpen,
     agentDataOpen: state.agentDataOpen, agentPage: state.agentPage,
-    projectsOpen, filesOpen, memoryOpen, skillsOpen, socialMediaOpen,
+    projectsOpen, filesOpen, memoryOpen, neuralOpen, skillsOpen, socialMediaOpen,
     exportImportOpen, activityOpen, emailOpen, calendarOpen, activeNav: state.activeNav, anyPanelOpen,
     workspaceOpen: state.workspaceOpen,
     plannerOpen,
@@ -226,7 +229,7 @@ export function usePanelNavigation(onNewChat?: () => void) {
     setAgentsOpen, setHistoryOpen, setSettingsOpen, setAgentModelsOpen,
     setUsageOpen, setRouterOpen, setAutomationOpen, setSchedulesOpen, setVoicesOpen,
     setModelPickerOpen, setWhatsappOpen, setAgentDataOpen, setAgentPage,
-    setProjectsOpen, setFilesOpen, setMemoryOpen, setSkillsOpen, setSocialMediaOpen,
+    setProjectsOpen, setFilesOpen, setMemoryOpen, setNeuralOpen, setSkillsOpen, setSocialMediaOpen,
     setExportImportOpen, setActivityOpen, setEmailOpen, setCalendarOpen, setActiveNav, setWorkspaceOpen,
     setPlannerOpen,
     setAgentHubOpen,

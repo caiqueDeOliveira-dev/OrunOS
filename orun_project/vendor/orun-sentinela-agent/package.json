@@ -1,10 +1,10 @@
 {
   "name": "@orun/sentinela-agent",
   "version": "0.1.0",
-  "description": "Agente de IA do Hampton que traduz achados técnicos do Orun Shield em explicações claras para o usuário, com providers de IA plugáveis (local e cloud).",
+  "description": "Agente de IA do Hampton que traduz achados tÃ©cnicos do Orun Shield em explicaÃ§Ãµes claras para o usuÃ¡rio, com providers de IA plugÃ¡veis (local e cloud).",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "type": "module",
+  "type": "commonjs",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@orun/shield-core": "workspace:*",
+    "@orun/shield-core": "file:../orun-shield-core",
     "zod": "^3.23.8"
   },
   "devDependencies": {
@@ -24,3 +24,4 @@
     "node": ">=18"
   }
 }
+

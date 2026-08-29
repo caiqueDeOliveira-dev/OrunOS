@@ -51,6 +51,7 @@ export function useKeyboardShortcuts({ nav, setCommandPaletteOpen, setProfileOpe
         return;
       }
       if (e.ctrlKey && e.key === "k") { e.preventDefault(); paletteRef.current((p) => !p); return; }
+      if (e.ctrlKey && e.code === "Space") { e.preventDefault(); paletteRef.current(true); return; }
       if (e.ctrlKey && e.shiftKey && e.key === "O") { e.preventDefault(); navRef.current.setAgentsOpen(true); return; }
       if (e.ctrlKey && e.shiftKey && e.key === "A") { e.preventDefault(); navRef.current.setAutomationOpen(true); return; }
       if (e.ctrlKey && e.shiftKey && e.key === "S") { e.preventDefault(); navRef.current.setSettingsOpen(true); return; }

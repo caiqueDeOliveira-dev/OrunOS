@@ -14,6 +14,7 @@ import { ProfilesPanel } from "./ProfilesPanel";
 import { ShieldPanel } from "./ShieldPanel";
 import { OptimizerPanel } from "./OptimizerPanel";
 import { SettingsSyncPanel } from "./SettingsSyncPanel";
+import IntegrationsSettings from "./IntegrationsSettings";
 import { useSetting } from "../contexts/SettingsContext";
 
 const PROVIDER_INFO: Record<OrunProvider, { label: string; kind: "local" | "cloud"; defaultModel: string; note?: string }> = {
@@ -22,7 +23,7 @@ const PROVIDER_INFO: Record<OrunProvider, { label: string; kind: "local" | "clou
   anthropic: { label: "Claude", kind: "cloud", defaultModel: "claude-sonnet-4-6" },
   openai: { label: "OpenAI", kind: "cloud", defaultModel: "gpt-4o-mini" },
   openrouter: { label: "OpenRouter", kind: "cloud", defaultModel: "openai/gpt-oss-20b:free", note: "Free tier (modelos :free) + pago por token" },
-  groq: { label: "Groq", kind: "cloud", defaultModel: "llama-3.3-70b-versatile", note: "Free tier, very fast inference" },
+  groq: { label: "Groq", kind: "cloud", defaultModel: "openai/gpt-oss-120b", note: "Free tier, very fast inference" },
   opencodezen: { label: "OpenCode Zen", kind: "cloud", defaultModel: "big-pickle", note: "Free com conta OpenCode Zen" },
   nvidia: { label: "NVIDIA NIM", kind: "cloud", defaultModel: "meta/llama-3.1-70b-instruct", note: "5k créditos free/mês em build.nvidia.com (Llama, Mistral, Gemma, DeepSeek, Nemotron)" },
 };
@@ -1915,6 +1916,7 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
                 <OptimizerPanel />
               </motion.div>
             )}
+            <IntegrationsSettings t={t} />
           </AnimatePresence>
         </div>
 

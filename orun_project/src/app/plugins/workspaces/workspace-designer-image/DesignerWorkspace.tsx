@@ -11,29 +11,31 @@ import { DesignerFigmaTab } from "./DesignerFigmaTab";
 import { DesignerImageEditorTab } from "./DesignerImageEditorTab";
 import { DesignerThreeDTab } from "./DesignerThreeDTab";
 
+// Chrome utilities resolve theme CSS vars (theme.css v2). Exception: .ws-bg-canvas is the
+// artboard/viewport surface (user artwork viewing area) — fixed dark like design tools.
 const DESIGNER_UTILITIES = `
-.ws-bg-card{background:#141414}
-.ws-bd-border{border-color:#252525}
-.ws-bg-border{background:#252525}
+.ws-bg-card{background:var(--surface-2)}
+.ws-bd-border{border-color:var(--border)}
+.ws-bg-border{background:var(--border)}
 .ws-bg-canvas{background:#0A0A0C}
-.ws-bg-muted{background:#1C1C1C}
-.ws-bg-selected{background:rgba(195,0,47,0.14)}
-.ws-text-foreground{color:#FFFFFF}
+.ws-bg-muted{background:var(--surface-3)}
+.ws-bg-selected{background:color-mix(in srgb,var(--primary) 14%,transparent)}
+.ws-text-foreground{color:var(--text-primary)}
 .ws-font-sora{font-family:'Sora',sans-serif}
 .ws-font-mono{font-family:'JetBrains Mono',monospace}
-.ws-btn-sm{background:#141414;border:1px solid #252525;border-radius:6px;color:#A0A0A0;padding:2px 8px;font-weight:500;transition:all .15s ease}
-.ws-btn-sm:hover{border-color:#383838;color:#FFFFFF}
-.ws-btn-icon{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:6px;color:#A0A0A0;font-size:11px;transition:all .15s ease}
-.ws-btn-icon:hover{background:rgba(255,255,255,0.05);color:#FFFFFF}
-.ws-btn-active{background:rgba(195,0,47,0.14);color:#FFFFFF}
-.ws-btn-primary{background:#C3002F;color:#FFFFFF;border-radius:6px;padding:4px 12px;font-weight:500;transition:all .15s ease}
+.ws-btn-sm{background:var(--surface-2);border:1px solid var(--border);border-radius:6px;color:var(--text-secondary);padding:2px 8px;font-weight:500;transition:all .15s ease}
+.ws-btn-sm:hover{border-color:var(--line-hi);color:var(--text-primary)}
+.ws-btn-icon{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:6px;color:var(--text-secondary);font-size:11px;transition:all .15s ease}
+.ws-btn-icon:hover{background:rgba(255,255,255,0.05);color:var(--text-primary)}
+.ws-btn-active{background:color-mix(in srgb,var(--primary) 14%,transparent);color:var(--text-primary)}
+.ws-btn-primary{background:var(--primary);color:#FFFFFF;border-radius:6px;padding:4px 12px;font-weight:500;transition:all .15s ease}
 .ws-btn-primary:hover{filter:brightness(1.15)}
 `;
 
 export function DesignerWorkspace({ plugin, activeTab, onTabChange, onSendMessage, lastToolResult }: WorkspaceProps) {
   const { t } = useTranslation();
   const { userName, avatarInitials } = usePersonalization();
-  const avatarColor = "#C3002F";
+  const avatarColor = "var(--primary)";
   const { notes, updateNotes } = useWorkspaceNotes("Designer");
   useEffect(() => {
     registerDesignerActions();

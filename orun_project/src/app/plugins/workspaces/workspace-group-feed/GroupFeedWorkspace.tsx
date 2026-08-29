@@ -1,14 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import {
   MessageSquareText, MessageSquare, Search, RefreshCw, Bot, Zap, Users, Eye,
   Radio, ShoppingCart, Globe, AlertTriangle, Loader2, CheckCircle2, Bell,
 } from "lucide-react";
 import type { WorkspaceProps } from "../../types";
-import { P, PremiumRoot, ScrollArea } from "../premium";
+import { P, PremiumRoot, ScrollArea, Toggle, PrimaryButton, Input } from "../premium";
 import { isElectron } from "../../../constants";
 import { useTranslation } from "../../../../i18n/I18nProvider";
 import { useToast } from "../../../components/Toast";
-import type { OrunGroupMessage, OrunGroupFeedState } from "../../../../types/orun";
+import type { OrunGroupMessage, OrunGroupFeedState, OrunGroupWatchlistTermExport } from "../../../../types/orun";
 
 type TabId = "feed" | "vigia" | "robo";
 
@@ -38,7 +38,7 @@ function renderRichText(text: string) {
     if (isUrl) {
       const href = part.startsWith("http") ? part : `https://${part}`;
       return (
-        <a key={i} href={href} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} style={{ color: "#4DA3FF", textDecoration: "underline", wordBreak: "break-all" }}>
+        <a key={i} href={href} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} style={{ color: P.info, textDecoration: "underline", wordBreak: "break-all" }}>
           {part}
         </a>
       );
@@ -51,7 +51,7 @@ function Bubble({ m }: { m: OrunGroupMessage }) {
   const isMine = Boolean(m.fromMe);
   const isBot = Boolean(m.bot);
   const label = isBot ? "Robô" : (m.senderName || "Participante");
-  const accent = isBot ? "#C3002F" : "#25D366";
+  const accent = isBot ? "var(--primary)" : "#25D366";
   const bubbleBg = isMine ? (isBot ? "rgba(195,0,47,0.16)" : "rgba(37,211,102,0.12)") : P.card2;
   const bubbleBorder = isMine ? (isBot ? "rgba(195,0,47,0.4)" : "rgba(37,211,102,0.35)") : P.border;
 
@@ -101,6 +101,9 @@ export function GroupFeedWorkspace({ plugin }: WorkspaceProps) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<string>("disconnected");
   const [feed, setFeed] = useState<OrunGroupFeedState | null>(null);
+  const [dealsScanning, setDealsScanning] = useState(false);
+  const [dealsResult, setDealsResult] = useState<OrunGroupWatchlistTermExport[] | null>(null);
+  const [intervalHours, setIntervalHours] = useState("2");
   const threadRef = useRef<HTMLDivElement>(null);
 
   const loadGroups = async () => {
@@ -151,6 +154,30 @@ export function GroupFeedWorkspace({ plugin }: WorkspaceProps) {
     threadRef.current.scrollTop = threadRef.current.scrollHeight;
   }, [groupMessages, selectedGroup]);
 
+  useEffect(() => {
+    if (!isElectron || !feed?.settings) return;
+    setIntervalHours(String(feed.settings.deals?.intervalHours || 2));
+  }, [feed?.settings?.deals?.intervalHours]);
+
+  useEffect(() => {
+    if (!isElectron) return;
+    const offDeals = window.orun.groupFeed.onDeals((result) => {
+      setDealsScanning(false);
+      if (result.ok && result.deals) {
+        setDealsResult(result.deals);
+        toast.show(t("groupFeedDealsDone"), "success");
+      } else if (result.error === "no-key") {
+        toast.show(t("groupFeedDealsNoKey"), "error");
+      } else if (result.error === "no-watchlist") {
+        toast.show(t("groupFeedDealsNoWatchlist"), "warning");
+      } else {
+        toast.show(result.error || "Erro na busca", "error");
+      }
+      window.orun.groupFeed.getState().then((s) => setFeed(s));
+    });
+    return () => { offDeals(); };
+  }, []);
+
   const refreshAll = async () => {
     await loadGroups();
     if (selectedGroupRef.current) await selectGroup(selectedGroupRef.current);
@@ -196,8 +223,8 @@ export function GroupFeedWorkspace({ plugin }: WorkspaceProps) {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[9px] uppercase" style={{ background: status === "connected" ? "rgba(37,211,102,0.1)" : "rgba(255,181,71,0.1)", color: status === "connected" ? "#25D366" : P.alert, border: `1px solid ${status === "connected" ? "rgba(37,211,102,0.3)" : "rgba(255,181,71,0.3)"}` }}>
-                <span className="w-1.5 h-1.5 rounded-full" style={{ background: status === "connected" ? "#25D366" : P.alert, boxShadow: status === "connected" ? "0 0 6px #25D366" : "0 0 6px #FFB547" }} />
+              <span className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[9px] uppercase" style={{ background: status === "connected" ? "rgba(37,211,102,0.1)" : "color-mix(in srgb, var(--warn) 10%, transparent)", color: status === "connected" ? "#25D366" : P.alert, border: `1px solid ${status === "connected" ? "rgba(37,211,102,0.3)" : "color-mix(in srgb, var(--warn) 30%, transparent)"}` }}>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: status === "connected" ? "#25D366" : P.alert, boxShadow: status === "connected" ? "0 0 6px #25D366" : `0 0 6px ${P.alert}` }} />
                 {status === "connected" ? "Conectado" : status}
               </span>
               <button onClick={refreshAll} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: P.card, border: `1px solid ${P.border}`, color: P.sub }} title="Atualizar">
@@ -363,51 +390,230 @@ export function GroupFeedWorkspace({ plugin }: WorkspaceProps) {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 rounded-2xl" style={{ background: P.card, border: `1px solid ${P.border}` }}>
-                  <span className="text-[10px] uppercase tracking-wider font-semibold flex items-center gap-2 mb-3" style={{ color: P.text }}>
-                    <Globe size={12} style={{ color: "#25D366" }} /> {t("groupFeedWatchlist")}
-                  </span>
-                  {(feed?.settings?.watchlist || []).length === 0 ? (
-                    <p className="text-[10px] mb-3" style={{ color: P.sub }}>{t("groupFeedNoTerms")}</p>
-                  ) : (
-                    <div className="flex flex-wrap gap-1.5 mb-3">
-                      {(feed?.settings?.watchlist || []).map((item) => (
-                        <span key={item.id} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[10px]" style={{ background: item.enabled ? "rgba(37,211,102,0.1)" : P.card2, color: item.enabled ? "#25D366" : P.dim, border: `1px solid ${item.enabled ? "rgba(37,211,102,0.3)" : P.border}` }}>
-                          {item.term}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  <p className="text-[10px] flex items-start gap-2" style={{ color: P.sub }}>
-                    <AlertTriangle size={12} className="shrink-0 mt-0.5" style={{ color: P.alert }} />
-                    {t("groupFeedAiFilterDesc")}
-                  </p>
+              <div className="p-4 rounded-2xl" style={{ background: P.card, border: `1px solid ${P.border}` }}>
+                <span className="text-[10px] uppercase tracking-wider font-semibold flex items-center gap-2 mb-3" style={{ color: P.text }}>
+                  <Globe size={12} style={{ color: "#25D366" }} /> {t("groupFeedWatchlist")}
+                </span>
+                {(feed?.settings?.watchlist || []).length === 0 ? (
+                  <p className="text-[10px] mb-3" style={{ color: P.sub }}>{t("groupFeedNoTerms")}</p>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {(feed?.settings?.watchlist || []).map((item) => (
+                      <span key={item.id} className="group flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[10px]" style={{ background: item.enabled ? "rgba(37,211,102,0.1)" : P.card2, color: item.enabled ? "#25D366" : P.dim, border: `1px solid ${item.enabled ? "rgba(37,211,102,0.3)" : P.border}` }}>
+                        {item.term}
+                        <button
+                          onClick={async () => {
+                            await window.orun.groupFeed.removeWatchlistTerm(item.id);
+                            const s = await window.orun.groupFeed.getState();
+                            setFeed(s);
+                            toast.show("Termo removido", "success");
+                          }}
+                          className="ml-0.5 opacity-0 group-hover:opacity-100 transition-opacity rounded-full hover:bg-white/10 w-3.5 h-3.5 flex items-center justify-center"
+                          style={{ color: P.dim }}
+                          title="Remover"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <input
+                    className="flex-1 bg-transparent outline-none text-[11px] px-3 py-2 rounded-xl"
+                    placeholder={t("groupFeedWatchlistPlaceholder")}
+                    style={{ background: P.bg, border: `1px solid ${P.border}`, color: P.text }}
+                    onKeyDown={async (e) => {
+                      if (e.key === "Enter") {
+                        const val = (e.target as HTMLInputElement).value.trim();
+                        if (!val) return;
+                        await window.orun.groupFeed.addWatchlistTerm(val);
+                        (e.target as HTMLInputElement).value = "";
+                        const s = await window.orun.groupFeed.getState();
+                        setFeed(s);
+                        toast.show("Termo adicionado", "success");
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={async (e) => {
+                      const input = (e.currentTarget.previousElementSibling as HTMLInputElement);
+                      const val = input?.value?.trim();
+                      if (!val) return;
+                      await window.orun.groupFeed.addWatchlistTerm(val);
+                      input.value = "";
+                      const s = await window.orun.groupFeed.getState();
+                      setFeed(s);
+                      toast.show("Termo adicionado", "success");
+                    }}
+                    className="px-3 py-2 rounded-xl text-[11px] font-medium transition-all"
+                    style={{ background: "rgba(37,211,102,0.12)", color: "#25D366", border: "1px solid rgba(37,211,102,0.3)" }}
+                  >
+                    {t("groupFeedAdd")}
+                  </button>
                 </div>
+              </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="p-4 rounded-2xl" style={{ background: P.card, border: `1px solid ${P.border}` }}>
                   <span className="text-[10px] uppercase tracking-wider font-semibold flex items-center gap-2 mb-3" style={{ color: P.text }}>
                     <Bell size={12} style={{ color: "#25D366" }} /> {t("groupFeedWatchConfig")}
                   </span>
                   <p className="text-[10px]" style={{ color: P.sub }}>{t("groupFeedAlertTargetDesc")}</p>
                 </div>
+
+                <div className="p-4 rounded-2xl" style={{ background: P.card, border: `1px solid ${P.border}` }}>
+                  <span className="text-[10px] uppercase tracking-wider font-semibold flex items-center gap-2 mb-3" style={{ color: P.text }}>
+                    <AlertTriangle size={12} style={{ color: P.alert }} /> Filtro IA
+                  </span>
+                  <p className="text-[10px]" style={{ color: P.sub }}>{t("groupFeedAiFilterDesc")}</p>
+                </div>
               </div>
             </div>
           )}
 
           {/* ═══ ROBÔ DE PROMOÇÕES ═══ */}
-          {tab === "robo" && (
-            <div className="p-4 rounded-2xl space-y-3" style={{ background: P.card, border: `1px solid ${P.border}` }}>
-              <span className="text-[10px] uppercase tracking-wider font-semibold flex items-center gap-2" style={{ color: P.text }}>
-                <ShoppingCart size={12} style={{ color: "#FFB547" }} /> {t("groupFeedDealsTitle")}
-              </span>
-              <p className="text-[10px]" style={{ color: P.sub }}>{t("groupFeedDealsDesc")}</p>
-              <p className="text-[10px] flex items-start gap-2" style={{ color: P.sub }}>
-                <AlertTriangle size={12} className="shrink-0 mt-0.5" style={{ color: P.alert }} />
-                {t("groupFeedDealsDisclaimer")}
-              </p>
-            </div>
-          )}
+          {tab === "robo" && (() => {
+            const deals = feed?.settings?.deals;
+            const hasKey = deals?.status !== "no-key";
+            const hasWatchlist = (feed?.settings?.watchlist || []).length > 0;
+            return (
+              <div className="grid gap-4">
+                <div className="p-4 rounded-2xl space-y-4" style={{ background: P.card, border: `1px solid ${P.border}` }}>
+                  <span className="text-[10px] uppercase tracking-wider font-semibold flex items-center gap-2" style={{ color: P.text }}>
+                    <ShoppingCart size={12} style={{ color: P.alert }} /> {t("groupFeedDealsTitle")}
+                  </span>
+                  <p className="text-[10px]" style={{ color: P.sub }}>{t("groupFeedDealsDesc")}</p>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] flex items-center gap-2" style={{ color: P.text }}>
+                      {t("groupFeedDealsEnable")}
+                    </span>
+                    <Toggle
+                      on={!!deals?.enabled}
+                      onChange={async () => {
+                        await window.orun.groupFeed.setSettings({ deals: { enabled: !deals?.enabled } });
+                        const s = await window.orun.groupFeed.getState();
+                        setFeed(s);
+                      }}
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] shrink-0" style={{ color: P.sub }}>{t("groupFeedDealsInterval")}</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="72"
+                      value={intervalHours}
+                      onChange={(e) => setIntervalHours(e.target.value)}
+                      onBlur={async () => {
+                        const h = Math.max(1, Math.min(72, parseInt(intervalHours) || 2));
+                        setIntervalHours(String(h));
+                        await window.orun.groupFeed.setSettings({ deals: { intervalHours: h } });
+                        const s = await window.orun.groupFeed.getState();
+                        setFeed(s);
+                      }}
+                      className="w-16 text-center text-[11px] px-2 py-1.5 rounded-xl outline-none"
+                      style={{ background: P.bg, border: `1px solid ${P.border}`, color: P.text }}
+                    />
+                    <span className="text-[10px]" style={{ color: P.dim }}>h</span>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <PrimaryButton
+                      onClick={async () => {
+                        if (dealsScanning) return;
+                        setDealsScanning(true);
+                        setDealsResult(null);
+                        await window.orun.groupFeed.runDealsScan();
+                      }}
+                      disabled={dealsScanning}
+                    >
+                      {dealsScanning ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
+                      {dealsScanning ? "Buscando..." : t("groupFeedDealsRunNow")}
+                    </PrimaryButton>
+
+                    {deals?.lastRun ? (
+                      <span className="text-[10px]" style={{ color: P.dim }}>
+                        {t("groupFeedDealsLastRun")} {formatTime(deals.lastRun)}
+                      </span>
+                    ) : (
+                      <span className="text-[10px]" style={{ color: P.dim }}>{t("groupFeedDealsNeverRun")}</span>
+                    )}
+                  </div>
+                </div>
+
+                {!hasKey && (
+                  <div className="p-3 rounded-xl flex items-start gap-2" style={{ background: "color-mix(in srgb, var(--warn) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--warn) 25%, transparent)" }}>
+                    <AlertTriangle size={12} className="shrink-0 mt-0.5" style={{ color: P.alert }} />
+                    <div>
+                      <p className="text-[10px] font-semibold" style={{ color: P.alert }}>{t("groupFeedDealsNoKey")}</p>
+                      <p className="text-[10px] mt-1" style={{ color: P.dim }}>{t("groupFeedDealsFirecrawl")}</p>
+                    </div>
+                  </div>
+                )}
+
+                {!hasWatchlist && hasKey && (
+                  <div className="p-3 rounded-xl flex items-start gap-2" style={{ background: "rgba(255,100,100,0.08)", border: "1px solid rgba(255,100,100,0.25)" }}>
+                    <AlertTriangle size={12} className="shrink-0 mt-0.5" style={{ color: P.alert }} />
+                    <p className="text-[10px]" style={{ color: P.alert }}>{t("groupFeedDealsNoWatchlist")}</p>
+                  </div>
+                )}
+
+                <div className="p-3 rounded-xl" style={{ background: P.bg, border: `1px solid ${P.border}` }}>
+                  <p className="text-[10px] flex items-start gap-2" style={{ color: P.dim }}>
+                    <AlertTriangle size={12} className="shrink-0 mt-0.5" style={{ color: P.alert }} />
+                    {t("groupFeedDealsDisclaimer")}
+                  </p>
+                </div>
+
+                {dealsResult && dealsResult.length > 0 && (
+                  <div className="p-4 rounded-2xl space-y-3" style={{ background: P.card, border: `1px solid ${P.border}` }}>
+                    <span className="text-[10px] uppercase tracking-wider font-semibold flex items-center gap-2" style={{ color: P.text }}>
+                      <CheckCircle2 size={12} style={{ color: "#25D366" }} /> Resultados da busca
+                    </span>
+                    {dealsResult.map((group, i) => (
+                      <div key={i}>
+                        <span className="text-[10px] font-semibold block mb-1.5" style={{ color: P.alert }}>"{group.term}"</span>
+                        {(group.deals || []).map((r, j) => (
+                          <a
+                            key={j}
+                            href={r.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-start gap-2.5 p-2 rounded-xl mb-1.5 transition-all hover:brightness-110"
+                            style={{ background: P.bg, border: `1px solid ${P.border}` }}
+                          >
+                            {r.image && (
+                              <img
+                                src={r.image}
+                                alt=""
+                                className="w-12 h-12 rounded-lg shrink-0 object-cover"
+                                style={{ border: `1px solid ${P.border}` }}
+                                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                              />
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[10px] font-medium truncate" style={{ color: P.text }}>{r.title}</p>
+                              <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                                {r.store && <span className="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded" style={{ background: "rgba(37,211,102,0.12)", color: "#25D366", border: "1px solid rgba(37,211,102,0.3)" }}>{r.store}</span>}
+                                {r.price && <span className="text-[10px] font-bold" style={{ color: P.alert }}>{r.price}</span>}
+                                {r.condition && <span className="text-[8px] px-1.5 py-0.5 rounded" style={{ background: "rgba(255,200,80,0.12)", color: "#FFC850", border: "1px solid rgba(255,200,80,0.3)" }}>{r.condition}</span>}
+                                {r.coupon && <span className="text-[8px] px-1.5 py-0.5 rounded" style={{ background: "rgba(120,140,255,0.12)", color: "#788CFF", border: "1px solid rgba(120,140,255,0.3)" }}>🎟️ {r.coupon}</span>}
+                              </div>
+                              {r.description && <p className="text-[9px] mt-1 line-clamp-2" style={{ color: P.dim }}>{r.description}</p>}
+                              <p className="text-[9px] mt-1 truncate" style={{ color: P.info }}>{r.url}</p>
+                            </div>
+                          </a>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Watched count footer */}
           {(tab === "vigia" || tab === "robo") && (

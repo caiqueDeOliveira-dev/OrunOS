@@ -4,7 +4,7 @@
   "description": "Análise de uso de disco, limpeza segura de arquivos desnecessários e verificação/atualização de software desatualizado para o Orun OS.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "type": "module",
+  "type": "commonjs",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",

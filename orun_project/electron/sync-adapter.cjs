@@ -141,6 +141,7 @@ module.exports = {
   stopHeartbeat,
   // @orun/settings sync (nova camada)
   initSettingsSync,
+  reinitSettingsSync,
   getSettingsSyncEngine,
 };
 
@@ -150,8 +151,9 @@ let settingsSyncEngine = null;
 /**
  * Inicia o SyncEngine de settings via @orun/sync bridge.
  * Requer: ecossistema ativo (Supabase client + deviceId).
+ * @param {object} [authModule] - módulo auth.cjs (opcional; usado para obter o userId real)
  */
-function initSettingsSync() {
+function initSettingsSync(authModule) {
   if (!ecosystemEnabled || !controller) return null;
   try {
     const settingsBridge = require("./settings-bridge.cjs");
@@ -160,10 +162,21 @@ function initSettingsSync() {
       logger.sync.warn("[settings-sync] Supabase client nao disponivel no controller");
       return null;
     }
+    // Obter o userId real do auth (Supabase auth.uid), fallback para "local"
+    let userId = "local";
+    if (authModule && typeof authModule.getState === "function") {
+      try {
+        const authState = authModule.getState();
+        if (authState?.user?.id) {
+          userId = authState.user.id;
+          logger.sync.info("[settings-sync] userId do auth:", userId);
+        }
+      } catch { /* auth indisponível, usa "local" */ }
+    }
     // initSync retorna uma promise do engine
-    settingsBridge.initSync(supabase, "local", deviceId);
+    settingsBridge.initSync(supabase, userId, deviceId);
     settingsSyncEngine = settingsBridge.getSyncEngine();
-    logger.sync.info("[settings-sync] SyncEngine de settings inicializado");
+    logger.sync.info("[settings-sync] SyncEngine de settings inicializado (userId=" + userId + ")");
     return settingsSyncEngine;
   } catch (err) {
     logger.sync.warn("[settings-sync] Falha ao inicializar:", err.message);
@@ -173,4 +186,25 @@ function initSettingsSync() {
 
 function getSettingsSyncEngine() {
   return settingsSyncEngine;
+}
+
+/**
+ * Reinicializa o settings sync com o userId correto (chamado quando o user faz login).
+ * Descarta o engine antigo (que usava "local") e cria um novo com o userId real.
+ */
+function reinitSettingsSync(authModule) {
+  if (!ecosystemEnabled || !controller) return null;
+  try {
+    const settingsBridge = require("./settings-bridge.cjs");
+    // Descarta o engine antigo
+    if (settingsSyncEngine) {
+      settingsSyncEngine.dispose();
+      settingsSyncEngine = null;
+    }
+    // Cria novo com o userId real
+    return initSettingsSync(authModule);
+  } catch (err) {
+    logger.sync.warn("[settings-sync] Falha ao reinicializar:", err.message);
+    return null;
+  }
 }

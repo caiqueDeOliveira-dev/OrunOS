@@ -2,6 +2,7 @@
 // Routes incoming Telegram messages to the correct agent and processes AI responses.
 
 function createTelegramHandler({ db, aiRouter, agentProcessor, buildSystemPrompt, resolveAISettings, secretStore, log }) {
+  const vehicleProfile = require("./vehicle-profile.cjs");
 
   // Map Telegram chat IDs to agent names
   function resolveAgent(chatId) {
@@ -37,6 +38,13 @@ function createTelegramHandler({ db, aiRouter, agentProcessor, buildSystemPrompt
     try {
       const aiSettings = resolveAISettings(agentName);
       const basePrompt = buildSystemPrompt(null, agentName);
+      let systemPrompt = basePrompt;
+      if (agentName === "Automotive") {
+        const extracted = vehicleProfile.extractVehicleInfo(text || "");
+        if (extracted) vehicleProfile.saveVehicleInfo(db, `tg:${chatId}`, extracted);
+        const vehicleBlock = vehicleProfile.buildVehicleContext(db, `tg:${chatId}`);
+        if (vehicleBlock) systemPrompt += vehicleBlock;
+      }
       const keys = secretStore.readSecretStore();
       const apiKey = keys[aiSettings.provider];
       const messages = [{ role: "user", content: text || "Analyze this image" }];
@@ -54,7 +62,7 @@ function createTelegramHandler({ db, aiRouter, agentProcessor, buildSystemPrompt
 
       const { context } = await aiRouter.buildContext({
         messages,
-        systemPrompt: basePrompt,
+        systemPrompt,
         provider: aiSettings.provider,
         model: aiSettings.model,
         baseUrl: aiSettings.baseUrl,

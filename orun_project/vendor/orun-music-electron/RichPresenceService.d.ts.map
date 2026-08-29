@@ -1,0 +1,1 @@
+{"version":3,"file":"RichPresenceService.d.ts","sourceRoot":"","sources":["../src/RichPresenceService.ts"],"names":[],"mappings":"AACA,OAAO,KAAK,EAAE,cAAc,EAAE,MAAM,6BAA6B,CAAC;AAKlE;;;;;GAKG;AACH,qBAAa,mBAAmB;IAGlB,OAAO,CAAC,QAAQ,CAAC,MAAM;IAFnC,OAAO,CAAC,SAAS,CAA8B;gBAElB,MAAM,EAAE,cAAc;IAEnD,KAAK,IAAI,IAAI;CAYd;AAED,+EAA+E;AAC/E,eAAO,MAAM,yBAAyB;;;CAGrC,CAAC"}

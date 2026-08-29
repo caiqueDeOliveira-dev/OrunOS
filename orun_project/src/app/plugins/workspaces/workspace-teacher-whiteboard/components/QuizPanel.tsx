@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useWhiteboardStore } from "../teacher-store";
 import type { QuizQuestion } from "../teacher-types";
 
@@ -20,7 +20,7 @@ export function QuizPanel() {
         {showResults && (
           <span className="text-[10px] px-2 py-1 rounded-full" style={{
             background: score >= questions.length * 0.7 ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)",
-            color: score >= questions.length * 0.7 ? "#22C55E" : "#EF4444",
+            color: score >= questions.length * 0.7 ? "var(--ok)" : "var(--err)",
             fontFamily: "'JetBrains Mono', monospace",
           }}>
             {score}/{questions.length} ({pct}%)
@@ -49,9 +49,9 @@ export function QuizPanel() {
                   onClick={() => !showResults && setAnswers((prev) => ({ ...prev, [q.id]: oi }))}
                   className="w-full text-left px-2.5 py-1.5 rounded-md text-[10px] transition-all"
                   style={{
-                    background: isCorrect ? "rgba(34,197,94,0.1)" : isWrong ? "rgba(239,68,68,0.1)" : isSelected ? "rgba(192,0,24,0.08)" : "rgba(255,255,255,0.02)",
-                    color: isCorrect ? "#22C55E" : isWrong ? "#EF4444" : "var(--foreground)",
-                    border: `1px solid ${isCorrect ? "rgba(34,197,94,0.3)" : isWrong ? "rgba(239,68,68,0.3)" : isSelected ? "rgba(192,0,24,0.2)" : "var(--border)"}`,
+                    background: isCorrect ? "rgba(34,197,94,0.1)" : isWrong ? "rgba(239,68,68,0.1)" : isSelected ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "rgba(255,255,255,0.02)",
+                    color: isCorrect ? "var(--ok)" : isWrong ? "var(--err)" : "var(--foreground)",
+                    border: `1px solid ${isCorrect ? "rgba(34,197,94,0.3)" : isWrong ? "rgba(239,68,68,0.3)" : isSelected ? "color-mix(in srgb, var(--primary) 20%, transparent)" : "var(--border)"}`,
                   }}>
                   {opt}
                 </button>
@@ -67,7 +67,7 @@ export function QuizPanel() {
           className="w-full py-2 rounded-lg text-[10px] tracking-wider uppercase transition-all"
           style={{
             fontFamily: "'Sora', sans-serif",
-            background: answeredCount >= questions.length ? "#C00018" : "rgba(255,255,255,0.05)",
+            background: answeredCount >= questions.length ? "var(--primary)" : "rgba(255,255,255,0.05)",
             color: answeredCount >= questions.length ? "#fff" : "var(--muted-foreground)",
             opacity: answeredCount >= questions.length ? 1 : 0.5,
           }}>

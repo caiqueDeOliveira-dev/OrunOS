@@ -1,0 +1,38 @@
+{
+  "name": "@orun/music-electron",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./dist/preload.js",
+  "types": "./dist/preload.d.ts",
+  "exports": {
+    ".": "./dist/preload.js",
+    "./ElectronSpotifyPlayer": "./dist/ElectronSpotifyPlayer.js",
+    "./SpotifyPlaylistSync": "./dist/SpotifyPlaylistSync.js",
+    "./SqlitePlaylistStore": "./dist/SqlitePlaylistStore.js",
+    "./LrclibLyricsProvider": "./dist/LrclibLyricsProvider.js",
+    "./MusixmatchLyricsProvider": "./dist/MusixmatchLyricsProvider.js",
+    "./CrossfadeController": "./dist/CrossfadeController.js",
+    "./RecommendationsService": "./dist/RecommendationsService.js",
+    "./ListeningHistoryStore": "./dist/ListeningHistoryStore.js",
+    "./LyricsCache": "./dist/LyricsCache.js",
+    "./RichPresenceService": "./dist/RichPresenceService.js",
+    "./NowPlayingSync": "./dist/NowPlayingSync.js",
+    "./MiniPlayerWindow": "./dist/MiniPlayerWindow.js",
+    "./HamptonMusicTools": "./dist/HamptonMusicTools.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@orun/music-core": "*",
+    "better-sqlite3": "^11.0.0"
+  },
+  "peerDependencies": {
+    "electron": ">=28"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
+    "typescript": "^5.5.0"
+  }
+}

@@ -29,6 +29,39 @@ function register(ipcMain, ctx) {
     return comboStore.listCombos();
   });
 
+  ipcMain.handle("ai-router:list-providers", async () => {
+    const { PROVIDER_REGISTRY } = require("@orun/ai-router-core");
+    const { providerConfigStore } = getAiRouterService(app, secretStore);
+    let configs = [];
+    try { configs = await providerConfigStore.listConfigs(); } catch (e) { log.warn("[ai-router:list-providers] configs:", e.message); }
+    const configById = {};
+    for (const c of configs) configById[c.id] = c;
+    const keys = secretStore.readSecretStore();
+    const mask = (k) => (k && k.length > 10 ? `${k.slice(0, 6)}…${k.slice(-4)}` : k ? "••••" : null);
+    return Object.values(PROVIDER_REGISTRY)
+      .filter((p) => p && p.id)
+      .map((p) => {
+        const explicit = keys[`ai-router.${p.id}`];
+        const rawKey = typeof explicit === "string" && explicit.trim()
+          ? explicit.trim()
+          : (secretStore.getProviderApiKeys(p.id)[0] || null);
+        const cfg = configById[p.id];
+        return {
+          id: p.id,
+          label: p.label,
+          tier: p.tier,
+          authMethod: p.authMethod,
+          baseUrl: p.baseUrl,
+          requiresLocalRuntime: Boolean(p.requiresLocalRuntime),
+          hasKey: Boolean(rawKey),
+          keyMasked: mask(rawKey),
+          configured: Boolean(cfg),
+          configModelCount: (cfg && (cfg.modelIds?.length || cfg.models?.length)) || 0,
+        };
+      })
+      .sort((a, b) => Number(b.hasKey) - Number(a.hasKey) || a.label.localeCompare(b.label));
+  });
+
   ipcMain.handle("ai-router:get-combo", async (_event, comboId) => {
     const { comboStore } = getAiRouterService(app, secretStore);
     return comboStore.getCombo(comboId);

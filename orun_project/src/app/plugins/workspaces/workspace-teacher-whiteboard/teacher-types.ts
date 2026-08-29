@@ -1,4 +1,4 @@
-export interface DrawElement {
+﻿export interface DrawElement {
   id: string;
   type: "pen" | "text" | "rect" | "circle" | "eraser";
   points?: string;
@@ -59,4 +59,4 @@ export const PALETTE = ["#C00018", "#3B82F6", "#22C55E", "#F59E0B", "#8B5CF6", "
 export const STROKE_WIDTHS = [1, 3, 6] as const;
 export const CANVAS_BG = "#0D1117";
 export const GRID_COLOR = "rgba(255,255,255,0.03)";
-export const ACCENT = "#C00018";
+export const ACCENT = "var(--primary)";

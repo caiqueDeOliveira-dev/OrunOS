@@ -135,8 +135,8 @@ export function clearCompatibilityCache(): void {
 const AGENT_PLUGIN_MAP: Record<string, string> = {
   System: "System",
   Health: "Health",
-  Finance: "Finance",
-  Developer: "Developer",
+  Finance: "FinanceReal",
+  Developer: "OrunCode",
   Marketing: "Marketing",
   Designer: "Designer",
   Creator: "Creator_Audio",
@@ -151,6 +151,10 @@ const AGENT_PLUGIN_MAP: Record<string, string> = {
   "Home IA": "HomeIA",
   "Cyber Security": "CyberSecurity",
   Carreiras: "Career",
+  OrunMusic: "OrunMusic",
+  Telemetry: "Telemetry",
+  ShieldSecrets: "ShieldSecrets",
+  FinanceReal: "FinanceReal",
 };
 
 /** Get the workspace plugin ID for a given agent name. Returns undefined if no workspace exists. */

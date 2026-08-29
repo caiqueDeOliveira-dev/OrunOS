@@ -1,0 +1,12 @@
+{
+  "name": "@orun/finance-node",
+  "version": "0.1.0",
+  "description": "Adapters IFinanceStore: Actual Budget (local-first) + Pluggy (Open Finance read-only). CommonJS vendor build",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "license": "ISC",
+  "dependencies": {
+    "@actual-app/api": "^25.7.0",
+    "@orun/finance-core": "file:../orun-finance-core"
+  }
+}

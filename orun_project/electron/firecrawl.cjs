@@ -133,7 +133,14 @@ async function search(query, opts = {}, apiKey) {
   }
   const body = { query, limit: opts.limit || 5 };
   if (opts.country) body.country = opts.country;
-  if (opts.langs) body.langs = opts.langs;
+  if (opts.lang) {
+    body.lang = opts.lang;
+  } else if (Array.isArray(opts.langs) && opts.langs.length) {
+    // v1 aceita apenas `lang` (string). Mantém compatibilidade com `langs:[]`.
+    body.lang = opts.langs[0];
+  } else if (typeof opts.langs === "string") {
+    body.lang = opts.langs;
+  }
 
   let json;
   try {
@@ -145,13 +152,16 @@ async function search(query, opts = {}, apiKey) {
   if (!json || json.success === false) {
     return { error: `Firecrawl search falhou: ${(json && json.error) || "resposta inesperada"}` };
   }
-  const data = json.data || {};
-  const results = (data.results || []).map((r) => ({
+  const data = json.data;
+  // v1 retorna `data` como array direto de resultados (não { results: [...] }).
+  const rows = Array.isArray(data) ? data : ((data && data.results) || []);
+  const results = rows.map((r) => ({
     title: r.title || "",
     url: r.url || "",
     description: r.description || (r.metadata && r.metadata.description) || "",
   }));
-  return { results, query, engine: "firecrawl", total: data.total || results.length };
+  const total = Array.isArray(data) ? results.length : ((data && data.total) || results.length);
+  return { results, query, engine: "firecrawl", total };
 }
 
 module.exports = { scrape, search, hasKey, setBaseUrl, getBaseUrl, DEFAULT_BASE_URL };

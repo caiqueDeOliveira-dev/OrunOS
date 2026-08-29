@@ -3,6 +3,7 @@ import { render } from "@testing-library/react";
 import { JuridicoWorkspace } from "../app/plugins/workspaces/workspace-juridico/JuridicoWorkspace";
 import { AssistenteTecnicoWorkspace } from "../app/plugins/workspaces/workspace-assistente-tecnico/AssistenteTecnicoWorkspace";
 import { SuporteWorkspace } from "../app/plugins/workspaces/workspace-suporte/SuporteWorkspace";
+import { OrunCode } from "../app/plugins/workspaces/workspace-orun-code/OrunCode";
 import type { WorkspaceProps } from "../app/plugins/types";
 
 const mockProps: WorkspaceProps = {
@@ -37,5 +38,9 @@ describe("Workspace smoke tests", () => {
 
   it("SuporteWorkspace renders without crashing", () => {
     render(<SuporteWorkspace {...mockProps} />);
+  });
+
+  it("OrunCode renders without crashing", () => {
+    render(<OrunCode {...mockProps} />);
   });
 });

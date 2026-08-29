@@ -1,10 +1,21 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { isElectron } from "../constants";
+import { getActiveAgentStore } from "../utils/activeAgent";
 import type { OrunTTSEngine } from "../../types/orun";
 
 interface UseTTSOptions {
   /** Called by useChat to advance spokenUpToRef after incremental speak */
   spokenUpToRef: React.MutableRefObject<number>;
+}
+
+/** Shape of the "tts" setting. `agentVoices` maps an agent name (as used by
+ *  openAgentChat / activeAgentStore) to a per-agent voiceId override — e.g.
+ *  { Developer: "pm_alex", Hampton: "pf_dora" } on the kokoro engine. */
+interface TtsSettings {
+  engine: string;
+  voiceId: string;
+  enabled?: boolean;
+  agentVoices?: Record<string, string>;
 }
 
 function splitSentences(text: string): string[] {
@@ -40,7 +51,7 @@ export function useTTS({ spokenUpToRef }: UseTTSOptions) {
   const [speechEnabled, setSpeechEnabled] = useState(true);
   const [hasVoiceConfigured, setHasVoiceConfigured] = useState(false);
 
-  const ttsSettingsRef = useRef<{ engine: string; voiceId: string; enabled?: boolean } | null>(null);
+  const ttsSettingsRef = useRef<TtsSettings | null>(null);
   const audioQueueRef = useRef<Promise<void>>(Promise.resolve());
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const ttsCacheRef = useRef<Map<string, { audioBase64: string; mime: string }>>(new Map());
@@ -64,7 +75,7 @@ export function useTTS({ spokenUpToRef }: UseTTSOptions) {
 
   const refreshTTSSettings = async () => {
     if (!isElectron) return;
-    const v = await window.orun.settings.get<{ engine: string; voiceId: string; enabled?: boolean }>("tts");
+    const v = await window.orun.settings.get<TtsSettings>("tts");
     if (!mountedRef.current) return;
     ttsSettingsRef.current = v || null;
     setHasVoiceConfigured(Boolean(v?.engine && v?.voiceId));
@@ -82,22 +93,32 @@ export function useTTS({ spokenUpToRef }: UseTTSOptions) {
     notifyTtsState(false);
   }, [notifyTtsState]);
 
+  /** Voice for the currently active agent: per-agent override (tts.agentVoices)
+   *  wins over the global voiceId. */
+  const resolveVoiceId = useCallback((): string => {
+    const v = ttsSettingsRef.current;
+    if (!v) return "";
+    const agent = getActiveAgentStore();
+    return (agent && v.agentVoices?.[agent]) || v.voiceId;
+  }, []);
+
   /** Queues text for TTS — splits into sentences, pre-synthesizes all of them
    *  in parallel, then plays them in order. Sentences after the first are ready
    *  by the time the current one finishes → near-streaming playback. */
   const speak = useCallback((text: string) => {
     if (!isElectron || !speechEnabled || !text.trim()) return;
     const v = ttsSettingsRef.current;
-    if (!v?.engine || !v?.voiceId) return;
+    const voiceId = resolveVoiceId();
+    if (!v?.engine || !voiceId) return;
     const session = speakSessionRef.current;
 
     const sentences = splitSentences(text);
     const synthesized = sentences.map(async (sentence) => {
-      const cacheKey = `${v.engine}:${v.voiceId}:${sentence}`;
+      const cacheKey = `${v.engine}:${voiceId}:${sentence}`;
       const cached = ttsCacheRef.current.get(cacheKey);
       if (cached) return { audioBase64: cached.audioBase64, mime: cached.mime };
 
-      const result = await window.orun.tts.synthesize(v.engine as OrunTTSEngine, v.voiceId, sentence);
+      const result = await window.orun.tts.synthesize(v.engine as OrunTTSEngine, voiceId, sentence);
       if (result.fallbackFrom) {
         window.dispatchEvent(new CustomEvent("tts:fallback", { detail: { from: result.fallbackFrom, to: result.engine } }));
       }
@@ -146,7 +167,7 @@ export function useTTS({ spokenUpToRef }: UseTTSOptions) {
         }
       })
       .catch(() => {});
-  }, [speechEnabled, notifyTtsState]);
+  }, [speechEnabled, notifyTtsState, resolveVoiceId]);
 
   /** Stop all TTS audio (called when user starts speaking) */
   const stopTTS = useCallback(() => {

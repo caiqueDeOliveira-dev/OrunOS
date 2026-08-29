@@ -1,5 +1,6 @@
-// DeckPanel.tsx — Virtual DJ 2026 Animated Vinyl Turntable, Waveform, Transport, Hot Cues
+﻿// DeckPanel.tsx — Virtual DJ 2026 Animated Vinyl Turntable, Waveform, Transport, Hot Cues
 import { useState, useEffect, useCallback, useRef } from "react";
+import { FolderOpen } from "lucide-react";
 import { useTranslation } from "../../../../i18n/I18nProvider";
 import { useDJStore } from "./creator-audio-store";
 import { getAudioEngine } from "./audio-engine";
@@ -37,6 +38,10 @@ export function DeckPanel({ deck }: { deck: "A" | "B" }) {
   const scrubWasPlayingRef = useRef(false);
 
   const deckColor = deck === "A" ? ACCENT : "#4DA3FF";
+  const deckTint = (pct: number) =>
+    deck === "A"
+      ? `color-mix(in srgb, var(--primary) ${pct}%, transparent)`
+      : `rgba(77,163,255,${(pct / 100).toFixed(2)})`;
 
   // Update position from engine
   useEffect(() => {
@@ -224,7 +229,7 @@ export function DeckPanel({ deck }: { deck: "A" | "B" }) {
       : "none";
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", borderRadius: 12, background: "linear-gradient(180deg, #101013 0%, #0A0A0C 100%)", border: `1px solid ${deckColor}40`, boxShadow: `0 0 20px ${deckColor}12`, padding: "10px 12px", overflow: "hidden", minHeight: 0, position: "relative" }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", borderRadius: 12, background: "linear-gradient(180deg, var(--surface-2) 0%, var(--surface-1) 100%)", border: `1px solid ${deckTint(40)}`, boxShadow: `0 0 20px ${deckTint(12)}`, padding: "10px 12px", overflow: "hidden", minHeight: 0, position: "relative" }}>
       <style>{`
         @keyframes vinylSpin {
           from { transform: rotate(0deg); }
@@ -244,19 +249,19 @@ export function DeckPanel({ deck }: { deck: "A" | "B" }) {
       {/* Top Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: deckColor, fontFamily: FONT_LABEL, letterSpacing: 2, textTransform: "uppercase", fontWeight: 800, textShadow: `0 0 10px ${deckColor}60` }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: deckColor, fontFamily: FONT_LABEL, letterSpacing: 2, textTransform: "uppercase", fontWeight: 800, textShadow: `0 0 10px ${deckTint(60)}` }}>
             DECK {deck}
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: isPlaying ? GREEN : "rgba(255,255,255,0.15)", boxShadow: isPlaying ? `0 0 8px ${GREEN}` : "none", animation: isPlaying ? "glowPulse 1.2s ease-in-out infinite" : "none" }} />
           </span>
-          <span style={{ fontSize: 11, color: "#fff", background: `${deckColor}25`, border: `1px solid ${deckColor}50`, padding: "1px 6px", borderRadius: 4, fontFamily: FONT_MONO, fontWeight: 700 }}>
+          <span style={{ fontSize: 11, color: "#fff", background: `${deckTint(25)}`, border: `1px solid ${deckTint(50)}`, padding: "1px 6px", borderRadius: 4, fontFamily: FONT_MONO, fontWeight: 700 }}>
             {data.key || "1A"}
           </span>
           <span style={{ fontSize: 11, color: GREEN, fontFamily: FONT_MONO, fontWeight: 600 }}>{data.bpm} BPM</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <span style={{ fontSize: 9, color: TEXT_DIM, fontFamily: FONT_MONO }}>Pitch: {data.pitch >= 0 ? `+${data.pitch.toFixed(1)}` : data.pitch.toFixed(1)}%</span>
-          <button onClick={handleImport} title={t("creator_audio_import") || "Import"} style={{ height: 20, padding: "0 8px", borderRadius: 6, border: `1px solid ${deckColor}55`, background: `${deckColor}14`, color: TEXT_BRI, cursor: "pointer", fontSize: 9, fontFamily: FONT_LABEL, fontWeight: 600, display: "flex", alignItems: "center", gap: 4, transition: "all 0.15s" }}>
-            <span>📂</span> {t("creator_audio_import") || "Import"}
+          <button onClick={handleImport} title={t("creator_audio_import") || "Import"} style={{ height: 20, padding: "0 8px", borderRadius: 6, border: `1px solid ${deckTint(55)}`, background: `${deckTint(14)}`, color: TEXT_BRI, cursor: "pointer", fontSize: 9, fontFamily: FONT_LABEL, fontWeight: 600, display: "flex", alignItems: "center", gap: 4, transition: "all 0.15s" }}>
+            <FolderOpen size={10} /> {t("creator_audio_import") || "Import"}
           </button>
         </div>
       </div>
@@ -274,7 +279,7 @@ export function DeckPanel({ deck }: { deck: "A" | "B" }) {
           style={{ position: "relative", width: discSize, height: discSize, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", cursor: data.loaded ? (scrubbing ? "grabbing" : "grab") : "default", touchAction: "none", userSelect: "none", WebkitUserSelect: "none" }}
         >
           {/* Metallic Platter Outer Rim */}
-          <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "conic-gradient(#1C1C1C 0deg, #050505 90deg, #252525 180deg, #050505 270deg, #1C1C1C 360deg)", border: `2px solid ${deckColor}50`, boxShadow: isPlaying ? `0 0 22px ${deckColor}55` : scrubbing ? `0 0 18px ${deckColor}40` : "0 6px 16px rgba(0,0,0,0.85)" }} />
+          <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "conic-gradient(#1C1C1C 0deg, #050505 90deg, #252525 180deg, #050505 270deg, #1C1C1C 360deg)", border: `2px solid ${deckTint(50)}`, boxShadow: isPlaying ? `0 0 22px ${deckTint(55)}` : scrubbing ? `0 0 18px ${deckTint(40)}` : "0 6px 16px rgba(0,0,0,0.85)" }} />
           {/* Progress Ring */}
           <svg width={discSize} height={discSize} style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)", pointerEvents: "none", zIndex: 3 }}>
             <circle cx={discSize / 2} cy={discSize / 2} r={ringR} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={3} />
@@ -330,7 +335,7 @@ export function DeckPanel({ deck }: { deck: "A" | "B" }) {
             {data.artist || "Virtual DJ Engine"}
           </div>
           <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 4 }}>
-            <span style={{ fontSize: 16, color: isPlaying ? GREEN : TEXT_MED, fontFamily: FONT_MONO, fontWeight: 700, textShadow: isPlaying ? `0 0 8px ${GREEN}60` : "none" }}>
+            <span style={{ fontSize: 16, color: isPlaying ? GREEN : TEXT_MED, fontFamily: FONT_MONO, fontWeight: 700, textShadow: isPlaying ? `0 0 8px color-mix(in srgb, var(--ok) 60%, transparent)` : "none" }}>
               {data.current}
             </span>
             <span style={{ fontSize: 10, color: TEXT_DIM, fontFamily: FONT_MONO }}>/ {data.total}</span>
@@ -344,13 +349,13 @@ export function DeckPanel({ deck }: { deck: "A" | "B" }) {
       </div>
 
       {/* Waveform Visualizer */}
-      <div style={{ flex: 1, borderRadius: 8, background: "rgba(10, 10, 12, 0.85)", border: `1px solid ${deckColor}30`, overflow: "hidden", display: "flex", alignItems: "center", gap: 0.5, padding: "0 4px", position: "relative", minHeight: 55, marginBottom: 6 }}>
+      <div style={{ flex: 1, borderRadius: 8, background: "rgba(10, 10, 12, 0.85)", border: `1px solid ${deckTint(30)}`, overflow: "hidden", display: "flex", alignItems: "center", gap: 0.5, padding: "0 4px", position: "relative", minHeight: 55, marginBottom: 6 }}>
         <div style={{ position: "absolute", left: "50%", top: 0, bottom: 0, width: 2, background: "#FFF", zIndex: 2, boxShadow: `0 0 8px #FFF` }} />
         {hasRealWaveform ? (
           waveformData.map((h, i) => (
             <div key={i} style={{ width: `${100 / bars}%`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 0.5 }}>
               <div style={{ width: "70%", height: `${(h * 100) / 2}%`, background: `linear-gradient(to top, ${deckColor}, ${deckColor}dd)`, borderRadius: 1 }} />
-              <div style={{ width: "70%", height: `${(h * 100) / 2}%`, background: `linear-gradient(to bottom, ${deckColor}bb, ${deckColor}40)`, borderRadius: 1 }} />
+              <div style={{ width: "70%", height: `${(h * 100) / 2}%`, background: `linear-gradient(to bottom, ${deckTint(73)}, ${deckTint(25)})`, borderRadius: 1 }} />
             </div>
           ))
         ) : (
@@ -359,8 +364,8 @@ export function DeckPanel({ deck }: { deck: "A" | "B" }) {
             const h = 15 + Math.abs(Math.sin(seed) * Math.cos(seed * 0.5 + i * 0.08)) * 85;
             return (
               <div key={i} style={{ width: `${100 / bars}%`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 0.5 }}>
-                <div style={{ width: "70%", height: `${h / 2}%`, background: isPlaying ? `${deckColor}a0` : `${deckColor}40`, borderRadius: 1 }} />
-                <div style={{ width: "70%", height: `${h / 2}%`, background: isPlaying ? `${deckColor}60` : `${deckColor}20`, borderRadius: 1 }} />
+                <div style={{ width: "70%", height: `${h / 2}%`, background: isPlaying ? `${deckTint(63)}` : `${deckTint(25)}`, borderRadius: 1 }} />
+                <div style={{ width: "70%", height: `${h / 2}%`, background: isPlaying ? `${deckTint(38)}` : `${deckTint(13)}`, borderRadius: 1 }} />
               </div>
             );
           })
@@ -385,7 +390,7 @@ export function DeckPanel({ deck }: { deck: "A" | "B" }) {
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
             <button onClick={() => setBpm(data.bpm - 1)} style={{ width: 18, height: 18, borderRadius: 3, border: "none", background: "rgba(255,255,255,0.1)", color: TEXT_BRI, cursor: "pointer", fontSize: 10, fontFamily: FONT_MONO, display: "flex", alignItems: "center", justifyContent: "center" }}>−</button>
-            <input type="number" value={data.bpm} onChange={(e) => setBpm(Number(e.target.value))} min={60} max={200} style={{ width: 42, height: 18, background: "rgba(0,0,0,0.6)", border: `1px solid ${deckColor}50`, borderRadius: 3, color: GREEN, fontFamily: FONT_MONO, fontSize: 10, fontWeight: 700, textAlign: "center", padding: 0, outline: "none" }} />
+            <input type="number" value={data.bpm} onChange={(e) => setBpm(Number(e.target.value))} min={60} max={200} style={{ width: 42, height: 18, background: "rgba(0,0,0,0.6)", border: `1px solid ${deckTint(50)}`, borderRadius: 3, color: GREEN, fontFamily: FONT_MONO, fontSize: 10, fontWeight: 700, textAlign: "center", padding: 0, outline: "none" }} />
             <button onClick={() => setBpm(data.bpm + 1)} style={{ width: 18, height: 18, borderRadius: 3, border: "none", background: "rgba(255,255,255,0.1)", color: TEXT_BRI, cursor: "pointer", fontSize: 10, fontFamily: FONT_MONO, display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>
           </div>
           <span style={{ fontSize: 7, color: TEXT_DIM, fontFamily: FONT_LABEL, letterSpacing: 1 }}>BPM</span>
@@ -404,7 +409,7 @@ export function DeckPanel({ deck }: { deck: "A" | "B" }) {
         <button onClick={setCue} style={{ flex: 1, height: 26, borderRadius: 4, border: "none", fontSize: 9, fontFamily: FONT_LABEL, fontWeight: 800, cursor: "pointer", background: "rgba(255,255,255,0.08)", color: TEXT_BRI, transition: "all 0.15s" }}>
           CUE
         </button>
-        <button onClick={togglePlay} style={{ flex: 1.5, height: 26, borderRadius: 4, border: "none", fontSize: 12, fontFamily: FONT_LABEL, fontWeight: 800, cursor: "pointer", background: isPlaying ? GREEN : deckColor, color: "#000", display: "flex", alignItems: "center", justifyContent: "center", gap: 4, boxShadow: isPlaying ? `0 0 14px ${GREEN}` : `0 0 10px ${deckColor}80`, transition: "all 0.15s" }}>
+        <button onClick={togglePlay} style={{ flex: 1.5, height: 26, borderRadius: 4, border: "none", fontSize: 12, fontFamily: FONT_LABEL, fontWeight: 800, cursor: "pointer", background: isPlaying ? GREEN : deckColor, color: "#000", display: "flex", alignItems: "center", justifyContent: "center", gap: 4, boxShadow: isPlaying ? `0 0 14px ${GREEN}` : `0 0 10px ${deckTint(50)}`, transition: "all 0.15s" }}>
           {isPlaying ? "⏸ PAUSE" : "▶ PLAY"}
         </button>
       </div>

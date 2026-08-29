@@ -1,4 +1,5 @@
 import { useVideoStore } from "../video-store";
+import { P } from "../../premium";
 import { MONO, inputStyle } from "../video-types";
 import { SectionHeader } from "./SectionHeader";
 import { PropRow } from "./PropRow";
@@ -24,7 +25,7 @@ export function CompositingSection() {
       <PropRow label={t("creator_video_opacity")}>
         <div className="flex items-center gap-2">
           <input type="range" min={0} max={100} value={opacity} onChange={(e) => useVideoStore.setState({ opacity: Number(e.target.value) })} className="flex-1" style={{ accentColor: "#C3002F", height: 3 }} />
-          <span style={{ fontSize: 9, fontFamily: MONO, color: "#A0A0A0", minWidth: 28, textAlign: "right" }}>{opacity}%</span>
+          <span style={{ fontSize: 9, fontFamily: MONO, color: P.sub, minWidth: 28, textAlign: "right" }}>{opacity}%</span>
         </div>
       </PropRow>
     </>

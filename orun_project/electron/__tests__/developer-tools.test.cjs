@@ -261,4 +261,170 @@ describe("developer-tools.cjs", () => {
       server.close();
     }
   });
+
+  gitSuite("Git Write Operations", () => {
+    it("gitCommit cria commit com mensagem", () => {
+      const dir = makeRepo();
+      fs.writeFileSync(path.join(dir, "new.txt"), "hello");
+      const res = devTools.gitCommit(dir, { message: "feat: add new file" });
+      expect(res.ok).toBe(true);
+      expect(res.commit).toBeTruthy();
+      expect(res.message).toBe("feat: add new file");
+    });
+
+    it("gitCommit sem mensagem falha", () => {
+      const dir = makeRepo();
+      const res = devTools.gitCommit(dir, { message: "" });
+      expect(res.ok).toBe(false);
+      expect(res.error).toContain("obrigatório");
+    });
+
+    it("gitCommit seleciona arquivos específicos", () => {
+      const dir = makeRepo();
+      fs.writeFileSync(path.join(dir, "a.txt"), "aaa");
+      fs.writeFileSync(path.join(dir, "b.txt"), "bbb");
+      const res = devTools.gitCommit(dir, { message: "feat: add a only", files: ["a.txt"] });
+      expect(res.ok).toBe(true);
+      const status = devTools.gitStatus(dir);
+      expect(status.untracked).toBe(1); // b.txt still untracked
+    });
+
+    it("gitBranch lista branches", () => {
+      const dir = makeRepo();
+      const res = devTools.gitBranch(dir);
+      expect(res.ok).toBe(true);
+      expect(res.branches.length).toBeGreaterThanOrEqual(1);
+      expect(res.current).toBeTruthy();
+    });
+
+    it("gitBranch cria e deleta branch", () => {
+      const dir = makeRepo();
+      const createRes = devTools.gitBranch(dir, { action: "create", name: "feature-x" });
+      expect(createRes.ok).toBe(true);
+      expect(createRes.created).toBe("feature-x");
+
+      const list = devTools.gitBranch(dir);
+      expect(list.branches.some((b) => b.name === "feature-x")).toBe(true);
+
+      const delRes = devTools.gitBranch(dir, { action: "delete", name: "feature-x" });
+      expect(delRes.ok).toBe(true);
+      expect(delRes.deleted).toBe("feature-x");
+    });
+
+    it("gitCheckout alterna branch", () => {
+      const dir = makeRepo();
+      devTools.gitBranch(dir, { action: "create", name: "dev" });
+      const res = devTools.gitCheckout(dir, { branch: "dev" });
+      expect(res.ok).toBe(true);
+      expect(res.switchedTo).toBe("dev");
+
+      const status = devTools.gitStatus(dir);
+      expect(status.branch).toBe("dev");
+    });
+
+    it("gitCheckout restaura arquivo", () => {
+      const dir = makeRepo();
+      fs.writeFileSync(path.join(dir, "app.js"), "const x = 99;\n");
+      const res = devTools.gitCheckout(dir, { file: "app.js" });
+      expect(res.ok).toBe(true);
+      expect(res.restored).toBe("app.js");
+      expect(fs.readFileSync(path.join(dir, "app.js"), "utf8")).toContain("const x = 1");
+    });
+  });
+
+  describe("Test Generator", () => {
+    it("generateTests cria arquivo de teste para export function", () => {
+      const dir = tmpDir();
+      fs.writeFileSync(path.join(dir, "utils.js"), 'export function add(a, b) { return a + b; }\nexport function subtract(a, b) { return a - b; }\n');
+      const res = devTools.generateTests(dir, { sourceFile: "utils.js", framework: "vitest" });
+      expect(res.ok).toBe(true);
+      expect(res.testsGenerated).toBe(2);
+      expect(res.exports).toContain("add");
+      expect(res.exports).toContain("subtract");
+      expect(fs.existsSync(path.join(dir, res.testFile))).toBe(true);
+    });
+
+    it("generateTests falha se arquivo não existe", () => {
+      const dir = tmpDir();
+      const res = devTools.generateTests(dir, { sourceFile: "nope.js" });
+      expect(res.ok).toBe(false);
+      expect(res.error).toContain("não encontrado");
+    });
+
+    it("generateTests falha se teste já existe", () => {
+      const dir = tmpDir();
+      fs.writeFileSync(path.join(dir, "mod.js"), 'export function foo() {}\n');
+      fs.writeFileSync(path.join(dir, "mod.test.js"), "// existing");
+      const res = devTools.generateTests(dir, { sourceFile: "mod.js" });
+      expect(res.ok).toBe(false);
+      expect(res.error).toContain("já existe");
+    });
+
+    it("generateTests gera pytest para Python", () => {
+      const dir = tmpDir();
+      fs.writeFileSync(path.join(dir, "calc.py"), 'def add(a, b):\n    return a + b\n\ndef subtract(a, b):\n    return a - b\n');
+      const res = devTools.generateTests(dir, { sourceFile: "calc.py", framework: "pytest" });
+      expect(res.ok).toBe(true);
+      expect(res.framework).toBe("pytest");
+      expect(res.testsGenerated).toBe(2);
+    });
+  });
+
+  describe("Refactor Tools", () => {
+    it("refactorRename renomeia símbolo em todos os arquivos", () => {
+      const dir = tmpDir();
+      fs.writeFileSync(path.join(dir, "a.js"), 'import { oldName } from "./b";\nconsole.log(oldName);\n');
+      fs.writeFileSync(path.join(dir, "b.js"), "export function oldName() { return 1; }\n");
+      const res = devTools.refactorRename(dir, { oldName: "oldName", newName: "newName" });
+      expect(res.ok).toBe(true);
+      expect(res.totalReplacements).toBe(3);
+      expect(res.filesChanged).toBe(2);
+      expect(fs.readFileSync(path.join(dir, "a.js"), "utf8")).toContain("newName");
+      expect(fs.readFileSync(path.join(dir, "b.js"), "utf8")).toContain("newName");
+    });
+
+    it("refactorRename falha se nenhum arquivo contém o símbolo", () => {
+      const dir = tmpDir();
+      fs.writeFileSync(path.join(dir, "a.js"), "const x = 1;\n");
+      const res = devTools.refactorRename(dir, { oldName: "ghost", newName: "new" });
+      expect(res.ok).toBe(false);
+      expect(res.error).toContain("nenhum arquivo");
+    });
+
+    it("refactorMove move arquivo e atualiza imports", () => {
+      const dir = tmpDir();
+      fs.mkdirSync(path.join(dir, "src"));
+      fs.writeFileSync(path.join(dir, "src", "utils.js"), "export const x = 1;\n");
+      fs.writeFileSync(path.join(dir, "main.js"), 'const { x } = require("./src/utils");\n');
+      const res = devTools.refactorMove(dir, { from: "src/utils.js", to: "lib/utils.js" });
+      expect(res.ok).toBe(true);
+      expect(res.importsUpdated).toBeGreaterThanOrEqual(1);
+      expect(fs.existsSync(path.join(dir, "lib", "utils.js"))).toBe(true);
+      expect(fs.existsSync(path.join(dir, "src", "utils.js"))).toBe(false);
+    });
+
+    it("refactorMove falha se arquivo não existe", () => {
+      const dir = tmpDir();
+      const res = devTools.refactorMove(dir, { from: "nope.js", to: "dest.js" });
+      expect(res.ok).toBe(false);
+      expect(res.error).toContain("não encontrado");
+    });
+
+    it("refactorExtract extrai linhas em novo arquivo", () => {
+      const dir = tmpDir();
+      const lines = ["function a() {}", "function b() {}", "function c() {}"].join("\n");
+      fs.writeFileSync(path.join(dir, "code.js"), lines);
+      const res = devTools.refactorExtract(dir, {
+        sourceFile: "code.js",
+        startLine: 2,
+        endLine: 2,
+        targetFile: "extracted.js",
+        functionName: "b",
+      });
+      expect(res.ok).toBe(true);
+      expect(res.linesExtracted).toBe(1);
+      expect(fs.readFileSync(path.join(dir, "extracted.js"), "utf8")).toContain("function b()");
+      expect(fs.readFileSync(path.join(dir, "code.js"), "utf8")).toContain("TODO: import b");
+    });
+  });
 });

@@ -31,7 +31,7 @@ export function CenterPreview() {
 
           {keyframes.filter((kf) => Math.abs(kf.frame - currentTimeFrame) < fps).map((kf) => (
             <div key={`${kf.property}-${kf.frame}`} className="absolute" style={{ top: 4, left: `${(kf.frame / totalFrames) * 100}%`, zIndex: 40 }}>
-              <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#FFB547", border: "1px solid #FFF", boxShadow: "0 0 4px rgba(255,181,71,0.6)" }} />
+              <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#F59E0B", border: "1px solid #FFF", boxShadow: "0 0 4px rgba(245,158,11,0.6)" }} />
             </div>
           ))}
 
@@ -58,7 +58,7 @@ export function CenterPreview() {
 
           <div className="absolute top-2 right-2 flex items-center gap-2">
             {speed !== 1 && (
-              <div className="px-1 py-0.5 rounded" style={{ background: "rgba(255,181,71,0.75)" }}>
+              <div className="px-1 py-0.5 rounded" style={{ background: "rgba(245,158,11,0.75)" }}>
                 <span style={{ fontSize: 8, fontFamily: MONO, color: "#FFF", fontWeight: 700 }}>{speed}x</span>
               </div>
             )}

@@ -1,0 +1,11 @@
+{
+  "name": "@orun/finance-core",
+  "version": "0.1.0",
+  "description": "Schema, interfaces e agregacoes para financas pessoais do Orun OS (CommonJS vendor build)",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "license": "ISC",
+  "dependencies": {
+    "zod": "^3.23.8"
+  }
+}

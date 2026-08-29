@@ -1,4 +1,5 @@
 import { useVideoStore } from "./video-store";
+import { P } from "../premium";
 import { SANS } from "./video-types";
 import { TransformSection } from "./right-sidebar/TransformSection";
 import { CompositingSection } from "./right-sidebar/CompositingSection";
@@ -17,8 +18,8 @@ export function RightSidebar() {
 
   return (
     <div className="hs-scroll flex flex-col shrink-0 overflow-y-auto"
-      style={{ width: 200, background: "#0A0A0C", borderLeft: "1px solid #252525", padding: 10, scrollbarWidth: "thin", scrollbarColor: "#1C1C1C transparent" }}>
-      <div style={{ fontSize: 10, color: "#FFFFFF", fontFamily: SANS, fontWeight: 700, marginBottom: 4 }}>
+      style={{ width: 200, background: P.panel, borderLeft: `1px solid ${P.border}`, padding: 10, scrollbarWidth: "thin", scrollbarColor: `${P.border} transparent` }}>
+      <div style={{ fontSize: 10, color: P.text, fontFamily: SANS, fontWeight: 700, marginBottom: 4 }}>
         {clip ? clip.name : t("creator_video_title")}
       </div>
 

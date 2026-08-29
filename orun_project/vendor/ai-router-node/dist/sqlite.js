@@ -16,8 +16,7 @@ const ai_router_core_1 = require("@orun/ai-router-core");
 function openAiRouterDatabase(path) {
     const db = new better_sqlite3_1.default(path);
     db.pragma("journal_mode = WAL");
-    // Run migrations before creating base tables
-    (0, migrations_1.runMigrations)(db);
+    // Create base tables first, THEN run migrations (migrations may ALTER them)
     db.exec(`
     CREATE TABLE IF NOT EXISTS combos (
       id TEXT PRIMARY KEY,
@@ -63,6 +62,8 @@ function openAiRouterDatabase(path) {
     );
     CREATE INDEX IF NOT EXISTS idx_semantic_cache_combo ON semantic_cache(combo_id, created_at DESC);
   `);
+    // Run migrations AFTER base tables exist (v2 ALTERs usage_events)
+    (0, migrations_1.runMigrations)(db);
     // seed dos combos free builtin na primeira execução
     const insertCombo = db.prepare(`INSERT OR IGNORE INTO combos (id, data) VALUES (?, ?)`);
     const seedTx = db.transaction((combos) => {

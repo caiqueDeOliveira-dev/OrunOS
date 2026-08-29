@@ -1,4 +1,4 @@
-// BottomBar — Recording status, meters, master volume, crossfader, headphone cue
+﻿// BottomBar — Recording status, meters, master volume, crossfader, headphone cue
 import { useTranslation } from "../../../../i18n/I18nProvider";
 import { useDJStore } from "./creator-audio-store";
 import { AnimatedMeter, Knob, fmt } from "./creator-audio-ui";
@@ -17,7 +17,7 @@ export function BottomBar() {
     <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "6px 12px", background: BG, borderTop: `1px solid ${BORDER}`, flexShrink: 0 }}>
       {/* Recording status */}
       <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 90 }}>
-        <div style={{ width: 6, height: 6, borderRadius: "50%", background: isRecording ? ACCENT : "rgba(255,255,255,0.1)", boxShadow: isRecording ? `0 0 6px ${ACCENT}80` : "none" }} />
+        <div style={{ width: 6, height: 6, borderRadius: "50%", background: isRecording ? ACCENT : "rgba(255,255,255,0.1)", boxShadow: isRecording ? `0 0 6px color-mix(in srgb, var(--primary) 50%, transparent)` : "none" }} />
         <span style={{ fontSize: 10, color: isRecording ? ACCENT : TEXT_DIM, fontFamily: FONT_MONO, fontWeight: isRecording ? 700 : 400 }}>{fmt(recordTime)}</span>
       </div>
 

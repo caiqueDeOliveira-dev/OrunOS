@@ -1,4 +1,5 @@
-import { useState } from "react";
+﻿import { useState } from "react";
+import { Droplet, TestTube2, ClipboardList } from "lucide-react";
 import type { Exam, ExamResult } from "../health-types";
 import { useHealthStore, addExam, deleteExam } from "../health-store";
 
@@ -47,7 +48,7 @@ export function ExamsView() {
     <div className="p-4 space-y-3">
       <button onClick={() => setShowForm(!showForm)}
         className="w-full px-3 py-1.5 rounded-md text-[10px] tracking-wider uppercase transition-all"
-        style={{ fontFamily: "'Sora', sans-serif", background: showForm ? "rgba(192,0,24,0.12)" : "rgba(192,0,24,0.08)", color: "#C00018" }}>
+        style={{ fontFamily: "'Sora', sans-serif", background: showForm ? "color-mix(in srgb, var(--primary) 12%, transparent)" : "color-mix(in srgb, var(--primary) 8%, transparent)", color: "var(--primary)" }}>
         {showForm ? "Cancelar" : "+ Novo Exame"}
       </button>
 
@@ -104,12 +105,12 @@ export function ExamsView() {
                     <option value="low">Baixo</option>
                   </select>
                   {resultFields.length > 1 && (
-                    <button onClick={() => removeResultField(i)} className="px-1 rounded text-[9px]" style={{ color: "#EF4444" }}>✕</button>
+                    <button onClick={() => removeResultField(i)} className="px-1 rounded text-[9px]" style={{ color: "var(--err)" }}>✕</button>
                   )}
                 </div>
               </div>
             ))}
-            <button onClick={addResultField} className="text-[9px] px-2 py-1 rounded" style={{ color: "#C00018" }}>+ resultado</button>
+            <button onClick={addResultField} className="text-[9px] px-2 py-1 rounded" style={{ color: "var(--primary)" }}>+ resultado</button>
           </div>
           <div>
             <label className="text-[9px] block mb-1" style={{ color: "var(--muted-foreground)" }}>Notas (opcional)</label>
@@ -119,7 +120,7 @@ export function ExamsView() {
           </div>
           <button onClick={handleSubmit}
             className="px-3 py-1.5 rounded-md text-[10px] tracking-wider uppercase transition-all"
-            style={{ fontFamily: "'Sora', sans-serif", background: "#C00018", color: "white" }}>
+            style={{ fontFamily: "'Sora', sans-serif", background: "var(--primary)", color: "white" }}>
             Salvar Exame
           </button>
         </div>
@@ -133,7 +134,7 @@ export function ExamsView() {
         <div key={exam.id} className="p-3 rounded-xl border" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
           <div className="flex items-start justify-between mb-2">
             <div className="flex items-center gap-2">
-              <span className="text-sm">{exam.type === "blood" ? "🩸" : exam.type === "urine" ? "🧪" : "📋"}</span>
+              <span className="text-sm">{exam.type === "blood" ? <Droplet size={14} /> : exam.type === "urine" ? <TestTube2 size={14} /> : <ClipboardList size={14} />}</span>
               <div>
                 <p className="text-[11px] font-medium" style={{ fontFamily: "'Sora', sans-serif", color: "var(--foreground)" }}>{exam.name}</p>
                 <p className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>
@@ -141,7 +142,7 @@ export function ExamsView() {
                 </p>
               </div>
             </div>
-            <button onClick={() => handleDelete(exam.id)} className="text-[9px] px-1.5 py-0.5 rounded" style={{ color: "#EF4444" }}>✕</button>
+            <button onClick={() => handleDelete(exam.id)} className="text-[9px] px-1.5 py-0.5 rounded" style={{ color: "var(--err)" }}>✕</button>
           </div>
           {exam.results.length > 0 && (
             <div className="space-y-1 mt-2">
@@ -156,7 +157,7 @@ export function ExamsView() {
                     {r.flag && (
                       <span className="text-[8px] px-1 py-0.5 rounded-full" style={{
                         background: r.flag === "normal" ? "rgba(34,197,94,0.1)" : r.flag === "high" ? "rgba(239,68,68,0.1)" : "rgba(59,130,246,0.1)",
-                        color: r.flag === "normal" ? "#22C55E" : r.flag === "high" ? "#EF4444" : "#3B82F6",
+                        color: r.flag === "normal" ? "var(--ok)" : r.flag === "high" ? "var(--err)" : "var(--info)",
                         fontFamily: "'JetBrains Mono', monospace",
                       }}>
                         {r.flag === "normal" ? "Normal" : r.flag === "high" ? "Alto" : "Baixo"}

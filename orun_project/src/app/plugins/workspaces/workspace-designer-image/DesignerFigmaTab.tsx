@@ -1,6 +1,8 @@
 import { useState, useCallback, useEffect } from "react";
+import { FileText, Frame as FrameIcon, Monitor, Smartphone, Tablet } from "lucide-react";
 import { useTranslation } from "../../../../i18n/I18nProvider";
 import { useDesignerStore, type UIComponent } from "./designer-actions";
+import { P } from "../premium";
 import { WorkspaceButton } from "../../components/WorkspaceButton";
 import { WorkspaceCard } from "../../components/WorkspaceCard";
 import { WorkspaceEmptyState } from "../../components/WorkspaceEmptyState";
@@ -8,14 +10,14 @@ import { WorkspaceBadge } from "../../components/WorkspaceBadge";
 import { WorkspaceInput } from "../../components/WorkspaceInput";
 import { WorkspaceSection } from "../../components/WorkspaceSection";
 
-interface FramePreset { label: string; w: number; h: number; icon: string; }
+interface FramePreset { label: string; w: number; h: number; icon: typeof Smartphone; }
 const FRAMES: FramePreset[] = [
-  { label: "iPhone 15", w: 390, h: 844, icon: "📱" },
-  { label: "iPhone SE", w: 375, h: 667, icon: "📱" },
-  { label: "iPad Air", w: 820, h: 1180, icon: "📟" },
-  { label: "Desktop HD", w: 1440, h: 900, icon: "🖥" },
-  { label: "Desktop", w: 1280, h: 800, icon: "🖥" },
-  { label: "A4", w: 595, h: 842, icon: "📄" },
+  { label: "iPhone 15", w: 390, h: 844, icon: Smartphone },
+  { label: "iPhone SE", w: 375, h: 667, icon: Smartphone },
+  { label: "iPad Air", w: 820, h: 1180, icon: Tablet },
+  { label: "Desktop HD", w: 1440, h: 900, icon: Monitor },
+  { label: "Desktop", w: 1280, h: 800, icon: Monitor },
+  { label: "A4", w: 595, h: 842, icon: FileText },
 ];
 
 const UI_LIBRARY: Array<{ type: string; label: string; w: number; h: number; defaultProps: Record<string, any>; preview: string }> = [
@@ -25,7 +27,7 @@ const UI_LIBRARY: Array<{ type: string; label: string; w: number; h: number; def
   { type: "navbar", label: "Navbar", w: 600, h: 60, defaultProps: { text: "Logo | Link 1 | Link 2 | Link 3" }, preview: "≡" },
   { type: "heading", label: "Heading", w: 300, h: 48, defaultProps: { text: "Heading Text", fontSize: 32, fontWeight: "bold" }, preview: "H" },
   { type: "paragraph", label: "Paragraph", w: 400, h: 80, defaultProps: { text: "Lorem ipsum dolor sit amet consectetur adipiscing elit. Sed do eiusmod tempor.", fontSize: 16 }, preview: "¶" },
-  { type: "image-frame", label: "Image", w: 200, h: 200, defaultProps: { text: "Image placeholder", borderRadius: 8, bgColor: "#F3F4F6" }, preview: "🖼" },
+  { type: "image-frame", label: "Image", w: 200, h: 200, defaultProps: { text: "Image placeholder", borderRadius: 8, bgColor: "#F3F4F6" }, preview: "▨" },
   { type: "divider", label: "Divider", w: 400, h: 2, defaultProps: { color: "#E5E7EB" }, preview: "—" },
   { type: "icon", label: "Icon", w: 32, h: 32, defaultProps: { icon: "star", color: "#F59E0B" }, preview: "★" },
   { type: "badge", label: "Badge", w: 80, h: 24, defaultProps: { text: "New", variant: "primary", borderRadius: 12 }, preview: "⬟" },
@@ -53,7 +55,7 @@ function renderUISVG(comp: UIComponent) {
     case "paragraph":
       return <text x={x} y={y + 14} fill="#4B5563" fontSize={p.fontSize || 14} fontFamily="sans-serif"><tspan x={x} dy={0}>{(p.text || "").split(" ").slice(0, 6).join(" ")}</tspan><tspan x={x} dy={16}>{(p.text || "").split(" ").slice(6, 12).join(" ")}</tspan></text>;
     case "image-frame":
-      return <><rect x={x} y={y} width={w} height={h} rx={p.borderRadius || 8} fill={p.bgColor || "#F3F4F6"} /><text x={x + w / 2 - 30} y={y + h / 2 + 4} fill="#9CA3AF" fontSize={11} fontFamily="sans-serif">🖼 Image</text></>;
+      return <><rect x={x} y={y} width={w} height={h} rx={p.borderRadius || 8} fill={p.bgColor || "#F3F4F6"} /><text x={x + w / 2 - 30} y={y + h / 2 + 4} fill="#9CA3AF" fontSize={11} fontFamily="sans-serif">Image</text></>;
     case "divider":
       return <line x1={x} y1={y} x2={x + w} y2={y} stroke={p.color || "#E5E7EB"} strokeWidth={1} />;
     case "icon":
@@ -105,7 +107,7 @@ function FigmaCanvas({ frame }: { frame: FramePreset }) {
       <div className="flex-1 flex items-center justify-center overflow-auto p-4 ws-bg-canvas">
         <div className="relative" style={{ width: frame.w, height: frame.h, background: "#FFFFFF", borderRadius: frame.label.includes("iPhone") ? 32 : 0, boxShadow: "0 4px 40px rgba(0,0,0,0.2)", overflow: "hidden" }}>
           <div className="flex items-center justify-center h-full">
-            <WorkspaceEmptyState icon="📐" message="Empty Frame — add components from the sidebar to build your UI" />
+            <WorkspaceEmptyState icon={<FrameIcon size={22} color="var(--primary)" strokeWidth={1.6} />} message="Empty Frame — add components from the sidebar to build your UI" />
           </div>
         </div>
       </div>
@@ -154,7 +156,7 @@ function FigmaSidebar({ frame, onFrameChange: setFrame }: { frame: FramePreset; 
     <div className="w-[220px] border-l flex flex-col shrink-0 ws-bg-card ws-bd-border">
       <div className="flex border-b ws-bd-border">
         {[{id:"components",label:"Components"},{id:"layers",label:"Layers"},{id:"properties",label:"Props"}].map((t) => (
-          <button key={t.id} onClick={() => setActiveTab(t.id as any)} className="flex-1 py-2 text-[8px] tracking-wider uppercase transition-all ws-font-sora" style={{ color: activeTab === t.id ? "#FFFFFF" : "#A0A0A0", borderBottom: activeTab === t.id ? "2px solid #C3002F" : "2px solid transparent" }}>{t.label}</button>
+          <button key={t.id} onClick={() => setActiveTab(t.id as any)} className="flex-1 py-2 text-[8px] tracking-wider uppercase transition-all ws-font-sora" style={{ color: activeTab === t.id ? P.text : P.sub, borderBottom: activeTab === t.id ? "2px solid var(--primary)" : "2px solid transparent" }}>{t.label}</button>
         ))}
       </div>
       <div className="flex-1 overflow-y-auto p-2 space-y-1.5 ws-scrollbar">
@@ -172,7 +174,7 @@ function FigmaSidebar({ frame, onFrameChange: setFrame }: { frame: FramePreset; 
           <div className="space-y-0.5">
             {components.length === 0 && <p className="text-[10px] text-center py-4 text-muted-foreground">No components yet</p>}
             {components.map((c) => (
-              <button key={c.id} onClick={() => useDesignerStore.setState({ figmaSelectedId: c.id })} className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-[10px] text-left" style={{ background: selectedId === c.id ? "rgba(195,0,47,0.14)" : "transparent", color: selectedId === c.id ? "#FFFFFF" : "#A0A0A0" }}>
+              <button key={c.id} onClick={() => useDesignerStore.setState({ figmaSelectedId: c.id })} className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-[10px] text-left" style={{ background: selectedId === c.id ? "color-mix(in srgb, var(--primary) 14%, transparent)" : "transparent", color: selectedId === c.id ? P.text : P.sub }}>
                 <span>▣</span>
                 <span className="truncate flex-1">{c.type} {c.props.text ? `"${String(c.props.text).slice(0, 10)}"` : ""}</span>
                 <span className="text-[8px] opacity-50 ws-font-mono">{(c.width)}×{(c.height)}</span>
@@ -187,7 +189,7 @@ function FigmaSidebar({ frame, onFrameChange: setFrame }: { frame: FramePreset; 
               if (typeof val === "boolean") return (
                 <div key={key} className="flex items-center justify-between">
                   <span className="text-[9px] text-muted-foreground">{key}</span>
-                  <button onClick={() => { useDesignerStore.setState((s) => ({ figmaComponents: s.figmaComponents.map((c) => c.id === selComp.id ? { ...c, props: { ...c.props, [key]: !val } } : c) })); }} className="px-2 py-0.5 rounded text-[9px]" style={{ background: val ? "#C3002F" : "#141414", color: "#FFF" }}>{String(val)}</button>
+                  <button onClick={() => { useDesignerStore.setState((s) => ({ figmaComponents: s.figmaComponents.map((c) => c.id === selComp.id ? { ...c, props: { ...c.props, [key]: !val } } : c) })); }} className="px-2 py-0.5 rounded text-[9px]" style={{ background: val ? "var(--primary)" : "var(--surface-2)", color: "#FFF" }}>{String(val)}</button>
                 </div>
               );
               if (typeof val === "number") return (
@@ -202,7 +204,7 @@ function FigmaSidebar({ frame, onFrameChange: setFrame }: { frame: FramePreset; 
               );
             })}
             <div className="pt-2 border-t ws-bd-border">
-              <button onClick={() => { const s = useDesignerStore.getState(); useDesignerStore.setState({ figmaComponents: s.figmaComponents.filter((c) => c.id !== selectedId), figmaSelectedId: null }); }} className="w-full px-3 py-1.5 rounded text-[9px]" style={{ background: "#EF4444", color: "#FFF" }}>Delete</button>
+              <button onClick={() => { const s = useDesignerStore.getState(); useDesignerStore.setState({ figmaComponents: s.figmaComponents.filter((c) => c.id !== selectedId), figmaSelectedId: null }); }} className="w-full px-3 py-1.5 rounded text-[9px]" style={{ background: "var(--err)", color: "#FFF" }}>Delete</button>
             </div>
           </div>
         )}
@@ -212,8 +214,8 @@ function FigmaSidebar({ frame, onFrameChange: setFrame }: { frame: FramePreset; 
         <div className="text-[8px] uppercase text-muted-foreground">Frame</div>
         <div className="grid grid-cols-2 gap-1">
           {FRAMES.map((f) => (
-            <button key={f.label} onClick={() => setFrame(f)} className="px-1.5 py-1 rounded text-[8px] text-left truncate" style={{ background: frame.label === f.label ? "#C3002F" : "#141414", color: "#FFF" }}>
-              {f.icon} {f.label}
+            <button key={f.label} onClick={() => setFrame(f)} className="px-1.5 py-1 rounded text-[8px] inline-flex items-center gap-1 truncate" style={{ background: frame.label === f.label ? "var(--primary)" : "var(--surface-2)", color: "#FFF" }}>
+              <f.icon size={9} className="shrink-0" /> <span className="truncate">{f.label}</span>
             </button>
           ))}
         </div>
@@ -255,7 +257,7 @@ export function DesignerFigmaTab({ onSendMessage }: { onSendMessage: (msg: strin
             link.download = "ui-design.html";
             link.click();
           }} className="ws-btn-sm">Export HTML</button>
-          <button onClick={() => useDesignerStore.setState({ figmaComponents: [], figmaSelectedId: null })} className="px-2.5 py-1 rounded text-[9px]" style={{ background: "rgba(239,68,68,0.2)", color: "#EF4444" }}>Clear</button>
+          <button onClick={() => useDesignerStore.setState({ figmaComponents: [], figmaSelectedId: null })} className="px-2.5 py-1 rounded text-[9px]" style={{ background: "rgba(239,68,68,0.12)", color: "var(--err)" }}>Clear</button>
         </div>
       </div>
       <div className="flex flex-1 min-h-0">

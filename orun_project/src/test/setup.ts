@@ -1,7 +1,8 @@
 import "@testing-library/jest-dom";
 import { vi } from "vitest";
 
-// Mock window.orun (full structure matching preload.cjs)
+// Mock window.orun (full structure matching preload.cjs) — only in jsdom/ browser environments
+if (typeof window !== "undefined") {
 Object.defineProperty(window, "orun", {
   value: {
     ai: {
@@ -258,3 +259,4 @@ const localStorageMock = (() => {
   };
 })();
 Object.defineProperty(window, "localStorage", { value: localStorageMock });
+} // end typeof window guard

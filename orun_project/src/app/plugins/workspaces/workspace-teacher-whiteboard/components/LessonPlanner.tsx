@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useWhiteboardStore, addLesson, deleteLesson } from "../teacher-store";
 
 export function LessonPlanner() {
@@ -35,7 +35,7 @@ export function LessonPlanner() {
         </h3>
         <button onClick={() => setShowForm(!showForm)}
           className="px-2 py-1 rounded-md text-[9px] tracking-wider uppercase transition-all"
-          style={{ fontFamily: "'Sora', sans-serif", background: showForm ? "rgba(192,0,24,0.12)" : "rgba(192,0,24,0.08)", color: "#C00018" }}>
+          style={{ fontFamily: "'Sora', sans-serif", background: showForm ? "color-mix(in srgb, var(--primary) 12%, transparent)" : "color-mix(in srgb, var(--primary) 8%, transparent)", color: "var(--primary)" }}>
           {showForm ? "Cancelar" : "+ Novo Plano"}
         </button>
       </div>
@@ -74,15 +74,15 @@ export function LessonPlanner() {
                   className="flex-1 px-2 py-1.5 rounded-md text-[10px] border outline-none"
                   style={{ borderColor: "var(--border)", background: "var(--background)", color: "var(--foreground)" }} />
                 {form.objectives.length > 1 && (
-                  <button onClick={() => removeObjective(i)} className="px-1 rounded text-[9px]" style={{ color: "#EF4444" }}>✕</button>
+                  <button onClick={() => removeObjective(i)} className="px-1 rounded text-[9px]" style={{ color: "var(--err)" }}>✕</button>
                 )}
               </div>
             ))}
-            <button onClick={addObjective} className="text-[9px] px-2 py-1 rounded" style={{ color: "#C00018" }}>+ objetivo</button>
+            <button onClick={addObjective} className="text-[9px] px-2 py-1 rounded" style={{ color: "var(--primary)" }}>+ objetivo</button>
           </div>
           <button onClick={handleSubmit}
             className="px-3 py-1.5 rounded-md text-[10px] tracking-wider uppercase"
-            style={{ fontFamily: "'Sora', sans-serif", background: "#C00018", color: "white" }}>
+            style={{ fontFamily: "'Sora', sans-serif", background: "var(--primary)", color: "white" }}>
             Salvar Plano
           </button>
         </div>
@@ -99,21 +99,21 @@ export function LessonPlanner() {
           <div className="flex items-start justify-between mb-2">
             <div>
               <p className="text-[11px] font-medium" style={{ color: "var(--foreground)" }}>{lesson.title}</p>
-              <p className="text-[9px]" style={{ color: "#C00018" }}>{lesson.subject}</p>
+              <p className="text-[9px]" style={{ color: "var(--primary)" }}>{lesson.subject}</p>
             </div>
             <div className="flex items-center gap-1">
               <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{
-                background: "rgba(59,130,246,0.1)", color: "#3B82F6", fontFamily: "'JetBrains Mono', monospace",
+                background: "color-mix(in srgb, var(--info) 10%, transparent)", color: "var(--info)", fontFamily: "'JetBrains Mono', monospace",
               }}>
                 {lesson.duration}
               </span>
-              <button onClick={() => deleteLesson(lesson.id)} className="text-[9px] px-1 rounded" style={{ color: "#EF4444" }}>✕</button>
+              <button onClick={() => deleteLesson(lesson.id)} className="text-[9px] px-1 rounded" style={{ color: "var(--err)" }}>✕</button>
             </div>
           </div>
           <div className="space-y-1">
             {lesson.objectives.map((obj, i) => (
               <div key={i} className="flex items-center gap-2">
-                <span className="w-1 h-1 rounded-full" style={{ background: "#C00018" }} />
+                <span className="w-1 h-1 rounded-full" style={{ background: "var(--primary)" }} />
                 <span className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>{obj}</span>
               </div>
             ))}

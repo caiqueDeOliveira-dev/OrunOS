@@ -17,7 +17,7 @@ interface TelemetrySummary {
   recentTraces: Array<{ name: string; durationMs: number; ts: number }>;
 }
 
-type Tab = "audit" | "telemetry" | "usage" | "webhooks";
+type Tab = "live" | "audit" | "telemetry" | "usage" | "webhooks";
 
 const ACTION_ICONS: Record<string, string> = {
   write_file: "📝",
@@ -30,11 +30,60 @@ const ACTION_ICONS: Record<string, string> = {
 
 export function ActivityLog({ onClose }: { onClose?: () => void }) {
   const { t } = useTranslation();
-  const [tab, setTab] = useState<Tab>("audit");
+  const [tab, setTab] = useState<Tab>("live");
   const [entries, setEntries] = useState<AuditEntry[]>([]);
   const [telemetry, setTelemetry] = useState<TelemetrySummary | null>(null);
   const [webhookEvents, setWebhookEvents] = useState<Array<{ method: string; url: string; source: string; body: unknown; timestamp: number }>>([]);
+  const [liveEvents, setLiveEvents] = useState<Array<{ id: string; timestamp: number; source: string; action: string; details: string; type: "agent" | "system" | "event" }>>([]);
   const [loading, setLoading] = useState(true);
+
+  // Real-time: subscribe to activity entries + Event Bus
+  useEffect(() => {
+    if (!isElectron) return;
+    const unsubs: (() => void)[] = [];
+
+    // Activity audit entries (push from main process)
+    if (window.orun.activity?.onNewEntry) {
+      const unsub = window.orun.activity.onNewEntry((entry) => {
+        setLiveEvents((prev) => [{
+          id: `audit-${entry.timestamp}-${Math.random().toString(36).slice(2, 6)}`,
+          timestamp: entry.timestamp,
+          source: entry.agentId,
+          action: entry.action,
+          details: entry.details,
+          type: "agent" as const,
+        }, ...prev].slice(0, 300));
+      });
+      unsubs.push(unsub);
+    }
+
+    // Event Bus events (hub, shield, memory, planner)
+    if (window.orun.eventBus?.subscribe) {
+      const { unsubscribe } = window.orun.eventBus.subscribe(
+        ["hub:**", "shield:**", "memory:**", "planner:**"],
+        (event: { topic: string; data: Record<string, unknown> }) => {
+          const source = event.topic.split(":")[0];
+          const action = event.topic.split(":").slice(1).join(":");
+          const details = typeof event.data?.title === "string" ? event.data.title
+            : typeof event.data?.error === "string" ? event.data.error
+            : typeof event.data?.targetAgent === "string" ? `→ ${event.data.targetAgent}`
+            : typeof event.data?.agent === "string" ? event.data.agent
+            : "";
+          setLiveEvents((prev) => [{
+            id: `bus-${event.topic}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            timestamp: Date.now(),
+            source,
+            action,
+            details,
+            type: "event" as const,
+          }, ...prev].slice(0, 300));
+        }
+      );
+      unsubs.push(unsubscribe);
+    }
+
+    return () => unsubs.forEach((fn) => fn());
+  }, []);
 
   const loadAudit = useCallback(async () => {
     if (!isElectron) return;
@@ -82,7 +131,7 @@ export function ActivityLog({ onClose }: { onClose?: () => void }) {
     >
       {/* Tabs */}
       <div className="flex gap-1 px-4 pt-3 pb-2 shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
-        {(["audit", "telemetry", "usage", "webhooks"] as Tab[]).map((t) => (
+        {(["live", "audit", "telemetry", "usage", "webhooks"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -93,6 +142,7 @@ export function ActivityLog({ onClose }: { onClose?: () => void }) {
               border: tab === t ? "1px solid rgba(192,0,24,0.2)" : "1px solid transparent",
             }}
           >
+            {t === "live" && "🔴 Ao Vivo"}
             {t === "audit" && "Atividades"}
             {t === "telemetry" && "Métricas"}
             {t === "usage" && "Uso"}
@@ -121,6 +171,9 @@ export function ActivityLog({ onClose }: { onClose?: () => void }) {
       </div>
 
       <div className="flex-1 overflow-y-auto">
+        {tab === "live" && (
+          <LiveTab events={liveEvents} />
+        )}
         {tab === "audit" && (
           <AuditTab entries={entries} loading={loading} />
         )}
@@ -564,6 +617,86 @@ function UsageTab() {
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+function LiveTab({ events }: { events: Array<{ id: string; timestamp: number; source: string; action: string; details: string; type: "agent" | "system" | "event" }> }) {
+  const formatTime = (ts: number) => {
+    const d = new Date(ts);
+    return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  };
+
+  const typeColor = (type: string) => {
+    switch (type) {
+      case "agent": return "#C00018";
+      case "event": return "#3B82F6";
+      case "system": return "#F59E0B";
+      default: return "var(--muted-foreground)";
+    }
+  };
+
+  const typeIcon = (type: string) => {
+    switch (type) {
+      case "agent": return "🤖";
+      case "event": return "⚡";
+      case "system": return "🔧";
+      default: return "📌";
+    }
+  };
+
+  if (events.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-48 gap-2">
+        <span className="text-lg">🔴</span>
+        <span className="text-[10px] tracking-wider" style={{ color: "var(--muted-foreground)" }}>
+          Aguardando eventos ao vivo...
+        </span>
+        <span className="text-[9px]" style={{ color: "var(--muted-foreground)", opacity: 0.6 }}>
+          Agentes, Event Bus e sistema aparecerão aqui em tempo real
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-3 space-y-1">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[10px] tracking-wider uppercase font-medium" style={{ color: "var(--foreground)" }}>
+          Eventos ao vivo ({events.length})
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+          <span className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>LIVE</span>
+        </span>
+      </div>
+      {events.map((evt) => (
+        <div
+          key={evt.id}
+          className="flex items-start gap-2 px-3 py-2 rounded-xl transition-all"
+          style={{ background: "var(--secondary)" }}
+        >
+          <span className="text-xs mt-0.5 shrink-0">{typeIcon(evt.type)}</span>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-medium" style={{ color: typeColor(evt.type) }}>
+                {evt.source}
+              </span>
+              <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: `${typeColor(evt.type)}15`, color: typeColor(evt.type) }}>
+                {evt.action}
+              </span>
+            </div>
+            {evt.details && (
+              <div className="text-[9px] mt-0.5 truncate" style={{ color: "var(--muted-foreground)" }}>
+                {evt.details}
+              </div>
+            )}
+          </div>
+          <span className="text-[8px] shrink-0 mt-0.5" style={{ color: "var(--muted-foreground)", opacity: 0.6 }}>
+            {formatTime(evt.timestamp)}
+          </span>
+        </div>
+      ))}
     </div>
   );
 }

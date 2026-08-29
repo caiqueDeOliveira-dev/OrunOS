@@ -48,9 +48,9 @@ export function ChannelStrip({ index, name, color, controls }: ChannelStripProps
           <>
             <button
               title="Solo" onClick={() => useVideoStore.setState((s) => ({ trackSolo: { ...s.trackSolo, [index]: !s.trackSolo[index] } }))}
-              style={{ ...btnBase, width: 14, height: 14, background: trackSolo[index] ? "#FFB54730" : "transparent", border: trackSolo[index] ? "1px solid #FFB547" : "1px solid #1C1C1C", borderRadius: 2 }}
+              style={{ ...btnBase, width: 14, height: 14, background: trackSolo[index] ? "rgba(245,158,11,0.19)" : "transparent", border: trackSolo[index] ? "1px solid #F59E0B" : "1px solid #1C1C1C", borderRadius: 2 }}
             >
-              <span style={{ fontSize: 7, fontFamily: MONO, fontWeight: 700, color: trackSolo[index] ? "#FFB547" : "#5C5C5C" }}>S</span>
+              <span style={{ fontSize: 7, fontFamily: MONO, fontWeight: 700, color: trackSolo[index] ? "#F59E0B" : "#5C5C5C" }}>S</span>
             </button>
             <button
               title="Mute" onClick={() => useVideoStore.setState((s) => ({ trackMuted: { ...s.trackMuted, [index]: !s.trackMuted[index] } }))}

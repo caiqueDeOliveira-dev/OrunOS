@@ -1,5 +1,5 @@
-import { createStore } from "../../lib/store";
-import type { HealthState, Metric, Meal, BodyMeasurement, Exam, WorkoutSession, WorkoutExercise } from "./health-types";
+﻿import { createStore } from "../../lib/store";
+import type { HealthState, Metric, Meal, BodyMeasurement, Exam, WorkoutSession, WorkoutExercise, Symptom, Medication, WellnessEntry, WellnessMetric, SymptomIntensity, BodyRegion } from "./health-types";
 
 const STORAGE_KEY = "orun_health_state";
 
@@ -19,21 +19,27 @@ function persist(state: HealthState) {
       bodyMeasurements: state.bodyMeasurements,
       exams: state.exams,
       workouts: state.workouts,
+      symptoms: state.symptoms,
+      medications: state.medications,
+      wellness: state.wellness,
     }));
   } catch { /* ignore */ }
 }
 
 const defaults: HealthState = {
   metrics: [
-    { id: "weight", name: "Peso", value: 0, unit: "kg", target: 0, icon: "⚖️", color: "#C00018" },
-    { id: "calories", name: "Calorias", value: 0, unit: "kcal", target: 2200, icon: "🔥", color: "#F59E0B" },
-    { id: "steps", name: "Passos", value: 0, unit: "passos", target: 10000, icon: "🚶", color: "#3B82F6" },
-    { id: "water", name: "Água", value: 0, unit: "ml", target: 2000, icon: "💧", color: "#22C55E" },
+    { id: "weight", name: "Peso", value: 0, unit: "kg", target: 0, icon: "scale", color: "#E50914" },
+    { id: "calories", name: "Calorias", value: 0, unit: "kcal", target: 2200, icon: "flame", color: "#E50914" },
+    { id: "steps", name: "Passos", value: 0, unit: "passos", target: 10000, icon: "footprints", color: "#3B82F6" },
+    { id: "water", name: "Agua", value: 0, unit: "ml", target: 2000, icon: "droplets", color: "#22C55E" },
   ],
   meals: [],
   bodyMeasurements: [],
   exams: [],
   workouts: [],
+  symptoms: [],
+  medications: [],
+  wellness: [],
   selectedRange: "today",
 };
 
@@ -115,4 +121,53 @@ export function updateMetricTarget(id: string, target: number) {
   useHealthStore.setState({
     metrics: state.metrics.map((m) => m.id === id ? { ...m, target } : m),
   });
+}
+
+export function addSymptom(symptom: Omit<Symptom, "id">) {
+  const state = useHealthStore.getState();
+  const entry = { ...symptom, id: `sy_${Date.now()}_${Math.random().toString(36).slice(2, 6)}` };
+  useHealthStore.setState({ symptoms: [...state.symptoms, entry] });
+  return entry;
+}
+
+export function deleteSymptom(id: string) {
+  const state = useHealthStore.getState();
+  useHealthStore.setState({ symptoms: state.symptoms.filter((s) => s.id !== id) });
+}
+
+export function addMedication(med: Omit<Medication, "id">) {
+  const state = useHealthStore.getState();
+  const entry = { ...med, id: `md_${Date.now()}_${Math.random().toString(36).slice(2, 6)}` };
+  useHealthStore.setState({ medications: [...state.medications, entry] });
+  return entry;
+}
+
+export function deactivateMedication(id: string) {
+  const state = useHealthStore.getState();
+  useHealthStore.setState({
+    medications: state.medications.map((m) => m.id === id ? { ...m, active: false, endDate: new Date().toISOString().split("T")[0] } : m),
+  });
+}
+
+export function deleteMedication(id: string) {
+  const state = useHealthStore.getState();
+  useHealthStore.setState({ medications: state.medications.filter((m) => m.id !== id) });
+}
+
+export function addWellness(entry: Omit<WellnessEntry, "id">) {
+  const state = useHealthStore.getState();
+  const newEntry = { ...entry, id: `we_${Date.now()}_${Math.random().toString(36).slice(2, 6)}` };
+  useHealthStore.setState({ wellness: [...state.wellness, newEntry] });
+  return newEntry;
+}
+
+export function getLatestWellness(): Record<WellnessMetric, number> {
+  const state = useHealthStore.getState();
+  const result: Record<WellnessMetric, number> = { humor: 5, ansiedade: 5, estresse: 5, energia: 5, foco: 5 };
+  const metrics: WellnessMetric[] = ["humor", "ansiedade", "estresse", "energia", "foco"];
+  for (const m of metrics) {
+    const entries = state.wellness.filter((w) => w.metric === m).sort((a, b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time));
+    if (entries.length > 0) result[m] = entries[0].value;
+  }
+  return result;
 }

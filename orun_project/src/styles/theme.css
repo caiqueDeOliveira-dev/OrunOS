@@ -3,6 +3,20 @@
 /* ── Light theme (default for :root to prevent flash) ─────────────── */
 :root {
   --font-size: 16px;
+
+  /* Orun OS foundation tokens (v2) */
+  --surface-1: #FFFFFF;
+  --surface-2: #F7F7F9;
+  --surface-3: #EEEFF2;
+  --line-hi: #D6D6DC;
+  --text-primary: #16161A;
+  --text-secondary: #5C5C66;
+  --text-tertiary: #9A9AA3;
+  --ok: #16A34A;
+  --warn: #D97706;
+  --err: #DC2626;
+  --info: #2563EB;
+
   --background: #F5F3F0;
   --foreground: #1A1A1F;
   --card: #FFFFFF;
@@ -31,7 +45,7 @@
   --chart-3: #8A0014;
   --chart-4: #6D6D73;
   --chart-5: #9A9AA0;
-  --radius: 0.75rem;
+  --radius: 0.625rem;
   --sidebar: #FFFFFF;
   --sidebar-foreground: #1A1A1F;
   --sidebar-primary: #C0001A;
@@ -44,23 +58,36 @@
 
 /* ── Dark theme (premium black + blood red) ─────────────────────── */
 .dark {
+  /* Orun OS foundation tokens (v2) */
+  --surface-1: #0B0B0D;
+  --surface-2: #101013;
+  --surface-3: #16161A;
+  --line-hi: #2E2E34;
+  --text-primary: #E8E8EA;
+  --text-secondary: #9A9AA3;
+  --text-tertiary: #5C5C66;
+  --ok: #22C55E;
+  --warn: #F59E0B;
+  --err: #EF4444;
+  --info: #4DA3FF;
+
   --background: #050505;
   --foreground: #FFFFFF;
-  --card: #141414;
+  --card: #101013;
   --card-foreground: #FFFFFF;
   --popover: #141414;
   --popover-foreground: #FFFFFF;
   --primary: #C3002F;
   --primary-foreground: #FFFFFF;
-  --secondary: #0A0A0C;
-  --secondary-foreground: #A0A0A0;
-  --muted: #0A0A0C;
-  --muted-foreground: #A0A0A0;
-  --accent: #1C1C1C;
+  --secondary: #0B0B0D;
+  --secondary-foreground: #9A9AA3;
+  --muted: #0B0B0D;
+  --muted-foreground: #9A9AA3;
+  --accent: #16161A;
   --accent-foreground: #FFFFFF;
   --destructive: #C3002F;
   --destructive-foreground: #FFFFFF;
-  --border: #252525;
+  --border: #232328;
   --input: #1C1C1C;
   --input-background: #1C1C1C;
   --switch-background: #2A2A30;
@@ -84,6 +111,19 @@
 
 /* ── Light theme (explicit class) ─────────────────────────────────── */
 .light {
+  /* Orun OS foundation tokens (v2) */
+  --surface-1: #FFFFFF;
+  --surface-2: #F7F7F9;
+  --surface-3: #EEEFF2;
+  --line-hi: #D6D6DC;
+  --text-primary: #16161A;
+  --text-secondary: #5C5C66;
+  --text-tertiary: #9A9AA3;
+  --ok: #16A34A;
+  --warn: #D97706;
+  --err: #DC2626;
+  --info: #2563EB;
+
   --background: #F5F3F0;
   --foreground: #1A1A1F;
   --card: #FFFFFF;
@@ -161,6 +201,13 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-err: var(--err);
+  --color-info: var(--info);
 }
 
 @layer base {
@@ -240,27 +287,30 @@
 .prose th { background: var(--secondary); font-weight: 600; }
 
 /* ── Workspace typography classes (premium dark) ─────────────────── */
-.ws-title { font-size: 13px; font-weight: 600; font-family: 'Sora', sans-serif; text-transform: uppercase; letter-spacing: 0.05em; color: #A0A0A0; }
-.ws-subtitle { font-size: 12px; font-weight: 500; color: #FFFFFF; }
-.ws-body { font-size: 12px; color: #FFFFFF; }
-.ws-label { font-size: 10px; font-family: 'Sora', sans-serif; text-transform: uppercase; letter-spacing: 0.08em; color: #A0A0A0; }
-.ws-mono { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: #FFFFFF; }
-.ws-small { font-size: 10px; color: #A0A0A0; }
+.ws-title { font-size: 13px; font-weight: 600; font-family: 'Sora', sans-serif; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); }
+.ws-subtitle { font-size: 12px; font-weight: 500; color: var(--text-primary); }
+.ws-body { font-size: 12px; color: var(--text-primary); }
+.ws-label { font-size: 10px; font-family: 'Sora', sans-serif; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); }
+.ws-mono { font-size: 11px; font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; color: var(--text-primary); }
+.ws-small { font-size: 10px; color: var(--text-secondary); }
+
+/* ── Data typography (tabular numerals for metrics/prices/time) ─── */
+.font-data { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
 
 /* ── Workspace utility classes (premium dark) ───────────────────── */
-.ws-card { background: #141414; border: 1px solid #252525; border-radius: 18px; }
-.ws-card-hover { background: #141414; border: 1px solid #252525; border-radius: 18px; transition: all 0.15s ease; }
+.ws-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; }
+.ws-card-hover { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; transition: all 0.15s ease; }
 .ws-card-hover:hover { border-color: rgba(195,0,47,0.55); box-shadow: 0 0 18px rgba(195,0,47,0.14); }
 .ws-button { padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 500; transition: all 0.15s ease; cursor: pointer; }
-.ws-button-primary { background: #C3002F; color: #FFFFFF; }
+.ws-button-primary { background: var(--primary); color: #FFFFFF; }
 .ws-button-primary:hover { opacity: 0.9; transform: scale(1.02); }
-.ws-button-ghost { background: transparent; color: #A0A0A0; }
-.ws-button-ghost:hover { background: rgba(255,255,255,0.05); color: #FFFFFF; }
-.ws-input { padding: 6px 10px; border-radius: 8px; font-size: 12px; background: #0A0A0C; border: 1px solid #252525; color: #FFFFFF; outline: none; transition: border-color 0.15s ease; }
-.ws-input:focus { border-color: #C3002F; }
+.ws-button-ghost { background: transparent; color: var(--text-secondary); }
+.ws-button-ghost:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
+.ws-input { padding: 6px 10px; border-radius: 8px; font-size: 12px; background: var(--surface-1); border: 1px solid var(--line-hi); color: var(--text-primary); outline: none; transition: border-color 0.15s ease; }
+.ws-input:focus { border-color: var(--primary); }
 .ws-section { padding: 16px; }
-.ws-divider { border: none; border-top: 1px solid #252525; margin: 8px 0; }
-.ws-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 32px 16px; text-align: center; color: #A0A0A0; }
+.ws-divider { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
+.ws-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 32px 16px; text-align: center; color: var(--text-secondary); }
 .ws-badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 500; font-family: 'JetBrains Mono', monospace; }
 .ws-badge-red { background: rgba(195,0,47,0.12); color: #C3002F; }
 .ws-badge-green { background: rgba(0,210,106,0.12); color: #00D26A; }

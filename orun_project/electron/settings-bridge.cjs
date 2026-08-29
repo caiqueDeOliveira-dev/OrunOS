@@ -38,7 +38,7 @@ const DEFAULTS = {
     sidebarCollapsed: false,
     shortcuts: {},
     ai: { provider: "ollama", model: "llama3.1", baseUrl: "http://localhost:11434", systemPrompt: "" },
-    aiFallback: null as { provider: string; model: string } | null,
+    aiFallback: null,
     runInBackground: false,
   },
   mobile: {
@@ -310,6 +310,8 @@ class SyncEngine {
   }
 
   async init() {
+    // userId "local" (sem login) não tem identidade na nuvem — pula o pull inicial.
+    if (!this.userId || this.userId === "local") return;
     const remoteRecords = await this.transport.pullAll(this.userId);
     for (const record of remoteRecords) {
       if (!this.syncedPaths.has(record.path)) continue;

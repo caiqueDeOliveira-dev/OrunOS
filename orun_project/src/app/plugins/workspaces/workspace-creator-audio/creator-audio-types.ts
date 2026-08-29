@@ -79,16 +79,16 @@ export const CATEGORY_COLORS: Record<SamplePad["category"], string> = {
 
 export const EFFECT_COLORS = ["#C3002F", "#4DA3FF", "#00D26A", "#FFB547", "#8B5CF6", "#4DA3FF"];
 
-// Style constants (premium Orun OS palette — see ../premium.tsx)
-export const BG = "#050505";
-export const PANEL = "#0A0A0C";
-export const STRIP = "#141414";
-export const ACCENT = "#C3002F";
-export const GREEN = "#00D26A";
-export const TEXT_DIM = "#5C5C5C";
-export const TEXT_MED = "#A0A0A0";
-export const TEXT_BRI = "#FFFFFF";
-export const BORDER = "#252525";
-export const BORDER_MED = "#252525";
+// Style constants (premium Orun OS theme tokens — see ../premium.tsx)
+export const BG = "var(--background)";
+export const PANEL = "var(--surface-1)";
+export const STRIP = "var(--surface-2)";
+export const ACCENT = "var(--primary)";
+export const GREEN = "var(--ok)";
+export const TEXT_DIM = "var(--text-tertiary)";
+export const TEXT_MED = "var(--text-secondary)";
+export const TEXT_BRI = "var(--text-primary)";
+export const BORDER = "var(--border)";
+export const BORDER_MED = "var(--border)";
 export const FONT_MONO = "'JetBrains Mono', monospace";
 export const FONT_LABEL = "'Sora', sans-serif";

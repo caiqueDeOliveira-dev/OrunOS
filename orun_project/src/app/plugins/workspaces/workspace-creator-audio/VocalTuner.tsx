@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+﻿import { useState, useCallback } from "react";
 import { useTranslation } from "../../../../i18n/I18nProvider";
 import { useDJStore } from "./creator-audio-store";
 import { PANEL, STRIP, ACCENT, BORDER, TEXT_BRI, TEXT_DIM, FONT_LABEL, FONT_MONO, GREEN } from "./creator-audio-types";
@@ -68,8 +68,8 @@ export function VocalTuner() {
       {/* Header */}
       <div className="flex items-center gap-3">
         <button onClick={() => setEnabled(!enabled)}
-          style={{ padding: "4px 14px", borderRadius: 6, fontSize: 9, fontWeight: 600, letterSpacing: 0.5, border: "none", cursor: "pointer", background: enabled ? ACCENT : STRIP, color: "#FFF" }}>
-          {enabled ? "🟢 AUTO-TUNE ON" : "⚪ AUTO-TUNE OFF"}
+          style={{ padding: "4px 14px", borderRadius: 6, fontSize: 9, fontWeight: 600, letterSpacing: 0.5, border: "none", cursor: "pointer", background: enabled ? ACCENT : STRIP, color: "#FFF" }}><span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: enabled ? "#fff" : "var(--text-tertiary)", marginRight: 4 }} />
+          {enabled ? "AUTO-TUNE ON" : "AUTO-TUNE OFF"}
         </button>
         <span style={{ fontSize: 9, color: TEXT_DIM, fontFamily: FONT_MONO }}>BPM: {bpm}</span>
       </div>

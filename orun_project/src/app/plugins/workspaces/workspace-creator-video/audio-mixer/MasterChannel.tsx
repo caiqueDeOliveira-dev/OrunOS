@@ -25,7 +25,7 @@ export function MasterChannel() {
 
       <div className="flex gap-1" style={{ marginBottom: 2 }}>
         <div style={{ fontSize: 7, fontFamily: MONO, color: "#5C5C5C", textAlign: "center" }}>L</div>
-        <div style={{ width: 4, height: 4, borderRadius: 2, background: volume > 0 ? "#00D26A" : "#1C1C1C", alignSelf: "center" }} />
+        <div style={{ width: 4, height: 4, borderRadius: 2, background: volume > 0 ? "#22C55E" : "#1C1C1C", alignSelf: "center" }} />
         <div style={{ fontSize: 7, fontFamily: MONO, color: "#5C5C5C", textAlign: "center" }}>R</div>
       </div>
 

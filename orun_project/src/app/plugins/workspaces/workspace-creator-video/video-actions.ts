@@ -38,7 +38,7 @@ const actions = {
       store.setState({
         aiState: { ...finalState, status: "done", progress: 100, result: `Generated video from prompt: "${prompt}"` },
         clips: [...store.getState().clips, {
-          id: `ai_${Date.now()}`, trackIndex: 0, name: `AI: ${prompt.slice(0, 30)}`, color: "#C00018",
+          id: `ai_${Date.now()}`, trackIndex: 0, name: `AI: ${prompt.slice(0, 30)}`, color: "#C3002F",
           startFrame: store.getState().currentTimeFrame, durationFrames: 150, type: "video" as const,
         }],
       });
@@ -64,7 +64,7 @@ const actions = {
     const state = store.getState();
     const startFrame = state.currentTimeFrame;
     const newClip = {
-      id: `txt_anim_${Date.now()}`, trackIndex: 3, name: `📝 ${text}`, color: "#D4A017",
+      id: `txt_anim_${Date.now()}`, trackIndex: 3, name: `${text} (anim)`, color: "#F59E0B",
       startFrame, durationFrames: 150, type: "text" as const,
     };
     store.setState({ clips: [...state.clips, newClip], aiState: { ...state.aiState, result: `Added text animation: "${text}" (${animation})` } });
@@ -74,7 +74,7 @@ const actions = {
   async add_clip(params: Record<string, unknown>) {
     const name = String(params.name || "New Clip");
     const type = (params.type as string) || "video";
-    const color = String(params.color || "#E06020");
+    const color = String(params.color || "#8B5CF6");
     const startFrame = typeof params.startFrame === "number" ? params.startFrame : undefined;
     const durationFrames = typeof params.durationFrames === "number" ? params.durationFrames : 300;
 

@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from "react";
+import { FlipHorizontal2, FlipVertical2, Image as ImageIcon } from "lucide-react";
 import { useDesignerStore } from "./designer-actions";
 import { WorkspaceButton } from "../../components/WorkspaceButton";
 import { WorkspaceCard } from "../../components/WorkspaceCard";
@@ -86,7 +87,7 @@ export function DesignerImageEditorTab({ onSendMessage }: { onSendMessage: (msg:
           <button onClick={() => fileRef.current?.click()} className="ws-btn-primary text-[9px]">Open Image</button>
           {imageLoaded && (
             <>
-              <button onClick={() => setShowOriginal((v) => !v)} className="ws-btn-sm text-[9px]" style={{ background: showOriginal ? "#C3002F" : "#141414" }}>Compare</button>
+            <button onClick={() => setShowOriginal((v) => !v)} className="ws-btn-sm text-[9px]" style={{ background: showOriginal ? "var(--primary)" : "var(--surface-2)" }}>Compare</button>
               <button onClick={() => {
                 const canvas = document.createElement("canvas");
                 const img = new Image();
@@ -108,7 +109,7 @@ export function DesignerImageEditorTab({ onSendMessage }: { onSendMessage: (msg:
                   }, "image/png");
                 };
                 img.src = imageLoaded;
-              }} className="px-2.5 py-1 rounded text-[9px]" style={{ background: "#10B981", color: "#FFF" }}>Export PNG</button>
+              }} className="px-2.5 py-1 rounded text-[9px]" style={{ background: "var(--ok)", color: "#FFF" }}>Export PNG</button>
             </>
           )}
           <input ref={fileRef} type="file" accept="image/*" onChange={handleFileUpload} style={{ display: "none" }} />
@@ -125,13 +126,13 @@ export function DesignerImageEditorTab({ onSendMessage }: { onSendMessage: (msg:
                 </div>
               )}
               <div className="flex flex-col items-center gap-1">
-                {showOriginal && <span className="text-[8px] uppercase ws-font-sora" style={{ color: "#C3002F" }}>Edited</span>}
+                {showOriginal && <span className="text-[8px] uppercase ws-font-sora" style={{ color: "var(--primary)" }}>Edited</span>}
                 <img src={imageLoaded} alt="Editor preview" style={filterStyle as any} />
               </div>
             </div>
           ) : (
             <WorkspaceCard className="text-center max-w-xs">
-              <WorkspaceEmptyState icon="🖼️" message="No Image — drop an image or click Open Image to start editing" />
+              <WorkspaceEmptyState icon={<ImageIcon size={22} color="var(--primary)" strokeWidth={1.6} />} message="No Image — drop an image or click Open Image to start editing" />
               <button onClick={() => fileRef.current?.click()} className="ws-btn-primary text-[10px] mt-3">Browse Files</button>
               <p className="text-[8px] text-muted-foreground mt-2">Supports JPG, PNG, WEBP</p>
             </WorkspaceCard>
@@ -172,9 +173,9 @@ export function DesignerImageEditorTab({ onSendMessage }: { onSendMessage: (msg:
               <div className="grid grid-cols-3 gap-1">
                 <button onClick={() => setRotation((r) => (r - 90) % 360)} className="ws-btn-sm">↺ Rotate</button>
                 <button onClick={() => setRotation((r) => (r + 90) % 360)} className="ws-btn-sm">↻ Rotate</button>
-                <button onClick={() => setFlipH((v) => !v)} className="ws-btn-sm" style={{ background: flipH ? "#C3002F" : "#141414" }}>↔ Flip</button>
-                <button onClick={() => setFlipV((v) => !v)} className="ws-btn-sm" style={{ background: flipV ? "#C3002F" : "#141414" }}>↕ Flip</button>
-                <button onClick={resetAll} className="col-span-2 ws-btn-sm" style={{ background: "#EF444420", color: "#EF4444" }}>Reset All</button>
+                <button onClick={() => setFlipH((v) => !v)} className="ws-btn-sm flex items-center justify-center gap-1" style={{ background: flipH ? "var(--primary)" : "var(--surface-2)" }}><FlipHorizontal2 size={9} /> Flip</button>
+                <button onClick={() => setFlipV((v) => !v)} className="ws-btn-sm flex items-center justify-center gap-1" style={{ background: flipV ? "var(--primary)" : "var(--surface-2)" }}><FlipVertical2 size={9} /> Flip</button>
+                <button onClick={resetAll} className="col-span-2 ws-btn-sm" style={{ background: "rgba(239,68,68,0.12)", color: "var(--err)" }}>Reset All</button>
               </div>
             </div>
           </>)}

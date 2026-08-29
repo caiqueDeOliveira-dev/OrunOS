@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import {
   Briefcase, Search, Plus, CheckCircle2, XCircle, FileText, Send,
   RefreshCw, User, Users, ExternalLink, Loader2, Trash2, ClipboardList,
@@ -14,10 +14,10 @@ type TabId = "vagas" | "perfis";
 const PROFILE_LABELS: Record<OrunProfileKey, string> = { caique: "Caíque", esposa: "Esposa" };
 
 const STATUS_META: Record<OrunJobStatus, { label: string; color: string; bg: string }> = {
-  nova: { label: "Nova", color: "#4DA3FF", bg: "rgba(77,163,255,0.12)" },
-  curriculo_pronto: { label: "Currículo pronto", color: "#FFB547", bg: "rgba(255,181,71,0.12)" },
-  enviada: { label: "Enviada", color: "#00D26A", bg: "rgba(0,210,106,0.12)" },
-  descartada: { label: "Descartada", color: "#FF4B4B", bg: "rgba(255,75,75,0.12)" },
+  nova: { label: "Nova", color: "var(--info)", bg: "color-mix(in srgb, var(--info) 12%, transparent)" },
+  curriculo_pronto: { label: "Currículo pronto", color: "var(--warn)", bg: "color-mix(in srgb, var(--warn) 12%, transparent)" },
+  enviada: { label: "Enviada", color: "var(--ok)", bg: "color-mix(in srgb, var(--ok) 12%, transparent)" },
+  descartada: { label: "Descartada", color: "var(--err)", bg: "color-mix(in srgb, var(--err) 12%, transparent)" },
 };
 
 const EMPTY_PROFILE: OrunCareerProfile = {
@@ -453,7 +453,7 @@ export function CareerWorkspace(_props: WorkspaceProps) {
                       {gen.checklist && gen.checklist.length > 0 && (
                         <div>
                           <div className="text-[8px] uppercase mt-1" style={{ color: P.dim }}>Checklist</div>
-                          {gen.checklist.map((c, i) => <div key={i} className="text-[9px] mt-0.5" style={{ color: P.dim }}>☐ {c}</div>)}
+                          {gen.checklist.map((c, i) => <div key={i} className="text-[9px] mt-0.5" style={{ color: P.dim }}>□ {c}</div>)}
                         </div>
                       )}
                     </div>

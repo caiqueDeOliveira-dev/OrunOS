@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import type { WorkspaceProps } from "../../types";
 import { registerTeacherActions, unregisterTeacherActions, setWhiteboardStoreGetter } from "./teacher-actions";
 import { useWhiteboardStore, undo, redo, clearCanvas } from "./teacher-store";
@@ -8,11 +8,12 @@ import { WhiteboardCanvas } from "./components/WhiteboardCanvas";
 import { QuizPanel } from "./components/QuizPanel";
 import { LessonPlanner } from "./components/LessonPlanner";
 import { PALETTE, STROKE_WIDTHS, ACCENT } from "./teacher-types";
+import { Pencil, Square, Circle, Type, Eraser, MousePointer2 } from "lucide-react";
 import { P, PremiumRoot } from "../premium";
 
 type PanelKey = "board" | "quiz" | "lessons";
 
-const TOOL_ICONS: Record<string, string> = { pen: "✏️", rect: "□", circle: "○", text: "T", eraser: "◻", select: "👆" };
+const TOOL_ICONS: Record<string, typeof Pencil> = { pen: Pencil, rect: Square, circle: Circle, text: Type, eraser: Eraser, select: MousePointer2 };
 const TOOL_SHORTCUTS: Record<string, string> = { pen: "P", rect: "R", circle: "C", text: "T", eraser: "E", select: "S" };
 
 export function TeacherWorkspace({ onSendMessage }: WorkspaceProps) {
@@ -56,7 +57,7 @@ export function TeacherWorkspace({ onSendMessage }: WorkspaceProps) {
               style={{
                 fontWeight: activePanel === p ? 500 : 300,
                 color: activePanel === p ? P.text : P.sub,
-                background: activePanel === p ? "rgba(195,0,47,0.08)" : "transparent",
+                background: activePanel === p ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
               }}>
               {p === "board" ? "Quadro" : p === "quiz" ? "Quiz" : "Planos"}
             </button>
@@ -69,9 +70,9 @@ export function TeacherWorkspace({ onSendMessage }: WorkspaceProps) {
             {(["pen", "rect", "circle", "text", "eraser"] as const).map((t) => (
               <button key={t} onClick={() => useWhiteboardStore.setState({ tool: t })}
                 className="w-7 h-7 rounded-md flex items-center justify-center text-[10px] transition-all relative group"
-                style={{ background: tool === t ? "rgba(195,0,47,0.15)" : "transparent", color: tool === t ? ACCENT : P.sub }}
+                style={{ background: tool === t ? "color-mix(in srgb, var(--primary) 15%, transparent)" : "transparent", color: tool === t ? ACCENT : P.sub }}
                 title={`${t.charAt(0).toUpperCase() + t.slice(1)} (${TOOL_SHORTCUTS[t]})`}>
-                {TOOL_ICONS[t] || t}
+                {(() => { const I = TOOL_ICONS[t]; return I ? <I size={12} /> : t; })()}
                 <span className="absolute -top-1.5 -right-1.5 text-[6px] px-0.5 rounded"
                   style={{ background: P.primary, color: P.text, opacity: 0.8 }}>
                   {TOOL_SHORTCUTS[t]}
@@ -91,7 +92,7 @@ export function TeacherWorkspace({ onSendMessage }: WorkspaceProps) {
               {STROKE_WIDTHS.map((w) => (
                 <button key={w} onClick={() => useWhiteboardStore.setState({ strokeWidth: w })}
                   className="w-6 h-6 rounded-md flex items-center justify-center"
-                  style={{ background: strokeWidth === w ? "rgba(195,0,47,0.15)" : "transparent" }}>
+                  style={{ background: strokeWidth === w ? "color-mix(in srgb, var(--primary) 15%, transparent)" : "transparent" }}>
                   <div className="rounded-full" style={{ width: w * 2, height: w * 2, background: strokeWidth === w ? ACCENT : P.sub }} />
                 </button>
               ))}

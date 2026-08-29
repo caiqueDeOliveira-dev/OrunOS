@@ -4,6 +4,7 @@ import { I18nProvider } from "../i18n/I18nProvider";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { SettingsProvider } from "./contexts/SettingsContext";
 import { ToastProvider, useToast } from "./components/Toast";
+import { useEventNotifications } from "./hooks/useEventNotifications";
 import { GlobalStyles } from "./components/GlobalStyles";
 import { CustomCursor } from "./components/CustomCursor";
 import { TitleBar } from "./components/TitleBar";
@@ -35,6 +36,11 @@ function TTSFallbackListener() {
     window.addEventListener("tts:fallback", handler);
     return () => window.removeEventListener("tts:fallback", handler);
   }, [toast]);
+  return null;
+}
+
+function EventNotificationListener() {
+  useEventNotifications();
   return null;
 }
 
@@ -86,6 +92,7 @@ function MainApp() {
         <SettingsProvider>
         <ToastProvider>
         <TTSFallbackListener />
+        <EventNotificationListener />
         <div className="fixed inset-0 overflow-hidden" style={{ background: "var(--background)" }}>
           <GlobalStyles />
           <CustomCursor />

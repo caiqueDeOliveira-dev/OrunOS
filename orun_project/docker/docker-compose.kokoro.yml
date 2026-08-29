@@ -1,0 +1,18 @@
+# Kokoro-82M TTS local — porta 5004, protocolo esperado por electron/tts-router.cjs
+# (GET /voices, POST /api/tts, GET /health). Modelo ~350MB baixa na 1a execucao
+# e fica no volume kokoro-models.
+#
+# Uso: docker compose -f docker/docker-compose.kokoro.yml up -d --build
+services:
+  kokoro:
+    build:
+      context: ..
+      dockerfile: docker/kokoro/Dockerfile
+    container_name: orun-kokoro
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5004:5004"
+    volumes:
+      - kokoro-models:/root/.cache
+volumes:
+  kokoro-models:

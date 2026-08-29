@@ -186,9 +186,11 @@ describe("career: preparação de candidatura", () => {
 describe("career: WhatsApp determinístico", () => {
   beforeEach(() => {
     career._setStateForTest(defaultState());
+    career._setSearchImplForTest(null);
     freshInit();
   });
   afterEach(() => {
+    career._setSearchImplForTest(null);
     dirs.forEach((d) => fs.rmSync(d, { recursive: true, force: true }));
     dirs = [];
   });
@@ -201,18 +203,41 @@ describe("career: WhatsApp determinístico", () => {
     expect(career.isCareerQuestion("")).toBe(false);
   });
 
-  it("buildWhatsAppReply mostra resumo quando não há vagas", () => {
-    const reply = career.buildWhatsAppReply("achou alguma vaga?");
+  it("buildWhatsAppReply mostra resumo quando não há vagas", async () => {
+    const reply = await career.buildWhatsAppReply("achou alguma vaga?");
     expect(reply).toContain("Encontradas: *0*");
     expect(reply).toContain("Ainda não encontrei vagas cadastradas");
   });
 
-  it("buildWhatsAppReply reflete stats após adicionar vagas", () => {
+  it("buildWhatsAppReply reflete stats após adicionar vagas", async () => {
     career.addJob({ title: "Dev", company: "A", url: "https://a/1" });
     career.addJob({ profileKey: "esposa", title: "Vendedora", company: "B", url: "https://b/1" });
-    const reply = career.buildWhatsAppReply("mandou currículo hoje?");
+    const reply = await career.buildWhatsAppReply("mandou currículo hoje?");
     expect(reply).toContain("Encontradas: *2*");
     expect(reply).toContain("Caíque: 1 | Esposa: 1");
+  });
+
+  it("buildWhatsAppReply busca vagas quando o usuário pede busca", async () => {
+    career._setSearchImplForTest(() =>
+      Promise.resolve({
+        engine: "stub",
+        results: [{ title: "Dev React Remoto", url: "https://exemplo/vaga", description: "remota" }],
+      })
+    );
+    const reply = await career.buildWhatsAppReply("procura vaga de dev");
+    expect(reply.startsWith("📄 *Vagas de dev*")).toBe(true);
+    expect(reply).toContain("Dev React Remoto");
+    expect(reply).not.toContain("Encontradas:");
+    // As vagas encontradas ficam salvas (workspace Carreiras).
+    expect(career.listJobs().total).toBe(1);
+  });
+
+  it("extractJobQuery extrai só a área", () => {
+    expect(career.extractJobQuery("procura vaga de dev")).toBe("dev");
+    expect(career.extractJobQuery("busca vagas de analista de dados")).toBe("analista de dados");
+    expect(career.extractJobQuery("vaga de desenvolvedor pleno")).toBe("desenvolvedor pleno");
+    expect(career.extractJobQuery("mandou currículo hoje?")).toBe("");
+    expect(career.extractJobQuery("achou alguma vaga?")).toBe("");
   });
 
   it("searchJobs valida query obrigatória", async () => {

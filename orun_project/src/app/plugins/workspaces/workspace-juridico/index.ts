@@ -1,4 +1,4 @@
-import { lazy } from "react";
+﻿import { lazy } from "react";
 import { registerPlugin } from "../../PluginRegistry";
 import type { WorkspacePlugin, PluginTab } from "../../types";
 
@@ -16,7 +16,7 @@ const tabs: PluginTab[] = [
 const plugin: WorkspacePlugin = {
   id: "Juridico",
   name: "Escritorio Juridico",
-  version: "2.0.0",
+  version: "2.1.0",
   description: "Escritorio de advocacia pessoal com catalogo de provas, gestao de casos e integracao WhatsApp",
   icon: "Scale",
   requirements: { minRamMB: 256, estimatedRAMMB: 60, features: [] },

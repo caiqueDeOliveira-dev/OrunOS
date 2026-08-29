@@ -1,4 +1,4 @@
-// ChannelStrip — Single mixer channel: EQ, fader, pan, meters
+﻿// ChannelStrip — Single mixer channel: EQ, fader, pan, meters
 import { useTranslation } from "../../../../i18n/I18nProvider";
 import { useDJStore } from "./creator-audio-store";
 import { AnimatedMeter, Knob } from "./creator-audio-ui";
@@ -20,10 +20,10 @@ export function ChannelStrip({ ch }: { ch: Channel }) {
 
       {/* Solo / Mute */}
       <div style={{ display: "flex", gap: 2 }}>
-        <button onClick={() => update({ solo: !ch.solo })} style={{ width: 18, height: 14, borderRadius: 3, fontSize: 7, fontWeight: 700, fontFamily: FONT_LABEL, border: "none", cursor: "pointer", background: ch.solo ? "#4DA3FF" : "rgba(255,255,255,0.05)", color: ch.solo ? "#fff" : TEXT_DIM }}>
+        <button onClick={() => update({ solo: !ch.solo })} style={{ width: 18, height: 14, borderRadius: 3, fontSize: 7, fontWeight: 700, fontFamily: FONT_LABEL, border: "none", cursor: "pointer", background: ch.solo ? "#4DA3FF" : "var(--surface-3)", color: ch.solo ? "#fff" : TEXT_DIM }}>
           {t("creator_audio_solo")}
         </button>
-        <button onClick={() => update({ muted: !ch.muted })} style={{ width: 18, height: 14, borderRadius: 3, fontSize: 7, fontWeight: 700, fontFamily: FONT_LABEL, border: "none", cursor: "pointer", background: ch.muted ? "#FFB547" : "rgba(255,255,255,0.05)", color: ch.muted ? "#000" : TEXT_DIM }}>
+        <button onClick={() => update({ muted: !ch.muted })} style={{ width: 18, height: 14, borderRadius: 3, fontSize: 7, fontWeight: 700, fontFamily: FONT_LABEL, border: "none", cursor: "pointer", background: ch.muted ? "#FFB547" : "var(--surface-3)", color: ch.muted ? "#000" : TEXT_DIM }}>
           {t("creator_audio_mute")}
         </button>
       </div>
@@ -48,7 +48,7 @@ export function ChannelStrip({ ch }: { ch: Channel }) {
       <Knob value={(ch.pan + 1) / 2} size={18} color="#4DA3FF" label={t("creator_audio_pan")} onChange={(v) => update({ pan: v * 2 - 1 })} />
 
       {/* Cue */}
-      <button onClick={() => update({ cue: !ch.cue })} style={{ width: 22, height: 14, borderRadius: 3, fontSize: 7, fontFamily: FONT_LABEL, border: "none", cursor: "pointer", background: ch.cue ? "#FFB547" : "rgba(255,255,255,0.05)", color: ch.cue ? "#000" : TEXT_DIM, letterSpacing: 0.5 }}>
+      <button onClick={() => update({ cue: !ch.cue })} style={{ width: 22, height: 14, borderRadius: 3, fontSize: 7, fontFamily: FONT_LABEL, border: "none", cursor: "pointer", background: ch.cue ? "#FFB547" : "var(--surface-3)", color: ch.cue ? "#000" : TEXT_DIM, letterSpacing: 0.5 }}>
         {t("creator_audio_cue")}
       </button>
     </div>

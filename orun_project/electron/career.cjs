@@ -119,6 +119,12 @@ function save() {
 
 let current = defaultState();
 
+// Hook de teste: substitui a busca web (Firecrawl/DuckDuckGo) real.
+let searchImplForTest = null;
+function _setSearchImplForTest(fn) {
+  searchImplForTest = typeof fn === "function" ? fn : null;
+}
+
 // ── Init ─────────────────────────────────────────────────────────────────
 
 function init(context = {}) {
@@ -329,7 +335,8 @@ async function searchJobs(query, profileKey, { limit = 8, autoAdd = false } = {}
   if (!query) return { error: "Informe uma busca de vagas (ex.: 'desenvolvedor react remoto')" };
   const key = profileKey === PROFILE_KEYS.ESPOSA ? PROFILE_KEYS.ESPOSA : PROFILE_KEYS.CAIQUE;
   const q = `vagas de emprego ${query} site:linkedin.com OR site:indeed.com OR site:catho.com.br OR site:glassdoor.com OR site:vagas.com.br`;
-  const res = await webSearch(q, limit);
+  const doSearch = searchImplForTest || webSearch;
+  const res = await doSearch(q, limit);
   if (res.error) return { error: res.error };
   const candidates = (res.results || [])
     .filter((r) => r.title && r.url)
@@ -541,10 +548,49 @@ function prepareApplication(jobIdOrUrl, profileKey, { querySummary } = {}) {
 
 // ── Respostas determinísticas para o WhatsApp ────────────────────────────
 
-const CAREER_QUERY_REGEX = /(vaga|vagas|emprego|empregos|curriculo|currículo|candidatura|candidaturas|mandou|enviou|enviado|achou|procurou)/i;
+const CAREER_QUERY_REGEX = /(vaga|vagas|emprego|empregos|curriculo|currículo|candidatura|candidaturas|mandou|enviou|enviado|achou|procurou|procura|procure|busca|buscar|busque|acha|ache)/i;
 
-/** Constrói resposta direta de status (sem LLM) para perguntas de vagas. */
-function buildWhatsAppReply(text) {
+/** Verbos/marcadores que sinalizam intenção de BUSCAR vagas (não só status). */
+const JOB_SEARCH_INTENT = /\b(procura|procure|busca|buscar|busque|acha|ache|encontra|encontre|achei|quero|minha area|área)\b|\b(vaga|vagas|emprego|empregos|oportunidade|oportunidades)\s+(de|em|e|para|como)/i;
+
+/** Extrai a área/query de uma mensagem de busca. Retorna "" se não houver query. */
+function extractJobQuery(text = "") {
+  if (!text) return "";
+  const t = String(text).toLowerCase().trim();
+  if (!JOB_SEARCH_INTENT.test(t)) return "";
+  let q = t
+    .replace(/^(você|voce|tu|pode|pra|para|me|poderia|consegue)?\s*/, "")
+    .replace(/^(procura|procure|busca|buscar|busque|acha|ache|encontra|encontre|achei|quero|me ajud[ae] a achar|me ajud[ae] a buscar)\s+/, "")
+    .replace(/^(vagas|vaga|empregos|emprego|oportunidades|oportunidade)\s*(de|e|em|para|por)?\s*/, "")
+    .replace(/^(uma|um|alguma|algum)\s+/, "")
+    .replace(/[\?\!\.;]+$/g, "")
+    .trim();
+  // Remove uma possível ancoragem de status que sobrasse a frente.
+  q = q.replace(/\s*(para mim|pra mim|por favor|hoje|agora|vaga|vagas)\s*$/i, "").trim();
+  const stop = /^(uma|um|de|da|do|em|para|por|a|o|as|os|e|ou|com|que|na|no|nessa|nesse|devo|mim|qual|quais|existe|tem|vai)?$/i;
+  if (!q || stop.test(q)) return "";
+  return q;
+}
+
+/** Formata a lista de vagas recém-encontradas para envio no WhatsApp. */
+function formatJobResults(query, jobs) {
+  const lines = [`📄 *Vagas de ${query}*`];
+  if (!jobs || !jobs.length) {
+    lines.push(`Não achei vagas para *${query}* agora. Tenta com outras palavras (ex.: "desenvolvedor react remoto").`);
+    return lines.join("\n");
+  }
+  lines.push(`Encontrei ${jobs.length} nova(s) e já deixo salvas no workspace Carreiras:`);
+  jobs.slice(0, 6).forEach((j, i) => {
+    lines.push(`${i + 1}. *${j.title || "Vaga"}*${j.company ? ` — ${j.company}` : ""}`);
+    if (j.location) lines.push(`   📍 ${j.location}`);
+    lines.push(`   🔗 ${j.url}`);
+  });
+  lines.push(`\nQuer que eu prepare o currículo de alguma? Manda o número da vaga.`);
+  return lines.join("\n");
+}
+
+/** Resposta determinística de status (sem LLM). */
+function buildStatusReply() {
   const s = getStats();
   const lines = [];
   lines.push(`🔎 *Status das vagas agora*`);
@@ -560,9 +606,25 @@ function buildWhatsAppReply(text) {
   return lines.join("\n");
 }
 
+/**
+ * Resposta determinística do agente Carreiras no WhatsApp.
+ * Detecta intenção de buscar vagas (ex.: "procura vaga de dev") e faz a
+ * busca real (web_search), salvando as encontradas. Caso contrário,
+ * responde com o status do pipeline.
+ */
+async function buildWhatsAppReply(text) {
+  const q = extractJobQuery(text || "");
+  if (q) {
+    const res = await searchJobs(q, PROFILE_KEYS.CAIQUE, { limit: 6, autoAdd: true });
+    if (res.error) return `⚠️ Não consegui buscar vagas agora: ${res.error}. Tenta de novo em instantes.`;
+    return formatJobResults(q, res.added || []);
+  }
+  return buildStatusReply();
+}
+
 /** Verifica se o texto parece pergunta sobre vagas (para rota determinística). */
 function isCareerQuestion(text) {
-  return Boolean(text && CAREER_QUERY_REGEX.test(text));
+  return Boolean(text && (CAREER_QUERY_REGEX.test(text) || JOB_SEARCH_INTENT.test(text)));
 }
 
 // ── GetState (para workspace + tools) ────────────────────────────────────
@@ -589,6 +651,7 @@ function getState() {
 module.exports = {
   init,
   _setStateForTest,
+  _setSearchImplForTest,
   getState,
   getProfiles,
   getProfile,
@@ -604,6 +667,7 @@ module.exports = {
   prepareApplication,
   buildWhatsAppReply,
   isCareerQuestion,
+  extractJobQuery,
   JOB_STATUS,
   VALID_STATUS,
   PROFILE_KEYS,

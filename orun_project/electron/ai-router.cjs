@@ -91,8 +91,64 @@ function isKeyQuotaError(err) {
   return /insufficient_quota|insufficient balance|rate_limit_exceeded|rate limit|quota exceeded|billing|out of (credits|tokens|requests)|spend limit|exceeded your current|current quota/i.test(msg);
 }
 
+/**
+ * True when the REQUEST ITSELF is too large for the model's current limits
+ * (Groq free tier returns HTTP 413 with code rate_limit_exceeded on TPM).
+ * This is not the key running out of tokens — trimming the prompt and
+ * retrying usually succeeds.
+ */
+function isPayloadTooLargeError(err) {
+  return /http 413|request too large|tokens per minute/i.test(err?.message || "");
+}
+
+/**
+ * Keeps every system message plus as many of the most recent non-system
+ * messages as fit in the character budget (~4 chars per token). If the
+ * system messages alone exceed half the budget, their content is truncated
+ * too — a clipped prompt beats a hard failure.
+ */
+function truncateMessagesForRetry(messages, maxChars = 12000) {
+  if (!Array.isArray(messages)) return messages;
+  const msgLen = (m) => (typeof m.content === "string" ? m.content.length : JSON.stringify(m.content || "").length);
+  const sys = messages.filter((m) => m && m.role === "system");
+  const rest = messages.filter((m) => m && m.role !== "system");
+  const sysBudget = Math.floor(maxChars / 2);
+  let outSys = sys;
+  if (sys.reduce((n, m) => n + msgLen(m), 0) > sysBudget) {
+    outSys = sys.map((m) => {
+      if (typeof m.content !== "string") return m;
+      return { ...m, content: m.content.slice(0, Math.max(0, sysBudget - 120)) + "\n\n[Contexto truncado automaticamente para respeitar os limites do modelo.]" };
+    });
+  }
+  let used = outSys.reduce((n, m) => n + msgLen(m), 0);
+  const out = [];
+  for (let i = rest.length - 1; i >= 0; i--) {
+    const len = msgLen(rest[i]);
+    if (used + len > maxChars && out.length > 0) break;
+    out.unshift(rest[i]);
+    used += len;
+  }
+  return [...outSys, ...out];
+}
+
+/**
+ * Slims the tool list on a payload-too-large retry: tool schemas (agent +
+ * MCP + plugin) can alone exceed small TPM budgets. Keeps the first N tools
+ * and clips long descriptions.
+ */
+function truncateToolsForRetry(tools, maxTools = 20) {
+  if (!Array.isArray(tools)) return tools;
+  return tools.slice(0, maxTools).map((t) => {
+    if (t && t.type === "function" && t.function && typeof t.function.description === "string" && t.function.description.length > 300) {
+      return { ...t, function: { ...t.function, description: t.function.description.slice(0, 300) + "…" } };
+    }
+    return t;
+  });
+}
+
 /** Cooldown duration for an exhausted key, based on the error type. */
 function keyCooldownFor(err) {
+  if (isPayloadTooLargeError(err)) return 60 * 1000; // TPM windows renew every minute
   if (err?.message?.includes("429")) {
     return (parseRetryAfter(err) || 60) * 1000;
   }
@@ -494,9 +550,11 @@ async function routeChat(req) {
   if (keys.length === 0) keys.push(undefined);
 
   let lastErr;
+  let truncatedMessages; // set once on 413/TPM, reused for subsequent attempts
   for (let ki = 0; ki < keys.length; ki++) {
     if (isKeyExhausted(effectiveReq.provider, ki)) continue;
     const keyReq = { ...effectiveReq, apiKey: keys[ki] };
+    if (truncatedMessages) keyReq.messages = truncatedMessages;
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         const result = await Promise.race([
@@ -507,6 +565,21 @@ async function routeChat(req) {
         return result;
       } catch (err) {
         lastErr = err;
+        if (isPayloadTooLargeError(err) && !truncatedMessages && Array.isArray(keyReq.messages)) {
+          // Request too large (TPM/context): trim older messages and retry the
+          // same key/model instead of burning the key's cooldown.
+          truncatedMessages = truncateMessagesForRetry(keyReq.messages);
+          keyReq.messages = truncatedMessages;
+          if (keyReq.tools) keyReq.tools = truncateToolsForRetry(keyReq.tools);
+          if (/tokens per minute/i.test(err.message || "")) {
+            const waitMs = (parseRetryAfter(err) || 20) * 1000;
+            logger.ai.info(`[ai-router] ${effectiveReq.provider} TPM exceeded (${effectiveReq.model}), waiting ${waitMs}ms then retrying with truncated context`);
+            await sleepMs(Math.min(waitMs, 20000));
+          } else {
+            logger.ai.info(`[ai-router] ${effectiveReq.provider} payload too large (${effectiveReq.model}), retrying with truncated context`);
+          }
+          continue;
+        }
         if (isKeyQuotaError(err)) {
           // This key's tokens are done — mark it and rotate to the next key.
           markKeyExhausted(effectiveReq.provider, ki, keyCooldownFor(err));
@@ -569,9 +642,11 @@ async function streamChat(req) {
   if (keys.length === 0) keys.push(undefined);
 
   let lastErr;
+  let truncatedMessages;
   for (let ki = 0; ki < keys.length; ki++) {
     if (isKeyExhausted(effectiveReq.provider, ki)) continue;
     const keyReq = { ...effectiveReq, apiKey: keys[ki] };
+    if (truncatedMessages) keyReq.messages = truncatedMessages;
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         const result = await streamChatOnce(keyReq);
@@ -579,6 +654,19 @@ async function streamChat(req) {
         return result;
       } catch (err) {
         lastErr = err;
+        if (isPayloadTooLargeError(err) && !truncatedMessages && Array.isArray(keyReq.messages)) {
+          truncatedMessages = truncateMessagesForRetry(keyReq.messages);
+          keyReq.messages = truncatedMessages;
+          if (keyReq.tools) keyReq.tools = truncateToolsForRetry(keyReq.tools);
+          if (/tokens per minute/i.test(err.message || "")) {
+            const waitMs = (parseRetryAfter(err) || 20) * 1000;
+            logger.ai.info(`[ai-router] ${effectiveReq.provider} stream TPM exceeded (${effectiveReq.model}), waiting ${waitMs}ms then retrying with truncated context`);
+            await sleepMs(Math.min(waitMs, 20000));
+          } else {
+            logger.ai.info(`[ai-router] ${effectiveReq.provider} stream payload too large (${effectiveReq.model}), retrying with truncated context`);
+          }
+          continue;
+        }
         if (isKeyQuotaError(err)) {
           markKeyExhausted(effectiveReq.provider, ki, keyCooldownFor(err));
           logger.ai.info(`[ai-router] ${effectiveReq.provider} key ${ki + 1}/${keys.length} stream exhausted (${err.message}), rotating to next key`);
@@ -712,11 +800,10 @@ const MODEL_CATALOG = {
     { id: "moonshotai/kimi-k2.6", free: false },
   ],
   groq: [
-    { id: "llama-3.3-70b-versatile", free: true },
-    { id: "llama-3.1-8b-instant", free: true },
+    // llama-3.3-70b-versatile / llama-3.1-8b-instant / allam-2-7b desligados pela Groq em 16/08/2026.
     { id: "openai/gpt-oss-120b", free: true },
     { id: "openai/gpt-oss-20b", free: true },
-    { id: "allam-2-7b", free: true },
+    { id: "qwen/qwen3.6-27b", free: false },
     { id: "groq/compound", free: true },
     { id: "groq/compound-mini", free: true },
   ],
@@ -794,5 +881,5 @@ module.exports = {
   listOllamaModels, listCloudModels, KNOWN_FREE_MODELS, getModelCatalog,
   PROVIDERS: Object.keys(OPENAI_COMPATIBLE).concat(["ollama", "anthropic"]),
   PROVIDER_RATE_LIMITS, getProviderRateLimitStatus,
-  resolveApiKeys, isKeyQuotaError, markKeyExhausted, isKeyExhausted,
+  resolveApiKeys, isKeyQuotaError, isPayloadTooLargeError, truncateMessagesForRetry, truncateToolsForRetry, markKeyExhausted, isKeyExhausted,
 };

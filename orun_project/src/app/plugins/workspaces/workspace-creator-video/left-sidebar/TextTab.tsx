@@ -1,4 +1,5 @@
 import { useVideoStore, pushUndo } from "../video-store";
+import { P } from "../../premium";
 import { FPS, SANS, TEXT_PRESETS, type VideoClip } from "../video-types";
 
 export function TextTab() {
@@ -20,7 +21,7 @@ export function TextTab() {
           key={p.label}
           className="flex items-center justify-center cursor-pointer"
           onClick={() => addClip(p.label, p.bg)}
-          style={{ height: 48, background: p.bg, borderRadius: 6, border: "1px solid #1C1C1C" }}
+          style={{ height: 48, background: p.bg, borderRadius: 6, border: `1px solid ${P.border}` }}
         >
           <span style={{ fontSize: p.size, fontWeight: p.weight, color: "#fff", fontFamily: SANS, textShadow: "0 1px 4px rgba(0,0,0,0.4)" }}>{p.preview}</span>
         </div>

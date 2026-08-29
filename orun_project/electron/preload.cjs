@@ -102,6 +102,7 @@ contextBridge.exposeInMainWorld("orun", {
   aiRouter: {
     health: () => ipcRenderer.invoke("ai-router:health"),
     listCombos: () => ipcRenderer.invoke("ai-router:list-combos"),
+    listProviders: () => ipcRenderer.invoke("ai-router:list-providers"),
     getCombo: (comboId) => ipcRenderer.invoke("ai-router:get-combo", comboId),
     saveCombo: (combo) => ipcRenderer.invoke("ai-router:save-combo", combo),
     deleteCombo: (comboId) => ipcRenderer.invoke("ai-router:delete-combo", comboId),
@@ -196,6 +197,17 @@ contextBridge.exposeInMainWorld("orun", {
     publishMulti: (opts) => ipcRenderer.invoke("social-media:publish-multi", opts),
     test: () => ipcRenderer.invoke("social-media:test"),
   },
+  postiz: {
+    listChannels: () => ipcRenderer.invoke("postiz:list-channels"),
+    listPosts: (opts) => ipcRenderer.invoke("postiz:list-posts", opts),
+    createPost: (input) => ipcRenderer.invoke("postiz:create-post", input),
+    deletePost: (group) => ipcRenderer.invoke("postiz:delete-post", group),
+    getPost: (postId) => ipcRenderer.invoke("postiz:get-post", postId),
+    getStats: (postId) => ipcRenderer.invoke("postiz:get-stats", postId),
+    health: () => ipcRenderer.invoke("postiz:health"),
+    availableChannels: () => ipcRenderer.invoke("postiz:available-channels"),
+    findSlot: (integrationId) => ipcRenderer.invoke("postiz:find-slot", integrationId),
+  },
   app: {
     setRunInBackground: (value) => ipcRenderer.invoke("app:set-run-in-background", value),
     setAutoStart: (value) => ipcRenderer.invoke("app:set-auto-start", value),
@@ -271,6 +283,14 @@ contextBridge.exposeInMainWorld("orun", {
   finance: {
     getDaily: (date) => ipcRenderer.invoke("finance:get-daily", date),
     getRange: (startDate, endDate) => ipcRenderer.invoke("finance:get-range", startDate, endDate),
+    listAccounts: () => ipcRenderer.invoke("finance:list-accounts"),
+    listCategories: () => ipcRenderer.invoke("finance:list-categories"),
+    listTransactions: (accountId, options) => ipcRenderer.invoke("finance:list-transactions", accountId, options),
+    getBudgetMonth: (month) => ipcRenderer.invoke("finance:get-budget-month", month),
+    createTransaction: (input) => ipcRenderer.invoke("finance:create-transaction", input),
+    categorizeTransaction: (transactionId, categoryId) => ipcRenderer.invoke("finance:categorize-transaction", transactionId, categoryId),
+    setBudgetAmount: (categoryId, month, amountCents) => ipcRenderer.invoke("finance:set-budget-amount", categoryId, month, amountCents),
+    sync: () => ipcRenderer.invoke("finance:sync"),
   },
   health: {
     getDaily: (date) => ipcRenderer.invoke("health:get-daily", date),
@@ -486,6 +506,12 @@ contextBridge.exposeInMainWorld("orun", {
     remove: (id) => ipcRenderer.invoke("knowledge:remove", { id }),
     stats: () => ipcRenderer.invoke("knowledge:stats"),
   },
+  neural: {
+    snapshot: () => ipcRenderer.invoke("neural:snapshot"),
+    search: (q) => ipcRenderer.invoke("neural:search", { q }),
+    backlinks: (id) => ipcRenderer.invoke("neural:backlinks", { id }),
+    autoCapture: (payload) => ipcRenderer.invoke("neural:autoCapture", payload),
+  },
   planner: {
     create: (opts) => ipcRenderer.invoke("planner:create", opts),
     list: (opts) => ipcRenderer.invoke("planner:list", opts),
@@ -507,6 +533,9 @@ contextBridge.exposeInMainWorld("orun", {
     summary: () => ipcRenderer.invoke("analytics:summary"),
     system: () => ipcRenderer.invoke("analytics:system"),
     event: (ev) => ipcRenderer.invoke("analytics:event", ev),
+  },
+  world: {
+    news: (opts) => ipcRenderer.invoke("world:news", opts),
   },
   sync: {
     status: () => ipcRenderer.invoke("sync:status"),
@@ -808,6 +837,55 @@ contextBridge.exposeInMainWorld("orun", {
     checkUpdates: () => ipcRenderer.invoke("optimizer:check-updates"),
     runUpdate: (packageId) => ipcRenderer.invoke("optimizer:run-update", packageId),
     runUpdatesBatch: (packageIds) => ipcRenderer.invoke("optimizer:run-updates-batch", packageIds),
+  },
+  sentinela: {
+    explainFinding: (finding) => ipcRenderer.invoke("sentinela:explain-finding", finding),
+    summarizeBatch: (findings) => ipcRenderer.invoke("sentinela:summarize-batch", findings),
+    clearCache: () => ipcRenderer.invoke("sentinela:clear-cache"),
+  },
+  eventBus: {
+    emit: (topic, data, meta) => ipcRenderer.invoke("event-bus:emit", { topic, data, meta }),
+    subscribe: (topics, callback) => {
+      const subId = `sub_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const channel = `event-bus:event:${subId}`;
+      const handler = (_e, evt) => callback(evt);
+      ipcRenderer.on(channel, handler);
+      ipcRenderer.sendSync("event-bus:subscribe", { subId, topics: Array.isArray(topics) ? topics : [topics] });
+      return {
+        id: subId,
+        unsubscribe: () => {
+          ipcRenderer.removeListener(channel, handler);
+          ipcRenderer.sendSync("event-bus:unsubscribe", { subId });
+        },
+      };
+    },
+    once: (topics, callback) => {
+      const subId = `sub_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const channel = `event-bus:event:${subId}`;
+      const handler = (_e, evt) => {
+        ipcRenderer.removeListener(channel, handler);
+        ipcRenderer.sendSync("event-bus:unsubscribe", { subId });
+        callback(evt);
+      };
+      ipcRenderer.on(channel, handler);
+      const res = ipcRenderer.sendSync("event-bus:subscribe", { subId, topics: Array.isArray(topics) ? topics : [topics] });
+      if (!res || !res.ok) {
+        ipcRenderer.removeListener(channel, handler);
+        console.warn("[orun] eventBus.once indisponível:", res && res.error);
+      }
+      return {
+        id: subId,
+        unsubscribe: () => {
+          ipcRenderer.removeListener(channel, handler);
+          ipcRenderer.sendSync("event-bus:unsubscribe", { subId });
+        },
+      };
+    },
+    unsubscribe: (subId) => {
+      ipcRenderer.sendSync("event-bus:unsubscribe", { subId });
+    },
+    history: (filter) => ipcRenderer.invoke("event-bus:history", filter),
+    stats: () => ipcRenderer.invoke("event-bus:stats"),
   },
 });
 

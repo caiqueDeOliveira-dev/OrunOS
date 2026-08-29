@@ -15,6 +15,20 @@
       <link rel="apple-touch-icon" href="/icons/icon-192x192.svg" />
       <link rel="manifest" href="/manifest.webmanifest" />
       <style>html, body { height: 100%; margin: 0; } #root { height: 100%; }</style>
+      <script>
+        (function () {
+          try {
+            var t = localStorage.getItem("orun-theme") || "system";
+            var resolved;
+            if (t === "dark") resolved = "dark";
+            else if (t === "light") resolved = "light";
+            else if (t === "schedule") { var h = new Date().getHours(); resolved = (h >= 18 || h < 6) ? "dark" : "light"; }
+            else resolved = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+            document.documentElement.classList.add(resolved);
+            document.documentElement.classList.remove(resolved === "dark" ? "light" : "dark");
+          } catch (e) {}
+        })();
+      </script>
       
     </head>
 

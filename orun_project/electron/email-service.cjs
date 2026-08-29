@@ -35,7 +35,11 @@ function stopPolling() {
 }
 
 async function poll() {
-  if (!googleClient || !googleClient.isConnected()) return;
+  if (!googleClient) return;
+  const ready = googleClient.ensureToken
+    ? await googleClient.ensureToken()
+    : googleClient.isConnected();
+  if (!ready) return;
   try {
     const messages = await googleClient.listMessages({ maxResults: 10, query: "is:unread" });
     for (const msg of messages) {

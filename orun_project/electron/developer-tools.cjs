@@ -543,6 +543,479 @@ async function libraryDocs(workspace, args = {}) {
   }
 }
 
+// ── Git Write Operations (Developer Elite) ──────────────────────────────
+
+/** Stage files and create a commit. */
+function gitCommit(workspace, args = {}) {
+  if (!isInsideGitRepo(workspace)) return gitNotRepoError(workspace);
+  const { message, files } = args;
+  if (!message || !message.trim()) return { ok: false, error: "message é obrigatório" };
+
+  const fileArgs = toArray(files);
+  if (fileArgs.length === 0) {
+    // Stage all changes
+    const addRes = run(GIT, ["add", "-A"], workspace);
+    if (!addRes.ok) return addRes;
+  } else {
+    const addRes = run(GIT, ["add", ...fileArgs], workspace);
+    if (!addRes.ok) return addRes;
+  }
+
+  const res = run(GIT, ["commit", "-m", message.trim()], workspace);
+  if (!res.ok) return res;
+
+  // Parse commit hash from output
+  const hashMatch = res.output.match(/\[[\w\s]+ ([a-f0-9]+)\]/);
+  return {
+    ok: true,
+    commit: hashMatch ? hashMatch[1] : null,
+    message: message.trim(),
+    output: res.output,
+  };
+}
+
+/** Create, list, or delete branches. */
+function gitBranch(workspace, args = {}) {
+  if (!isInsideGitRepo(workspace)) return gitNotRepoError(workspace);
+  const { action, name, startPoint } = args;
+
+  if (action === "delete") {
+    if (!name) return { ok: false, error: "name é obrigatório para delete" };
+    const res = run(GIT, ["branch", "-D", name], workspace);
+    return res.ok ? { ok: true, deleted: name } : res;
+  }
+
+  if (action === "create") {
+    if (!name) return { ok: false, error: "name é obrigatório para create" };
+    const branchArgs = ["branch", name];
+    if (startPoint) branchArgs.push(startPoint);
+    const res = run(GIT, branchArgs, workspace);
+    return res.ok ? { ok: true, created: name } : res;
+  }
+
+  // Default: list
+  const res = run(GIT, ["branch", "--list"], workspace);
+  if (!res.ok) return res;
+
+  const branches = res.output.split("\n").filter(Boolean).map((line) => ({
+    name: line.replace(/^\*?\s+/, "").trim(),
+    current: line.startsWith("*"),
+  }));
+
+  return { ok: true, branches, current: branches.find((b) => b.current)?.name || null };
+}
+
+/** Switch branches or restore working tree files. */
+function gitCheckout(workspace, args = {}) {
+  if (!isInsideGitRepo(workspace)) return gitNotRepoError(workspace);
+  const { branch, create, file } = args;
+
+  if (file) {
+    const res = run(GIT, ["checkout", "--", file], workspace);
+    return res.ok ? { ok: true, restored: file } : res;
+  }
+
+  if (!branch) return { ok: false, error: "branch é obrigatório" };
+  const flags = create ? ["-b"] : [];
+  const res = run(GIT, ["checkout", ...flags, branch], workspace);
+  return res.ok ? { ok: true, switchedTo: branch } : res;
+}
+
+// ── Test Generator (Developer Elite) ────────────────────────────────────
+
+/**
+ * Generate a test scaffold from a source file.
+ * Analyzes exports and generates a test file with placeholder tests.
+ */
+function generateTests(workspace, args = {}) {
+  const { sourceFile, framework } = args;
+  if (!sourceFile) return { ok: false, error: "sourceFile é obrigatório" };
+
+  const srcPath = path.resolve(workspace, sourceFile);
+  if (!fs.existsSync(srcPath)) return { ok: false, error: `arquivo não encontrado: ${sourceFile}` };
+
+  const content = fs.readFileSync(srcPath, "utf8");
+  const ext = path.extname(srcPath);
+  const baseName = path.basename(srcPath, ext);
+  const dir = path.dirname(srcPath);
+
+  // Detect framework
+  const detected = framework || detectTestFramework(workspace, dir);
+  let testFileName;
+  if (detected === "pytest") {
+    testFileName = `test_${baseName}.py`;
+  } else if (detected === "go") {
+    testFileName = `${baseName}_test.go`;
+  } else if (detected === "cargo") {
+    testFileName = `${baseName}_test.rs`;
+  } else {
+    testFileName = `${baseName}.test${ext}`;
+  }
+  const testPath = path.join(dir, testFileName);
+
+  if (fs.existsSync(testPath)) {
+    return { ok: false, error: `arquivo de teste já existe: ${path.relative(workspace, testPath)}` };
+  }
+
+  // Extract exports/functions
+  const exports = extractExports(content, ext);
+  if (exports.length === 0) {
+    return { ok: false, error: "nenhum export/função encontrada no arquivo" };
+  }
+
+  // Generate test content
+  const testContent = renderTestFile(exports, baseName, sourceFile, detected, ext);
+
+  try {
+    fs.writeFileSync(testPath, testContent, "utf8");
+    return {
+      ok: true,
+      testFile: path.relative(workspace, testPath),
+      framework: detected,
+      testsGenerated: exports.length,
+      exports: exports.map((e) => e.name),
+    };
+  } catch (e) {
+    return { ok: false, error: `falha ao escrever: ${e.message}` };
+  }
+}
+
+/** Detect which test framework is used. */
+function detectTestFramework(workspace, dir) {
+  try {
+    const pkgPath = path.join(dir, "package.json");
+    if (fs.existsSync(pkgPath)) {
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+      const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+      if (deps.vitest) return "vitest";
+      if (deps.jest) return "jest";
+      if (deps.mocha) return "mocha";
+    }
+    if (fs.existsSync(path.join(dir, "pytest.ini")) || fs.existsSync(path.join(dir, "pyproject.toml"))) return "pytest";
+    if (fs.existsSync(path.join(dir, "go.mod"))) return "go";
+    if (fs.existsSync(path.join(dir, "Cargo.toml"))) return "cargo";
+  } catch {}
+  return "vitest"; // default
+}
+
+/** Extract exported functions/classes from source. */
+function extractExports(content, ext) {
+  const results = [];
+  const patterns = [
+    // JS/TS: export function/class/const/arrow
+    /export\s+(?:async\s+)?function\s+(\w+)/g,
+    /export\s+class\s+(\w+)/g,
+    /export\s+const\s+(\w+)\s*=/g,
+    /export\s+default\s+(?:async\s+)?function\s+(\w+)/g,
+    /export\s+default\s+class\s+(\w+)/g,
+    // JS/TS: module.exports / module.exports.name
+    /module\.exports\s*=\s*\{([^}]+)\}/g,
+    /module\.exports\s*=\s*(\w+)/g,
+    // Python: def (top-level)
+    /^def\s+(\w+)\s*\(/gm,
+    /class\s+(\w+)\s*[:\(]/g,
+    // Go: func
+    /^func\s+(?:\([^)]+\)\s+)?(\w+)\s*\(/gm,
+    // Rust: pub fn
+    /pub\s+fn\s+(\w+)/g,
+  ];
+
+  for (const pat of patterns) {
+    let m;
+    while ((m = pat.exec(content)) !== null) {
+      const name = m[1] || m[0];
+      if (name && !name.startsWith("_") && !["module", "exports", "default"].includes(name)) {
+        results.push({ name: name.trim(), type: m[0].includes("class") ? "class" : "function" });
+      }
+    }
+  }
+
+  // Deduplicate by name
+  const seen = new Set();
+  return results.filter((e) => {
+    if (seen.has(e.name)) return false;
+    seen.add(e.name);
+    return true;
+  });
+}
+
+/** Render a test file from exports. */
+function renderTestFile(exports, baseName, sourceFile, framework, ext) {
+  const importPath = `./${baseName}`;
+
+  if (framework === "pytest") {
+    const imports = exports.filter((e) => e.type === "function").map((e) => `from ${baseName} import ${e.name}`).join("\n");
+    const tests = exports.filter((e) => e.type === "function").map((e) => `
+def test_${e.name.toLowerCase()}():
+    """Test ${e.name}."""
+    result = ${e.name}()
+    assert result is not None
+`).join("\n");
+    return `"""Tests for ${baseName}."""\n${imports}\n${tests}`;
+  }
+
+  if (framework === "go") {
+    const tests = exports.filter((e) => e.type === "function").map((e) => `
+func Test${e.name}(t *testing.T) {
+    result := ${e.name}()
+    if result == nil {
+        t.Error("expected non-nil result")
+    }
+}
+`).join("\n");
+    return `package main\n\nimport "testing"\n${tests}`;
+  }
+
+  if (framework === "cargo") {
+    const tests = exports.filter((e) => e.type === "function").map((e) => `
+#[test]
+fn test_${e.name.toLowerCase()}() {
+    let result = ${e.name}();
+    assert!(result.is_some());
+}
+`).join("\n");
+    return `#[cfg(test)]\nmod tests {\n    use super::*;\n${tests}\n}`;
+  }
+
+  // JS/TS (vitest/jest/mocha)
+  const isTypeScript = ext === ".ts" || ext === ".tsx";
+  const importLine = isTypeScript
+    ? `import { ${exports.map((e) => e.name).join(", ")} } from "${importPath}";`
+    : `const { ${exports.map((e) => e.name).join(", ")} } = require("${importPath}");`;
+
+  const tests = exports.map((e) => `
+describe("${e.name}", () => {
+  it("should work correctly", () => {
+    const result = ${e.name}();
+    expect(result).toBeDefined();
+  });
+});
+`).join("\n");
+
+  return `${importLine}\n${tests}`;
+}
+
+// ── Refactor Tools (Developer Elite) ────────────────────────────────────
+
+/**
+ * Safely rename a symbol (function/class/const) across all files.
+ * Finds all references and updates them atomically.
+ */
+function refactorRename(workspace, args = {}) {
+  const { oldName, newName, dir } = args;
+  if (!oldName || !newName) return { ok: false, error: "oldName e newName são obrigatórios" };
+  if (oldName === newName) return { ok: false, error: "oldName e newName são idênticos" };
+
+  const searchDir = dir ? path.resolve(workspace, dir) : workspace;
+  if (!fs.existsSync(searchDir)) return { ok: false, error: `diretório não encontrado: ${dir || "."}` };
+
+  // Find all files containing the old name
+  const files = findFilesWithSymbol(searchDir, oldName);
+  if (files.length === 0) {
+    return { ok: false, error: `nenhum arquivo contém "${oldName}"` };
+  }
+
+  const changes = [];
+  let totalReplacements = 0;
+
+  for (const file of files) {
+    try {
+      let content = fs.readFileSync(file, "utf8");
+      const regex = new RegExp(`\\b${escapeRegex(oldName)}\\b`, "g");
+      const matches = content.match(regex);
+      if (!matches) continue;
+
+      const newContent = content.replace(regex, newName);
+      if (newContent !== content) {
+        fs.writeFileSync(file, newContent, "utf8");
+        changes.push({ file: path.relative(workspace, file), replacements: matches.length });
+        totalReplacements += matches.length;
+      }
+    } catch {
+      // Skip files we can't read/write
+    }
+  }
+
+  return {
+    ok: true,
+    oldName,
+    newName,
+    filesChanged: changes.length,
+    totalReplacements,
+    changes,
+  };
+}
+
+/**
+ * Safely move a file to a new location, updating all imports/requires.
+ */
+function refactorMove(workspace, args = {}) {
+  const { from, to } = args;
+  if (!from || !to) return { ok: false, error: "from e to são obrigatórios" };
+
+  const srcPath = path.resolve(workspace, from);
+  const destPath = path.resolve(workspace, to);
+
+  if (!fs.existsSync(srcPath)) return { ok: false, error: `arquivo não encontrado: ${from}` };
+  if (fs.existsSync(destPath)) return { ok: false, error: `destino já existe: ${to}` };
+
+  // Ensure dest directory exists
+  const destDir = path.dirname(destPath);
+  if (!fs.existsSync(destDir)) {
+    fs.mkdirSync(destDir, { recursive: true });
+  }
+
+  // Move the file
+  try {
+    fs.copyFileSync(srcPath, destPath);
+    fs.unlinkSync(srcPath);
+  } catch (e) {
+    return { ok: false, error: `falha ao mover: ${e.message}` };
+  }
+
+  // Find and update imports
+  const fromRelative = path.relative(workspace, srcPath);
+  const toRelative = path.relative(workspace, destPath);
+  const importUpdates = updateImports(workspace, fromRelative, toRelative);
+
+  return {
+    ok: true,
+    from: fromRelative,
+    to: toRelative,
+    importsUpdated: importUpdates.length,
+    changes: importUpdates.map((f) => path.relative(workspace, f)),
+  };
+}
+
+/**
+ * Extract a function/section from one file into a new file.
+ */
+function refactorExtract(workspace, args = {}) {
+  const { sourceFile, startLine, endLine, targetFile, functionName } = args;
+  if (!sourceFile || startLine == null || endLine == null) {
+    return { ok: false, error: "sourceFile, startLine e endLine são obrigatórios" };
+  }
+
+  const srcPath = path.resolve(workspace, sourceFile);
+  if (!fs.existsSync(srcPath)) return { ok: false, error: `arquivo não encontrado: ${sourceFile}` };
+
+  const content = fs.readFileSync(srcPath, "utf8");
+  const lines = content.split("\n");
+
+  if (startLine < 1 || endLine > lines.length || startLine > endLine) {
+    return { ok: false, error: `intervalo inválido: ${startLine}-${endLine} (arquivo tem ${lines.length} linhas)` };
+  }
+
+  const extracted = lines.slice(startLine - 1, endLine).join("\n");
+  const destFile = targetFile || `${functionName || "extracted"}${path.extname(sourceFile)}`;
+  const destPath = path.resolve(workspace, destFile);
+
+  if (fs.existsSync(destPath)) return { ok: false, error: `arquivo de destino já existe: ${destFile}` };
+
+  try {
+    fs.writeFileSync(destPath, extracted, "utf8");
+
+    // Replace original lines with an import placeholder
+    const importLine = `// TODO: import ${functionName || "extracted"} from "./${path.basename(destFile, path.extname(destFile))}"`;
+    const newLines = [...lines.slice(0, startLine - 1), importLine, ...lines.slice(endLine)];
+    fs.writeFileSync(srcPath, newLines.join("\n"), "utf8");
+
+    return {
+      ok: true,
+      source: sourceFile,
+      target: destFile,
+      linesExtracted: endLine - startLine + 1,
+      range: `${startLine}-${endLine}`,
+    };
+  } catch (e) {
+    return { ok: false, error: `falha ao extrair: ${e.message}` };
+  }
+}
+
+// ── Refactor Helpers ────────────────────────────────────────────────────
+
+function escapeRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function findFilesWithSymbol(dir, symbol) {
+  const results = [];
+  const walk = (d) => {
+    let entries;
+    try { entries = fs.readdirSync(d, { withFileTypes: true }); } catch { return; }
+    for (const e of entries) {
+      if (e.name === "node_modules" || e.name === ".git" || e.name === "dist" || e.name === "build") continue;
+      const full = path.join(d, e.name);
+      if (e.isDirectory()) {
+        walk(full);
+      } else if (/\.(js|cjs|mjs|ts|tsx|jsx|py|go|rs|vue|svelte)$/.test(e.name)) {
+        try {
+          const content = fs.readFileSync(full, "utf8");
+          if (new RegExp(`\\b${escapeRegex(symbol)}\\b`).test(content)) {
+            results.push(full);
+          }
+        } catch {}
+      }
+    }
+  };
+  walk(dir);
+  return results;
+}
+
+function updateImports(workspace, fromPath, toPath) {
+  const updated = [];
+  const fromBase = path.basename(fromPath, path.extname(fromPath));
+  const toBase = path.basename(toPath, path.extname(toPath));
+
+  const walk = (d) => {
+    let entries;
+    try { entries = fs.readdirSync(d, { withFileTypes: true }); } catch { return; }
+    for (const e of entries) {
+      if (e.name === "node_modules" || e.name === ".git") continue;
+      const full = path.join(d, e.name);
+      if (e.isDirectory()) {
+        walk(full);
+      } else if (/\.(js|cjs|mjs|ts|tsx|jsx)$/.test(e.name)) {
+        try {
+          let content = fs.readFileSync(full, "utf8");
+          // Update require/import paths
+          const fromDir = path.dirname(fromPath);
+          const toDir = path.dirname(toPath);
+          const fromBaseNoExt = fromBase;
+          const toBaseNoExt = toBase;
+
+          // Replace relative path references
+          const fromNorm = fromPath.replace(/\\/g, "/");
+          const toNorm = toPath.replace(/\\/g, "/");
+
+          let changed = false;
+
+          // require("./old") or import from "./old"
+          const patterns = [
+            new RegExp(`(require\\(["'])(\\.[^"']*?/${escapeRegex(fromBaseNoExt)})(["'])`, "g"),
+            new RegExp(`(from ["'])(\\.[^"']*?/${escapeRegex(fromBaseNoExt)})(["'])`, "g"),
+          ];
+
+          for (const pat of patterns) {
+            const newContent = content.replace(pat, (match, prefix, p, suffix) => {
+              changed = true;
+              return `${prefix}${toNorm}${suffix}`;
+            });
+            content = newContent;
+          }
+
+          if (changed) {
+            fs.writeFileSync(full, content, "utf8");
+            updated.push(full);
+          }
+        } catch {}
+      }
+    }
+  };
+  walk(workspace);
+  return updated;
+}
+
 module.exports = {
   gitStatus,
   gitLog,
@@ -562,4 +1035,12 @@ module.exports = {
   isInsideGitRepo,
   setContext7Base,
   SEMGREP_RULESET,
+  // Developer Elite additions
+  gitCommit,
+  gitBranch,
+  gitCheckout,
+  generateTests,
+  refactorRename,
+  refactorMove,
+  refactorExtract,
 };

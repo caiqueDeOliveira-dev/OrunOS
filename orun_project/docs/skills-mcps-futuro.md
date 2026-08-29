@@ -19,7 +19,7 @@
 ### 1. Context7 — docs de bibliotecas on-demand
 - **O que é:** MCP que resolve docs atualizadas de qualquer biblioteca (via `@upstash/context7-mcp`).
 - **Status atual:** já existe como **tool nativa** `library_docs` no Developer (Módulo 7, 2026-08-07) e o `mcp-client.cjs` do desktop já auto-carrega `mcpServers`.
-- **Quando valeria:** ligar o server MCP Context7 (em vez da tool) para o Developer ter docs com rate limit maior e snippets de qualidade. Wiring já existe — só adicionar `{ name: "context7", command: "npx", args: ["-y", "@upstash/context7-mcp"] }` em `mcpServers`.
+- **✅ ADOTADO também como MCP (2026-08-22):** entrada `{ name: "context7", command: "npx", args: ["-y", "@upstash/context7-mcp"] }` gravada na setting `mcpServers` do SQLite (`%APPDATA%\orun-os\orun-os.sqlite3`) — carrega no próximo boot do app. Tool nativa segue disponível.
 - **Encaixe:** Developer / AssistenteTecnico.
 
 ### 2. Playwright MCP — automação de browser
@@ -304,6 +304,7 @@
 - **Decisão (2026-08-10):** **adotado como MCP opcional** para o Developer — eleva o #20 (code-graph-rag) de "referência futura" para ação. Repo clonado em `%TEMP%\opencode\code-review-graph`. Avaliação: spawn stdio bate com o `mcp-client.cjs` (`{ name, command, args }`); Windows first-class (uvx/`uv` já instalado, Python 3.11.9); local-only, sem API key; `build_or_update_graph_tool` faz o build do grafo (SQLite tree-sitter, ~10s em 500 arquivos).
 - **Entregue:** config documentada em `skills/developer/SKILL.md` (Settings → MCP, **não é default** — processo Python residente + build do grafo): `{ name: "code-review-graph", command: "uvx", args: ["code-review-graph", "serve", "--repo", "<workspace>", "--tools", "build_or_update_graph_tool,get_minimal_context_tool,detect_changes_tool,get_review_context_tool,get_impact_radius_tool,query_graph_tool"] }`. Notas: o cliente MCP não passa `cwd` → `--repo` obrigatório; filtro `--tools` exclui `refactor_tool`/`apply_refactor_tool`/`embed_graph_tool` (edição/embeddings ficam nas tools nativas); ~8k tokens de descrição de tools se não filtrar.
 - **Encaixe:** Developer (tools de elite / MCP), `mcp-client.cjs`. Não substitui `code_review`/`semgrep_scan` — é a camada de *impact tracing* (blast-radius cross-file: "o que mais quebra se eu mudar isso?").
+- **✅ Config aplicada (2026-08-22):** entrada gravada em `mcpServers` (setting do SQLite) com `--repo` apontando pro workspace do Developer (`developerWorkspace`) e filtro `--tools` já documentado acima; carrega no próximo boot.
 
 ### 36. DeepTutor — tutoria personalizada lifelong (HKUDS) — FUTURO
 - **O que é:** framework de tutoria personalizada ao longo da vida (lifelong personalized tutoring). Python, 33.8k★, 8.1k★ este mês.
@@ -491,3 +492,34 @@
 - **Reavaliar** = quando surgir uma necessidade concreta que o item resolve — não adotar "porque é legal".
 - **Podar** = se um item ficar obsoleto (serviço morto, repo arquivado, substituído por nativo), remover com nota.
 - Qualquer agente pode propor itens aqui durante as sessões; o usuário decide a adoção.
+
+---
+
+## 2026-08-19 — Integrações externas (7 módulos `@orun/*`) integradas ao desktop
+
+**Status:** ✅ **IMPLEMENTADO** (wiring completo, 1200 testes, typecheck limpo)
+
+7 integrações do monorepo (`@orun/telemetry-*, @orun/shield-secrets-*, @orun/finance-*, @orun/social-*, @orun/design-sync-*, @orun/memory-vault-*, @orun/photos-*`) copiadas para o desktop como dependências `file:vendor/*`. Wiring:
+
+- **IPC handlers**: 7 arquivos em `electron/ipc/` (telemetry, shield-secrets, finance, social, design-sync, memory-vault, photos)
+- **Tool definitions**: 14 tools novas em `tools.cjs` (dispatchers com guard de `ctx.*` por módulo)
+- **Init lazy**: `main.cjs` lê `db.getSetting("integrations")` e inicializa cada módulo com try/catch
+- **Preload**: `window.orun.telemetry/shieldSecrets/finance/social/designSync/memoryVault/photos`
+- **Permissões**: System→telemetry, Finance→finance, Marketing→social, Designer→design, Cyber Security→shield-secrets, Personal Assistant→vault+photos, Home IA→vault, Hampton→tudo
+- **Prompts**: agent-prompts.cjs atualizado com seção INTEGRATIONS por agente
+- **Docker configs**: PostHog (telemetry), Actual Budget (finance), Gitleaks (shield-secrets) em `monorepo/docker/`
+
+**Pendências**: ~~Settings panel para config de integrações~~ ✅ (IntegrationsSettings.tsx), ~~React hooks para testes dos 7 pacotes `-react`~~ (banco de hooks simplificado — IPC direto via window.orun), ~~workspace panels~~ ✅ (TelemetryDashboard, ShieldSecretsPanel, FinanceRealWorkspace). Monorepo original mantido em `C:\Users\Caiqu\Downloads\orun-monorepo_1\orun-monorepo` (31 pacotes, todos verdes).
+
+---
+
+## 2026-08-22 — Serviços das integrações levantados (execução da seção 7 módulos)
+
+**Status:** ✅ **EXECUTADO** (containers de pé + settings gravadas; chaves de UI pendentes)
+
+- **PostHog (#48, telemetria)**: ✅ **NO AR e validado end-to-end (2026-08-23)**. A stack "hobby" moderna (~15 containers) está quebrada upstream (#53405) — foi pinada a stack clássica standalone `release-1.38.1` em `docker/telemetry/` (8 containers, detalhes e FIXs no MEMORY.md 2026-08-23). Pipeline /batch → Kafka → ClickHouse testado com evento real. Credenciais da UI local: orun@orun.local (ver MEMORY.md). `integrations.telemetry` já gravada no SQLite do desktop — inicializa no próximo boot (main.cjs ~1369).
+- **Actual Budget (#51-adjacente via `@orun/finance`)**: modo 100% local SEM servidor — setting `integrations.finance` gravada com `dataDir: %APPDATA%\orun-os\actual-data` (dir criado) + `budgetSyncId: "default"`. Inicializa no próximo boot; sincronização multi-dispositivo via docker-compose.actual.yml (:5006) fica opcional.
+- **Gitleaks (#54)**: binário instalado via winget (8.30.1, PATH do usuário). Scans executados em orun-os (68 commits) e monorepo: **14 achados, TODOS falsos positivos** (keys dummy de testes + Supabase ANON key pública por design). `.gitleaksignore` criado nos 2 repos com os fingerprints. Relatórios JSON em `%TEMP%\opencode\gitleaks-*.json`. Adapter do desktop (`ctx.secretScanner`) usa esse binário.
+- **Firecrawl self-host (#19)**: decisão — manter **free tier cloud** por ora (módulo já cai pro fetch/DDG sem chave); self-host (5 containers, 1-2GB RAM) documentado como opção quando volume justificar. `setBaseUrl` pronto pra quando decidir.
+- **MCPs ligados**: Context7 (#1) + code-review-graph (#35) gravados em `mcpServers` (aplicam no próximo boot).
+- **Pendente (passo a passo entregue ao usuário)**: ~~chaves do PostHog via UI~~ ✅ (2026-08-23, automatizado); ~~Playwright MCP~~ ✅ e ~~Supabase MCP read-only~~ ✅ (2026-08-23 — papel `agent_reader` SELECT-only validado + entradas em `mcpServers`, ver MEMORY.md); ~~Kokoro container + voz por persona~~ ✅ (2026-08-23 — descoberto que o desktop já spawna o kokoro_server.py nativo; voz por agente implementada no useTTS via `tts.agentVoices` + activeAgentStore; engine global migrada pra kokoro, ver MEMORY.md).

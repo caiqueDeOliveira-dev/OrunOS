@@ -1,27 +1,47 @@
 // plugins/workspaces/premium.tsx
-// Shared premium Orun OS design system — fixed dark palette + reusable components.
+// Shared premium Orun OS design system — theme-token palette + reusable components.
 // All workspaces should import from here for a consistent, professional look.
+// Colors resolve from CSS custom properties (theme.css v2) with dark fallbacks.
 
 import type { ReactNode, CSSProperties, ChangeEvent } from "react";
 import { ArrowLeft, ChevronRight, type LucideIcon } from "lucide-react";
 
-export const P = {
-  bg: "#050505",
-  panel: "#0A0A0C",
-  card: "#141414",
-  card2: "#1C1C1C",
-  border: "#252525",
-  borderHi: "#383838",
-  text: "#FFFFFF",
-  sub: "#A0A0A0",
-  dim: "#5C5C5C",
-  primary: "#C3002F",
-  success: "#00D26A",
-  alert: "#FFB547",
-  error: "#FF4B4B",
-  info: "#4DA3FF",
-  violet: "#8B5CF6",
+// P resolve no MOMENTO da leitura (render), não no import.
+// Antes, o getComputedStyle congelava o tema :root (claro) se o módulo
+// fosse avaliado antes do ThemeContext aplicar .dark no <html> — deixando
+// Painel de Configurações e Workspaces eternamente com cores claras.
+const TOKENS: Record<string, { var?: string; fallback: string }> = {
+  bg: { var: "--background", fallback: "#050505" },
+  panel: { var: "--surface-1", fallback: "#0B0B0D" },
+  card: { var: "--surface-2", fallback: "#101013" },
+  card2: { var: "--surface-3", fallback: "#16161A" },
+  border: { var: "--border", fallback: "#232328" },
+  borderHi: { var: "--line-hi", fallback: "#2E2E34" },
+  text: { var: "--text-primary", fallback: "#E8E8EA" },
+  sub: { var: "--text-secondary", fallback: "#9A9AA3" },
+  dim: { var: "--text-tertiary", fallback: "#5C5C66" },
+  primary: { var: "--primary", fallback: "#C3002F" },
+  success: { var: "--ok", fallback: "#22C55E" },
+  alert: { var: "--warn", fallback: "#F59E0B" },
+  error: { var: "--err", fallback: "#EF4444" },
+  info: { var: "--info", fallback: "#4DA3FF" },
+  violet: { fallback: "#8B5CF6" },
 };
+
+export const P: Record<string, string> = {};
+for (const [name, { var: tokenVar, fallback }] of Object.entries(TOKENS)) {
+  Object.defineProperty(P, name, {
+    get() {
+      if (typeof window !== "undefined" && tokenVar) {
+        const v = getComputedStyle(document.documentElement).getPropertyValue(tokenVar).trim();
+        if (v) return v;
+      }
+      return fallback;
+    },
+    configurable: true,
+    enumerable: true,
+  });
+}
 
 export const HS_SCROLL = `
   .hs-scroll { scrollbar-width: thin; scrollbar-color: #2a2a2a #050505; }

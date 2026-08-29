@@ -1,217 +1,220 @@
 {
-    "name": "orun-os",
+  "name": "orun-os",
+  "productName": "Orun OS",
+  "description": "Orun OS — a personal AI desktop assistant with local and cloud model support.",
+  "author": "Grupo Orun Soluções Tecnológicas",
+  "private": true,
+  "version": "0.7.0",
+  "type": "module",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "electron:rebuild": "electron-builder install-app-deps",
+    "electron:dev": "npm run electron:rebuild && concurrently -k \"vite\" \"wait-on tcp:5173 && cross-env NODE_ENV=development electron .\"",
+    "electron:start": "npm run electron:rebuild && electron .",
+    "dist": "npm run electron:rebuild && vite build && electron-builder",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rimraf dist release node_modules/.vite",
+    "lint": "eslint src/",
+    "lint:report": "node scripts/lint-errors-report.cjs",
+    "lint:fix": "eslint src/ --fix"
+  },
+  "dependencies": {
+    "@fal-ai/client": "^1.10.1",
+    "@orun/ai-router-core": "file:vendor/ai-router-core",
+    "@orun/ai-router-node": "file:vendor/ai-router-node",
+    "@orun/ai-router-server": "file:vendor/ai-router-server",
+    "@orun/core": "github:caiqueDeOliveira-dev/Orun-Core#v0.1.2",
+    "@orun/finance-core": "file:vendor/orun-finance-core",
+    "@orun/finance-node": "file:vendor/orun-finance-node",
+    "@orun/identity": "file:vendor/orun-identity",
+    "@orun/music-core": "file:vendor/orun-music-core",
+    "@orun/music-electron": "file:vendor/orun-music-electron",
+    "@orun/music-react": "file:vendor/orun-music-react",
+    "@orun/sentinela-agent": "file:vendor/orun-sentinela-agent",
+    "@orun/shield-core": "file:vendor/orun-shield-core",
+    "@orun/system-optimizer": "file:vendor/orun-system-optimizer",
+    "@radix-ui/react-accordion": "1.2.3",
+    "@radix-ui/react-alert-dialog": "1.1.6",
+    "@radix-ui/react-aspect-ratio": "1.1.2",
+    "@radix-ui/react-avatar": "1.1.3",
+    "@radix-ui/react-checkbox": "1.1.4",
+    "@radix-ui/react-collapsible": "1.1.3",
+    "@radix-ui/react-context-menu": "2.2.6",
+    "@radix-ui/react-dialog": "1.1.6",
+    "@radix-ui/react-dropdown-menu": "2.1.6",
+    "@radix-ui/react-hover-card": "1.1.6",
+    "@radix-ui/react-label": "2.1.2",
+    "@radix-ui/react-menubar": "1.1.6",
+    "@radix-ui/react-navigation-menu": "1.2.5",
+    "@radix-ui/react-popover": "1.1.6",
+    "@radix-ui/react-progress": "1.1.2",
+    "@radix-ui/react-radio-group": "1.2.3",
+    "@radix-ui/react-scroll-area": "1.2.3",
+    "@radix-ui/react-select": "2.1.6",
+    "@radix-ui/react-separator": "1.1.2",
+    "@radix-ui/react-slider": "1.2.3",
+    "@radix-ui/react-slot": "1.1.2",
+    "@radix-ui/react-switch": "1.1.3",
+    "@radix-ui/react-tabs": "1.1.3",
+    "@radix-ui/react-toggle": "1.1.2",
+    "@radix-ui/react-toggle-group": "1.1.2",
+    "@radix-ui/react-tooltip": "1.1.8",
+    "@react-three/drei": "^9.122.0",
+    "@react-three/fiber": "^8.18.0",
+    "@remotion/bundler": "^4.0.489",
+    "@remotion/renderer": "^4.0.489",
+    "@ricky0123/vad-web": "^0.0.30",
+    "@supabase/supabase-js": "^2.110.2",
+    "@types/three": "^0.185.1",
+    "@whiskeysockets/baileys": "7.0.0-rc13",
+    "better-sqlite3": "11.10.0",
+    "better-sqlite3-multiple-ciphers": "^12.11.1",
+    "canvas-confetti": "1.9.4",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "cmdk": "1.1.1",
+    "date-fns": "3.6.0",
+    "discord.js": "^14.27.0",
+    "dotenv": "^17.4.2",
+    "electron-log": "5.2.4",
+    "electron-updater": "6.3.9",
+    "embla-carousel-react": "8.6.0",
+    "googleapis": "^173.0.0",
+    "grammy": "^1.45.1",
+    "input-otp": "1.4.2",
+    "lucide-react": "0.487.0",
+    "motion": "12.23.24",
+    "next-themes": "0.4.6",
+    "node-audio-mixer": "^2.2.0",
+    "node-cron": "3.0.3",
+    "node-wav": "^0.0.2",
+    "onnxruntime-web": "^1.27.0",
+    "pg": "^8.22.0",
+    "qrcode": "1.5.4",
+    "react": "18.3.1",
+    "react-day-picker": "8.10.1",
+    "react-dom": "18.3.1",
+    "react-hook-form": "7.55.0",
+    "react-markdown": "^10.1.0",
+    "react-resizable-panels": "2.1.7",
+    "react-router": "7.13.0",
+    "recharts": "2.15.2",
+    "remotion": "^4.0.489",
+    "sonner": "2.0.3",
+    "tailwind-merge": "3.2.0",
+    "three": "^0.185.1",
+    "tw-animate-css": "1.3.8",
+    "vaul": "1.1.2",
+    "ws": "^8.21.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@tailwindcss/vite": "4.1.12",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "4.7.0",
+    "concurrently": "9.1.0",
+    "cross-env": "7.0.3",
+    "electron": "^31.7.7",
+    "eslint": "^9.0.0",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "globals": "^16.0.0",
+    "jsdom": "^29.1.1",
+    "png-to-ico": "^3.0.2",
+    "tailwindcss": "4.1.12",
+    "typescript-eslint": "^8.0.0",
+    "vite": "6.3.5",
+    "vite-plugin-pwa": "^0.21.2",
+    "vitest": "2.1.8",
+    "wait-on": "8.0.1",
+    "electron-builder": "^23.6.0"
+  },
+  "build": {
+    "appId": "com.grupoorun.orunos",
     "productName": "Orun OS",
-    "description": "Orun OS — a personal AI desktop assistant with local and cloud model support.",
-    "author": "Grupo Orun Soluções Tecnológicas",
-    "private": true,
-    "version": "0.6.19",
-    "type": "module",
-    "main": "electron/main.cjs",
-    "scripts": {
-        "dev": "vite",
-        "build": "vite build",
-        "electron:rebuild": "electron-builder install-app-deps",
-        "electron:dev": "npm run electron:rebuild && concurrently -k \"vite\" \"wait-on tcp:5173 && cross-env NODE_ENV=development electron .\"",
-        "electron:start": "npm run electron:rebuild && electron .",
-        "dist": "npm run electron:rebuild && vite build && electron-builder",
-        "typecheck": "tsc --noEmit",
-        "test": "vitest run",
-        "test:watch": "vitest",
-        "clean": "rimraf dist release node_modules/.vite",
-        "lint": "eslint src/",
-        "lint:report": "node scripts/lint-errors-report.cjs",
-        "lint:fix": "eslint src/ --fix"
+    "artifactName": "Orun-OS-Setup-${version}.${ext}",
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "!electron/__tests__/**",
+      "rules/**/*",
+      "vendor/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "daemon_server.py",
+        "to": "python/daemon_server.py"
+      },
+      {
+        "from": "wake_word_service.py",
+        "to": "python/wake_word_service.py"
+      },
+      {
+        "from": "stt_server.py",
+        "to": "python/stt_server.py"
+      },
+      {
+        "from": "edge_tts_server.py",
+        "to": "python/edge_tts_server.py"
+      },
+      {
+        "from": "piper_server.py",
+        "to": "python/piper_server.py"
+      },
+      {
+        "from": "kokoro_server.py",
+        "to": "python/kokoro_server.py"
+      }
+    ],
+    "directories": {
+      "output": "release"
     },
-    "dependencies": {
-        "@fal-ai/client": "^1.10.1",
-        "@orun/core": "github:caiqueDeOliveira-dev/Orun-Core#v0.1.2",
-        "@orun/identity": "file:vendor/orun-identity",
-        "@orun/shield-core": "file:vendor/orun-shield-core",
-        "@orun/system-optimizer": "file:vendor/orun-system-optimizer",
-        "@orun/ai-router-core": "file:vendor/ai-router-core",
-        "@orun/ai-router-node": "file:vendor/ai-router-node",
-        "@orun/ai-router-server": "file:vendor/ai-router-server",
-        "@radix-ui/react-accordion": "1.2.3",
-        "@radix-ui/react-alert-dialog": "1.1.6",
-        "@radix-ui/react-aspect-ratio": "1.1.2",
-        "@radix-ui/react-avatar": "1.1.3",
-        "@radix-ui/react-checkbox": "1.1.4",
-        "@radix-ui/react-collapsible": "1.1.3",
-        "@radix-ui/react-context-menu": "2.2.6",
-        "@radix-ui/react-dialog": "1.1.6",
-        "@radix-ui/react-dropdown-menu": "2.1.6",
-        "@radix-ui/react-hover-card": "1.1.6",
-        "@radix-ui/react-label": "2.1.2",
-        "@radix-ui/react-menubar": "1.1.6",
-        "@radix-ui/react-navigation-menu": "1.2.5",
-        "@radix-ui/react-popover": "1.1.6",
-        "@radix-ui/react-progress": "1.1.2",
-        "@radix-ui/react-radio-group": "1.2.3",
-        "@radix-ui/react-scroll-area": "1.2.3",
-        "@radix-ui/react-select": "2.1.6",
-        "@radix-ui/react-separator": "1.1.2",
-        "@radix-ui/react-slider": "1.2.3",
-        "@radix-ui/react-slot": "1.1.2",
-        "@radix-ui/react-switch": "1.1.3",
-        "@radix-ui/react-tabs": "1.1.3",
-        "@radix-ui/react-toggle": "1.1.2",
-        "@radix-ui/react-toggle-group": "1.1.2",
-        "@radix-ui/react-tooltip": "1.1.8",
-        "@react-three/drei": "^9.122.0",
-        "@react-three/fiber": "^8.18.0",
-        "@remotion/bundler": "^4.0.489",
-        "@remotion/renderer": "^4.0.489",
-        "@ricky0123/vad-web": "^0.0.30",
-        "@supabase/supabase-js": "^2.110.2",
-        "@types/three": "^0.185.1",
-        "@whiskeysockets/baileys": "7.0.0-rc13",
-        "better-sqlite3": "11.10.0",
-        "better-sqlite3-multiple-ciphers": "^12.11.1",
-        "canvas-confetti": "1.9.4",
-        "class-variance-authority": "0.7.1",
-        "clsx": "2.1.1",
-        "cmdk": "1.1.1",
-        "date-fns": "3.6.0",
-        "discord.js": "^14.27.0",
-        "dotenv": "^17.4.2",
-        "electron-log": "5.2.4",
-        "electron-updater": "6.3.9",
-        "embla-carousel-react": "8.6.0",
-        "googleapis": "^173.0.0",
-        "grammy": "^1.45.1",
-        "input-otp": "1.4.2",
-        "lucide-react": "0.487.0",
-        "motion": "12.23.24",
-        "next-themes": "0.4.6",
-        "node-audio-mixer": "^2.2.0",
-        "node-cron": "3.0.3",
-        "node-wav": "^0.0.2",
-        "onnxruntime-web": "^1.27.0",
-        "pg": "^8.22.0",
-        "qrcode": "1.5.4",
-        "react": "18.3.1",
-        "react-day-picker": "8.10.1",
-        "react-dom": "18.3.1",
-        "react-hook-form": "7.55.0",
-        "react-markdown": "^10.1.0",
-        "react-resizable-panels": "2.1.7",
-        "react-router": "7.13.0",
-        "recharts": "2.15.2",
-        "remotion": "^4.0.489",
-        "sonner": "2.0.3",
-        "tailwind-merge": "3.2.0",
-        "three": "^0.185.1",
-        "tw-animate-css": "1.3.8",
-        "vaul": "1.1.2",
-        "ws": "^8.21.0"
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.png"
     },
-    "devDependencies": {
-        "@eslint/js": "^9.0.0",
-        "@tailwindcss/vite": "4.1.12",
-        "@testing-library/jest-dom": "^6.9.1",
-        "@testing-library/react": "^16.3.2",
-        "@types/react": "^18.3.31",
-        "@types/react-dom": "^18.3.7",
-        "@vitejs/plugin-react": "4.7.0",
-        "concurrently": "9.1.0",
-        "cross-env": "7.0.3",
-        "electron": "^31.7.7",
-        "electron-builder": "24.13.3",
-        "eslint": "^9.0.0",
-        "eslint-plugin-react-hooks": "^5.0.0",
-        "globals": "^16.0.0",
-        "jsdom": "^29.1.1",
-        "png-to-ico": "^3.0.2",
-        "tailwindcss": "4.1.12",
-        "typescript-eslint": "^8.0.0",
-        "vite": "6.3.5",
-        "vite-plugin-pwa": "^0.21.2",
-        "vitest": "2.1.8",
-        "wait-on": "8.0.1"
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "build/icon-top.ico",
+      "uninstallerIcon": "build/icon-top.ico",
+      "installerHeaderIcon": "build/icon-top.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Orun OS"
     },
-    "build": {
-        "appId": "com.grupoorun.orunos",
-        "productName": "Orun OS",
-        "artifactName": "Orun-OS-Setup-${version}.${ext}",
-        "files": [
-            "dist/**/*",
-            "electron/**/*",
-            "!electron/__tests__/**",
-            "rules/**/*",
-            "vendor/**/*"
-        ],
-        "extraResources": [
-            {
-                "from": "daemon_server.py",
-                "to": "python/daemon_server.py"
-            },
-            {
-                "from": "wake_word_service.py",
-                "to": "python/wake_word_service.py"
-            },
-            {
-                "from": "stt_server.py",
-                "to": "python/stt_server.py"
-            },
-            {
-                "from": "edge_tts_server.py",
-                "to": "python/edge_tts_server.py"
-            },
-            {
-                "from": "piper_server.py",
-                "to": "python/piper_server.py"
-            },
-            {
-                "from": "kokoro_server.py",
-                "to": "python/kokoro_server.py"
-            }
-        ],
-        "directories": {
-            "output": "release"
-        },
-        "win": {
-            "target": "nsis",
-            "icon": "build/icon.png"
-        },
-        "nsis": {
-            "oneClick": false,
-            "allowToChangeInstallationDirectory": true,
-            "installerIcon": "build/icon-top.ico",
-            "uninstallerIcon": "build/icon-top.ico",
-            "installerHeaderIcon": "build/icon-top.ico",
-            "createDesktopShortcut": true,
-            "createStartMenuShortcut": true,
-            "shortcutName": "Orun OS"
-        },
-        "mac": {
-            "target": "dmg",
-            "icon": "build/icon.icns",
-            "identity": null,
-            "hardenedRuntime": true,
-            "notarize": false
-        },
-        "linux": {
-            "target": [
-                "AppImage",
-                "deb",
-                "rpm"
-            ],
-            "icon": "build/icon.png",
-            "category": "Utility"
-        },
-        "publish": {
-            "provider": "github",
-            "owner": "caiqueDeOliveira-dev",
-            "repo": "OrunOS"
-        },
-        "afterSign": "scripts/notarize.cjs"
+    "mac": {
+      "target": "dmg",
+      "icon": "build/icon.icns",
+      "identity": null,
+      "hardenedRuntime": true},
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb",
+        "rpm"
+      ],
+      "icon": "build/icon.png",
+      "category": "Utility"
     },
-    "pnpm": {
-        "overrides": {
-            "vite": "6.3.5"
-        }
-    },
-    "allowScripts": {
-        "electron@31.7.7": true
+    "publish": {
+      "provider": "github",
+      "owner": "caiqueDeOliveira-dev",
+      "repo": "OrunOS"
     }
+  },
+  "pnpm": {
+    "overrides": {
+      "vite": "6.3.5"
+    }
+  },
+  "allowScripts": {
+    "electron@31.7.7": true
+  }
 }
