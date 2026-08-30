@@ -43,6 +43,30 @@ function register(ipcMain, ctx) {
   });
   ipcMain.handle("social-media:get-buffer-config", () => socialMedia.getBufferConfig(db));
   ipcMain.handle("social-media:set-buffer-config", (_event, cfg) => { socialMedia.setBufferConfig(db, cfg); return true; });
+  ipcMain.handle("social-media:publish-instagram-direct", async (_event, opts) => {
+    try {
+      log.info("[social-media] publishing to instagram (direct)");
+      const result = await socialMedia.publishInstagramDirect(opts, db);
+      if (result.ok) log.info("[social-media] instagram direct published OK");
+      else log.warn("[social-media] instagram direct failed:", result.error);
+      return result;
+    } catch (err) {
+      log.error("[social-media:publish-instagram-direct] failed:", err.message);
+      return { ok: false, error: err.message || String(err) };
+    }
+  });
+  ipcMain.handle("social-media:publish-linkedin-direct", async (_event, opts) => {
+    try {
+      log.info("[social-media] publishing to linkedin (direct)");
+      const result = await socialMedia.publishLinkedInDirect(opts, db);
+      if (result.ok) log.info("[social-media] linkedin direct published OK");
+      else log.warn("[social-media] linkedin direct failed:", result.error);
+      return result;
+    } catch (err) {
+      log.error("[social-media:publish-linkedin-direct] failed:", err.message);
+      return { ok: false, error: err.message || String(err) };
+    }
+  });
 
   // Text-to-speech
   ipcMain.handle("tts:list-voices", async (_event, engine) => {

@@ -17,6 +17,15 @@ const path = require("path");
 
 const SKILLS_ROOT = path.join(__dirname, "..", "skills");
 
+// Try to load @orun/skills-core for new skill system
+let skillsCore = null;
+try {
+  skillsCore = require("@orun/skills-core");
+} catch (e) {
+  // Fallback to legacy file-based loading
+  skillsCore = null;
+}
+
 function skillFileFor(agentId) {
   if (!agentId) return null;
   const exact = path.join(SKILLS_ROOT, agentId, "SKILL.md");
@@ -34,11 +43,32 @@ const SKILL_CACHE = new Map();
 /**
  * Reads skills/<agentId>/SKILL.md and returns it formatted for prompt injection.
  * Falls back to an empty string when the agent has no skill file.
+ * Uses @orun/skills-core if available, otherwise falls back to legacy file-based loading.
  */
 function loadSkills(agentId) {
   const key = String(agentId || "");
   if (SKILL_CACHE.has(key)) return SKILL_CACHE.get(key);
+  
   let content = "";
+  
+  // Try new @orun/skills-core first
+  if (skillsCore && skillsCore.getSkill) {
+    try {
+      const skill = skillsCore.getSkill(key);
+      if (skill && skill.body) {
+        const raw = skill.body.trim();
+        if (raw) {
+          const result = `\n\n---SKILL (${key})---\n${raw}\n---END SKILL---`;
+          SKILL_CACHE.set(key, result);
+          return result;
+        }
+      }
+    } catch (err) {
+      // Fall through to legacy
+    }
+  }
+  
+  // Legacy file-based loading
   const file = skillFileFor(agentId);
   if (file) {
     try {
@@ -262,16 +292,22 @@ const DEFAULT_PROMPTS = {
     "--- A/B TESTS ---\n" +
     "- add_ab_test: workspace_action(workspace='marketing', action='add_ab_test', params={name:'Teste Headline', headlineA:'Versao A', ctaA:'Compre agora', headlineB:'Versao B', ctaB:'Garanta ja'})\n" +
     "- get_ab_tests: workspace_action(workspace='marketing', action='get_ab_tests')\n\n" +
-    "FERRAMENTAS: generate_image, publish_to_social, memory_save, schedule_task, web_search, workspace_action\n" +
+    "FERRAMENTAS: generate_image, generate_video, publish_to_social, publish_to_instagram_direct, publish_to_linkedin_direct, memory_save, schedule_task, web_search, workspace_action\n" +
     "INTEGRATIONS:\n" +
     "- social_schedule_post: Schedule a post on social media (accountIds, content, mediaUrls, scheduledFor ISO datetime)\n" +
     "- social_list_posts: List scheduled posts (status: pending|published|cancelled)\n\n" +
     "WORKFLOW Instagram/TikTok:\n" +
     "1. generate_image(prompt detalhado) -> 2. publish_to_social(texto + imageUrl)\n\n" +
+    "WORKFLOW Instagram Direct (Meta API):\n" +
+    "1. generate_image(prompt detalhado) -> 2. publish_to_instagram_direct(caption + imageUrl)\n\n" +
+    "WORKFLOW LinkedIn Direct (LinkedIn API):\n" +
+    "1. generate_image(prompt detalhado) -> 2. publish_to_linkedin_direct(text + imageUrl)\n\n" +
     "MAPA DE PLATAFORMAS:\n" +
     "- instagram_stories/reels/carousel -> platform: instagram\n" +
     "- tiktok -> platform: tiktok\n" +
-    "- x_post/thread -> platform: twitter\n\n" +
+    "- x_post/thread -> platform: twitter\n" +
+    "- instagram_direct -> publish_to_instagram_direct\n" +
+    "- linkedin_direct -> publish_to_linkedin_direct\n\n" +
     "Termine com JSON:\n" +
     '{"campaign_name": "string", "objective": "string", "channels": ["string"], "target_audience": "string", "kpis": ["string"]}\n\n' +
     "IMPORTANTE: Sempre responda em portugues do Brasil.",

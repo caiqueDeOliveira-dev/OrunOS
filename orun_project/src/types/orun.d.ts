@@ -971,6 +971,46 @@ interface OrunGitHubDoctorResult {
   error?: string;
 }
 
+interface OrunPipelineAgent {
+  id: string;
+  name: string;
+  icon: string;
+  status: "idle" | "working" | "delivering" | "done" | "failed";
+  desk?: { col: number; row: number };
+}
+
+interface OrunPipelineState {
+  squad: string;
+  status: "idle" | "running" | "completed" | "failed";
+  step: { current: number; total: number; label: string };
+  agents: OrunPipelineAgent[];
+  handoff: { from: string; to: string; message: string; completedAt: string } | null;
+  startedAt: string | null;
+  completedAt?: string;
+  failedAt?: string;
+  updatedAt: string;
+  runId?: string;
+}
+
+interface OrunSquadInfo {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  agentCount: number;
+  version: string;
+  status: string;
+  state?: OrunPipelineState | null;
+  steps: number;
+}
+
+interface OrunPipelineMetrics {
+  totalSquads: number;
+  runningSquads: number;
+  completedToday: number;
+  failedToday: number;
+}
+
 interface OrunAPI {
   ai: {
     chat: (messages: OrunChatMessage[], agentId?: string) => Promise<string>;
@@ -990,6 +1030,14 @@ interface OrunAPI {
     cacheClear: () => Promise<{ ok: boolean }>;
     telemetry: () => Promise<{ counters: Record<string, number>; metrics: Record<string, any>; recentTraces: number }>;
     rateLimitStatus: () => Promise<Record<string, { minute: number; day: number; limits: { rpm: number; rpd: number }; minuteRemaining: number; dayRemaining: number }>>;
+  };
+  pipeline: {
+    listSquads: () => Promise<{ success: boolean; squads?: OrunSquadInfo[]; error?: string }>;
+    metrics: () => Promise<{ success: boolean; metrics?: OrunPipelineMetrics; error?: string }>;
+    run: (squadName: string, options?: Record<string, unknown>) => Promise<{ success: boolean; runId?: string; error?: string }>;
+    state: (squadName: string) => Promise<{ success: boolean; state?: OrunPipelineState | null; error?: string }>;
+    load: (squadName: string) => Promise<{ success: boolean; squad?: unknown; party?: unknown[]; steps?: unknown[]; error?: string }>;
+    activeRuns: () => Promise<{ success: boolean; runs?: string[] }>;
   };
   aiRouter: {
     health: () => Promise<OrunRouterHealth>;

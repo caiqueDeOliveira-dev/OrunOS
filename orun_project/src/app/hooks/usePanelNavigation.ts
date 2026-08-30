@@ -113,6 +113,7 @@ export function usePanelNavigation(onNewChat?: () => void) {
   const setActivityOpen = useCallback(makePanelSetter("activity"), []);
   const setEmailOpen = useCallback(makePanelSetter("email"), []);
   const setCalendarOpen = useCallback(makePanelSetter("calendar"), []);
+  const setDashboardOpen = useCallback(makePanelSetter("dashboard"), []);
 
   // ── Non-panel setters ────────────────────────────────────────────────────
 
@@ -211,6 +212,7 @@ export function usePanelNavigation(onNewChat?: () => void) {
   const activityOpen = state.currentPanel === "activity";
   const emailOpen = state.currentPanel === "email";
   const calendarOpen = state.currentPanel === "calendar";
+  const dashboardOpen = state.currentPanel === "dashboard";
   const anyPanelOpen = state.currentPanel !== null || state.agentDataOpen !== null || state.agentPage !== null;
 
   return {
@@ -220,7 +222,7 @@ export function usePanelNavigation(onNewChat?: () => void) {
     automationOpen, schedulesOpen, voicesOpen, modelPickerOpen, whatsappOpen,
     agentDataOpen: state.agentDataOpen, agentPage: state.agentPage,
     projectsOpen, filesOpen, memoryOpen, neuralOpen, skillsOpen, socialMediaOpen,
-    exportImportOpen, activityOpen, emailOpen, calendarOpen, activeNav: state.activeNav, anyPanelOpen,
+    exportImportOpen, activityOpen, emailOpen, calendarOpen, dashboardOpen, activeNav: state.activeNav, anyPanelOpen,
     workspaceOpen: state.workspaceOpen,
     plannerOpen,
     agentHubOpen,
@@ -230,7 +232,7 @@ export function usePanelNavigation(onNewChat?: () => void) {
     setUsageOpen, setRouterOpen, setAutomationOpen, setSchedulesOpen, setVoicesOpen,
     setModelPickerOpen, setWhatsappOpen, setAgentDataOpen, setAgentPage,
     setProjectsOpen, setFilesOpen, setMemoryOpen, setNeuralOpen, setSkillsOpen, setSocialMediaOpen,
-    setExportImportOpen, setActivityOpen, setEmailOpen, setCalendarOpen, setActiveNav, setWorkspaceOpen,
+    setExportImportOpen, setActivityOpen, setEmailOpen, setCalendarOpen, setDashboardOpen, setActiveNav, setWorkspaceOpen,
     setPlannerOpen,
     setAgentHubOpen,
     setAnalyticsOpen,

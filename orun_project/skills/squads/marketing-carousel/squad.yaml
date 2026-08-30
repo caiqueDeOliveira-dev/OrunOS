@@ -1,0 +1,61 @@
+squad: marketing-carousel
+name: Carousel Campaign
+description: Cria carrosséis virais para Instagram baseados em intelligence de concorrentes
+icon: 📊
+version: "1.0.0"
+skills:
+  - web_search
+  - web_fetch
+  - social-intel
+  - content-studio
+pipeline:
+  steps:
+    - id: research-brief
+      label: Definir foco da pesquisa
+      agent: vp-marketing
+      type: checkpoint
+      outputFile: skills/squads/marketing-carousel/output/research-brief.md
+
+    - id: competitor-analysis
+      label: Analisar perfis concorrentes
+      agent: social-intel
+      type: subagent
+      model_tier: fast
+      inputFile: skills/squads/marketing-carousel/output/research-brief.md
+      outputFile: skills/squads/marketing-carousel/output/competitor-intel.md
+      skills:
+        - social-intel
+
+    - id: content-strategy
+      label: Definir estratégia de conteúdo
+      agent: head-brand-strategy
+      type: inline
+      inputFile: skills/squads/marketing-carousel/output/competitor-intel.md
+      outputFile: skills/squads/marketing-carousel/output/content-strategy.md
+
+    - id: write-carousel
+      label: Escrever carrossel
+      agent: content-studio
+      type: subagent
+      model_tier: powerful
+      format: instagram-carousel
+      inputFile: skills/squads/marketing-carousel/output/content-strategy.md
+      outputFile: skills/squads/marketing-carousel/output/carousel-draft.md
+      skills:
+        - content-studio
+
+    - id: vp-review
+      label: Revisão do VP Marketing
+      agent: vp-marketing
+      type: checkpoint
+      inputFile: skills/squads/marketing-carousel/output/carousel-draft.md
+      outputFile: skills/squads/marketing-carousel/output/carousel-approved.md
+      onReject: write-carousel
+      maxReviewCycles: 2
+
+    - id: final-polish
+      label: Polimento final e assets
+      agent: content-studio
+      type: inline
+      inputFile: skills/squads/marketing-carousel/output/carousel-approved.md
+      outputFile: skills/squads/marketing-carousel/output/carousel-final.md

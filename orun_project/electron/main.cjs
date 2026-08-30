@@ -67,6 +67,7 @@ const { createGroupWatcher } = require("./group-watcher.cjs");
 const { registerFileSystemHandlers } = require("./file-system-handlers.cjs");
 const { startWebhookReceiver, stopWebhookReceiver, setEventHandler } = require("./webhook-receiver.cjs");
 const auditLog = require("./audit-log.cjs");
+const { PipelineRunner } = require("./pipeline-runner.cjs");
 
 // Must run BEFORE app.whenReady — registers the custom scheme as privileged so
 // fetch()/AudioWorklet.addModule() work over `orun-asset://` in production.
@@ -213,6 +214,7 @@ const AGENT_TOOL_PERMISSIONS = {
   Marketing: [
     "read_file", "write_file", "list_files",
     "generate_image", "generate_video", "publish_to_social",
+    "publish_to_instagram_direct", "publish_to_linkedin_direct",
     "memory_save", "memory_search", "rag_search",
     "notify", "schedule_task", "trigger_agent", "web_search", "get_weather", "open_workspace", "workspace_action",
     "social_schedule_post", "social_list_posts",
@@ -1830,6 +1832,101 @@ app.whenReady().then(() => {
       })
     : Promise.resolve();
   proactive.start({ windowLoadedPromise: windowLoaded });
+
+  // ── Pipeline Runner (Squad Orchestration) ────────────────────────────────
+  // Bridge real LLM execution into the pipeline runner so each squad step
+  // produces actual agent output (via the shared autonomous loop) instead of
+  // a placeholder. Mirrors scheduler.cjs's runAgentTask wiring.
+  const pipelineOrchestrator = {
+    log,
+    // Full tool-capable execution through the shared autonomous loop.
+    async runAgentTask(agentId, userPrompt, { modelTier } = {}) {
+      const prompt = `[PIPELINE STEP — ${agentId}]\n${userPrompt}`;
+      const res = await autonomousLoop({
+        messages: [{ role: "user", content: prompt }],
+        agentId,
+        sender: { isDestroyed: () => false, send: () => {} }, // no-op sender for background
+        requestId: `pipeline-${agentId}-${Date.now()}`,
+        cancelledRef: { cancelled: false },
+      });
+      return res;
+    },
+    // Plain chat fallback (no tools) through the ai-router.
+    async chat(agentId, userPrompt, { modelTier } = {}) {
+      const settings = resolveAISettings(agentId);
+      const apiKeys = secretStore.getProviderApiKeys(settings.provider);
+      const systemPrompt = buildSystemPrompt(settings.systemPrompt, agentId);
+      const result = await aiRouter.routeChat({
+        provider: settings.provider,
+        model: settings.model,
+        baseUrl: settings.baseUrl,
+        apiKeys,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: `[PIPELINE STEP — ${agentId}]\n${userPrompt}` },
+        ],
+      });
+      return result.text;
+    },
+  };
+  const pipelineRunner = new PipelineRunner(pipelineOrchestrator);
+
+  // IPC Handlers for Pipeline Runner
+  ipcMain.handle("pipeline:list-squads", async () => {
+    try {
+      const squads = await pipelineRunner.listSquads();
+      return { success: true, squads };
+    } catch (e) {
+      log.error("[pipeline] list-squads failed:", e.message);
+      return { success: false, error: e.message };
+    }
+  });
+
+  ipcMain.handle("pipeline:metrics", async () => {
+    try {
+      const metrics = await pipelineRunner.getDashboardMetrics();
+      return { success: true, metrics };
+    } catch (e) {
+      log.error("[pipeline] metrics failed:", e.message);
+      return { success: false, error: e.message };
+    }
+  });
+
+  ipcMain.handle("pipeline:run", async (_event, { squadName, options = {} }) => {
+    try {
+      const result = await pipelineRunner.runPipeline(squadName, options);
+      return result;
+    } catch (e) {
+      log.error("[pipeline] run failed:", e.message);
+      return { success: false, error: e.message };
+    }
+  });
+
+  ipcMain.handle("pipeline:state", async (_event, { squadName }) => {
+    try {
+      const state = await pipelineRunner.getDashboardState(squadName);
+      return { success: true, state };
+    } catch (e) {
+      log.error("[pipeline] state failed:", e.message);
+      return { success: false, error: e.message };
+    }
+  });
+
+  ipcMain.handle("pipeline:load", async (_event, { squadName }) => {
+    try {
+      const loaded = await pipelineRunner.loadSquad(squadName);
+      return { success: true, ...loaded };
+    } catch (e) {
+      log.error("[pipeline] load failed:", e.message);
+      return { success: false, error: e.message };
+    }
+  });
+
+  // ── Pipeline Runner IPC Handlers (for renderer integration) ────────────
+  ipcMain.handle("pipeline:active-runs", async () => {
+    return { success: true, runs: pipelineRunner.getActiveRuns() };
+  });
+  // ───────────────────────────────────────────────────────────────────────
 
   app.on("activate", () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });

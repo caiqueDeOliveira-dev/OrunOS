@@ -99,6 +99,14 @@ contextBridge.exposeInMainWorld("orun", {
     telemetry: () => ipcRenderer.invoke("ai:telemetry"),
     rateLimitStatus: () => ipcRenderer.invoke("ai:rate-limit-status"),
   },
+  pipeline: {
+    listSquads: () => ipcRenderer.invoke("pipeline:list-squads"),
+    metrics: () => ipcRenderer.invoke("pipeline:metrics"),
+    run: (squadName, options = {}) => ipcRenderer.invoke("pipeline:run", { squadName, options }),
+    state: (squadName) => ipcRenderer.invoke("pipeline:state", { squadName }),
+    load: (squadName) => ipcRenderer.invoke("pipeline:load", { squadName }),
+    activeRuns: () => ipcRenderer.invoke("pipeline:active-runs"),
+  },
   aiRouter: {
     health: () => ipcRenderer.invoke("ai-router:health"),
     listCombos: () => ipcRenderer.invoke("ai-router:list-combos"),
@@ -196,6 +204,8 @@ contextBridge.exposeInMainWorld("orun", {
     publish: (opts) => ipcRenderer.invoke("social-media:publish", opts),
     publishMulti: (opts) => ipcRenderer.invoke("social-media:publish-multi", opts),
     test: () => ipcRenderer.invoke("social-media:test"),
+    publishInstagramDirect: (opts) => ipcRenderer.invoke("social-media:publish-instagram-direct", opts),
+    publishLinkedInDirect: (opts) => ipcRenderer.invoke("social-media:publish-linkedin-direct", opts),
   },
   postiz: {
     listChannels: () => ipcRenderer.invoke("postiz:list-channels"),

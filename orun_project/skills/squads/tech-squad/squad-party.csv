@@ -1,0 +1,4 @@
+id,displayName,icon,path
+developer,Head of DevRel (Rebouças),💻,../../agents/developer.agent.md
+cyber-security,Cyber Security (Zumbi),🛡️,../../agents/cyber-security.agent.md
+system,System Agent (Milton),🖥️,../../agents/system.agent.md

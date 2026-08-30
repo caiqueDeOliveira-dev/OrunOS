@@ -25,3 +25,7 @@ lint-report*.txt
 tmp_lint_output.json
 tmp_parse_lint.cjs
 scripts/parse_lint.cjs
+
+# Playwright MCP snapshots (cache)
+.playwright-mcp/
+

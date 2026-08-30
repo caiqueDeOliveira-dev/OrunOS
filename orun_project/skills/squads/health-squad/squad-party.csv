@@ -1,0 +1,3 @@
+id,displayName,icon,path
+health,Health Agent (Juliano),🏥,../../agents/health.agent.md
+personal-assistant,Personal Assistant (Carolina),📋,../../agents/personal-assistant.agent.md

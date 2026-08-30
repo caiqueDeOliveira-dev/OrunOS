@@ -4,7 +4,7 @@
   "description": "Orun OS — a personal AI desktop assistant with local and cloud model support.",
   "author": "Grupo Orun Soluções Tecnológicas",
   "private": true,
-  "version": "0.7.1",
+  "version": "0.7.2",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@fal-ai/client": "^1.10.1",
+    "@orun/skills-core": "file:../orun-monorepo_1/orun-monorepo/packages/skills-core",
     "@orun/ai-router-core": "file:vendor/ai-router-core",
     "@orun/ai-router-node": "file:vendor/ai-router-node",
     "@orun/ai-router-server": "file:vendor/ai-router-server",

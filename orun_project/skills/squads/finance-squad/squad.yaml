@@ -1,0 +1,57 @@
+squad: finance-squad
+name: Finance Squad
+description: "Gestão financeira completa: tracking, orçamentos, metas, investimentos, relatórios e alertas"
+icon: 💰
+version: "1.0.0"
+skills:
+  - web_search
+  - web_fetch
+  - workspace_action
+  - finance_list_accounts
+  - finance_create_transaction
+  - finance_budget_month
+pipeline:
+  steps:
+    - id: morning-snapshot
+      label: Snapshot financeiro matinal
+      agent: finance
+      type: checkpoint
+      outputFile: skills/squads/finance-squad/output/morning-snapshot.md
+
+    - id: categorize-transactions
+      label: Categorizar transações pendentes
+      agent: finance
+      type: subagent
+      model_tier: powerful
+      inputFile: skills/squads/finance-squad/output/morning-snapshot.md
+      outputFile: skills/squads/finance-squad/output/categorized.md
+      skills:
+        - workspace_action
+
+    - id: check-budgets
+      label: Verificar orçamentos e alertas
+      agent: finance
+      type: inline
+      inputFile: skills/squads/finance-squad/output/categorized.md
+      outputFile: skills/squads/finance-squad/output/budget-status.md
+      skills:
+        - finance_budget_month
+        - workspace_action
+
+    - id: review-goals
+      label: Revisar metas financeiras
+      agent: finance
+      type: inline
+      inputFile: skills/squads/finance-squad/output/budget-status.md
+      outputFile: skills/squads/finance-squad/output/goals-review.md
+      skills:
+        - workspace_action
+
+    - id: evening-summary
+      label: Resumo financeiro do dia
+      agent: finance
+      type: checkpoint
+      inputFile: skills/squads/finance-squad/output/goals-review.md
+      outputFile: skills/squads/finance-squad/output/daily-summary.md
+      onReject: check-budgets
+      maxReviewCycles: 1

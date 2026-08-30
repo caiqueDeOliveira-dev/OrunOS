@@ -1,0 +1,54 @@
+squad: health-squad
+name: Health & Wellness Squad
+description: Monitora saúde, nutrição, treinos, sintomas e medicamentos — relatórios diários e alertas preventivos
+icon: 🏥
+version: "1.0.0"
+skills:
+  - web_search
+  - web_fetch
+  - workspace_action
+pipeline:
+  steps:
+    - id: check-in
+      label: Check-in matinal de saúde
+      agent: health
+      type: checkpoint
+      outputFile: skills/squads/health-squad/output/daily-checkin.md
+
+    - id: analyze-metrics
+      label: Analisar métricas e tendências
+      agent: health
+      type: subagent
+      model_tier: powerful
+      inputFile: skills/squads/health-squad/output/daily-checkin.md
+      outputFile: skills/squads/health-squad/output/metrics-analysis.md
+      skills:
+        - workspace_action
+
+    - id: generate-plan
+      label: Gerar plano do dia (refeições + treino)
+      agent: health
+      type: inline
+      inputFile: skills/squads/health-squad/output/metrics-analysis.md
+      outputFile: skills/squads/health-squad/output/daily-plan.md
+      skills:
+        - workspace_action
+
+    - id: schedule-reminders
+      label: Agendar lembretes (medicação, água, alongamento)
+      agent: personal-assistant
+      type: inline
+      inputFile: skills/squads/health-squad/output/daily-plan.md
+      outputFile: skills/squads/health-squad/output/reminders.md
+      skills:
+        - schedule_task
+        - workspace_action
+
+    - id: evening-review
+      label: Revisão noturna e registro
+      agent: health
+      type: checkpoint
+      inputFile: skills/squads/health-squad/output/daily-plan.md
+      outputFile: skills/squads/health-squad/output/evening-log.md
+      onReject: generate-plan
+      maxReviewCycles: 1

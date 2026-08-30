@@ -1,0 +1,63 @@
+squad: tech-squad
+name: Tech Squad
+description: "Excelência técnica: code review, arquitetura, CI/CD, segurança, infra, DevEx"
+icon: 💻
+version: "1.0.0"
+skills:
+  - web_search
+  - web_fetch
+  - workspace_action
+  - code-review
+  - arch-design
+  - lint-typecheck
+  - github-mcp
+  - security-audit
+pipeline:
+  steps:
+    - id: triage-prs
+      label: Triagem de PRs abertos
+      agent: developer
+      type: subagent
+      model_tier: powerful
+      outputFile: skills/squads/tech-squad/output/pr-triage.md
+      skills:
+        - code-review
+        - github-mcp
+
+    - id: review-architecture
+      label: Revisar decisões arquiteturais pendentes
+      agent: developer
+      type: inline
+      inputFile: skills/squads/tech-squad/output/pr-triage.md
+      outputFile: skills/squads/tech-squad/output/arch-decisions.md
+      skills:
+        - arch-design
+
+    - id: security-scan
+      label: Scan de segurança (semgrep + deps)
+      agent: cyber-security
+      type: subagent
+      model_tier: powerful
+      outputFile: skills/squads/tech-squad/output/security-report.md
+      skills:
+        - semgrep_scan
+        - security-audit
+
+    - id: infra-check
+      label: Verificar saúde da infra (CI/CD, deploys, logs)
+      agent: system
+      type: subagent
+      model_tier: fast
+      outputFile: skills/squads/tech-squad/output/infra-status.md
+      skills:
+        - workspace_action
+        - run_command
+
+    - id: daily-standup
+      label: Gerar resumo técnico diário
+      agent: developer
+      type: checkpoint
+      inputFile: skills/squads/tech-squad/output/security-report.md
+      outputFile: skills/squads/tech-squad/output/daily-standup.md
+      onReject: security-scan
+      maxReviewCycles: 1

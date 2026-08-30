@@ -33,6 +33,7 @@ import { unlock as unlockAchievement, progress as progressAchievement } from "./
 import type { AttachedImage } from "./components/ChatInput";
 import { hasPlugin, getWorkspacePluginId } from "./plugins/PluginRegistry";
 import { WORKSPACE_PLUGIN_LOADERS } from "./plugins/workspace-loaders";
+import { DashboardPanel } from "./components/DashboardPanel";
 import { AutoBackup } from "./services/autoBackup";
 
 const HamptonWolf = lazy(() => import("./components/HamptonWolf").then(m => ({ default: m.HamptonWolf })));
@@ -80,6 +81,7 @@ export function HomeScreen() {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [changelogOpen, setChangelogOpen] = useState(false);
   const [achievementsOpen, setAchievementsOpen] = useState(false);
+  const [dashboardOpen, setDashboardOpen] = useState(false);
   const [loadingAgents, setLoadingAgents] = useState(true);
   const [focusMode, setFocusMode] = useState(false);
   const focusCountRef = useRef(0);
@@ -452,6 +454,7 @@ export function HomeScreen() {
     exportImport: () => { nav.setExportImportOpen(true); },
     profile: () => { setProfileOpen(p => !p); },
     achievements: () => { setAchievementsOpen(true); },
+    dashboard: () => { setDashboardOpen(true); },
     support: () => { setSuporteOpen(true); },
     shortcuts: () => { setShortcutsOpen(true); },
     changelog: () => { setChangelogOpen(true); },
@@ -463,6 +466,7 @@ export function HomeScreen() {
     else if (cmd === "limpar") chat.startNewChat();
     else if (cmd === "historico") nav.setHistoryOpen(true);
     else if (cmd === "agentes") nav.setAgentsOpen(true);
+    else if (cmd === "dashboard") setDashboardOpen(true);
     else if (cmd === "resumir") chat.handleSend("Resuma esta conversa");
     else if (cmd === "exportar") chat.handleSend("Exporte esta conversa");
     else if (cmd === "memoria") chat.handleSend("Busque na minha memoria");
@@ -534,10 +538,11 @@ export function HomeScreen() {
           {changelogOpen && <ChangelogModal onClose={() => setChangelogOpen(false)} />}
           {suporteOpen && <SuportePanel onClose={() => setSuporteOpen(false)} />}
           {achievementsOpen && <AchievementsPanel onClose={() => setAchievementsOpen(false)} />}
+          {dashboardOpen && <DashboardPanel onClose={() => setDashboardOpen(false)} />}
         </AnimatePresence>
       </Suspense>
 
-      {anyPanelOpen && <div className="fixed inset-0 z-20" onClick={() => { nav.closeAll(); nav.setActiveNav("home"); setPluginSettingsOpen(false); setProfileOpen(false); setAchievementsOpen(false); setTelegramOpen(false); setSuporteOpen(false); setShortcutsOpen(false); setChangelogOpen(false); }} />}
+      {anyPanelOpen && <div className="fixed inset-0 z-20" onClick={() => { nav.closeAll(); nav.setActiveNav("home"); setPluginSettingsOpen(false); setProfileOpen(false); setAchievementsOpen(false); setDashboardOpen(false); setTelegramOpen(false); setSuporteOpen(false); setShortcutsOpen(false); setChangelogOpen(false); }} />}
 
       {/* ── Main content ──────────────────────────────────────────── */}
       <div id="main-content" className={`flex-1 flex flex-col ${focusMode ? '' : 'ml-14'} overflow-hidden relative`}>

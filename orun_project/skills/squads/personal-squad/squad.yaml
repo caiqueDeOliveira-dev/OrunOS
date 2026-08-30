@@ -1,0 +1,58 @@
+squad: personal-squad
+name: Personal Assistant Squad
+description: "Rotina pessoal: agenda, tarefas, lembretes, WhatsApp, memórias, preferências, rotinas automatizadas"
+icon: 📋
+version: "1.0.0"
+skills:
+  - web_search
+  - web_fetch
+  - workspace_action
+  - memory_save
+  - memory_search
+  - notify
+  - schedule_task
+pipeline:
+  steps:
+    - id: morning-briefing
+      label: Briefing matinal personalizado
+      agent: personal-assistant
+      type: checkpoint
+      outputFile: skills/squads/personal-squad/output/morning-briefing.md
+
+    - id: process-whatsapp
+      label: Processar mensagens WhatsApp pendentes
+      agent: personal-assistant
+      type: inline
+      inputFile: skills/squads/personal-squad/output/morning-briefing.md
+      outputFile: skills/squads/personal-squad/output/whatsapp-processed.md
+      skills:
+        - workspace_action
+
+    - id: manage-tasks
+      label: Gerenciar tarefas e agenda do dia
+      agent: personal-assistant
+      type: inline
+      inputFile: skills/squads/personal-squad/output/whatsapp-processed.md
+      outputFile: skills/squads/personal-squad/output/daily-tasks.md
+      skills:
+        - workspace_action
+        - schedule_task
+
+    - id: sync-calendars
+      label: Sincronizar calendários (Google, Outlook, Apple)
+      agent: personal-assistant
+      type: subagent
+      model_tier: fast
+      inputFile: skills/squads/personal-squad/output/daily-tasks.md
+      outputFile: skills/squads/personal-squad/output/calendar-sync.md
+      skills:
+        - workspace_action
+
+    - id: evening-wrapup
+      label: Encerramento do dia e planejamento amanhã
+      agent: personal-assistant
+      type: checkpoint
+      inputFile: skills/squads/personal-squad/output/calendar-sync.md
+      outputFile: skills/squads/personal-squad/output/evening-wrapup.md
+      onReject: manage-tasks
+      maxReviewCycles: 1

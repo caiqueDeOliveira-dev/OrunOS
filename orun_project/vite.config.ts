@@ -87,6 +87,7 @@ export default defineConfig({
     alias: {
       // Alias @ to the src directory
       '@': path.resolve(__dirname, './src'),
+      '@vendor/agent-dashboard': path.resolve(__dirname, './vendor/agent-dashboard/dist/index.js'),
     },
   },
 

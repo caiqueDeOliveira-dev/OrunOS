@@ -1,0 +1,62 @@
+squad: homelab-squad
+name: HomeLab Squad
+description: "Casa inteligente: Home Assistant, ESP32, Zigbee/Matter, câmeras, energia, presença, automações físicas"
+icon: 🏠
+version: "1.0.0"
+skills:
+  - web_search
+  - web_fetch
+  - workspace_action
+  - homelab
+  - mqtt
+  - onvif
+pipeline:
+  steps:
+    - id: health-check
+      label: Health check geral da casa
+      agent: home-ia
+      type: subagent
+      model_tier: fast
+      outputFile: skills/squads/homelab-squad/output/health-check.md
+      skills:
+        - homelab
+
+    - id: security-review
+      label: Revisão de segurança (câmeras, portas, alarmes)
+      agent: home-ia
+      type: inline
+      inputFile: skills/squads/homelab-squad/output/health-check.md
+      outputFile: skills/squads/homelab-squad/output/security-status.md
+      skills:
+        - homelab
+        - onvif
+
+    - id: energy-report
+      label: Relatório de energia (solar, bateria, consumo)
+      agent: home-ia
+      type: inline
+      inputFile: skills/squads/homelab-squad/output/security-status.md
+      outputFile: skills/squads/homelab-squad/output/energy-report.md
+      skills:
+        - homelab
+        - mqtt
+
+    - id: automation-audit
+      label: Auditoria de automações (ativas, falhas, órfãs)
+      agent: home-ia
+      type: subagent
+      model_tier: powerful
+      inputFile: skills/squads/homelab-squad/output/energy-report.md
+      outputFile: skills/squads/homelab-squad/output/automation-audit.md
+      skills:
+        - homelab
+        - mqtt
+
+    - id: maintenance-plan
+      label: Plano de manutenção (firmware, baterias, limpeza)
+      agent: home-ia
+      type: checkpoint
+      inputFile: skills/squads/homelab-squad/output/automation-audit.md
+      outputFile: skills/squads/homelab-squad/output/maintenance-plan.md
+      onReject: automation-audit
+      maxReviewCycles: 1

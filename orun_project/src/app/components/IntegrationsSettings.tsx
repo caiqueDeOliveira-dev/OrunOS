@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Plug, Activity, Shield, DollarSign, Share2, Palette, Bookmark, Image, CheckCircle2, XCircle } from "lucide-react";
 import { P } from "../plugins/workspaces/premium";
 
-type IntegrationKey = "telemetry" | "shieldSecrets" | "finance" | "social" | "designSync" | "memoryVault" | "photos";
+type IntegrationKey = "telemetry" | "shieldSecrets" | "finance" | "social" | "designSync" | "memoryVault" | "photos" | "instagramDirect" | "linkedinDirect";
 
 interface IntegrationConfig {
   enabled: boolean;
@@ -17,6 +17,8 @@ interface IntegrationsState {
   designSync: IntegrationConfig;
   memoryVault: IntegrationConfig;
   photos: IntegrationConfig;
+  instagramDirect: IntegrationConfig;
+  linkedinDirect: IntegrationConfig;
 }
 
 interface FieldDef {
@@ -128,6 +130,30 @@ const INTEGRATIONS: IntegrationDef[] = [
       { name: "enabled", label: "Ativado", type: "text" },
     ],
     requiredFields: ["baseUrl"],
+  },
+  {
+    key: "instagramDirect",
+    icon: Image,
+    label: "Instagram Direct (Meta API)",
+    accent: "#E1306C",
+    fields: [
+      { name: "accessToken", label: "Page Access Token (60d)", type: "password" },
+      { name: "igUserId", label: "Instagram Business User ID", type: "text" },
+      { name: "enabled", label: "Ativado", type: "text" },
+    ],
+    requiredFields: ["accessToken", "igUserId"],
+  },
+  {
+    key: "linkedinDirect",
+    icon: Share2,
+    label: "LinkedIn Direct (API)",
+    accent: "#0A66C2",
+    fields: [
+      { name: "accessToken", label: "Access Token (60d)", type: "password" },
+      { name: "personUrn", label: "Person URN (urn:li:person:...)", type: "text" },
+      { name: "enabled", label: "Ativado", type: "text" },
+    ],
+    requiredFields: ["accessToken", "personUrn"],
   },
   {
     key: "designSync",
@@ -288,6 +314,8 @@ const DEFAULT_STATE: IntegrationsState = {
   shieldSecrets: { enabled: false },
   finance: { enabled: false, provider: "manual", serverUrl: "", serverPassword: "", dataDir: "", clientId: "", clientSecret: "", itemIds: "" },
   social: { enabled: false, baseUrl: "http://localhost:5000", email: "", password: "" },
+  instagramDirect: { enabled: false, accessToken: "", igUserId: "" },
+  linkedinDirect: { enabled: false, accessToken: "", personUrn: "" },
   designSync: { enabled: false, baseUrl: "", accessToken: "" },
   memoryVault: { enabled: false, baseUrl: "", apiKey: "" },
   photos: { enabled: false, baseUrl: "", apiKey: "" },

@@ -7,16 +7,16 @@ O objetivo final do usuário é transformar o ecossistema Orun em um **sistema o
 Ordem de fases: **A** = completar os projetos na metade (OrunVS → OrunTV → Orun Shield) → **B** = shell do SO (window manager/taskbar/launcher) → **C** = apps nativos incorporados → **D** = distribuição (build único + Orun Store). Todos os apps usam o mesmo Supabase compartilhado (`kmfmeewibravdsxemzuj`). O desktop (este projeto) é a referência/base e o shell futuro do SO.
 
 ## Overview
-Orun OS is a **desktop AI operating system** built with Electron + React + Vite. It runs as a native Windows/macOS/Linux app, featuring a multi-agent AI system with autonomous tool-calling, WhatsApp/Telegram/Discord/Email integrations, voice interaction (TTS/STT/wake word), social media publishing, Google Calendar/Gmail sync, Spotify control, and a plugin-based workspace system. Part of the **Orun ecosystem** (desktop + mobile monorepo + Orun-Core + Supabase shared project); the desktop is the reference base for all of them.
+Orun OS is a **desktop AI operating system** built with Electron + React + Vite. It runs as a native Windows/macOS/Linux app, featuring a multi-agent AI system with autonomous tool-calling, WhatsApp/Telegram/Discord/Email integrations, voice interaction (TTS/STT/wake word), social media publishing, Google Calendar/Gmail sync, Spotify control, and a plugin-based workspace system. Part of the **Orun ecosystem** (desktop + mobile monorepo + Orun-Core + Supabase shared project + 20+ pacotes @orun/* no Desktop); the desktop is the reference base for all of them.
 
 - **Version**: 0.6.19
 - **Stack**: Electron 31, React 18.3, Vite 6, Tailwind CSS 4, TypeScript
 - **AI Providers**: OpenCodeZen (primary), Groq, OpenRouter (fallback chain); Ollama local-only; GitHub Models retired (410); DeepSeek/PaLM reachable via OpenCodeZen proxy; **Orun AI Router** integrado (dashboard + API REST)
 - **DB**: SQLite (local) + Supabase/PostgreSQL (cloud sync, push-first, same shared project used by mobile/core: ref `kmfmeewibravdsxemzuj`)
 - **Language**: Portuguese (pt-BR) default, English/Spanish/French supported
-- **Tests**: 1200 passed / 9 skipped (78 test files)
+- **Tests**: 1200+ passed / 9 skipped (78+ test files) — 822+ no work log, 1200+ suite completa + 139 testes Orun ST + 47 testes Store/Diag/Backup + 21 testes Settings/Sync + 87 testes OrunVS + 60 testes Orun-Core = 1500+ testes no ecossistema
 - **Repo**: all code in `orun_project/` subdirectory
-- **Docs**: `docs/roadmap-v1.md` (plataforma), `docs/voice-roadmap.md` (voz), `docs/so-orun-roadmap.md` (visão SO) — curados, atualizados por sessão
+- **Docs**: `docs/roadmap-v1.md` (plataforma), `docs/voice-roadmap.md` (voz), `docs/so-orun-roadmap.md` (visão SO), `docs/skills-mcps-futuro.md` (trending skills/MCPs) — curados, atualizados por sessão
 
 ---
 
@@ -26,23 +26,38 @@ O objetivo final do ecossistema é o **SO Orun** (ver `orun_project/docs/so-orun
 
 Todos os apps usam o **mesmo Supabase compartilhado** (`kmfmeewibravdsxemzuj`) e o mesmo conjunto de agentes/prompts.
 
-### Catálogo de projetos
+### Catálogo de projetos (Desktop + Ecossistema)
 
 | # | Projeto | Status | Caminho | Stack | O que é |
 |---|---------|--------|---------|-------|---------|
 | 1 | **Orun OS (desktop)** | **v0.6.19** — referência/base | `C:\Users\Caiqu\OneDrive\Desktop\orun-os\orun_project` | Electron 31, React 18.3, Vite 6, Tailwind 4, TS | App desktop multi-agente, workspace plugin-based, WhatsApp/Telegram/Discord, voz, Spotify, n8n, sync Supabase |
 | 2 | **Orun Mobile (monorepo)** | ativo — whatsapp-baileys em Docker | `C:\Users\Caiqu\Downloads\orun-monorepo_1\orun-monorepo` (branch `master`) | Expo/React Native, Supabase, Deno Edge Functions | App mobile (expo-router), `whatsapp-baileys` (Docker), `supabase-sync`, ai-relay/telegram/whatsapp webhooks |
 | 3 | **Orun-Core** | v0.1.2 — 60 testes | `C:\Users\Caiqu\OneDrive\Desktop\Orun-Core` | TypeScript | Core compartilhado: `getSupabaseClient` (transport WebSocket p/ Electron), hub `devices`/`commands`, satélites (`home`, `tv`, `shield`) |
-| 4 | **OrunVS** | **v0.3.7** — 14 arquivos com falha (sem testes rodando) | `C:\Users\Caiqu\OneDrive\Desktop\OrunVS` | VS Code extension, TS | Extensão VS Code com chat IA multi-provider (OpenCodeZen/Gemini/Groq/OpenRouter/DeepSeek/HF/Ollama), fallback chain, memória local, skills, **client MCP stdio + catálogo on-demand** |
-| 5 | **OrunTV** | v0.1.0 — sem git | `C:\Users\Caiqu\Downloads\oruntv_2\oruntv` | Jellyfin + Sonarr/Radarr/Prowlarr/Bazarr/qBittorrent; apps dashboard/desktop/mobile/tizen; packages core/shared-logic | Media stack completo |
+| 4 | **OrunVS** | **v0.3.4** — 87 testes, VSIX instalado | `C:\Users\Caiqu\OneDrive\Desktop\OrunVS` | VS Code extension, TS | Extensão VS Code com chat IA multi-provider (OpenCodeZen/Gemini/Groq/OpenRouter/DeepSeek/HF/Ollama), fallback chain, memória local, skills, **client MCP stdio + catálogo on-demand** |
+| 5 | **OrunTV** | v0.1.0 — em refinamento | `C:\Users\Caiqu\Downloads\oruntv_2\oruntv` | Jellyfin + Sonarr/Radarr/Prowlarr/Bazarr/qBittorrent; apps dashboard/desktop/mobile/tizen; packages core/shared-logic | Media stack completo |
 | 6 | **Orun Shield** | **v0.3.2 — integrado no desktop (vendored)** | `orun_project/vendor/orun-shield-core/`, `vendor/orun-system-optimizer/`, `vendor/orun-sentinela-agent/` | 3 pacotes TS (shield-core, system-optimizer, sentinela-agent); shield-mobile descartado p/ desktop | Suíte de segurança (ClamAV, Defender, Firewall, Sentinel, Ransomware Heuristic, Integrity, Quarantine, Disk Cleanup, Junk Scan, Update Check, Sentinela AI). **Integrado no desktop (v0.6.19+)** — IPC `shield:*`, `optimizer:*`, `sentinela:*` + preload APIs |
 | 7 | **Orun Home (home-app)** | ativo — APK via EAS | `packages/home-app` no monorepo | Expo SDK 54, RN, expo-router, zustand, supabase-js | App tablet smarthome (landscape): dashboard, dispositivos, cenários, automações, assistente (agente Home IA), satélite `home` do hub; HA opcional |
 | 8 | **Orun Auth (@orun/identity)** | **v0.1.0 — integrado no desktop (vendored)** | `C:\Users\Caiqu\OneDrive\Desktop\Orun Auth\Orun Auth\packages\identity` + vendored em `orun_project/vendor/orun-identity/` | TS (pacote puro), vitest, Deno Edge Functions | Camada centralizada de identidade/auth do ecossistema: sign in/up/out, OAuth, magic link, refresh, storage seguro, SessionRegistry multi-device, Turnstile, billing Stripe, licenciamento offline (JWT), MFA/TOTP, audit log, LGPD, passkeys (beta). 5 Edge Functions deployadas. **Integrado no desktop (v0.6.10+)** — auth gate, login/signup, licença, LGPD |
 | 9 | **Orun Files** | **bruto (v0.1.0) — sem git** | `C:\Users\Caiqu\OneDrive\Desktop\orun-files\orun-files` (+ zip em `Downloads\orun-files.zip`) | Electron, JS puro, Gemini API (`text-embedding-004` + `gemini-2.0-flash`), electron-store, chokidar | Gerenciador de arquivos com IA: busca semântica (embeddings + cosseno, fallback textual), organização automática, preview universal, indexação com chokidar |
-| 10 | **Orun Design** | **não encontrado** | `C:\Users\Caiqu\Downloads\Orun Design\orum-project` | Backend Node + frontend HTML/CSS/JS puro | Diretório não encontrado na última varredura (pode ter sido removido) |
-| — | **Orun TV / Orun Shield (roteiro original)** | adiado | — | TBD | Adiado "pra depois" — **reaberto** pela visão SO (OrunTV e Orun Shield voltaram como projetos ativos) |
+| 10 | **Orun Pulse (@orun/pulse)** | **v0.1.0 — monorepo** | `C:\Users\Caiqu\OneDrive\Desktop\orun-pulse-package\orun-pulse-package` | Electron, React, TypeScript (npm workspaces) | Bridge agente↔navegador: `browser-agent-bridge` + `browser-agent-bridge-electron` — permite agentes do Hampton Circle controlarem/lerem o browser (DOM, console, network) via MCP-like protocol |
+| 11 | **Orun Finance (@orun/finance)** | **v0.1.0 — schema-first, 29/29 testes** | `C:\Users\Caiqu\OneDrive\Desktop\orun-finance\finance` | TypeScript, Actual Budget adapter, Zod, Docker | Módulo financeiro pessoal: `@orun/finance-core` (schema, IFinanceStore), `@orun/finance-node` (Actual Budget adapter), `@orun/finance-react` (hooks). Envelope/zero-based budgeting, local-first, sync compatível com `@orun/sync` |
+| 12 | **Orun Legal** | **v0.1.0 — static site** | `C:\Users\Caiqu\OneDrive\Desktop\orun-legal` | HTML/CSS/JS puro | Privacy Policy, Terms of Service, index — páginas legais para apps do ecossistema (LGPD/GDPR ready) |
+| 13 | **Orun Music Player (@orun/music-player)** | **v0.1.2 — Electron + React** | `C:\Users\Caiqu\OneDrive\Desktop\orun-music-player\orun-music-player` | Electron 31, React, Vite 6, electron-builder | Player de música standalone com IA integrada — workspaces `core`/`electron`/`react`, builds Windows/macOS/Linux (NSIS/DMG/AppImage) |
+| 14 | **Orun Karaoke (@orun/karaoke)** | **Fases 1-6 consolidadas** | `C:\Users\Caiqu\OneDrive\Desktop\orun-karaoke-complete\orun-karaoke-complete` | TypeScript, Electron, React Native (mobile), Python (Demucs/Whisper) | App karaokê completo: separação vocal (Demucs), alinhamento forçado (Whisper), scoring em tempo real, mirror AirPlay/Android, `KaraokeApp.ts` composition root. Faltam 2 scripts Python + decisão Bluetooth para rodar |
+| 15 | **Orun Telemetry (@orun/telemetry)** | **v0.1.0 — 31/31 testes** | `C:\Users\Caiqu\OneDrive\Desktop\orun-telemetry\telemetry` | TypeScript, PostHog self-hosted, Zod, Docker | Observabilidade do Hampton Circle: `@orun/telemetry-core` (schema, ITelemetryStore), `@orun/telemetry-node` (PostHog adapter), `@orun/telemetry-react` (hooks). Instrumentação automática `instrumentAgent()` detecta bugs de boundary (ex: AssistenteTecnico) |
+| 16 | **Orun Social Pages** | **static — TikTok verified** | `C:\Users\Caiqu\OneDrive\Desktop\orun-social-pages` | HTML/CSS/JS puro | Privacy Policy, Terms of Service, TikTok developer verification files — landing pages compliance para apps mobile |
+| 17 | **Orun Skills** | **skill files** | `C:\Users\Caiqu\OneDrive\Desktop\orun-skills\skills` | Markdown/TypeScript | Skills do ecossistema Hampton Circle (Developer, Suporte, Assistente Técnico, etc.) — versionadas separadamente para uso no desktop/mobile/VS |
+| 18 | **Orun OB** | **Obsidian vault** | `C:\Users\Caiqu\OneDrive\Desktop\OrunOB\Orun OB` | Obsidian (Markdown) | Vault Obsidian para documentação interna do ecossistema — futuro: integração via `obsidian-skills` como fonte de memória de longo prazo |
+| 19 | **Orun Integrations (Orun ST)** | **7 pacotes — 139/139 testes** | `C:\Users\Caiqu\OneDrive\Desktop\orun-integrations\orun-integrations` | TypeScript, Zod, Docker (PostHog, Actual, Postiz, Penpot, Karakeep, Immich, Gitleaks) | Integrações orquestradas (schema-first, interface→adapter): `telemetry` (PostHog), `shield-secrets` (Gitleaks), `finance` (Actual Budget), `social` (Postiz), `design-sync` (Penpot), `memory-vault` (Karakeep), `photos` (Immich). Total 139 testes. Branding definido por peça |
+| 20 | **Orun Settings + Sync (@orun/settings + @orun/sync)** | **v1 — 21 testes** | `C:\Users\Caiqu\OneDrive\Desktop\orun-settings-sync_1\orun-monorepo` | TypeScript, Vitest, Zod, Supabase Realtime | `@orun/settings` (schema Zod 8 namespaces, scopes account/device, secret routing, Electron/Expo/Tizen platforms) + `@orun/sync` (engine genérico por path, fila offline, merge manual, device-id cross-platform). Integração validada end-to-end. Falta: integrar no desktop real, criar tabela `orun_settings_sync` no Supabase, online/offline real |
+| 21 | **Orun Store / Diagnostics / Backup (@orun/store + @orun/diagnostics + @orun/backup)** | **v0.2.0 — 47/47 testes, CI** | `C:\Users\Caiqu\OneDrive\Desktop\orun-store-diagnostics-backup-v0.2\orun-triad` | TypeScript, Zod, better-sqlite3, tar, node:crypto, Supabase Storage | 3 pacotes: **Store** (marketplace plugins assinados RSA, registry SQLite, sandbox permissão), **Diagnostics** (probes paralelos, histórico SQLite, scheduler 15min, AI explainer), **Backup** (tar incremental, rotação chave AES, provider Supabase Storage real). Composition root documentado |
+| 22 | **OrunTV ROBO** | **legacy/backup** | `C:\Users\Caiqu\OneDrive\Desktop\OrunTV ROBO` | — | Backup antigo do OrunTV (substituído por `oruntv_2`) |
+| 23 | **OrunOs-Mobile** | **legacy/backup** | `C:\Users\Caiqu\OneDrive\Desktop\OrunOs-Mobile` | — | Backup antigo do mobile (substituído por monorepo em Downloads) |
+| — | **Orun TV / Orun Shield (roteiro original)** | adiado → **reativado** | — | TBD | Adiado "pra depois" — **reaberto** pela visão SO (OrunTV e Orun Shield voltaram como projetos ativos na Fase A) |
 
 > **Nota**: Orun Auth e Orun Files estão **bruto** (v0.1.0, entregues via zip) — o código existe e é funcional, mas **precisa de refinamento**: integração nos apps reais (Auth), extração de conteúdo + batching + undo + empacotamento (Files), alinhamento de identidade visual e de API keys com o restante do ecossistema.
+>
+> **Projetos @orun/* adicionais prontos/em desenvolvimento no Desktop**: Orun Pulse (bridge browser), Orun Finance (Actual Budget, 29 testes), Orun Legal (páginas estáticas), Orun Music Player (v0.1.2, builds multi-plataforma), Orun Karaoke (Fases 1-6, faltam 2 scripts Python + decisão Bluetooth), Orun Telemetry (PostHog, 31 testes, `instrumentAgent()` detecta boundary bugs), Orun Social Pages (TikTok verificado), Orun Skills (skills versionadas), Orun OB (Obsidian vault), Orun Integrations/ST (7 pacotes, 139 testes: telemetry, shield-secrets, finance, social, design-sync, memory-vault, photos), Orun Settings+Sync (21 testes, end-to-end validado), Orun Store/Diagnostics/Backup (v0.2.0, 47 testes, CI). Todos seguem padrão schema-first (Zod) → interfaces → adapters, prontos para integrar no monorepo principal.
 
 ---
 
@@ -329,6 +344,7 @@ Each workspace has: `index.ts` (registers plugin), a main component, and optiona
 10. **SQLite in Electron**: `better-sqlite3` is Electron-ABI — vitest (Node) can't load it; analytics tests use an in-memory fake db.
 11. **`run_command` shell metacharacter guard** blocks commands with shell metacharacters (anti-injection) — may block legit commands.
 12. **Agent model override lives in the DB**: `settings.agentModels` overrides `AGENT_RECOMMENDED_MODELS` — to change an agent's model, update the DB row (persisted beats code).
+13. **Voice autonomous requests HANG FIXED (2026-08-06 tarde)** — root cause was in `VoiceOverlay.tsx` cleanup effect running on every render (unstable `useChat`/`useTTS` refs). Fixed with stable refs + unmount-only cleanup + visible transcript in overlay. Test voice flow live before shipping.
 
 ---
 
@@ -950,5 +966,110 @@ Continuação do Módulo 7 / Fase A do SO (OrunVS). Adicionado suporte a **MCP**
 - **Verificação**: typecheck ✓; **87 testes ✓** (novos `mcp.test.ts` 12 + `mcp-catalog.test.ts` 9); bundle ✓; **VSIX `orunvs-0.3.4.vsix` gerado e instalado**; **commit `8f7eeca`** (main, 17 arquivos, +1735/−12; incluiu v0.3.2/v0.3.3 pendentes: memória/skills/verificações/MCP) — working tree limpo.
 - **Config do usuário**: `orunvs.mcpAtivos` = todos os 12; chaves `githubToken`/`tavilyKey`/`supabaseAccessToken`/`postgresConnectionString` preenchidas no `settings.json` do VS Code (DIRECT_URL do desktop). Falta só Reload Window.
 - **Catálogo de projetos atualizado** neste arquivo: adicionados **Orun Auth** (`@orun/identity`, bruto v0.1.0, 71/71 testes, 5 Edge Functions, pronto p/ refinar/integrar) e **Orun Files** (bruto v0.1.0, Electron + Gemini, busca semântica/organização/preview, pronto p/ refinar). Orun Design listado como "em avaliação".
+
+---
+
+### 2026-08-29 — v0.7.0 BUILTADO, COMMITADO E PUSHADO com histórico limpo; Postiz 4 canais validados; Orun Pulse redesign Chrome-like
+
+**v0.7.0 Release** (`release/Orun-OS-Setup-0.7.0.exe`): rebuild do instalador com fixes de tema (script pré-mount no `index.html` resolve tema antes do React + `premium.tsx` com getters vivos `Object.defineProperty` lendo `getComputedStyle` no render) + wiring de integrações (`main.cjs` lê `intgSettings.designSync || intgSettings.design`; `IntegrationsSettings.tsx` Social = baseUrl+email+password, `DEFAULT_STATE` preenchido com hosts reais). **Commit limpo** `3f8a0e1d` após **limpeza do histórico** (GH013 push protection pegou LinkedIn Client Secret + Google OAuth no commit antigo `170b02ee`): `git reset --soft 84df20ae` → `git restore --staged .env.postiz docker-compose.postiz.yml` → rebase droppado com `git rebase --quit` → commit limpo `3f8a0e1d` → `.gitignore` ganhou `.env.postiz*` + `docker-compose.postiz.yml` (`03f36d9`) → **push OK**. Segredos seguem em disco (untracked+ignored).
+
+**Postiz 4 canais CONECTADOS e VALIDADOS** em `localhost:5000`:
+- **Telegram**: bot NOVO **@OrunSocialBot** (token `8771373047:AAE0KG6-lZG3HqqTZpkpevD15H-YwuFGex4`) — canal supergrupo "Orun Social" (`-1004467578287`, integration `cmtdva4cs0001jt8iq0ahjnzu`). Fluxo: `/connect <4chars>` → `GET /api/integrations/telegram/updates?word=X` → `{chatId}` → `/integrations/social/telegram?code=<chatId>&state=<nonce>` (nonce = campo `url` do `GET /api/integrations/social/telegram`). Backend travou no boot (502 nginx) → resolvido com `pm2 restart backend`.
+- **TikTok**: App "Orun Social" (ID `7662263094609790996`) estava em **Draft** → OAuth falhava `unauthorized_client`. **Sandbox** "Orun Social Sandbox" (id `7679010393193449493`) criado → client key sandbox `sbawv29fcovk0itm9n` aplicada como default no compose + `.env.postiz` → target user `caique.o.castaldeli` autorizado → **canal ADICIONADO** (`cmtdt0pxl0001mi8c72de76aw`). Prefixo GitHub Pages `https://caiquedeoliveira-dev.github.io/orun-social-pages/` JÁ verificado (pull_by_url atendido).
+- **X/Twitter**: `@CaahCast` ("Nego CaOS", `cmt9ya2mu0001o88ep9vexdhj`) — já conectado.
+- **YouTube**: `Caique O Castaldeli` (`cmtduc1ge0003mi8c81mc9lrx`) — conectado.
+Topologia: nginx `listen 5000` → `/api/`→localhost:3000 (backend Nest) + `/`→localhost:4200 (Next). Login local: `{email:"caique@orun.local",password:"OrunPostiz2026!Secure",provider:"LOCAL"}`. **Meta + LinkedIn aguardam domínio próprio** (PSL `eu.org` não serve).
+
+**Orun Pulse** — app real aberto e testado (harness Electron + esbuild bundles em Temp + `ELECTRON_OVERRIDE_DIST_PATH`):
+- **Janela frameless + controles reais**: `frame:false` + `Menu.setApplicationMenu(null)` (sumiu OS titlebar + menu bar); canais IPC `orun:window:minimize|toggle-maximize|close|is-maximized` + `orun:window:maximized-changed`; handlers em `main-handlers.ts` + preload expõe `minimizeWindow/toggleMaximizeWindow/closeWindow/isMaximized/onMaximizedChanged`; `OrunPulseShell.tsx` botões reais (SVGs, close hover vermelho, `-webkit-app-region:no-drag`).
+- **Menu do App nas Configurações**: `SettingsScreen.tsx` reescrito — seções **Arquivo** (Nova aba, Nova Space, Reabrir última), **Exibir** (Recarregar, Modo foco, Atalhos), **Janela** (Minimizar/Maximizar/Fechar via API), **Ajuda** (Sobre, Atalhos) + chips de agentes.
+- **Redesign Chrome-like** (`orun-pulse-ui.css` reescrito): neutro zinc `#0E0E11/#141418/#1B1B21/#2B2B33`, vermelho Orun contido, titlebar 46px flat, omnibox pill `border-radius:999px`, **removidos** grid/scanlines/glows/HUD; fix `input:-webkit-autofill{-webkit-text-fill-color:var(--ink)}` + caret accent; `.vertical-tabs .agent-dock{display:none}`.
+- **Fix "layout some ao abrir página"**: root cause = main posicionava `WebContentsView` cobrindo titlebar/sidebar. **Correção**: renderer reporta rect do `.viewport-split` via IPC `orun:browser:chrome-bounds` (`setChromeBounds`); main guarda em `SpaceManager.chromeRect` e `boundsForLayoutIndex` usa `contentRect()`. ResizeObserver + `window resize` + re-report pós-frame.
+- **Omnibox sempre digitável**: `input.url` era `disabled={!activeSpaceId}` → fix: input **sempre habilitado**; Enter sem Space ativa abre em **aba humana** (`openHumanTab`); placeholder muda conforme Space ativa.
+
+---
+
+### 2026-08-28 — Orun Pulse "quase perfeito": abas verticais + Tree Style Tab + split 3 painéis + badges + focus mode + CommandPalette busca abas
+
+Usuário aprovou síntese de inspirações (Firefox 136 / Chrome 146 / Edge / Arc / Vivaldi / Opera / Zen / Floorp / Wavebox / SigmaOS) → "implante o melhor de cada pra fazer algo quase perfeito":
+
+1. **Abas verticais** — `VerticalSidebar.tsx` (Spaces como itens com orbital de status + badge de não-lidos + close; seção "Abas" da Space ativa; seção "Você" humanas; bottom split/focus/settings), toggle em Settings + atalho **⌃⇧,**, rail icons-only quando colapsada (persistido em `useUiPrefs.ts` via localStorage); substitui TabStrip+SpaceTabBar quando ligado, AgentDock segue como rail.
+2. **Tree Style Tab** — `TabSchema.parentTabId` + coluna `parent_tab_id` (migration PRAGMA) no `SqliteTabStore`; `SpaceManager.openTab` seta pai = aba ativa da Space (trilha); sidebar monta árvore indentada com colapso (`buildTree` DFS poda filhos de nó colapsado).
+3. **Split dentro da Space (Vivaldi/Zen)** — `LayoutSlot` + kind `{kind:'tab',spaceId,tabId}`; `focusSpaces` aceita `FocusSlot` (string|null|`{spaceId,tabId}`); botão dividir por aba (`.vs-tile`); estado `tabSplit` em `useSpaces` (até 3 painéis, CSS `.trisplit`); `setActiveTab`/`setActiveHumanTab` reaplicam `applyLayout()` (fonte única de bounds).
+4. **Badges de não-lidos** — `unreadBySpace` (incrementa em log push de Space inativa, zera ao ativar).
+5. **CommandPalette busca abas** ("ALTERAR DE ABA" — Spaces + humanas).
+6. **Addon** `listHumanTabs()` → `Tab[]` (metadados no bucket humano via `humanMetas`).
+7. **Focus mode** ⌃⇧F — `.focus-mode` esconde titlebar/dock/sidebar/space-panel.
+Validação: typecheck ✓, **54/54 testes ✓** (SpaceManager 18 incl. árvore/3-panes/split-resize; SqliteTabStore 5 incl. migração `parent_tab_id`), `tsc` build ✓.
+
+---
+
+### 2026-08-27 (tarde) — Orun Pulse: Cache de conhecimento Wraith + wiring de custo + fix schema SqliteTabStore
+
+Commit `d6bb91b` "Cache de conhecimento por aba (Wraith) + recordUsage com persistência de custo" (11 arquivos, +404/−399):
+
+1. **`PageKnowledgeCache.ts`** (inspirado no Wraith — "nunca perguntar 2x a mesma coisa à web"): snapshots da mesma aba+URL servidos em cache por até `SNAPSHOT_CACHE_TTL_MS=10s` SEM round-trip de `executeJavaScript` (custo dominante); invalida em navegação (compara `webContents.getURL()`) e no TTL (cobre mutação de SPA sem navegação); nunca cacheia página vazia (recarga); cap 200 entradas com evicção LRU; stats hits/misses. **Design**: refs `@eN` apontam pra elementos vivos daquela página → cache seguro; se DOM mudar, `act()` devolve `ref_outdated`/`not_found` e o agente re-snapshota.
+2. **Wiring de custo**: `IAgentSession.recordUsage(tokens, costUsd)` + `AgentSessionRegistry.recordUsage(spaceId,…)` (hook pro `@orun/ai-router` chamar após cada LLM call, roteia pela session se existir → loga `uso: X tokens (~ US$Y)` no painel) → acumula em `Space.tokensUsed`/`costUsd` via `trackUsage()`.
+3. **Bugfix de schema no `SqliteTabStore`**: colunas `active_tab_id`/`tokens_used`/`cost_usd` eram lidas no `loadAll()` mas NUNCA criadas (erro runtime) — adicionadas ao CREATE TABLE + migration via PRAGMA table_info/ALTER TABLE p/ DBs antigos; `saveSpace` agora persiste os 3 campos; novo método `close()`.
+4. **Dep alinhada**: `better-sqlite3 ^11→^13` no workspace electron (prebuild só ^13 pro Node 26/v147).
+Validação: typecheck ✓, **46/46 testes ✓** (5 arquivos: SpaceManager 12, domSnapshot 11, AgentSession 13, PageKnowledgeCache 7, SqliteTabStore 3), build ✓.
+
+---
+
+### 2026-08-27 — Desktop: Finance provider-agnostic integrado + seletor de provider no Settings
+
+**DECISÕES**: `orun-integrations/finance` é o canônico de `@orun/finance-node`; alterar `main.cjs` pra usar a fábrica `createFinanceStore`.
+
+**Integração concluída**:
+1. **Vendor CJS**: compilei `@orun/finance-core` e `@orun/finance-node` pra CommonJS e criei `orun_project/vendor/orun-finance-core/` e `vendor/orun-finance-node/` (com `dist/`) seguindo padrão `vendor/ai-router-node`.
+2. **package.json desktop**: adicionados `"@orun/finance-core": "file:vendor/orun-finance-core"` e `"@orun/finance-node": "file:vendor/orun-finance-node"`.
+3. **`npm install`** limpo (12 pacotes, não tocou instância rodando).
+4. **`main.cjs` finance init**: trocou bloco Actual Budget hardcoded por `createFinanceStore`, lendo `intgSettings.finance.provider` (`manual | actual-budget | pluggy`), com **default seguro** (só `dataDir` setado → `actual-budget`, senão `manual`; respeita `enabled !== false`; `itemIds` string separada por vírgula → array). Antes `require("@orun/finance-node")` falhava `MODULE_NOT_FOUND`.
+5. **Settings UI**: estendeu `IntegrationsSettings.tsx` com seletor de provider (Manual / Actual Budget / Pluggy) + campos condicionais por provider (AB: serverUrl/serverPassword/dataDir; Pluggy: clientId/clientSecret/itemIds) + dica de uso; estado "Conectado" reflete requiredFields do provider ativo; migração automática de provider legado (clientId→pluggy, dataDir→actual-budget).
+Validação: `node --check main.cjs` ✓, `npm run typecheck` ✓ (0 erros), require smoke test ✓.
+
+---
+
+### 2026-08-27 — Desktop: Consolidação de workspaces duplicados (Developer→Orun Code, Finance Ledger→removido)
+
+**DECISÃO (via question)**: fundir em Orun Code e remover o Developer; manter Finance Real e remover o Ledger.
+
+**Implementado**:
+1. **Ponte real de arquivos/terminal/segurança do Developer portada** para `workspace-orun-code/actions.ts` (workspace id `oruncode`, lê `useOrunCodeStore`, eventos `oruncode:file-written`, export `runOrunCodeAction`; mesmas tools via `window.orun.developer`/`/api/developer`).
+2. **`OrunCode.tsx`** registra actions no mount (`setOCStoreGetter`+`registerOrunCodeActions`) e inicializa workspace com `settings.appPath` (igual DeveloperIDE).
+3. **`OrunAIPanel.sendMessage`** no mode **Act** agora chama ações reais (execute_command no terminal + analyze_security no arquivo ativo + write_file reescreve o arquivo ativo) e registra em Changes — sai da simulação pura.
+4. **`PluginRegistry.ts`** `AGENT_PLUGIN_MAP`: `Developer:"OrunCode"`, `Finance:"FinanceReal"`.
+5. **`HomeScreen.tsx`** PLUGIN_MAP igual (`developer→OrunCode`, `finance→FinanceReal`).
+6. **`workspace-loaders.ts`** removidos loaders de `workspace-developer-ide` e `workspace-finance-ledger`.
+7. **Pastas deletadas** `workspace-developer-ide/` e `workspace-finance-ledger/` (self-contained, sem outras refs).
+8. Orun Code bump p/ **v0.2.0**; spec atualizada p/ v1.1.
+Validação: **typecheck ✓, 1276 testes ✓ / 9 skip (82 files; antes 1274), `vite build` ✓ — chunk OrunCode cresceu p/ 54.5 kB e NÃO há mais chunks Developer/FinanceLedger**. Agentes `Developer` e `Finance` **permanecem** (são agentes do Círculo, não workspaces).
+
+---
+
+### 2026-08-27 — Orun Code workspace: Fase 1+2 implementada (IDE + Orun AI)
+
+Criado workspace novo **`workspace-orun-code/`** (id `"OrunCode"`, plugin `Orun Code` v0.1.0) seguindo visão "ambiente de engenharia de software inteligente" (VS Code + Cursor + Cline + Roo + Cody + Aider + OpenHands, arquitetura própria).
+
+**Palette própria**: `#0B0D10`/`#0E1013`/`#101318`/`#1A1F27`, border `#20252D`/`#292F38`, text `#F2F4F7`, vermelho `#E50914`/`#FF3340` (tokens `OC` em `orun-code.tsx` com CSS vars `--oc-*`).
+
+**Fase 1 (IDE)**: Activity Bar estendida (Explorer/Search/Git/Intelligence/Agents/Testing/Security/Dependencies/MCP + toggle Orun AI + toggle painéis + logo OC), FileExplorer, SearchPanel, GitPanel, CodeEditor (abas, edição, Ctrl+S, highlight, minimapa), Minimap, StatusBar.
+
+**Fase 2 (Orun AI)**: painel direito com abas **Chat/Context/Plan/Changes/Review** + modes **Plan/Act** (pill colorida), resposta simulada (runtime real é Fase 2.5/3). Painel inferior: Terminal/Problems/Output/Tests/Git/Agent Log/MCP. Painel Intelligence (Project Health + Architecture Map + Call/Dependency/Symbol graphs) e Agents (pipeline Architect→Planner→Coder→Debugger→Tester→Reviewer→Security→Documenter).
+
+**Registro**: loader em `workspace-loaders.ts` + smoke test em `workspaceSmoke.test.tsx` (OrunCode renderiza). **Spec**: `workspace-orun-code/ORUN-CODE-SPEC.md` (7 fases, layout, tokens, módulos, funções futuras).
+Validação: **typecheck ✓, testes ✓ (1274 pass / 1 falha pré-existente timeout rede), `vite build` ✓ (chunk `OrunCode-*.js` 42.7 kB lazy)**.
+
+---
+
+### 2026-08-27 — Health workspace redesign completo (inspirado em mockup Gemini)
+
+Nova paleta premium dark: bg `#08080A`, card `#121216`, border `#22222A`, primário vermelho `#E50914`. **Decisão: SVG body map próprio** (rejeitado Three.js/R3F e react-muscle-highlighter — zero dep extra).
+
+**Novos componentes (5)**: `WellBeingCard` (métricas humor/ansiedade/estresse/energia/foco com `WELLNESS_CONFIG`), `ActivityTimeline` (refeições/sintomas/bem-estar), `VitalSignsGrid` (Peso/FC/Pressão/Sono), `NutritionCard` (donut+macros+última refeição), `WorkoutCard` (treino+CTA "INICIAR TREINO").
+
+**Atualizados**: `HealthWorkspace` (layout 3 colunas CSS grid: mapa corporal | vitais | nutrição/treino/bem-estar + barra de alertas sintomas/meds), `MetricCard` (paleta nova), `health-actions` (`log_wellness`+`get_wellness`), `agent-prompts.cjs` e `agentPageData.ts` (paleta Health → `#E50914`/dark).
+**Fix pré-existente**: erro de sintaxe em `BodyView.tsx:173` (`var(--muted-foreground)` sem `)`).
+Validação: typecheck ✓, **1274 testes ✓ / 1 falha pré-existente (timeout rede `updateChecker.real.test.ts`)**.
 
 

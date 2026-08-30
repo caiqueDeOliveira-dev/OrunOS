@@ -1,0 +1,5 @@
+id,displayName,icon,path
+vp-marketing,VP Marketing (CMO),📈,../../agents/vp-marketing.agent.md
+social-intel,Social Intelligence Agent,🔍,../../agents/social-intel.agent.md
+head-brand-strategy,Head of Brand Strategy,🎨,../../agents/head-brand-strategy.agent.md
+content-studio,Content Studio Agent,✍️,../../agents/content-studio.agent.md

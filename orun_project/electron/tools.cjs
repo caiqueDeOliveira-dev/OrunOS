@@ -451,6 +451,37 @@ const TOOL_DEFINITIONS = [
   {
     type: "function",
     function: {
+      name: "publish_to_instagram_direct",
+      description: "Publish directly to Instagram via Meta Graph API (Development Mode). Requires Page Access Token + Instagram Business User ID configured in Settings → Integrations → Instagram Direct. Use this for posting to YOUR Instagram account without Postiz/n8n. Image or video required.",
+      parameters: {
+        type: "object",
+        properties: {
+          caption: { type: "string", description: "Post caption/text content" },
+          imageUrl: { type: "string", description: "Image URL for the post (optional, but required if no video)" },
+          videoUrl: { type: "string", description: "Video URL for Reels (optional)" },
+        },
+        required: ["caption"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "publish_to_linkedin_direct",
+      description: "Publish directly to LinkedIn via LinkedIn API v2. Requires Access Token + Person URN configured in Settings → Integrations → LinkedIn Direct. Use this for posting to YOUR LinkedIn profile without Postiz/n8n. Image optional.",
+      parameters: {
+        type: "object",
+        properties: {
+          text: { type: "string", description: "Post text content" },
+          imageUrl: { type: "string", description: "Image URL for the post (optional)" },
+        },
+        required: ["text"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "generate_image",
       description: "Generate an image using Fal.ai. Returns a URL you can use for social media posts. Use this when you need an image for Instagram or TikTok.",
       parameters: {
@@ -1490,6 +1521,37 @@ async function publishToSocial(args) {
   }
 }
 
+async function publishInstagramDirectTool(args) {
+  if (!ctx?.socialMedia || !ctx?.db) {
+    return { error: "Social media module not initialized. Restart Orun OS." };
+  }
+  try {
+    const result = await ctx.socialMedia.publishInstagramDirect({
+      imageUrl: args.imageUrl,
+      videoUrl: args.videoUrl,
+      caption: args.caption,
+    }, ctx.db);
+    return result;
+  } catch (err) {
+    return { error: err.message || String(err) };
+  }
+}
+
+async function publishLinkedInDirectTool(args) {
+  if (!ctx?.socialMedia || !ctx?.db) {
+    return { error: "Social media module not initialized. Restart Orun OS." };
+  }
+  try {
+    const result = await ctx.socialMedia.publishLinkedInDirect({
+      text: args.text,
+      imageUrl: args.imageUrl,
+    }, ctx.db);
+    return result;
+  } catch (err) {
+    return { error: err.message || String(err) };
+  }
+}
+
 async function generateImage(args) {
   if (!ctx?.image3d) {
     return { error: "Image generation module not initialized. Restart Orun OS." };
@@ -1582,6 +1644,8 @@ const SENSITIVE_TOOL_ACTIONS = {
   web_fetch: ["network_request"],
   web_search: ["network_request"],
   publish_to_social: ["network_request"],
+  publish_to_instagram_direct: ["network_request"],
+  publish_to_linkedin_direct: ["network_request"],
   generate_image: ["api_key_access", "network_request"],
   generate_video: ["api_key_access", "network_request"],
   git_stash: ["git_write"],
@@ -1601,6 +1665,10 @@ function buildAuditDetails(name, args) {
       return { query: (args.query || "").slice(0, 200) };
     case "publish_to_social":
       return { platform: args.platform, text: (args.text || "").slice(0, 100) };
+    case "publish_to_instagram_direct":
+      return { caption: (args.caption || "").slice(0, 100) };
+    case "publish_to_linkedin_direct":
+      return { text: (args.text || "").slice(0, 100) };
     case "generate_image":
       return { prompt: (args.prompt || "").slice(0, 100), model: args.model || "default" };
     case "generate_video":
@@ -1682,6 +1750,8 @@ async function executeToolRaw(name, args) {
     }
     case "schedule_task": return scheduleTask(args);
     case "publish_to_social": return publishToSocial(args);
+    case "publish_to_instagram_direct": return publishInstagramDirectTool(args);
+    case "publish_to_linkedin_direct": return publishLinkedInDirectTool(args);
     case "generate_image": return generateImage(args);
     case "generate_video": return generateVideo(args);
     case "discord_status": return discordBridge.execute("status", args || {});
