@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import { X, Share2, Instagram, Video, Twitter, Copy, Check, Loader2, Send, Settings2, Zap } from "lucide-react";
 import { isElectron } from "../constants";
 import { useTranslation } from "../../i18n/I18nProvider";
+import type { OrunPostizChannel } from "../../types/orun";
 
 function getPlatforms(t: (key: string) => string) {
   return [
@@ -39,6 +40,26 @@ interface Props {
   onSelectAgent: (agentName: string) => void;
 }
 
+const DIRECT_KEY_BY_PLATFORM: Record<string, string> = {
+  instagram: "instagramDirect",
+  twitter: "twitterDirect",
+  tiktok: "tiktokDirect",
+};
+
+type IntegrationCfg = { enabled?: boolean; [field: string]: unknown };
+
+function isDirectReady(key: string | undefined, cfg: IntegrationCfg | undefined): boolean {
+  if (!key || !cfg?.enabled) return false;
+  const requiredFor: Record<string, string[]> = {
+    instagramDirect: ["accessToken", "igUserId"],
+    twitterDirect: ["apiKey", "apiSecret", "accessToken", "accessTokenSecret"],
+    tiktokDirect: ["accessToken"],
+  };
+  const required = requiredFor[key];
+  if (!required || required.length === 0) return false;
+  return required.every((f) => typeof cfg[f] === "string" && (cfg[f] as string).trim() !== "");
+}
+
 export function SocialMediaPanel({ onClose, onSelectAgent }: Props) {
   const { t } = useTranslation();
   const platforms = getPlatforms(t);
@@ -55,6 +76,8 @@ export function SocialMediaPanel({ onClose, onSelectAgent }: Props) {
   const [publishResult, setPublishResult] = useState<string | null>(null);
   const [mediaUrl, setMediaUrl] = useState("");
   const [bufferConfig, setBufferConfigState] = useState<{ token?: string; channels?: Record<string, string> }>({});
+  const [integrations, setIntegrations] = useState<Record<string, IntegrationCfg>>({});
+  const [postizChannels, setPostizChannels] = useState<OrunPostizChannel[]>([]);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -70,6 +93,12 @@ export function SocialMediaPanel({ onClose, onSelectAgent }: Props) {
     window.orun.socialMedia.getBufferConfig().then((cfg) => {
       if (cfg) setBufferConfigState(cfg);
     });
+    window.orun?.settings?.get<Record<string, IntegrationCfg>>("integrations").then((cfg) => {
+      if (cfg && typeof cfg === "object") setIntegrations(cfg);
+    }).catch(() => {});
+    window.orun?.postiz?.listChannels().then((res) => {
+      if (res?.ok && Array.isArray(res.data)) setPostizChannels(res.data.filter((c) => c.type === "social"));
+    }).catch(() => {});
   }, []);
 
   const saveWebhookConfig = async () => {
@@ -109,6 +138,42 @@ export function SocialMediaPanel({ onClose, onSelectAgent }: Props) {
 
     setPublishing(true);
     setPublishResult(null);
+
+    const isVideo = mediaUrl.includes(".mp4") || mediaUrl.toLowerCase().includes("video");
+    const hasMedia = mediaUrl.trim() !== "";
+    const postizChannel = platformInfo.publishKey === "twitter"
+      ? postizChannels.find((c) => c.identifier === "x")
+      : platformInfo.publishKey === "tiktok"
+        ? postizChannels.find((c) => c.identifier === "tiktok")
+        : undefined;
+
+    if (postizChannel) {
+      if (platformInfo.publishKey === "tiktok" && !hasMedia) {
+        setPublishing(false);
+        setPublishResult(t("socialMediaTiktokReqMedia"));
+        setTimeout(() => { if (mountedRef.current) setPublishResult(null); }, 5000);
+        return;
+      }
+      const res = await window.orun.postiz.createPost({
+        type: "now",
+        posts: [
+          {
+            integrationId: postizChannel.id,
+            content: text,
+            providerIdentifier: platformInfo.publishKey === "twitter" ? "x" : "tiktok",
+            ...(hasMedia ? (isVideo ? { videos: [mediaUrl.trim()] } : { images: [mediaUrl.trim()] }) : {}),
+          },
+        ],
+      });
+      setPublishing(false);
+      if (res.ok) {
+        setPublishResult(`${t("socialMediaPublishedSuccess")} ${platformInfo.label} (Postiz)`);
+      } else {
+        setPublishResult(`${t("socialMediaPublishError")}: ${res.error}`);
+      }
+      setTimeout(() => { if (mountedRef.current) setPublishResult(null); }, 5000);
+      return;
+    }
 
     const payload: Record<string, unknown> = {
       platform: platformInfo.publishKey,
@@ -156,6 +221,16 @@ export function SocialMediaPanel({ onClose, onSelectAgent }: Props) {
   };
 
   const configuredPlatforms = Object.keys(webhookConfig).filter((k) => webhookConfig[k]?.webhookUrl);
+  const directConfigured = Object.keys(DIRECT_KEY_BY_PLATFORM).filter((pk) => isDirectReady(DIRECT_KEY_BY_PLATFORM[pk], integrations[DIRECT_KEY_BY_PLATFORM[pk]]));
+  const postizReady = (identifier: string) => postizChannels.some((c) => c.identifier === identifier);
+  const allConfigured = new Set([...configuredPlatforms, ...directConfigured]);
+  if (postizReady("x")) allConfigured.add("twitter");
+  if (postizReady("tiktok")) allConfigured.add("tiktok");
+  const isPlatformReady = (publishKey: string) => {
+    if (publishKey === "twitter") return !!webhookConfig[publishKey]?.webhookUrl || isDirectReady(DIRECT_KEY_BY_PLATFORM[publishKey], integrations[DIRECT_KEY_BY_PLATFORM[publishKey]]) || postizReady("x");
+    if (publishKey === "tiktok") return !!webhookConfig[publishKey]?.webhookUrl || isDirectReady(DIRECT_KEY_BY_PLATFORM[publishKey], integrations[DIRECT_KEY_BY_PLATFORM[publishKey]]) || postizReady("tiktok");
+    return !!webhookConfig[publishKey]?.webhookUrl || isDirectReady(DIRECT_KEY_BY_PLATFORM[publishKey], integrations[DIRECT_KEY_BY_PLATFORM[publishKey]]);
+  };
 
   return (
     <motion.div
@@ -180,9 +255,9 @@ export function SocialMediaPanel({ onClose, onSelectAgent }: Props) {
             <span className="text-sm font-semibold" style={{ fontFamily: "'Sora', sans-serif", color: "#eee" }}>
               Social Media
             </span>
-            {configuredPlatforms.length > 0 && (
+            {allConfigured.size > 0 && (
               <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px]" style={{ background: "rgba(46,204,113,0.15)", color: "#2ecc71" }}>
-                <Zap size={8} /> {configuredPlatforms.length} plataforma{configuredPlatforms.length > 1 ? "s" : ""}
+                <Zap size={8} /> {allConfigured.size} plataforma{allConfigured.size > 1 ? "s" : ""}
               </span>
             )}
           </div>
@@ -285,7 +360,7 @@ export function SocialMediaPanel({ onClose, onSelectAgent }: Props) {
         </label>
         <div className="grid grid-cols-3 gap-1.5 mb-4">
           {platforms.map((p) => {
-            const isConfigured = !!webhookConfig[p.publishKey]?.webhookUrl;
+            const isConfigured = isPlatformReady(p.publishKey);
             return (
               <button
                 key={p.id}
@@ -401,8 +476,8 @@ export function SocialMediaPanel({ onClose, onSelectAgent }: Props) {
                   disabled={publishing}
                   className="flex items-center gap-1 px-2 py-0.5 rounded text-[9px]"
                   style={{
-                    background: webhookConfig[platforms.find((p) => p.id === platform)?.publishKey || ""]?.webhookUrl ? "rgba(46,204,113,0.15)" : "var(--border)",
-                    color: webhookConfig[platforms.find((p) => p.id === platform)?.publishKey || ""]?.webhookUrl ? "#2ecc71" : "var(--muted-foreground)",
+                    background: isPlatformReady(platforms.find((p) => p.id === platform)?.publishKey || "") ? "rgba(46,204,113,0.15)" : "var(--border)",
+                    color: isPlatformReady(platforms.find((p) => p.id === platform)?.publishKey || "") ? "#2ecc71" : "var(--muted-foreground)",
                   }}
                 >
                   {publishing ? <Loader2 size={10} className="animate-spin" /> : <Send size={10} />}

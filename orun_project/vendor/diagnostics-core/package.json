@@ -1,0 +1,13 @@
+{
+  "name": "@orun/diagnostics-core",
+  "version": "0.2.0",
+  "description": "Orun Diagnostics - probes, scheduler e historico de diagnosticos (CJS vendor build for Electron main process)",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "commonjs",
+  "license": "ISC",
+  "dependencies": {
+    "zod": "^3.23.8",
+    "better-sqlite3": "^11.10.0"
+  }
+}

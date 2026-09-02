@@ -346,6 +346,9 @@ const OPENAI_COMPATIBLE = {
   nvidia: { baseUrl: "https://integrate.api.nvidia.com/v1", authHeaders: (key) => ({ Authorization: `Bearer ${key}` }), defaultModel: "meta/llama-3.1-70b-instruct" },
   // Ollama Cloud — https://ollama.com (mesma API OpenAI-compat, modelos hospedados).
   ollama_cloud: { baseUrl: "https://ollama.com/v1", authHeaders: (key) => ({ Authorization: `Bearer ${key}` }), defaultModel: "gpt-oss:120b" },
+  // Orun Router local — o roteador do próprio Orun (127.0.0.1:4321/v1). Sem chave:
+  // o modelo é o ID de um combo (ex.: "free-forever"); os combos aparecem em /v1/models.
+  "orun-router": { baseUrl: "http://127.0.0.1:4321/v1", authHeaders: () => ({}), defaultModel: "free-forever", noAuth: true },
 };
 
 function isOpenAICompatible(provider) {
@@ -733,7 +736,8 @@ async function listOllamaModels(baseUrl) {
 
 async function listCloudModels(provider, apiKey) {
   const cfg = OPENAI_COMPATIBLE[provider];
-  if (!cfg || !apiKey) return [];
+  if (!cfg) return [];
+  if (!apiKey && !cfg.noAuth) return [];
   try {
     const result = await getJSON(`${cfg.baseUrl}/models`, cfg.authHeaders(apiKey));
     return (result.data || []).map((m) => m.id).sort();
@@ -872,8 +876,19 @@ const MODEL_CATALOG = {
     { id: "qwen3.5-plus", free: false },
   ],
 };
-function getModelCatalog() {
-  return MODEL_CATALOG;
+async function getModelCatalog() {
+  const cat = { ...MODEL_CATALOG };
+  const def = [{ id: "free-forever", free: true }];
+  try {
+    const cfg = OPENAI_COMPATIBLE["orun-router"];
+    if (!cfg) { cat["orun-router"] = def; return cat; }
+    const result = await getJSON(`${cfg.baseUrl}/models`, cfg.authHeaders());
+    const models = (result.data || []).map((m) => ({ id: m.id, free: true })).sort((a, b) => a.id.localeCompare(b.id));
+    cat["orun-router"] = models.length ? models : def;
+  } catch {
+    cat["orun-router"] = def;
+  }
+  return cat;
 }
 
 module.exports = {

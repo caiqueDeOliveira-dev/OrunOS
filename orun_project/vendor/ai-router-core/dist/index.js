@@ -48,4 +48,7 @@ __exportStar(require("./token-saver"), exports);
 __exportStar(require("./proxy-pool"), exports);
 __exportStar(require("./tunnel"), exports);
 __exportStar(require("./translator"), exports);
+__exportStar(require("./format-bridge"), exports);
+__exportStar(require("./mcp/mcp-client"), exports);
+__exportStar(require("./a2a/a2a-client"), exports);
 //# sourceMappingURL=index.js.map

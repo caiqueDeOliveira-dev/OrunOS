@@ -402,6 +402,24 @@ export interface OrunSocialMediaPlatformTest {
   error?: string;
 }
 
+export interface OrunPostizChannel {
+  id: string;
+  name?: string;
+  identifier?: string;
+  type?: string;
+  internalId?: string;
+}
+
+export interface OrunPostizPost {
+  integrationId: string;
+  content: string;
+  images?: string[];
+  videos?: string[];
+  providerIdentifier?: string;
+  whoCanReply?: string;
+  settings?: Record<string, unknown>;
+}
+
 export type OrunTTSEngine = "elevenlabs" | "google" | "azure" | "edge" | "xtts" | "piper" | "bark" | "f5tts" | "kokoro";
 
 export interface OrunVoice {
@@ -697,6 +715,7 @@ export interface OrunGroupMessage {
   senderJid?: string;
   senderName?: string | null;
   text?: string | null;
+  mentionedJids?: string[];
   imageBase64?: string | null;
   imageMime?: string | null;
   audioMime?: string | null;
@@ -849,6 +868,7 @@ export interface OrunRouterStep {
 export interface OrunRouterCombo {
   id: string;
   name: string;
+  source?: "internal" | "external";
   kind?: "text" | "media";
   steps: OrunRouterStep[];
   skillId?: string;
@@ -869,6 +889,16 @@ export interface OrunRouterProvider {
   keyMasked: string | null;
   configured: boolean;
   configModelCount: number;
+}
+
+export interface OrunRouterProviderConfig {
+  providerId: string;
+  enabled?: boolean;
+  hasCredential?: boolean;
+  accountLabel?: string;
+  customBaseUrl?: string;
+  priority?: number;
+  rotationMode?: "priority" | "round-robin";
 }
 
 export interface OrunRouterUsageEvent {
@@ -1042,16 +1072,23 @@ interface OrunAPI {
   aiRouter: {
     health: () => Promise<OrunRouterHealth>;
     listCombos: () => Promise<OrunRouterCombo[]>;
+    listCombosMerged: () => Promise<OrunRouterCombo[]>;
+    completeCombo: (opts: { comboId: string; source?: "internal" | "external"; messages: { role: "system" | "user" | "assistant" | "tool"; content: string }[] }) => Promise<{ ok: boolean; text?: string; providerId?: string; model?: string; error?: string }>;
     listProviders: () => Promise<OrunRouterProvider[]>;
     getCombo: (comboId: string) => Promise<OrunRouterCombo | null>;
     saveCombo: (combo: OrunRouterCombo) => Promise<OrunRouterCombo>;
     deleteCombo: (comboId: string) => Promise<{ ok: boolean }>;
+    saveProvider: (config: OrunRouterProviderConfig) => Promise<{ ok: boolean; error?: string }>;
+    deleteProvider: (providerId: string) => Promise<{ ok: boolean; error?: string }>;
     usageRecent: (opts?: { comboId?: string; limit?: number }) => Promise<OrunRouterUsageEvent[]>;
     complete: (request: { comboId: string; messages: { role: "system" | "user" | "assistant" | "tool"; content: string }[] }) => Promise<OrunRouterCompleteResult>;
     stream: (request: { comboId: string; messages: { role: "system" | "user" | "assistant" | "tool"; content: string }[] }, callbacks: OrunRouterStreamCallbacks) => () => void;
     httpStatus: () => Promise<OrunRouterHttpStatus>;
     httpStart: () => Promise<OrunRouterHttpStatus>;
     httpStop: () => Promise<{ ok: boolean }>;
+    setCredential: (opts: { providerId: string; accountLabel?: string; apiKey: string }) => Promise<{ ok: boolean; providerId?: string; accountLabel?: string; error?: string }>;
+    deleteCredential: (opts: { providerId: string; accountLabel?: string }) => Promise<{ ok: boolean; error?: string }>;
+    credentialStatus: () => Promise<{ providerId: string; accountLabel: string }[]>;
   };
   settings: {
     get: <T = unknown>(key: string) => Promise<T | undefined>;
@@ -1091,8 +1128,9 @@ interface OrunAPI {
     listIdentities: (opts?: { pendingOnly?: boolean }) => Promise<OrunUserIdentity[]>;
     listWorkspaces: () => Promise<OrunWorkspace[]>;
     listChannels: (opts?: { enabledOnly?: boolean }) => Promise<OrunAgentChannel[]>;
-    setChannel: (args: { provider: string; externalChannelId: string; agent: string; name?: string }) => Promise<OrunAgentChannel>;
+    setChannel: (args: { provider: string; externalChannelId: string; agent: string; name?: string; mode?: "always" | "mention" }) => Promise<OrunAgentChannel>;
     setChannelEnabled: (args: { provider: string; externalChannelId: string; enabled: boolean }) => Promise<OrunAgentChannel>;
+    removeChannel: (args: { provider: string; externalChannelId: string }) => Promise<{ deleted: boolean }>;
     completeOnboarding: (args: { identityId: string; name: string; workspaceName?: string }) => Promise<{ userId: string; profileId: string; workspaceId: string; identityId: string; status: string }>;
     linkIdentity: (args: { identityId: string; userId: string }) => Promise<{ userId: string; identityId: string; workspaceId: string | null }>;
     getVoiceSettings: (agentId: string) => Promise<OrunAgentVoiceSettings | null>;
@@ -1111,6 +1149,21 @@ interface OrunAPI {
     publish: (opts: OrunSocialMediaPublishOpts) => Promise<OrunSocialMediaPublishResult>;
     publishMulti: (opts: { platforms: OrunSocialMediaPlatform[]; text: string; hook?: string; hashtags?: string[]; imageUrl?: string; videoUrl?: string; format?: string }) => Promise<OrunSocialMediaPublishResult[]>;
     test: () => Promise<Record<string, OrunSocialMediaPlatformTest>>;
+    publishInstagramDirect: (opts: { imageUrl?: string; videoUrl?: string; caption?: string }) => Promise<OrunSocialMediaPublishResult>;
+    publishLinkedInDirect: (opts: { text?: string; imageUrl?: string }) => Promise<OrunSocialMediaPublishResult>;
+    publishTwitterDirect: (opts: { text?: string; imageUrl?: string; videoUrl?: string }) => Promise<OrunSocialMediaPublishResult>;
+    publishTikTokDirect: (opts: { text?: string; imageUrl?: string; videoUrl?: string }) => Promise<OrunSocialMediaPublishResult>;
+  };
+  postiz: {
+    listChannels: () => Promise<{ ok: boolean; data?: OrunPostizChannel[]; error?: string }>;
+    listPosts: (opts?: { startDate?: string; endDate?: string }) => Promise<{ ok: boolean; data?: unknown[]; error?: string }>;
+    createPost: (input: { posts: OrunPostizPost[]; type?: "schedule" | "draft" | "now"; date?: string; tags?: string[]; shortLink?: boolean }) => Promise<{ ok: boolean; data?: unknown; error?: string }>;
+    deletePost: (group: string) => Promise<{ ok: boolean; data?: unknown; error?: string }>;
+    getPost: (postId: string) => Promise<{ ok: boolean; data?: unknown; error?: string }>;
+    getStats: (postId: string) => Promise<{ ok: boolean; data?: unknown; error?: string }>;
+    availableChannels: () => Promise<{ ok: boolean; data?: unknown; error?: string }>;
+    findSlot: (integrationId?: string) => Promise<{ ok: boolean; data?: unknown; error?: string }>;
+    health: () => Promise<{ ok: boolean; data?: { ok: boolean; host?: string; error?: string }; error?: string }>;
   };
   app: {
     setRunInBackground: (value: boolean) => Promise<boolean>;
@@ -1891,6 +1944,7 @@ declare global {
     external_channel_id: string;
     agent: string;
     name: string | null;
+    mode: "always" | "mention";
     enabled: number;
     created_at: number;
     updated_at: number;

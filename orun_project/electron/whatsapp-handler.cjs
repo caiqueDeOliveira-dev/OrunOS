@@ -24,6 +24,28 @@ const careerBridge = require("./career.cjs");
 const vehicleProfile = require("./vehicle-profile.cjs");
 
 /**
+ * Extract bare numeric part of a WhatsApp JID (drops device/server suffix).
+ */
+function jidBare(jid) {
+  if (!jid) return "";
+  return String(jid).split(":")[0].replace(/@.*$/, "").replace(/[^\d]/g, "");
+}
+
+/**
+ * True when the bot (selfJid e/ou selfLid) está na lista de menções. Para o
+ * socket, selfJid vem como "5599...:52@s.whatsapp.net"; menções podem chegar
+ * como número ("5511...@s.whatsapp.net") ou como LID ("2409...@lid") — o
+ * WhatsApp moderno entrega o @ usando o LID próprio do bot. Por isso
+ * comparamos o JID da menção com ambos os identificadores do self.
+ */
+function isMentioned(mentionedJids, selfJid, selfLid) {
+  if (!Array.isArray(mentionedJids)) return false;
+  const selfBares = [jidBare(selfJid), jidBare(selfLid)].filter(Boolean);
+  if (selfBares.length === 0) return false;
+  return mentionedJids.some((j) => selfBares.includes(jidBare(j)));
+}
+
+/**
  * Find which agent is assigned to a given JID (legacy agentJids mapping).
  */
 function agentForJid(jid, db) {
@@ -211,6 +233,7 @@ function persistOutbound(db, { conversationId, workspaceId, userId, agentId, tex
 async function handleWhatsAppMessage(payload, ctx) {
   const {
     jid, senderJid, senderName, text, imageBase64, audioBase64, audioMime, fromMe, externalMessageId, timestamp,
+mentionedJids, selfJid, selfLid,
   } = payload || {};
   const {
     db, aiRouter, agentProcessor, secretStore, whatsapp, waAutomation, buildSystemPrompt,
@@ -224,6 +247,18 @@ async function handleWhatsAppMessage(payload, ctx) {
 
   const agentId = resolveAgent(payload, db, logg);
   if (!agentId) return;
+
+  // Modo de resposta por canal (agent_channels.mode): em grupos com mode
+  // "mention", o bot só responde quando é mencionado explicitamente com @.
+  // O self jid vem no payload do socket (sock.user.id). O corte aqui acontece
+  // ANTES de onboarding/rota determinística — ruído de grupo não gera
+  // conversas nem dispara a rota do Carreiras.
+  const channel = identityResolver.resolveAgentForChannel({ provider: "whatsapp", externalChannelId: jid }, db);
+  if (channel && channel.mode === "mention" && jid?.endsWith("@g.us")) {
+    const isMention = isMentioned(mentionedJids, selfJid, selfLid);
+    logg.info(`[whatsapp] grupo ${jid} em modo @ — mencionados=${JSON.stringify(mentionedJids || [])} selfJid=${selfJid || "null"} selfLid=${selfLid || "null"} bareSelf=${jidBare(selfJid) || "null"} bareSelfLid=${jidBare(selfLid) || "null"} -> ${isMention ? "mencao detectada, processando" : "sem mencao, ignorada"}`);
+    if (!isMention) return;
+  }
 
   const senderKey = senderJid || jid;
   const resolved = identityResolver.resolveSender({ provider: "whatsapp", providerUserId: senderKey, displayName: senderName }, db);
@@ -289,7 +324,11 @@ async function handleWhatsAppMessage(payload, ctx) {
 
   // Rota determinística do agente Carreiras: perguntas de vagas/currículo
   // respondem direto do estado (sem chamada de LLM) — estilo rota do CaOS.
-  if (careerBridge.isCareerQuestion(finalText)) {
+  // Só dispara no canal resolvido do próprio agente: o regex pode casar
+  // substrings como "busca"/"procura"/"achou" dentro de mensagens de OUTROS
+  // agentes (ex.: "me busca o preço de uma peça" no Automotive), e assim
+  // evitamos gravar material de outro agente no workspace Carreiras.
+  if (agentId === "Carreiras" && careerBridge.isCareerQuestion(finalText)) {
     const careerReply = await careerBridge.buildWhatsAppReply(finalText);
     const { conversationId: careerConvId } = persistInbound(db, {
       jid, agentId, userId, workspaceId, senderKey, externalMessageId,
@@ -424,4 +463,4 @@ function saveNutritionToFile(text, userDataPath, log) {
   }
 }
 
-module.exports = { handleWhatsAppMessage, saveNutritionToFile, agentForJid };
+module.exports = { handleWhatsAppMessage, saveNutritionToFile, agentForJid, isMentioned, jidBare };

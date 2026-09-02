@@ -4,7 +4,7 @@ import { X, Cpu, Cloud, CheckCircle2, XCircle, Loader2, RefreshCw, Users, Activi
 import { useTranslation } from "../../i18n/I18nProvider";
 import { LANGUAGE_OPTIONS, type Language } from "../../i18n/translations";
 import { isElectron } from "../constants";
-import type { OrunProvider } from "../../types/orun";
+import type { OrunProvider, OrunRouterCombo } from "../../types/orun";
 import { useTheme } from "../contexts/ThemeContext";
 import { startSound, stopSound, setVolume, stopAll, getActiveSounds, AMBIENT_SOUNDS } from "../services/ambientSounds";
 import { ThemeToggle } from "./ThemeToggle";
@@ -974,6 +974,8 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
   const { value: backgroundListening, setValue: setBackgroundListening } = useSetting<boolean>("core.hampton.backgroundListening");
   const { value: aiSettings, setValue: setAiSettings } = useSetting<{ provider: OrunProvider; model: string; baseUrl: string; systemPrompt: string }>("desktop.ai");
   const { value: aiFallback, setValue: setAiFallback } = useSetting<{ provider: string; model: string } | null>("desktop.aiFallback");
+  const { value: aiComboMode, setValue: setAiComboMode } = useSetting<{ enabled: boolean; comboId: string; source: "internal" | "external" }>("desktop.aiComboMode");
+  const [mergedCombos, setMergedCombos] = useState<OrunRouterCombo[]>([]);
   const [wakeServiceRunning, setWakeServiceRunning] = useState(false);
   const [wakeDiagnostic, setWakeDiagnostic] = useState<{ python?: boolean; packages?: boolean; tcpPort?: boolean } | null>(null);
   const [updateStatus, setUpdateStatus] = useState<{ status: string; version?: string; percent?: number; message?: string } | null>(null);
@@ -1013,6 +1015,7 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
     }
     window.orun.ai.knownFreeModels().then(setFreeModels);
     window.orun.ai.modelCatalog().then(setModelCatalog);
+    window.orun.aiRouter?.listCombosMerged?.().then(setMergedCombos).catch(() => setMergedCombos([]));
     window.orun.wakeListener?.status().then((s) => {
       setWakeServiceRunning(s?.running ?? false);
     });
@@ -1348,6 +1351,45 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
                           className="w-28 px-2 py-1 rounded-md text-[9px] outline-none"
                           style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--muted-foreground)", fontFamily: "'JetBrains Mono', monospace" }}
                         />
+                      )}
+                    </div>
+                  </SettingRow>
+
+                  {/* Combo como resposta principal */}
+                  <SettingRow
+                    label="Usar combo como resposta"
+                    description="Quando ligado, o chat usa o combo escolhido como resposta de texto (sem tool-calling). Cada combo roda no seu runtime: Interno (offline) ou Externo (router 4321)."
+                  >
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setAiComboMode({ enabled: !aiComboMode?.enabled, comboId: aiComboMode?.comboId || "", source: aiComboMode?.source || "internal" })}
+                        className="w-8 h-4.5 rounded-full transition-colors relative shrink-0"
+                        style={{ background: aiComboMode?.enabled ? "#00D26A" : "var(--border)", width: 34, height: 18 }}
+                      >
+                        <span
+                          className="absolute top-0.5 w-3.5 h-3.5 rounded-full transition-all"
+                          style={{ background: "#fff", left: aiComboMode?.enabled ? 16 : 2, top: 2 }}
+                        />
+                      </button>
+                      {aiComboMode?.enabled && (
+                        <select
+                          value={`${aiComboMode?.source}:${aiComboMode?.comboId}`}
+                          onChange={(e) => {
+                            const [source, ...rest] = e.target.value.split(":");
+                            const comboId = rest.join(":");
+                            setAiComboMode({ enabled: true, source: source as "internal" | "external", comboId });
+                          }}
+                          className="px-2 py-1 rounded-md text-[10px] outline-none max-w-[200px]"
+                          style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--muted-foreground)" }}
+                        >
+                          {mergedCombos.length === 0 && <option value="">(nenhum combo)</option>}
+                          {mergedCombos.map((c) => (
+                            <option key={`${c.source}:${c.id}`} value={`${c.source}:${c.id}`}>
+                              {c.name || c.id} · {c.source === "internal" ? "Interno" : "Externo"}
+                            </option>
+                          ))}
+                        </select>
                       )}
                     </div>
                   </SettingRow>

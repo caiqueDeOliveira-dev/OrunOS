@@ -137,7 +137,7 @@ async function createPost({ posts, type, date, shortLink, tags }) {
     tags,
     posts: posts.map((p) => ({
       integration: { id: p.integrationId },
-      value: [{ content: p.content, image: p.images || [] }],
+      value: [{ content: p.content, image: p.images || [], video: p.videos || [] }],
       settings: {
         __type: p.providerIdentifier || "x",
         who_can_reply_post: p.whoCanReply || "everyone",

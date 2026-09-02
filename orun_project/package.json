@@ -4,7 +4,7 @@
   "description": "Orun OS — a personal AI desktop assistant with local and cloud model support.",
   "author": "Grupo Orun Soluções Tecnológicas",
   "private": true,
-  "version": "0.7.2",
+  "version": "0.7.3",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
@@ -37,6 +37,9 @@
     "@orun/music-react": "file:vendor/orun-music-react",
     "@orun/sentinela-agent": "file:vendor/orun-sentinela-agent",
     "@orun/shield-core": "file:vendor/orun-shield-core",
+    "@orun/store-core": "file:vendor/store-core",
+    "@orun/diagnostics-core": "file:vendor/diagnostics-core",
+    "@orun/backup-core": "file:vendor/backup-core",
     "@orun/system-optimizer": "file:vendor/orun-system-optimizer",
     "@radix-ui/react-accordion": "1.2.3",
     "@radix-ui/react-alert-dialog": "1.1.6",

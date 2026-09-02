@@ -125,6 +125,29 @@ describe("agent channels", () => {
     expect(rows).toHaveLength(1); // upsert em conflito (provider+channel) mantém o mesmo canal
     expect(rows[0].agent).toBe("Finance");
   });
+
+  it("mode defaults to 'always' and persists 'mention' (e inválido cai para always)", () => {
+    db.upsertAgentChannel({ id: resolver.uuid(), provider: "whatsapp", externalChannelId: "g-always@g.us", agent: "Hampton" });
+    expect(db.getAgentChannel("whatsapp", "g-always@g.us").mode).toBe("always");
+
+    db.upsertAgentChannel({ id: resolver.uuid(), provider: "whatsapp", externalChannelId: "g-mention@g.us", agent: "Hampton", mode: "mention" });
+    const ch = db.getAgentChannel("whatsapp", "g-mention@g.us");
+    expect(ch.mode).toBe("mention");
+    // Resolver propaga o mode junto do canal.
+    expect(resolver.resolveAgentForChannel({ provider: "whatsapp", externalChannelId: "g-mention@g.us" }, db).mode).toBe("mention");
+
+    db.upsertAgentChannel({ id: resolver.uuid(), provider: "whatsapp", externalChannelId: "g-bad@g.us", agent: "Hampton", mode: "qualquer" });
+    expect(db.getAgentChannel("whatsapp", "g-bad@g.us").mode).toBe("always");
+  });
+
+  it("deleteAgentChannel remove só o mapeamento do grupo", () => {
+    db.upsertAgentChannel({ id: resolver.uuid(), provider: "whatsapp", externalChannelId: "g1@g.us", agent: "Health" });
+    db.upsertAgentChannel({ id: resolver.uuid(), provider: "whatsapp", externalChannelId: "g2@g.us", agent: "Finance" });
+    expect(db.deleteAgentChannel("whatsapp", "g1@g.us").deleted).toBe(true);
+    expect(resolver.resolveAgentForChannel({ provider: "whatsapp", externalChannelId: "g1@g.us" }, db)).toBeNull();
+    expect(resolver.resolveAgentForChannel({ provider: "whatsapp", externalChannelId: "g2@g.us" }, db).agent).toBe("Finance");
+    expect(db.deleteAgentChannel("whatsapp", "g1@g.us").deleted).toBe(false);
+  });
 });
 
 describe("message dedup", () => {

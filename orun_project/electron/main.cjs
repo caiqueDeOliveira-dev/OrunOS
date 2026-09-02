@@ -885,6 +885,11 @@ function autonomousLoop(opts) {
 
 // ── IPC handlers ─────────────────────────────────────────────────────────
 
+// ctx dos agentes é criado dentro de registerIpcHandlers, mas o bloco de
+// integrações roda no bootstrap do whenReady (fora desse escopo). Holder de
+// módulo permite os blocos de integração anexarem adapters no runtime.
+let runtimeCtx = null;
+
 function registerIpcHandlers() {
   const homeAssistantCtl = homeAssistant.init(app);
   const securityAuditCtl = securityAudit.init(app, toolsModule);
@@ -914,15 +919,16 @@ function registerIpcHandlers() {
     spotify, discordBot, telegram, telegramAutomation,
     settingsBridge,
   };
-  Object.defineProperty(ctx, "mainWindow", { get: () => mainWindow, enumerable: true });
-  Object.defineProperty(ctx, "groupWatcher", { get: () => groupWatcher, enumerable: true });
-  Object.defineProperty(ctx, "skillManager", { get: () => skillManager, enumerable: true });
-  Object.defineProperty(ctx, "memoryEngine", { get: () => memoryEngine, enumerable: true });
-  Object.defineProperty(ctx, "knowledgeEngine", { get: () => knowledgeEngine, enumerable: true });
-  Object.defineProperty(ctx, "plannerEngine", { get: () => plannerEngine, enumerable: true });
-  Object.defineProperty(ctx, "agentHub", { get: () => agentHub, enumerable: true });
-  Object.defineProperty(ctx, "eventBus", { get: () => eventBus, enumerable: true });
-  Object.defineProperty(ctx, "analytics", { get: () => analytics, enumerable: true });
+  runtimeCtx = ctx;
+  if (runtimeCtx) Object.defineProperty(runtimeCtx, "mainWindow", { get: () => mainWindow, enumerable: true });
+  if (runtimeCtx) Object.defineProperty(runtimeCtx, "groupWatcher", { get: () => groupWatcher, enumerable: true });
+  if (runtimeCtx) Object.defineProperty(runtimeCtx, "skillManager", { get: () => skillManager, enumerable: true });
+  if (runtimeCtx) Object.defineProperty(runtimeCtx, "memoryEngine", { get: () => memoryEngine, enumerable: true });
+  if (runtimeCtx) Object.defineProperty(runtimeCtx, "knowledgeEngine", { get: () => knowledgeEngine, enumerable: true });
+  if (runtimeCtx) Object.defineProperty(runtimeCtx, "plannerEngine", { get: () => plannerEngine, enumerable: true });
+  if (runtimeCtx) Object.defineProperty(runtimeCtx, "agentHub", { get: () => agentHub, enumerable: true });
+  if (runtimeCtx) Object.defineProperty(runtimeCtx, "eventBus", { get: () => eventBus, enumerable: true });
+  if (runtimeCtx) Object.defineProperty(runtimeCtx, "analytics", { get: () => analytics, enumerable: true });
 
   require("./ipc/ai-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/settings-handlers.cjs").register(ipcMain, ctx);
@@ -1441,10 +1447,10 @@ app.whenReady().then(() => {
         const { TelemetryClient } = require("@orun/telemetry-core");
         const store = new PostHogTelemetryStore({ host: intgSettings.telemetry.host, apiKey: intgSettings.telemetry.apiKey, flushIntervalMs: 30000 });
         const telemetry = new TelemetryClient({ store, platform: "desktop", appVersion: app.getVersion(), enabled: intgSettings.telemetry.enabled !== false });
-        Object.defineProperty(ctx, "telemetry", { get: () => telemetry, enumerable: true });
+        if (runtimeCtx) Object.defineProperty(runtimeCtx, "telemetry", { get: () => telemetry, enumerable: true });
         if (intgSettings.telemetry.personalApiKey && intgSettings.telemetry.projectId) {
           const { PostHogMetricsReader } = require("@orun/telemetry-node");
-          Object.defineProperty(ctx, "telemetryReader", { get: () => new PostHogMetricsReader({ host: intgSettings.telemetry.host, personalApiKey: intgSettings.telemetry.personalApiKey, projectId: intgSettings.telemetry.projectId }), enumerable: true });
+          if (runtimeCtx) Object.defineProperty(runtimeCtx, "telemetryReader", { get: () => new PostHogMetricsReader({ host: intgSettings.telemetry.host, personalApiKey: intgSettings.telemetry.personalApiKey, projectId: intgSettings.telemetry.projectId }), enumerable: true });
         }
         log.info("[integrations] telemetry (PostHog) initialized");
       } catch (e) { log.warn("[integrations] telemetry init failed:", e.message); }
@@ -1454,10 +1460,10 @@ app.whenReady().then(() => {
     try {
       const { GitleaksScannerAdapter, FileAllowlistStore } = require("@orun/shield-secrets-node");
       const scanner = new GitleaksScannerAdapter();
-      Object.defineProperty(ctx, "secretScanner", { get: () => scanner, enumerable: true });
+      if (runtimeCtx) Object.defineProperty(runtimeCtx, "secretScanner", { get: () => scanner, enumerable: true });
       const allowlistPath = path.join(app.getPath("userData"), "shields", "secrets-allowlist.json");
       const allowlist = new FileAllowlistStore(allowlistPath);
-      Object.defineProperty(ctx, "secretAllowlist", { get: () => allowlist, enumerable: true });
+      if (runtimeCtx) Object.defineProperty(runtimeCtx, "secretAllowlist", { get: () => allowlist, enumerable: true });
       log.info("[integrations] shield-secrets (Gitleaks) initialized");
     } catch (e) { log.warn("[integrations] shield-secrets init failed:", e.message); }
 
@@ -1476,7 +1482,7 @@ app.whenReady().then(() => {
             : { provider: "actual-budget", actual: { dataDir: finCfg.dataDir, serverUrl: finCfg.serverUrl, serverPassword: finCfg.serverPassword, budgetSyncId: finCfg.budgetSyncId || "default" } };
         const finance = createFinanceStore(storeConfig);
         if (finance) {
-          Object.defineProperty(ctx, "financeStore", { get: () => finance, enumerable: true });
+          if (runtimeCtx) Object.defineProperty(runtimeCtx, "financeStore", { get: () => finance, enumerable: true });
           log.info(`[integrations] finance (${provider}) initialized`);
         } else {
           log.warn(`[integrations] finance provider '${provider}' produced no store`);
@@ -1494,8 +1500,8 @@ app.whenReady().then(() => {
         password: postizCfg.password || "OrunPostiz2026!Secure",
         log: logger,
       });
-      Object.defineProperty(ctx, "postiz", { get: () => postiz, enumerable: true });
-      Object.defineProperty(ctx, "socialScheduler", { get: () => postiz, enumerable: true });
+      if (runtimeCtx) Object.defineProperty(runtimeCtx, "postiz", { get: () => postiz, enumerable: true });
+      if (runtimeCtx) Object.defineProperty(runtimeCtx, "socialScheduler", { get: () => postiz, enumerable: true });
       log.info("[integrations] postiz initialized (localhost)");
     } catch (e) { log.warn("[integrations] postiz init failed:", e.message); }
 
@@ -1508,7 +1514,7 @@ app.whenReady().then(() => {
       try {
         const { PenpotFileStoreAdapter } = require("@orun/design-sync-node");
         const design = new PenpotFileStoreAdapter({ baseUrl: designCfg.baseUrl, accessToken: designCfg.accessToken });
-        Object.defineProperty(ctx, "designStore", { get: () => design, enumerable: true });
+        if (runtimeCtx) Object.defineProperty(runtimeCtx, "designStore", { get: () => design, enumerable: true });
         log.info("[integrations] design-sync (Penpot) initialized");
       } catch (e) { log.warn("[integrations] design-sync init failed:", e.message); }
     }
@@ -1518,7 +1524,7 @@ app.whenReady().then(() => {
       try {
         const { KarakeepMemoryVaultAdapter } = require("@orun/memory-vault-node");
         const vault = new KarakeepMemoryVaultAdapter({ baseUrl: intgSettings.memoryVault.baseUrl, apiKey: intgSettings.memoryVault.apiKey });
-        Object.defineProperty(ctx, "memoryVault", { get: () => vault, enumerable: true });
+        if (runtimeCtx) Object.defineProperty(runtimeCtx, "memoryVault", { get: () => vault, enumerable: true });
         log.info("[integrations] memory-vault (Karakeep) initialized");
       } catch (e) { log.warn("[integrations] memory-vault init failed:", e.message); }
     }
@@ -1528,7 +1534,7 @@ app.whenReady().then(() => {
       try {
         const { ImmichPhotoLibraryAdapter } = require("@orun/photos-node");
         const photos = new ImmichPhotoLibraryAdapter({ baseUrl: intgSettings.photos.baseUrl, apiKey: intgSettings.photos.apiKey });
-        Object.defineProperty(ctx, "photoLibrary", { get: () => photos, enumerable: true });
+        if (runtimeCtx) Object.defineProperty(runtimeCtx, "photoLibrary", { get: () => photos, enumerable: true });
         log.info("[integrations] photos (Immich) initialized");
       } catch (e) { log.warn("[integrations] photos init failed:", e.message); }
     }

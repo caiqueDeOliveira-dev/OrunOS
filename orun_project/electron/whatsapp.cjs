@@ -209,8 +209,8 @@ async function connect(userData) {
       currentStatus = "connected";
       reconnectAttempts = 0;
       boot401Retried = false;
-      logger.wa.info("[whatsapp] connected as", newSock.user?.id);
-      listeners.onStatus(currentStatus, { selfJid: newSock.user?.id });
+      logger.wa.info("[whatsapp] connected as", { selfJid: newSock.user?.id, selfLid: newSock.user?.lid || newSock.authState?.creds?.me?.lid || "N/A" });
+      listeners.onStatus(currentStatus, { selfJid: newSock.user?.id, selfLid: newSock.user?.lid || newSock.authState?.creds?.me?.lid || null });
 
       try {
         const result = await newSock.groupFetchAllParticipating();
@@ -297,6 +297,7 @@ async function connect(userData) {
       const isImage = Boolean(msg.message.imageMessage);
       const isAudio = Boolean(msg.message.audioMessage);
       const text = msg.message.conversation || msg.message.extendedTextMessage?.text || msg.message.imageMessage?.caption || msg.message.audioMessage?.contextInfo?.quotedMessage?.conversation || "";
+      const mentionedJids = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || msg.message?.imageMessage?.contextInfo?.mentionedJid || [];
 
       if (jid?.endsWith("@g.us")) {
         const groupName = msg.message.groupMetadata?.subject || msg.pushName || null;
@@ -339,6 +340,9 @@ async function connect(userData) {
         audioMime,
         audioDuration,
         fromMe,
+        mentionedJids,
+        selfJid: newSock.user?.id || null,
+        selfLid: newSock.user?.lid || newSock.authState?.creds?.me?.lid || null,
         externalMessageId: msg.key.id || null,
         timestamp: msgTimestamp,
       });
@@ -349,6 +353,7 @@ async function connect(userData) {
         senderJid,
         senderName: msg.pushName || null,
         text,
+        mentionedJids,
         imageBase64,
         imageMime: isImage ? (msg.message.imageMessage?.mimetype || "image/jpeg") : null,
         audioMime: isAudio ? (msg.message.audioMessage?.mimetype || null) : null,

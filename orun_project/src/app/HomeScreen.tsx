@@ -36,12 +36,13 @@ import { WORKSPACE_PLUGIN_LOADERS } from "./plugins/workspace-loaders";
 import { DashboardPanel } from "./components/DashboardPanel";
 import { AutoBackup } from "./services/autoBackup";
 
+const ROUTER_DASHBOARD_URL = "http://localhost:4321/dashboard";
+
 const HamptonWolf = lazy(() => import("./components/HamptonWolf").then(m => ({ default: m.HamptonWolf })));
 const SettingsPanel = lazy(() => import("./components/SettingsPanel").then(m => ({ default: m.SettingsPanel })));
 const AgentModelsPanel = lazy(() => import("./components/AgentModelsPanel").then(m => ({ default: m.AgentModelsPanel })));
 const AutomationPanel = lazy(() => import("./components/AutomationPanel").then(m => ({ default: m.AutomationPanel })));
 const UsagePanel = lazy(() => import("./components/UsagePanel").then(m => ({ default: m.UsagePanel })));
-const AiRouterPanel = lazy(() => import("./components/AiRouterPanel").then(m => ({ default: m.AiRouterPanel })));
 const ConversationList = lazy(() => import("./components/ConversationList").then(m => ({ default: m.ConversationList })));
 const VoicesPicker = lazy(() => import("./components/VoicesPicker").then(m => ({ default: m.VoicesPicker })));
 const ModelPicker = lazy(() => import("./components/ModelPicker").then(m => ({ default: m.ModelPicker })));
@@ -439,7 +440,7 @@ export function HomeScreen() {
     skills: () => { nav.setSkillsOpen(true); nav.setActiveNav("skills"); },
     planner: () => { nav.setPlannerOpen(true); nav.setActiveNav("planner"); },
     agentModels: () => { nav.setAgentModelsOpen(true); },
-    router: () => { nav.setRouterOpen(true); },
+    router: () => { void window.orun?.shell?.openExternal(ROUTER_DASHBOARD_URL); },
     usage: () => { nav.setUsageOpen(true); },
     voices: () => { nav.setVoicesOpen(true); },
     homeIa: () => { nav.closeAll(); closeLocalOverlays(); nav.setWorkspaceOpen("HomeIA"); },
@@ -504,11 +505,10 @@ export function HomeScreen() {
           )}
           {nav.historyOpen && <ConversationList activeId={chat.conversationId} onClose={() => nav.setHistoryOpen(false)} onSelect={(id) => { chat.openConversation(id); nav.setHistoryOpen(false); }} onNew={() => { startNewChat(); nav.setHistoryOpen(false); }} />}
           {nav.settingsOpen && !nav.agentModelsOpen && !nav.usageOpen && !nav.routerOpen && (
-            <SettingsPanel onClose={() => nav.setSettingsOpen(false)} onOpenAgentModels={() => { nav.setSettingsOpen(false); nav.setAgentModelsOpen(true); }} onOpenUsage={() => { nav.setSettingsOpen(false); nav.setUsageOpen(true); }} onOpenRouter={() => { nav.setSettingsOpen(false); nav.setRouterOpen(true); }} onOpenWhatsApp={() => { nav.setSettingsOpen(false); nav.setWhatsappOpen(true); }} onOpenTelegram={() => { nav.setSettingsOpen(false); setTelegramOpen(true); }} onOpenSuporte={() => { nav.setSettingsOpen(false); setSuporteOpen(true); }} onOpenAchievements={() => { nav.setSettingsOpen(false); setAchievementsOpen(true); }} />
+            <SettingsPanel onClose={() => nav.setSettingsOpen(false)} onOpenAgentModels={() => { nav.setSettingsOpen(false); nav.setAgentModelsOpen(true); }} onOpenUsage={() => { nav.setSettingsOpen(false); nav.setUsageOpen(true); }} onOpenRouter={() => { nav.setSettingsOpen(false); void window.orun?.shell?.openExternal(ROUTER_DASHBOARD_URL); }} onOpenWhatsApp={() => { nav.setSettingsOpen(false); nav.setWhatsappOpen(true); }} onOpenTelegram={() => { nav.setSettingsOpen(false); setTelegramOpen(true); }} onOpenSuporte={() => { nav.setSettingsOpen(false); setSuporteOpen(true); }} onOpenAchievements={() => { nav.setSettingsOpen(false); setAchievementsOpen(true); }} />
           )}
           {nav.agentModelsOpen && <AgentModelsPanel onClose={() => nav.setAgentModelsOpen(false)} onBack={() => { nav.setAgentModelsOpen(false); nav.setSettingsOpen(true); }} />}
           {nav.usageOpen && <UsagePanel onClose={() => nav.setUsageOpen(false)} onBack={() => { nav.setUsageOpen(false); nav.setSettingsOpen(true); }} />}
-          {nav.routerOpen && <AiRouterPanel onClose={() => nav.setRouterOpen(false)} onBack={() => { nav.setRouterOpen(false); nav.setSettingsOpen(true); }} />}
           {nav.automationOpen && <AutomationPanel onClose={() => { nav.setAutomationOpen(false); nav.setActiveNav("home"); }} onOpenSchedules={() => nav.setSchedulesOpen(true)} onOpenSocialMedia={() => nav.setSocialMediaOpen(true)} />}
           {nav.schedulesOpen && <SchedulesPanel onClose={() => { nav.setSchedulesOpen(false); nav.setActiveNav("home"); }} />}
           {nav.voicesOpen && <VoicesPicker onClose={() => nav.setVoicesOpen(false)} />}

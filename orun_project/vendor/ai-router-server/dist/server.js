@@ -42,6 +42,7 @@ const node_crypto_1 = __importDefault(require("node:crypto"));
 const node_fs_1 = __importDefault(require("node:fs"));
 const node_http_1 = require("node:http");
 const node_url_1 = require("node:url");
+const model_catalog_1 = require("./model-catalog");
 const ai_router_core_1 = require("@orun/ai-router-core");
 const MAX_BODY_BYTES = 1024 * 1024;
 function log(entry) {
@@ -576,6 +577,54 @@ async function handleDashboardApi(req, res, path, options, requestId) {
             json(res, 201, saved);
             return;
         }
+    }
+    // ── /api/models ──
+// Catalogo de modelos por provider p/ o seletor de combo (tag free/paid).
+    if (path === "/api/models" && method === "GET") {
+        const catalog = {};
+        for (const [pid, models] of Object.entries(model_catalog_1.MODEL_CATALOG)) {
+            catalog[pid] = models.map((m) => ({ id: m.id, tier: m.tier }));
+        }
+        json(res, 200, { catalog, providers: Object.keys(catalog) });
+        return;
+    }
+// ── /api/providers/:id/credentials ──
+    // Credenciais de provider (API keys) gerenciadas pelo PRÓPRIO router via
+    // `credentialStore` (keystore criptografado, ex.: provider_credentials no
+    // ai-router.sqlite). Exige auth do dashboard quando apiKey está definida.
+    const credsMatch = path.match(/^\/api\/providers\/(.+)\/credentials$/);
+    if (credsMatch && options.credentialStore) {
+        const id = decodeURIComponent(credsMatch[1]);
+        if (method === "GET") {
+            const status = await options.credentialStore.has(id, "default");
+            json(res, 200, { providerId: id, hasCredential: status });
+            return;
+        }
+        if (method === "PUT" || method === "POST") {
+            const raw = await readBody(req);
+            const body = JSON.parse(raw);
+            if (!body || typeof body.apiKey !== "string" || !body.apiKey.trim()) {
+                json(res, 400, { ok: false, error: "apiKey é obrigatória" });
+                return;
+            }
+            const saved = await options.credentialStore.set(id, body.apiKey, body.accountLabel ?? "default");
+            json(res, 200, { ok: saved, providerId: id, accountLabel: body.accountLabel ?? "default" });
+            return;
+        }
+        if (method === "DELETE") {
+            await options.credentialStore.delete(id, "default");
+            json(res, 200, { ok: true });
+            return;
+        }
+    }
+    // ── /api/accounts/exhausted ──
+    // Contas em cooldown de 429/quota (exaustão por conta, não por provider).
+    if (path === "/api/accounts/exhausted" && method === "GET" && options.router?.accountRotator) {
+        const list = typeof options.router.accountRotator.listExhausted === "function"
+            ? options.router.accountRotator.listExhausted()
+            : [];
+        json(res, 200, { accounts: list, count: list.length });
+        return;
     }
     // ── /api/providers/:id ──
     const providerMatch = path.match(/^\/api\/providers\/(.+)$/);

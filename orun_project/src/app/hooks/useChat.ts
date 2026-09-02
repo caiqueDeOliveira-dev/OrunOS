@@ -152,6 +152,44 @@ export function useChat({ t, onHamptonStateChange, speak, speakIncremental, spea
           };
         });
 
+        // Modo combo como "resposta principal" (híbrido):
+        //  - Pedidos de AÇÃO (zap, spotify, dispositivos, arquivos, agenda etc.)
+        //    seguem para o agente com tool-calling (autonomous-loop), preservando
+        //    as ações do Hampton.
+        //  - Pedidos de TEXTO puro usam o combo escolhido como resposta principal
+        //    (internal → ModelRouter do desktop, que tem as keys; external → router 4321).
+        //  - Se o combo falhar, cai no fallback de providers (autonomous-loop).
+        const comboMode = await window.orun.settings.get<{ enabled?: boolean; comboId?: string; source?: "internal" | "external" }>("desktop.aiComboMode").catch(() => undefined);
+        const comboEnabled = comboMode?.enabled !== false;
+        const comboId = comboMode?.comboId || "Orun OS";
+        const comboSrc: "internal" | "external" = comboMode?.source || "internal";
+        const userText = String(content || "").toLowerCase();
+        const actionIntent =
+          /\b(zap|zapear|mensagem|mandar|enviar|whatsapp|telegram|discord|spotify|tocar|m[úu]sica|play|pausar|volume)\b/i.test(userText) ||
+          /\b(ligar|desligar|dispositivo|device|comodo|quarto|sala|luz|ar[- ]?condicionado|tv|volt)\b/.test(userText) ||
+          /\b(criar|salvar|gravar|gerar|escrever|documento|arquivo|c[oó]digo|script|zap relato|registrar|anotar|lembrete|agenda|compromisso)\b/i.test(userText);
+
+        if (comboEnabled && comboId && !actionIntent) {
+          const comboMessages = history.map((m) => ({ role: m.role as "system" | "user" | "assistant" | "tool", content: String(m.content ?? "") }));
+          const replyId = crypto.randomUUID();
+          replyIdRef.current = replyId;
+          activeConvoIdRef.current = convoId;
+          setMessages(p => [...p, { id: replyId, role: "hampton", content: "" }]);
+          onHamptonStateChange("thinking");
+          const res = await window.orun.aiRouter.completeCombo({ comboId, source: comboSrc, messages: comboMessages }).catch(() => ({ ok: false as const, error: "combo indisponível" }));
+          if (res?.ok) {
+            onHamptonStateChange("idle");
+            const fullText = res.text || "";
+            setMessages(p => p.map(m => (m.id === replyId ? { ...m, content: fullText } : m)));
+            if (fullText) speakRemainderRef.current(fullText);
+            if (activeConvoIdRef.current) await window.orun.conversations.addMessage(activeConvoIdRef.current, { id: replyId, role: "assistant", content: fullText });
+            safeTimeout(() => onHamptonStateChange("idle"), 300);
+            return;
+          }
+          // combo falhou → remove o placeholder e cai no fallback (autonomous-loop)
+          setMessages(p => p.filter(m => m.id !== replyId));
+        }
+
         const replyId = crypto.randomUUID();
         let streamedText = "";
         let firstChunk = true;

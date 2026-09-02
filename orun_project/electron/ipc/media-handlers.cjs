@@ -67,6 +67,30 @@ function register(ipcMain, ctx) {
       return { ok: false, error: err.message || String(err) };
     }
   });
+  ipcMain.handle("social-media:publish-twitter-direct", async (_event, opts) => {
+    try {
+      log.info("[social-media] publishing to twitter (direct)");
+      const result = await socialMedia.publishTwitterDirect(opts, db);
+      if (result.ok) log.info("[social-media] twitter direct published OK");
+      else log.warn("[social-media] twitter direct failed:", result.error);
+      return result;
+    } catch (err) {
+      log.error("[social-media:publish-twitter-direct] failed:", err.message);
+      return { ok: false, error: err.message || String(err) };
+    }
+  });
+  ipcMain.handle("social-media:publish-tiktok-direct", async (_event, opts) => {
+    try {
+      log.info("[social-media] publishing to tiktok (direct)");
+      const result = await socialMedia.publishTikTokDirect(opts, db);
+      if (result.ok) log.info("[social-media] tiktok direct published OK");
+      else log.warn("[social-media] tiktok direct failed:", result.error);
+      return result;
+    } catch (err) {
+      log.error("[social-media:publish-tiktok-direct] failed:", err.message);
+      return { ok: false, error: err.message || String(err) };
+    }
+  });
 
   // Text-to-speech
   ipcMain.handle("tts:list-voices", async (_event, engine) => {

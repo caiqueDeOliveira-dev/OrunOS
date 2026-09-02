@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
-import { Plug, Activity, Shield, DollarSign, Share2, Palette, Bookmark, Image, CheckCircle2, XCircle } from "lucide-react";
+import { Plug, Activity, Shield, DollarSign, Share2, Palette, Bookmark, Image, CheckCircle2, XCircle, Twitter, Video } from "lucide-react";
 import { P } from "../plugins/workspaces/premium";
 
-type IntegrationKey = "telemetry" | "shieldSecrets" | "finance" | "social" | "designSync" | "memoryVault" | "photos" | "instagramDirect" | "linkedinDirect";
+type IntegrationKey = "telemetry" | "shieldSecrets" | "finance" | "social" | "designSync" | "memoryVault" | "photos" | "instagramDirect" | "linkedinDirect" | "twitterDirect" | "tiktokDirect";
 
 interface IntegrationConfig {
   enabled: boolean;
@@ -19,6 +19,8 @@ interface IntegrationsState {
   photos: IntegrationConfig;
   instagramDirect: IntegrationConfig;
   linkedinDirect: IntegrationConfig;
+  twitterDirect: IntegrationConfig;
+  tiktokDirect: IntegrationConfig;
 }
 
 interface FieldDef {
@@ -43,6 +45,7 @@ interface IntegrationDef {
   fields: FieldDef[];
   requiredFields: string[];
   providers?: ProviderDef[];
+  hint?: string;
 }
 
 const FINANCE_PROVIDERS: ProviderDef[] = [
@@ -154,6 +157,33 @@ const INTEGRATIONS: IntegrationDef[] = [
       { name: "enabled", label: "Ativado", type: "text" },
     ],
     requiredFields: ["accessToken", "personUrn"],
+  },
+  {
+    key: "twitterDirect",
+    icon: Twitter,
+    label: "X Direct (OAuth 1.0a)",
+    accent: "#1DA1F2",
+    hint: "Gere API Key, API Secret, Access Token e Access Token Secret em developer.x.com → App → Keys and tokens (perfil do próprio dono do app). Tokens OAuth 1.0a não expiram.",
+    fields: [
+      { name: "apiKey", label: "API Key (Consumer)", type: "password" },
+      { name: "apiSecret", label: "API Secret (Consumer)", type: "password" },
+      { name: "accessToken", label: "Access Token", type: "password" },
+      { name: "accessTokenSecret", label: "Access Token Secret", type: "password" },
+      { name: "enabled", label: "Ativado", type: "text" },
+    ],
+    requiredFields: ["apiKey", "apiSecret", "accessToken", "accessTokenSecret"],
+  },
+  {
+    key: "tiktokDirect",
+    icon: Video,
+    label: "TikTok Direct (Content Posting API)",
+    accent: "#111111",
+    hint: "Obtido via TikTok for Developers (app + audit). Direct Post público exige app aprovado; apps não auditados só publicam com privacidade SELF_ONLY.",
+    fields: [
+      { name: "accessToken", label: "Access Token (Bearer)", type: "password" },
+      { name: "enabled", label: "Ativado", type: "text" },
+    ],
+    requiredFields: ["accessToken"],
   },
   {
     key: "designSync",
@@ -280,14 +310,18 @@ function IntegrationSection({ def, config, onChange }: {
               ))}
             </div>
           )}
-          {activeProviders.length > 0 && (() => {
+          {activeProviders.length > 0 ? (() => {
             const active = activeProviders.find((p) => p.id === provider) || activeProviders[0];
             return active.hint ? (
               <div className="px-3 py-1.5 rounded-lg text-[9px] leading-relaxed" style={{ background: "var(--secondary)", border: "1px solid var(--border)", color: "var(--muted-foreground)", fontFamily: "'Sora', sans-serif" }}>
                 {active.hint}
               </div>
             ) : null;
-          })()}
+          })() : def.hint ? (
+            <div className="px-3 py-1.5 rounded-lg text-[9px] leading-relaxed" style={{ background: "var(--secondary)", border: "1px solid var(--border)", color: "var(--muted-foreground)", fontFamily: "'Sora', sans-serif" }}>
+              {def.hint}
+            </div>
+          ) : null}
           {activeFields.map((field) => (
             <div key={field.name} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ background: "var(--secondary)", border: "1px solid var(--border)" }}>
               <span className="text-[10px] mr-3" style={{ fontFamily: "'Sora', sans-serif", color: "var(--muted-foreground)" }}>{field.label}</span>
@@ -316,6 +350,8 @@ const DEFAULT_STATE: IntegrationsState = {
   social: { enabled: false, baseUrl: "http://localhost:5000", email: "", password: "" },
   instagramDirect: { enabled: false, accessToken: "", igUserId: "" },
   linkedinDirect: { enabled: false, accessToken: "", personUrn: "" },
+  twitterDirect: { enabled: false, apiKey: "", apiSecret: "", accessToken: "", accessTokenSecret: "" },
+  tiktokDirect: { enabled: false, accessToken: "" },
   designSync: { enabled: false, baseUrl: "", accessToken: "" },
   memoryVault: { enabled: false, baseUrl: "", apiKey: "" },
   photos: { enabled: false, baseUrl: "", apiKey: "" },

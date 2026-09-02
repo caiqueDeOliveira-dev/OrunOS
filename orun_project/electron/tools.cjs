@@ -452,16 +452,25 @@ const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "publish_to_instagram_direct",
-      description: "Publish directly to Instagram via Meta Graph API (Development Mode). Requires Page Access Token + Instagram Business User ID configured in Settings → Integrations → Instagram Direct. Use this for posting to YOUR Instagram account without Postiz/n8n. Image or video required.",
+      description: "Publish directly to Instagram via Meta Graph API (Development Mode). Requires Page Access Token + Instagram Business User ID configured in Settings → Integrations. Use this for posting to YOUR Instagram account without Postiz/n8n. Use instagram_accounts to list which accounts are configured. Image or video required.",
       parameters: {
         type: "object",
         properties: {
           caption: { type: "string", description: "Post caption/text content" },
           imageUrl: { type: "string", description: "Image URL for the post (optional, but required if no video)" },
           videoUrl: { type: "string", description: "Video URL for Reels (optional)" },
+          account: { type: "string", description: "Instagram account label: 'default' (personal caique.o.castaldeli) or a configured brand label such as 'brand' (Orun ST tech). Omit for 'default'." },
         },
         required: ["caption"],
       },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "instagram_accounts",
+      description: "List configured Instagram Business accounts the agent can publish to via publish_to_instagram_direct (labels + igUserIds).",
+      parameters: { type: "object", properties: {} },
     },
   },
   {
@@ -1530,6 +1539,7 @@ async function publishInstagramDirectTool(args) {
       imageUrl: args.imageUrl,
       videoUrl: args.videoUrl,
       caption: args.caption,
+      account: args.account || "default",
     }, ctx.db);
     return result;
   } catch (err) {
@@ -1666,7 +1676,9 @@ function buildAuditDetails(name, args) {
     case "publish_to_social":
       return { platform: args.platform, text: (args.text || "").slice(0, 100) };
     case "publish_to_instagram_direct":
-      return { caption: (args.caption || "").slice(0, 100) };
+      return { caption: (args.caption || "").slice(0, 100), account: args.account || "default" };
+    case "instagram_accounts":
+      return {};
     case "publish_to_linkedin_direct":
       return { text: (args.text || "").slice(0, 100) };
     case "generate_image":
@@ -1751,6 +1763,10 @@ async function executeToolRaw(name, args) {
     case "schedule_task": return scheduleTask(args);
     case "publish_to_social": return publishToSocial(args);
     case "publish_to_instagram_direct": return publishInstagramDirectTool(args);
+    case "instagram_accounts": {
+      if (!ctx?.socialMedia || !ctx?.db) return { error: "Social media module not initialized. Restart Orun OS." };
+      return { accounts: ctx.socialMedia.getInstagramAccounts(ctx.db) };
+    }
     case "publish_to_linkedin_direct": return publishLinkedInDirectTool(args);
     case "generate_image": return generateImage(args);
     case "generate_video": return generateVideo(args);

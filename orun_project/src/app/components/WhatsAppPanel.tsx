@@ -44,6 +44,7 @@ export function WhatsAppPanel({ onClose }: { onClose: () => void }) {
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [agentJids, setAgentJids] = useState<Record<string, string>>({});
+  const [channels, setChannels] = useState<OrunAgentChannel[]>([]);
   const [groups, setGroups] = useState<{ jid: string; name: string }[]>([]);
   const [loadingGroups, setLoadingGroups] = useState(false);
   const [testingAgent, setTestingAgent] = useState<string | null>(null);
@@ -90,6 +91,7 @@ export function WhatsAppPanel({ onClose }: { onClose: () => void }) {
     });
     window.orun.settings.get<{ listenJid?: string }>("whatsapp").then((cfg) => { if (cfg?.listenJid) setListenJid(cfg.listenJid); });
     window.orun.whatsapp.getAgentJids().then(setAgentJids);
+    window.orun.identity.listChannels().then((ch) => setChannels(ch.filter((c) => c.provider === "whatsapp")));
     window.orun.waAutomation.getStats().then(setMsgStats);
     window.orun.waAutomation.getKeywordRules().then(setKeywordRules);
     window.orun.waAutomation.getN8nWebhook().then(setN8nUrl);
@@ -230,11 +232,41 @@ export function WhatsAppPanel({ onClose }: { onClose: () => void }) {
     await window.orun.settings.set("whatsapp", { listenJid });
   };
 
-  const saveAgentJid = async (agentId: string, jid: string) => {
-    const next = { ...agentJids, [agentId]: jid };
-    setAgentJids(next);
-    if (isElectron) await window.orun.whatsapp.setAgentJids(next);
+  // Atribuição efetiva de um grupo: agent_channels primeiro, legado (agentJids) depois.
+  function effectiveChannelOf(g: { jid: string }): { agent: string; mode: "always" | "mention"; enabled: boolean } | null {
+    const c = channels.find((ch) => ch.external_channel_id === g.jid);
+    if (c) return { agent: c.agent, mode: c.mode === "mention" ? "mention" : "always", enabled: Boolean(c.enabled) };
+    for (const [agent, jid] of Object.entries(agentJids)) {
+      if (jid === g.jid) return { agent, mode: "always", enabled: true };
+    }
+    return null;
+  }
+
+  const refreshChannels = async () => {
+    const ch = await window.orun.identity.listChannels();
+    setChannels(ch.filter((c) => c.provider === "whatsapp"));
   };
+
+  const assignChannel = async (g: { jid: string; name?: string }, agent: string, mode: "always" | "mention") => {
+    await window.orun.identity.setChannel({ provider: "whatsapp", externalChannelId: g.jid, agent, mode, name: g.name });
+    await refreshChannels();
+  };
+
+  const toggleChannelEnabled = async (g: { jid: string }, enabled: boolean) => {
+    await window.orun.identity.setChannelEnabled({ provider: "whatsapp", externalChannelId: g.jid, enabled });
+    await refreshChannels();
+  };
+
+  const removeChannelMapping = async (g: { jid: string }) => {
+    if (!window.confirm("Remover a atribuição deste grupo? As conversas existentes não são apagadas.")) return;
+    await window.orun.identity.removeChannel({ provider: "whatsapp", externalChannelId: g.jid });
+    await refreshChannels();
+  };
+
+  const assignedAgents = Array.from(new Set([
+    ...channels.filter((c) => c.enabled).map((c) => c.agent),
+    ...Object.entries(agentJids).filter(([, jid]) => jid).map(([agent]) => agent),
+  ]));
 
   // Automation helpers
   const addKeyword = async () => {
@@ -477,47 +509,90 @@ export function WhatsAppPanel({ onClose }: { onClose: () => void }) {
                   <span className="text-xs tracking-wider uppercase" style={{ fontFamily: "'Sora', sans-serif", color: "var(--foreground)" }}>{t("whatsappGroupsByAgent")}</span>
                 </div>
                 <p className="text-[10px] mb-3" style={{ color: "var(--muted-foreground)" }}>
-                  {t("whatsappJidCopyHelp")}
+                  Atribua um agente a cada grupo. Em <b>Livre</b> o agente responde sempre; em <b>Só com @</b> o agente responde apenas quando você o marca (@) no grupo.
                 </p>
-                <div className="space-y-2">
-                  {agentGroups.map((agent) => (
-                    <div key={agent.id} className="px-3 py-2 rounded-lg" style={{ background: "var(--secondary)", border: "1px solid var(--border)" }}>
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className="w-2 h-2 rounded-full" style={{ background: agent.color }} />
-                        <span className="text-[11px]" style={{ fontFamily: "'Sora', sans-serif", color: "var(--foreground)" }}>{agent.label}</span>
-                        <span className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>— {agent.desc}</span>
-                      </div>
-                      <div className="flex gap-1.5">
-                        <input
-                          value={agentJids[agent.id] || ""}
-                          onChange={(e) => saveAgentJid(agent.id, e.target.value)}
-                          placeholder={`${agent.id}@g.us`}
-                          className="flex-1 px-2.5 py-1.5 rounded-md text-[11px] outline-none"
-                          style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)", fontFamily: "'JetBrains Mono', monospace" }}
-                        />
-                        {agentJids[agent.id] && (
-                          <button
-                            onClick={async () => {
-                              setTestingAgent(agent.id);
-                              const r = await window.orun.whatsapp.testGroup(agentJids[agent.id], agent.label);
-                              setTestingAgent(null);
-                              if (r.ok) toast.show(t("whatsappTestSent", { name: agent.label }), "success");
-                              else toast.show(t("whatsappTestError", { error: r.error ?? "" }), "error");
+                {groups.length === 0 && (
+                  <p className="text-[10px] mb-3" style={{ color: "var(--muted-foreground)" }}>{t("whatsappNoGroupsFound")}</p>
+                )}
+                <div className="space-y-2 mb-3">
+                  {groups.map((g) => {
+                    const eff = effectiveChannelOf(g);
+                    return (
+                      <div key={g.jid} className="px-3 py-2 rounded-lg" style={{ background: "var(--secondary)", border: "1px solid var(--border)" }}>
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className="text-[11px] flex-1 truncate" style={{ fontFamily: "'Sora', sans-serif", color: "var(--foreground)" }}>{g.name}</span>
+                          {eff ? (
+                            <span className="text-[8px] px-1.5 py-0.5 rounded-full" style={{ background: eff.enabled ? `${eff.mode === "mention" ? "#D69E2E" : "#25D366"}1a` : "var(--input)", color: eff.enabled ? (eff.mode === "mention" ? "#D69E2E" : "#25D366") : "var(--muted-foreground)", border: `1px solid ${eff.enabled ? (eff.mode === "mention" ? "#D69E2E" : "#25D366") : "var(--border)"}40` }}>
+                              {eff.mode === "mention" ? "Só com @" : "Livre"}
+                            </span>
+                          ) : (
+                            <span className="text-[8px] px-1.5 py-0.5 rounded-full" style={{ background: "var(--input)", color: "var(--muted-foreground)" }}>sem agente</span>
+                          )}
+                          <div className="flex items-center gap-0.5">
+                            <button
+                              onClick={() => eff ? toggleChannelEnabled(g, !eff.enabled) : assignChannel(g, "Hampton", "always")}
+                              style={{ color: eff && eff.enabled ? "#25D366" : "var(--muted-foreground)" }}
+                              title={eff ? (eff.enabled ? "Desativar" : "Ativar") : "Ativar com Hampton"}
+                            >
+                              {eff && eff.enabled ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
+                            </button>
+                            {eff && (
+                              <button onClick={() => removeChannelMapping(g)} style={{ color: "var(--muted-foreground)" }} title="Remover atribuição">
+                                <Trash2 size={11} />
+                              </button>
+                            )}
+                            {eff && (
+                              <button
+                                onClick={async () => {
+                                  setTestingAgent(eff.agent);
+                                  const r = await window.orun.whatsapp.testGroup(g.jid, agentGroups.find((a) => a.id === eff.agent)?.label || eff.agent);
+                                  setTestingAgent(null);
+                                  if (r.ok) toast.show(t("whatsappTestSent", { name: agentGroups.find((a) => a.id === eff.agent)?.label || eff.agent }), "success");
+                                  else toast.show(r.error ?? "Erro ao enviar", "error");
+                                }}
+                                disabled={testingAgent !== null}
+                                className="py-0.5 px-1.5 rounded-md text-[9px] flex items-center gap-1"
+                                style={{ background: "var(--border)", border: "1px solid #232323", color: "#25D366" }}
+                                title="Enviar mensagem de teste"
+                              >
+                                {testingAgent === eff.agent ? <Loader2 size={9} className="animate-spin" /> : <Send size={9} />}
+                                Teste
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex gap-1.5">
+                          <select
+                            value={eff?.agent || ""}
+                            onChange={(e) => {
+                              if (e.target.value) assignChannel(g, e.target.value, eff?.mode || "always");
                             }}
-                            disabled={testingAgent !== null}
-                            className="px-2 py-1 rounded-md text-[10px] flex items-center gap-1"
-                            style={{ background: "var(--border)", border: "1px solid #232323", color: "#25D366" }}
-                            title={t("whatsappTestSendTo", { name: agent.label })}
+                            className="flex-1 px-2 py-1.5 rounded-md text-[10px] outline-none"
+                            style={{ background: "var(--input)", border: "1px solid var(--border)", color: eff ? "var(--foreground)" : "var(--muted-foreground)", fontFamily: "'Sora', sans-serif" }}
                           >
-                            {testingAgent === agent.id ? <Loader2 size={10} className="animate-spin" /> : <Send size={10} />}
-                            {t("settingsTestConnection")}
-                          </button>
-                        )}
+                            <option value="" disabled>{eff ? agentGroups.find((a) => a.id === eff.agent)?.label : "Escolher agente..."}</option>
+                            {agentGroups.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}
+                          </select>
+                          <select
+                            value={eff?.mode || "always"}
+                            onChange={(e) => {
+                              if (eff) assignChannel(g, eff.agent, e.target.value as "always" | "mention");
+                            }}
+                            disabled={!eff}
+                            className="px-2 py-1.5 rounded-md text-[10px] outline-none disabled:opacity-40"
+                            style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+                            title="Modo de resposta: Livre (sempre) ou Só com @ (marcar o bot)"
+                          >
+                            <option value="always">Livre</option>
+                            <option value="mention">Só com @</option>
+                          </select>
+                        </div>
+                        <p className="text-[8px] mt-1 truncate" style={{ color: "var(--muted-foreground)", fontFamily: "'JetBrains Mono', monospace" }}>{g.jid}</p>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
-                <p className="text-[9px] mt-2" style={{ color: "var(--muted-foreground)" }}>
+                <p className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>
                   {t("whatsappJidHelp")}
                 </p>
               </div>
@@ -791,12 +866,12 @@ export function WhatsAppPanel({ onClose }: { onClose: () => void }) {
                     {t("whatsappAutoReplyDesc")}
                   </p>
                   <div className="mt-2 flex flex-wrap gap-1.5">
-                    {agentGroups.filter((a) => agentJids[a.id]).map((a) => (
+                    {agentGroups.filter((a) => assignedAgents.includes(a.id)).map((a) => (
                       <span key={a.id} className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px]" style={{ background: `${a.color}20`, color: a.color, border: `1px solid ${a.color}40` }}>
                         <CheckCircle2 size={9} /> {a.label}
                       </span>
                     ))}
-                    {agentGroups.filter((a) => agentJids[a.id]).length === 0 && (
+                    {agentGroups.filter((a) => assignedAgents.includes(a.id)).length === 0 && (
                       <span className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>{t("whatsappNoGroupsConfigured")}</span>
                     )}
                   </div>

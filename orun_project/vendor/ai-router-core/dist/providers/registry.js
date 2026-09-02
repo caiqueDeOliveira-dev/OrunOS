@@ -359,6 +359,29 @@ const RAW_REGISTRY = {
         wireFormat: "anthropic-native",
         capabilities: ["text", "tools"],
     },
+    // ─────────────────────────────────────────────────────────
+    // 🔌 MCP / A2A — servidores de tools e agentes externos
+    // ─────────────────────────────────────────────────────────
+    mcp: {
+        id: "mcp",
+        label: "MCP Server (Model Context Protocol)",
+        tier: "paid",
+        authMethod: "api-key",
+        wireFormat: "mcp-native",
+        capabilities: ["text", "tools"],
+        freeNotes: "fala streamable HTTP; defina o endpoint em customBaseUrl e escolha o tool em step.model (auto-pick por complete/chat/...)",
+        docsUrl: "https://modelcontextprotocol.io",
+    },
+    a2a: {
+        id: "a2a",
+        label: "A2A Agent (Agent-to-Agent)",
+        tier: "paid",
+        authMethod: "api-key",
+        wireFormat: "a2a-native",
+        capabilities: ["text", "tools"],
+        freeNotes: "conversa via JSON-RPC message/send (+ streaming SSE); defina o endpoint RPC em customBaseUrl",
+        docsUrl: "https://a2a-protocol.org",
+    },
 };
 /**
  * Registry final, validado — cada entrada passou pelo Zod schema,

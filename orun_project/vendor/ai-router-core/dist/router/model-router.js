@@ -189,13 +189,42 @@ class ModelRouter {
             const allConfigs = await this.providerConfigStore.listConfigs();
             const accountsForProvider = allConfigs.filter((c) => c.providerId === step.providerId && c.enabled);
             if (accountsForProvider.length > 0) {
-                config = await this.accountRotator.pickAccount(step.providerId, accountsForProvider, accountsForProvider[0]?.rotationMode ?? "priority");
+                // exaustão por conta: descarta contas em cooldown de 429/quota
+                // (não bate de novo na conta que acabou de estourar quota).
+                const isExhausted = typeof this.accountRotator.isExhausted === "function" ? this.accountRotator.isExhausted.bind(this.accountRotator) : null;
+                const available = isExhausted
+                    ? accountsForProvider.filter((c) => !isExhausted(step.providerId, c.accountLabel ?? "default"))
+                    : accountsForProvider;
+                if (available.length === 0) {
+                    attempts.push({ providerId: step.providerId, model: step.model, error: "todas as contas exaustas (cooldown de quota)" });
+                    return null;
+                }
+                config = await this.accountRotator.pickAccount(step.providerId, available, accountsForProvider[0]?.rotationMode ?? "priority");
             }
             else {
                 config = await this.providerConfigStore.getConfig(step.providerId);
             }
         }
         const accountLabel = step.accountLabel ?? config?.accountLabel ?? "default";
+        if (typeof this.accountRotator.isExhausted === "function" && this.accountRotator.isExhausted(step.providerId, accountLabel)) {
+            attempts.push({ providerId: step.providerId, model: step.model, error: "conta exausta (cooldown de quota)" });
+            return null;
+        }
+        // quota-aware: se o tracker sabe que a quota desta conta está em 0
+        // (header real ou janela conhecida), não desperdiça a chamada — cai direto
+        // pro próximo step do combo. Opt-out por step: `quotaAware: false`.
+        if (step.quotaAware !== false && this.quotaTracker && typeof this.quotaTracker.getStatus === "function") {
+            try {
+                const quota = await this.quotaTracker.getStatus(step.providerId, accountLabel);
+                if (quota.source !== "unknown" && quota.limit !== null && quota.remaining === 0) {
+                    attempts.push({ providerId: step.providerId, model: step.model, error: "quota esgotada (sem chamada à API)" });
+                    return null;
+                }
+            }
+            catch {
+                // tracker falhou (ex.: janela desconhecida) — deixa a chamada acontecer
+            }
+        }
         if (config && !config.enabled) {
             attempts.push({ providerId: step.providerId, model: step.model, error: "provider desabilitado nas configs" });
             return null;
@@ -222,9 +251,28 @@ class ModelRouter {
             attempts.push({ providerId: step.providerId, model: step.model, error: validate_base_url_1.UNSAFE_BASE_URL_ERROR });
             return null;
         }
+        const models = step.models && step.models.length ? step.models : step.model ? [step.model] : [];
+        if (models.length === 0) {
+            attempts.push({ providerId: step.providerId, model: "<sem modelo>", error: "step sem modelo definido" });
+            return null;
+        }
+        const isExhausted = typeof this.accountRotator.isExhausted === "function" ? this.accountRotator.isExhausted.bind(this.accountRotator) : null;
         const release = await this.rateLimiter.acquire(step.providerId, accountLabel);
         try {
-            return await this.callAdapterWithRetry(combo, step, stepIndex, messages, request, attempts, baseUrl, credential, accountLabel, providerDef, onChunk);
+            for (const model of models) {
+                // Se um modelo anterior deste provider estourou quota (rate-limit),
+                // a conta entra em cooldown: nao adianta tentar outro modelo do MESMO
+                // provider (mesma conta/token) - pula pro proximo step (outro provider).
+                if (isExhausted && isExhausted(step.providerId, accountLabel)) {
+                    break;
+                }
+                const perModelStep = { ...step, model, models: undefined };
+                const result = await this.callAdapterWithRetry(combo, perModelStep, stepIndex, messages, request, attempts, baseUrl, credential, accountLabel, providerDef, onChunk);
+                if (result) {
+                    return result;
+                }
+            }
+            return null;
         }
         finally {
             release();
@@ -279,6 +327,11 @@ class ModelRouter {
                 lastError = err;
                 const isRateLimit = err instanceof types_1.ProviderCallError && err.isRateLimit;
                 const isServerError = err instanceof types_1.ProviderCallError && err.isServerError;
+                if (isRateLimit && typeof this.accountRotator.markExhausted === "function") {
+                    // quota exaurida: pausa SÓ esta conta por um cooldown (default 60s),
+                    // deixa as demais contas/providers do combo seguirem normalmente.
+                    this.accountRotator.markExhausted(step.providerId, accountLabel, { cooldownMs: step.exhaustionCooldownMs });
+                }
                 if (!(isRateLimit || isServerError) || attempt === step.maxRetries)
                     break;
                 const backoffMs = 500 * (attempt + 1) + Math.random() * 250; // jitter evita "thundering herd" se vários agentes retentarem juntos

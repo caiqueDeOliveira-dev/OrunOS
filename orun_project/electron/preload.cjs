@@ -110,10 +110,14 @@ contextBridge.exposeInMainWorld("orun", {
   aiRouter: {
     health: () => ipcRenderer.invoke("ai-router:health"),
     listCombos: () => ipcRenderer.invoke("ai-router:list-combos"),
+    listCombosMerged: () => ipcRenderer.invoke("ai-router:list-combos-merged"),
+    completeCombo: ({ comboId, source, messages }) => ipcRenderer.invoke("ai-router:complete-combo", { comboId, source, messages }),
     listProviders: () => ipcRenderer.invoke("ai-router:list-providers"),
     getCombo: (comboId) => ipcRenderer.invoke("ai-router:get-combo", comboId),
     saveCombo: (combo) => ipcRenderer.invoke("ai-router:save-combo", combo),
     deleteCombo: (comboId) => ipcRenderer.invoke("ai-router:delete-combo", comboId),
+    saveProvider: (config) => ipcRenderer.invoke("ai-router:save-provider", config),
+    deleteProvider: (providerId) => ipcRenderer.invoke("ai-router:delete-provider", providerId),
     usageRecent: (opts) => ipcRenderer.invoke("ai-router:usage-recent", opts),
     complete: (request) => ipcRenderer.invoke("ai-router:complete", request),
     stream(request, { onChunk, onDone, onError } = {}) {
@@ -139,6 +143,11 @@ contextBridge.exposeInMainWorld("orun", {
     httpStatus: () => ipcRenderer.invoke("ai-router:http-status"),
     httpStart: () => ipcRenderer.invoke("ai-router:http-start"),
     httpStop: () => ipcRenderer.invoke("ai-router:http-stop"),
+    setCredential: ({ providerId, accountLabel, apiKey }) =>
+      ipcRenderer.invoke("ai-router:set-credential", { providerId, accountLabel, apiKey }),
+    deleteCredential: ({ providerId, accountLabel }) =>
+      ipcRenderer.invoke("ai-router:delete-credential", { providerId, accountLabel }),
+    credentialStatus: () => ipcRenderer.invoke("ai-router:credential-status"),
   },
   settings: {
     get: (key) => ipcRenderer.invoke("settings:get", key),
@@ -180,6 +189,7 @@ contextBridge.exposeInMainWorld("orun", {
     listChannels: (opts) => ipcRenderer.invoke("identity:list-channels", opts),
     setChannel: (args) => ipcRenderer.invoke("identity:set-channel", args),
     setChannelEnabled: (args) => ipcRenderer.invoke("identity:set-channel-enabled", args),
+    removeChannel: (args) => ipcRenderer.invoke("identity:remove-channel", args),
     completeOnboarding: (args) => ipcRenderer.invoke("identity:complete-onboarding", args),
     linkIdentity: (args) => ipcRenderer.invoke("identity:link-identity", args),
     getVoiceSettings: (agentId) => ipcRenderer.invoke("identity:voice-settings", { agentId }),
@@ -206,6 +216,8 @@ contextBridge.exposeInMainWorld("orun", {
     test: () => ipcRenderer.invoke("social-media:test"),
     publishInstagramDirect: (opts) => ipcRenderer.invoke("social-media:publish-instagram-direct", opts),
     publishLinkedInDirect: (opts) => ipcRenderer.invoke("social-media:publish-linkedin-direct", opts),
+    publishTwitterDirect: (opts) => ipcRenderer.invoke("social-media:publish-twitter-direct", opts),
+    publishTikTokDirect: (opts) => ipcRenderer.invoke("social-media:publish-tiktok-direct", opts),
   },
   postiz: {
     listChannels: () => ipcRenderer.invoke("postiz:list-channels"),

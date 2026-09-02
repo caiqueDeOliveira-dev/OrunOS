@@ -45,6 +45,9 @@ exports.ProviderIdSchema = zod_1.z.enum([
     // custom
     "custom-openai-compatible",
     "custom-anthropic-compatible",
+    // MCP / A2A (servidores e agentes externos como provider)
+    "mcp",
+    "a2a",
 ]);
 exports.ProviderTierSchema = zod_1.z.enum(["free", "paid", "subscription"]);
 exports.AuthMethodSchema = zod_1.z.enum(["none", "api-key", "oauth"]);
@@ -55,6 +58,8 @@ exports.WireFormatSchema = zod_1.z.enum([
     "gemini-native",
     "ollama-native",
     "vertex-native",
+    "mcp-native",
+    "a2a-native",
 ]);
 exports.ProviderCapabilitySchema = zod_1.z.enum([
     "text",
@@ -96,9 +101,15 @@ exports.ProviderConfigSchema = zod_1.z.object({
 // ─────────────────────────────────────────────────────────────
 exports.ComboStepSchema = zod_1.z.object({
     providerId: exports.ProviderIdSchema,
-    model: zod_1.z.string().min(1),
+    model: zod_1.z.string().min(1).optional(),
+    // Lista de modelos deste provider neste step (ordem de tentativa).
+    // Se presente, o router tenta cada modelo em ordem no mesmo provider;
+    // so sai para o proximo step (proximo provider) quando todos falharem.
+    models: zod_1.z.array(zod_1.z.string().min(1)).optional(),
     accountLabel: zod_1.z.string().optional(), // qual conta usar, se multi-conta
     maxRetries: zod_1.z.number().int().min(0).max(3).default(1),
+}).refine((st) => (st.model?.length ?? 0) > 0 || (st.models?.length ?? 0) > 0, {
+    message: "step precisa de model ou models",
 });
 exports.ComboKindSchema = zod_1.z.enum(["text", "media"]);
 exports.ComboSchema = zod_1.z.object({

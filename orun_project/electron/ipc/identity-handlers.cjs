@@ -24,9 +24,9 @@ function register(ipcMain, ctx) {
     try { return db.listAgentChannels({ enabledOnly }); } catch (err) { log.warn("[identity] list-channels:", err.message); return []; }
   });
 
-  ipcMain.handle("identity:set-channel", (_event, { provider, externalChannelId, agent, name }) => {
+  ipcMain.handle("identity:set-channel", (_event, { provider, externalChannelId, agent, name, mode }) => {
     try {
-      const channel = db.upsertAgentChannel({ id: identityResolver.uuid(), provider, externalChannelId, agent, name });
+      const channel = db.upsertAgentChannel({ id: identityResolver.uuid(), provider, externalChannelId, agent, name, mode });
       return channel;
     } catch (err) { log.warn("[identity] set-channel:", err.message); throw err; }
   });
@@ -34,6 +34,11 @@ function register(ipcMain, ctx) {
   ipcMain.handle("identity:set-channel-enabled", (_event, { provider, externalChannelId, enabled }) => {
     try { return db.setAgentChannelEnabled(provider, externalChannelId, enabled); }
     catch (err) { log.warn("[identity] set-channel-enabled:", err.message); throw err; }
+  });
+
+  ipcMain.handle("identity:remove-channel", (_event, { provider, externalChannelId }) => {
+    try { return db.deleteAgentChannel(provider, externalChannelId); }
+    catch (err) { log.warn("[identity] remove-channel:", err.message); throw err; }
   });
 
   ipcMain.handle("identity:complete-onboarding", (_event, { identityId, name, workspaceName }) => {

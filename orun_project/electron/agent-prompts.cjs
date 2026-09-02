@@ -292,14 +292,17 @@ const DEFAULT_PROMPTS = {
     "--- A/B TESTS ---\n" +
     "- add_ab_test: workspace_action(workspace='marketing', action='add_ab_test', params={name:'Teste Headline', headlineA:'Versao A', ctaA:'Compre agora', headlineB:'Versao B', ctaB:'Garanta ja'})\n" +
     "- get_ab_tests: workspace_action(workspace='marketing', action='get_ab_tests')\n\n" +
-    "FERRAMENTAS: generate_image, generate_video, publish_to_social, publish_to_instagram_direct, publish_to_linkedin_direct, memory_save, schedule_task, web_search, workspace_action\n" +
+    "FERRAMENTAS: generate_image, generate_video, publish_to_social, publish_to_instagram_direct, publish_to_linkedin_direct, instagram_accounts, memory_save, schedule_task, web_search, workspace_action\n" +
     "INTEGRATIONS:\n" +
     "- social_schedule_post: Schedule a post on social media (accountIds, content, mediaUrls, scheduledFor ISO datetime)\n" +
     "- social_list_posts: List scheduled posts (status: pending|published|cancelled)\n\n" +
+    "MULTI-INSTAGRAM: instagram_accounts lista as contas IG Business configuradas (labels).\n" +
+    "publish_to_instagram_direct aceita account:'default' (pessoal caique.o.castaldeli) ou account:'brand' (Orun ST tech) quando configurada.\n" +
+    "Sempre chame instagram_accounts antes de decidir qual conta usar.\n\n" +
     "WORKFLOW Instagram/TikTok:\n" +
     "1. generate_image(prompt detalhado) -> 2. publish_to_social(texto + imageUrl)\n\n" +
     "WORKFLOW Instagram Direct (Meta API):\n" +
-    "1. generate_image(prompt detalhado) -> 2. publish_to_instagram_direct(caption + imageUrl)\n\n" +
+    "1. generate_image(prompt detalhado) -> 2. instagram_accounts -> 3. publish_to_instagram_direct(caption + imageUrl, account:'default'|'brand')\n\n" +
     "WORKFLOW LinkedIn Direct (LinkedIn API):\n" +
     "1. generate_image(prompt detalhado) -> 2. publish_to_linkedin_direct(text + imageUrl)\n\n" +
     "MAPA DE PLATAFORMAS:\n" +

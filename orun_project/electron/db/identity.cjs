@@ -76,6 +76,8 @@ const IDENTITY_TABLES_SQL = `
     external_channel_id TEXT NOT NULL,
     agent TEXT NOT NULL,
     name TEXT,
+    mode TEXT NOT NULL DEFAULT 'always'
+      CHECK(mode IN ('always', 'mention')),
     enabled INTEGER NOT NULL DEFAULT 1,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
@@ -98,6 +100,10 @@ function ensureSchema() {
   addColumn(d, "conversations", "user_id", "TEXT");
   addColumn(d, "conversations", "channel_id", "TEXT");
   addColumn(d, "conversations", "external_conversation_id", "TEXT");
+
+  // Modo de resposta por canal: 'always' (livre) ou 'mention' (só com @).
+  // ADD COLUMN não aceita CHECK — validação é feita no upsert.
+  addColumn(d, "agent_channels", "mode", "TEXT NOT NULL DEFAULT 'always'");
 
   addColumn(d, "messages", "workspace_id", "TEXT");
   addColumn(d, "messages", "user_id", "TEXT");
@@ -252,19 +258,21 @@ function listWorkspaces() {
 
 // ── Agent channels (grupo externo → agente) ────────────────────────────────
 
-function upsertAgentChannel({ id, provider, externalChannelId, agent, name = null, enabled = true }) {
+function upsertAgentChannel({ id, provider, externalChannelId, agent, name = null, mode = "always", enabled = true }) {
   const now = Date.now();
+  const safeMode = mode === "mention" ? "mention" : "always";
   core.getDb()
     .prepare(
-      `INSERT INTO agent_channels (id, provider, external_channel_id, agent, name, enabled, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO agent_channels (id, provider, external_channel_id, agent, name, mode, enabled, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(provider, external_channel_id) DO UPDATE SET
          agent = excluded.agent,
          name = COALESCE(excluded.name, agent_channels.name),
+         mode = excluded.mode,
          enabled = excluded.enabled,
          updated_at = excluded.updated_at`
     )
-    .run(id, provider, externalChannelId, agent, name, enabled ? 1 : 0, now, now);
+    .run(id, provider, externalChannelId, agent, name, safeMode, enabled ? 1 : 0, now, now);
   return getAgentChannel(provider, externalChannelId);
 }
 
@@ -285,6 +293,12 @@ function setAgentChannelEnabled(provider, externalChannelId, enabled) {
     .prepare(`UPDATE agent_channels SET enabled = ?, updated_at = ? WHERE provider = ? AND external_channel_id = ?`)
     .run(enabled ? 1 : 0, Date.now(), provider, externalChannelId);
   return getAgentChannel(provider, externalChannelId);
+}
+
+function deleteAgentChannel(provider, externalChannelId) {
+  const d = core.getDb();
+  const deleted = d.prepare(`DELETE FROM agent_channels WHERE provider = ? AND external_channel_id = ?`).run(provider, externalChannelId);
+  return { deleted: deleted.changes > 0 };
 }
 
 // ── Conversations escopadas (workspace + agente + canal) ───────────────────
@@ -391,6 +405,7 @@ module.exports = {
   getAgentChannel,
   listAgentChannels,
   setAgentChannelEnabled,
+  deleteAgentChannel,
   getConversation,
   findScopedConversation,
   getOrCreateConversation,

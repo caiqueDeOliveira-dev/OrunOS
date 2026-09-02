@@ -1,0 +1,208 @@
+@import "tailwindcss";
+
+@theme {
+  --color-orun-accent: #c3002f;
+  --color-orun-accentHover: #d4003a;
+  --color-orun-accentMuted: rgba(195, 0, 47, 0.08);
+  --color-orun-bg: #050505;
+  --color-orun-surface: #08080a;
+  --color-orun-card: #141414;
+  --color-orun-border: #252525;
+  --color-orun-borderHover: #353535;
+  --color-orun-text: #ffffff;
+  --color-orun-textSecondary: #a0a0a0;
+  --color-orun-muted: #5c5c5c;
+  --color-orun-success: #00d26a;
+  --color-orun-error: #ef4444;
+  --color-orun-warning: #ffb547;
+  --color-orun-info: #4da3ff;
+
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-display: "Sora", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #252525 transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #252525;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #353535;
+  }
+  body {
+    font-family: "Inter", system-ui, sans-serif;
+    background: #050505;
+    color: #fff;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  :focus-visible {
+    outline: 1px solid #c3002f;
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: rgba(195, 0, 47, 0.3);
+    color: #fff;
+  }
+}
+
+@layer components {
+  .font-display {
+    font-family: Sora, system-ui, sans-serif;
+  }
+
+  .orun-card-glow {
+    transition: border-color 0.2s ease-out, box-shadow 0.2s ease-out;
+  }
+  .orun-card-glow:hover {
+    border-color: rgba(195, 0, 47, 0.3);
+    box-shadow: 0 0 24px rgba(195, 0, 47, 0.08);
+  }
+
+  .noise-overlay::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    opacity: 0.015;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .accent-line {
+    position: relative;
+  }
+  .accent-line::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(195, 0, 47, 0.4), transparent);
+  }
+
+  .toast-enter {
+    animation: toast-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .toast-exit {
+    animation: toast-out 0.15s ease-in forwards;
+  }
+}
+
+@layer utilities {
+  .text-2xs {
+    font-size: 0.6875rem;
+    line-height: 1rem;
+  }
+  .shadow-glow-sm {
+    box-shadow: 0 0 6px rgba(0, 210, 106, 0.4);
+  }
+  .animate-fade-in {
+    animation: fadeIn 0.2s ease-out;
+  }
+  .animate-glow-pulse {
+    animation: glowPulse 3s ease-in-out infinite;
+  }
+  .animate-node-pulse {
+    animation: nodePulse 2.5s ease-in-out infinite;
+  }
+  .animate-orbit-spin {
+    animation: orbitSpin 20s linear infinite;
+  }
+  .animate-slide-up {
+    animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes glowPulse {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes nodePulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes orbitSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes toast-in {
+  0% {
+    opacity: 0;
+    transform: translateY(100%) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes toast-out {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(100%) scale(0.95);
+  }
+}
+@keyframes pipeline-pulse {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}

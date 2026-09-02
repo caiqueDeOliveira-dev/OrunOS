@@ -226,7 +226,8 @@ export declare const ComboStepSchema: z.ZodObject<{
         "custom-openai-compatible": "custom-openai-compatible";
         "custom-anthropic-compatible": "custom-anthropic-compatible";
     }>;
-    model: z.ZodString;
+    model: z.ZodOptional<z.ZodString>;
+    models: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
     accountLabel: z.ZodOptional<z.ZodString>;
     maxRetries: z.ZodDefault<z.ZodNumber>;
 }, z.core.$strip>;

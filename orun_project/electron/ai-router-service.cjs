@@ -20,6 +20,10 @@ const {
   SqliteUsageLogStore,
 } = require("@orun/ai-router-node");
 const {
+  openAiRouterKeystore,
+  migrateLegacyRouterSecrets,
+} = require("./ai-router-keystore.cjs");
+const {
   ModelRouter,
   InMemorySkillStore,
   FREE_FOREVER_COMBO,
@@ -32,28 +36,38 @@ let _httpServer = null;
 let _httpUrl = null;
 
 /**
- * Secret-store adapter: resolves router credentials from the desktop's own
- * keychain store. Slot precedence:
- *   1. `ai-router.<providerId>` (or `ai-router.<providerId>.<accountLabel>`)
- *   2. the bare provider slot used by Settings (e.g. "groq", "openai", "ollama")
+ * Secret-store adapter: resolve credenciais do router. Precedência:
+ *   1. keystore do próprio router (provider_credentials, cifrado AES-256-GCM)
+ *   2. slots legados do cofre do desktop (`ai-router.<provider>`) — até migrar
+ *   3. slots "bare" de provider usados pelo app ({"openai", "groq", ...})
+ * O set grava SEMPRE no keystore do router (o cofre do desktop deixa de ser a
+ * fonte de verdade para o router).
  */
-function createSecretAdapter(secretStore) {
-  const slotFor = (providerId, accountLabel) =>
-    accountLabel && accountLabel !== "default"
-      ? `ai-router.${providerId}.${accountLabel}`
-      : `ai-router.${providerId}`;
-
+function createSecretAdapter(keystore, secretStore) {
   return {
     async getCredential(providerId, accountLabel) {
-      const explicit = await secretStore.get(slotFor(providerId, accountLabel));
+      const label = accountLabel && accountLabel !== "default" ? accountLabel : "default";
+      const inRouter = await keystore.get(providerId, label);
+      if (inRouter) return { apiKey: inRouter };
+      const slotFor = accountLabel && accountLabel !== "default"
+        ? `ai-router.${providerId}.${accountLabel}`
+        : `ai-router.${providerId}`;
+      const explicit = await secretStore.get(slotFor);
       if (typeof explicit === "string" && explicit.trim()) return { apiKey: explicit.trim() };
       const keys = secretStore.getProviderApiKeys(providerId);
       if (keys.length) return { apiKey: keys[0] };
       return null;
     },
     async setCredential(providerId, credential, accountLabel) {
-      if (credential.apiKey) return secretStore.set(slotFor(providerId, accountLabel), credential.apiKey.trim());
+      if (credential && credential.apiKey) {
+        return keystore.set(providerId, credential.apiKey, accountLabel && accountLabel !== "default" ? accountLabel : "default");
+      }
       return false;
+    },
+    async deleteCredential(providerId, accountLabel) {
+      const label = accountLabel && accountLabel !== "default" ? accountLabel : "default";
+      await keystore.delete(providerId, label);
+      return true;
     },
   };
 }
@@ -63,6 +77,8 @@ function getAiRouterService(app, secretStore) {
 
   const dbPath = path.join(app.getPath("userData"), "ai-router.sqlite");
   const db = openAiRouterDatabase(dbPath);
+  const keyPath = path.join(app.getPath("userData"), "ai-router-keystore.key");
+  const keystore = openAiRouterKeystore(db, keyPath);
   const comboStore = new SqliteComboStore(db);
   const providerConfigStore = new SqliteProviderConfigStore(db);
   const usageLogStore = new SqliteUsageLogStore(db);
@@ -73,13 +89,19 @@ function getAiRouterService(app, secretStore) {
   const router = new ModelRouter(
     comboStore,
     providerConfigStore,
-    createSecretAdapter(secretStore),
+    createSecretAdapter(keystore, secretStore),
     skillStore,
     usageLogStore,
   );
 
-  _state = { router, comboStore, providerConfigStore, usageLogStore, db, dbPath };
+  _state = { router, keystore, comboStore, providerConfigStore, usageLogStore, db, dbPath };
   log.info(`[ai-router] service ready db=${dbPath} combos=${BUILTIN_FREE_COMBOS.length}`);
+
+  // Migra os slots legados `ai-router.*` do cofre do desktop para o keystore
+  // do router (roda uma única vez; depois o router é a fonte de verdade).
+  migrateLegacyRouterSecrets(keystore, secretStore).then((res) => {
+    log.info(`[ai-router] credenciais legadas migradas=${res.migrated} removidas=${res.removed} skipped=${res.skipped}`);
+  }).catch((e) => log.warn("[ai-router] migração de credenciais falhou:", e.message));
 
   // Auto-start HTTP server so dashboard is always accessible.
   try { startHttpServer(app, secretStore); } catch (e) { log.warn("[ai-router] auto-start http failed:", e); console.error("[ai-router] auto-start http FAILED:", e); }
@@ -95,7 +117,7 @@ function getDefaultComboId() {
 function startHttpServer(app, secretStore) {
   if (_httpServer) return { ok: true, alreadyRunning: true, url: _httpUrl };
 
-  const { router, comboStore, providerConfigStore, usageLogStore, dbPath } = getAiRouterService(app, secretStore);
+  const { router, comboStore, providerConfigStore, usageLogStore, keystore, dbPath } = getAiRouterService(app, secretStore);
   const { createAiRouterServer } = require("@orun/ai-router-server");
 
   const port = Number(process.env.ORUN_AI_ROUTER_PORT) || 4321;
@@ -121,6 +143,7 @@ function startHttpServer(app, secretStore) {
     router,
     comboStore,
     providerConfigStore,
+    credentialStore: keystore,
     usageStore: usageLogStore,
     apiKey,
     meta: { dbPath, defaultComboId: FREE_FOREVER_COMBO.id },

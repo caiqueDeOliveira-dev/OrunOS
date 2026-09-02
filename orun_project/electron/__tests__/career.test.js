@@ -201,6 +201,12 @@ describe("career: WhatsApp determinístico", () => {
     expect(career.isCareerQuestion("procurou emprego pra mim?")).toBe(true);
     expect(career.isCareerQuestion("qual é a previsão do tempo?")).toBe(false);
     expect(career.isCareerQuestion("")).toBe(false);
+    // Não deve casar substring genérica de outros agentes (ex.: Automotive pedindo
+    // o preço de uma peça) — antes, "procura"/"busca"/"achou" no meio da frase
+    // acionavam a rota do Carreiras e gravavam dados no workspace errado.
+    expect(career.isCareerQuestion("me procura o valor de uma peça")).toBe(false);
+    expect(career.isCareerQuestion("busca o preço da peça no estoque")).toBe(false);
+    expect(career.isCareerQuestion("qual o melhor procuramento para o carro?")).toBe(false);
   });
 
   it("buildWhatsAppReply mostra resumo quando não há vagas", async () => {

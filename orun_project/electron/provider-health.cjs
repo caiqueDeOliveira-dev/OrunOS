@@ -16,6 +16,7 @@ const PROVIDERS = {
   nvidia: { url: "https://integrate.api.nvidia.com/v1/models", needsKey: true },
   opencodezen: { url: "https://opencode.ai/zen/v1/models", needsKey: true },
   ollama: { url: "http://localhost:11434/api/tags", needsKey: false },
+  "orun-router": { url: "http://127.0.0.1:4321/v1/models", needsKey: false },
 };
 
 // Status store: { provider: { status: "up"|"down"|"unknown", latencyMs: number, lastCheck: Date, error: string|null, uptime5m: number } }

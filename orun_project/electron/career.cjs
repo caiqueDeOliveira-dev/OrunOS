@@ -548,10 +548,10 @@ function prepareApplication(jobIdOrUrl, profileKey, { querySummary } = {}) {
 
 // ── Respostas determinísticas para o WhatsApp ────────────────────────────
 
-const CAREER_QUERY_REGEX = /(vaga|vagas|emprego|empregos|curriculo|currículo|candidatura|candidaturas|mandou|enviou|enviado|achou|procurou|procura|procure|busca|buscar|busque|acha|ache)/i;
+const CAREER_QUERY_REGEX = /\b(vaga|vagas|emprego|empregos|curriculo|currículo|candidatura|candidaturas|mandou|enviou|enviado)\b/i;
 
 /** Verbos/marcadores que sinalizam intenção de BUSCAR vagas (não só status). */
-const JOB_SEARCH_INTENT = /\b(procura|procure|busca|buscar|busque|acha|ache|encontra|encontre|achei|quero|minha area|área)\b|\b(vaga|vagas|emprego|empregos|oportunidade|oportunidades)\s+(de|em|e|para|como)/i;
+const JOB_SEARCH_INTENT = /\b(procura|procure|busca|buscar|busque|acha|ache|encontra|encontre|achei|quero|minha area|área)\b(?:\s+(?:uma|um|alguma|algum|de|em|para|por|as|os|vaga|vagas|emprego|empregos|oportunidade|oportunidades)\s*)+|\b(vaga|vagas|emprego|empregos|oportunidade|oportunidades)\s+(de|em|e|para|como)/i;
 
 /** Extrai a área/query de uma mensagem de busca. Retorna "" se não houver query. */
 function extractJobQuery(text = "") {
