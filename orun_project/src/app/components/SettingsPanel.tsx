@@ -1261,6 +1261,46 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
                   )}
                 </Section>
 
+                {/* Combos Orun Router */}
+                <Section title="Combos Orun Router" icon={Server} accent="#C00018">
+                  {mergedCombos.length === 0 ? (
+                    <div className="px-3 py-2 rounded-lg text-[9px]" style={{ background: "var(--secondary)", border: "1px dashed var(--border)", color: "var(--muted-foreground)", fontFamily: "'Sora', sans-serif" }}>
+                      Nenhum combo encontrado. Crie combos no painel do Orun Router (botão "Orun Router" na aba System) ou pelo router externo.
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      {mergedCombos.map((c) => {
+                        const isActive = aiComboMode?.enabled && aiComboMode?.comboId === c.id && aiComboMode?.source === c.source;
+                        return (
+                          <button
+                            key={`${c.source}:${c.id}`}
+                            type="button"
+                            onClick={() => setAiComboMode({ enabled: true, comboId: c.id, source: c.source || "internal" })}
+                            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors"
+                            style={{
+                              background: isActive ? "rgba(192,0,24,0.12)" : "var(--secondary)",
+                              border: `1px solid ${isActive ? "#C00018" : "var(--border)"}`,
+                            }}
+                          >
+                            <Server size={12} style={{ color: isActive ? "#FF1A2D" : "#C00018", flexShrink: 0 }} />
+                            <div className="flex-1 min-w-0">
+                              <span className="text-[10px] block truncate" style={{ color: "var(--foreground)", fontFamily: "'Sora', sans-serif" }}>
+                                {c.name || c.id}
+                              </span>
+                              <span className="text-[8px] block" style={{ color: "var(--muted-foreground)", fontFamily: "'JetBrains Mono', monospace" }}>
+                                {c.id} · {c.source === "internal" ? "Interno" : "Externo"}{c.kind ? ` · ${c.kind}` : ""}{c.isSystemDefault ? " · Padrão" : ""}
+                              </span>
+                            </div>
+                            {isActive
+                              ? <CheckCircle2 size={12} style={{ color: "#00D26A", flexShrink: 0 }} />
+                              : (c.isSystemDefault ? <Sparkles size={10} style={{ color: "#F59E0B", flexShrink: 0 }} /> : null)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </Section>
+
                 {/* Connection */}
                 <Section title={t("settings_section_connection")} icon={Plug} accent="#06B6D4">
                   {info.kind === "local" ? (

@@ -18,8 +18,11 @@ async function autonomousLoop({ messages, agentId, sender, requestId, cancelledR
   const log = ctx.log || console;
 
   const settings = resolveAISettings(agentId);
-  const apiKeys = secretStore.getProviderApiKeys(settings.provider);
-  const apiKey = apiKeys[0];
+  let apiKeys = [], apiKey = null;
+  if (settings.kind !== "combo") {
+    apiKeys = secretStore.getProviderApiKeys(settings.provider);
+    apiKey = apiKeys[0];
+  }
   let systemPrompt = buildSystemPrompt(settings.systemPrompt, agentId);
   if (voiceMode) {
     // Speech-shaped replies: the answer will be read aloud by TTS. Short,
@@ -48,6 +51,25 @@ async function autonomousLoop({ messages, agentId, sender, requestId, cancelledR
     if (cached && !cancelledRef.cancelled) {
       log.info(`[autonomous] cache hit for agent=${agentId}`);
       return cached;
+    }
+  }
+
+  // Combo por agente: quando o agente tem override de combo (Orun Router),
+  // responde via ModelRouter do desktop (texto puro) em vez de provider/model.
+  // Roda antes do buildContext/loop, evitando setup baseado em provider/model.
+  if (settings.kind === "combo" && ctx.router) {
+    log.info(`[autonomous] combo agent=${agentId || "hampton"} comboId=${settings.comboId} (mode combo)`);
+    const comboContext = [{ role: "system", content: systemPrompt }];
+    for (const m of messages) comboContext.push({ role: m.role === "hampton" ? "assistant" : "user", content: m.content });
+    try {
+      const result = await ctx.router.complete({ comboId: settings.comboId, messages: comboContext, stream: false });
+      const text = (result && (result.content || result.text)) || "";
+      if (text) responseCache.set(lastUserMsg, agentId, voiceMode ? "voice" : "text", text);
+      logDone(1, 0);
+      return text;
+    } catch (err) {
+      log.error("[autonomous] combo failed:", err && err.message);
+      log.warn("[autonomous] combo falhou, caindo no fluxo normal de providers");
     }
   }
 

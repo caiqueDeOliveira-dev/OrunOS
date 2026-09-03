@@ -467,6 +467,7 @@ type TranslationKeys = {
   agentModelsPersonaPlaceholder: string;
   agentModelsSaved: string;
   agentModelsSave: string;
+  agentModelsApplyComboAll: string;
 
   // Model picker
   modelPickerHint: string;
@@ -2012,6 +2013,7 @@ export const translations: Record<Language, TranslationKeys> = {
     agentModelsPersonaPlaceholder: "Persona personalizada para",
     agentModelsSaved: "Salvo ✓",
     agentModelsSave: "Salvar",
+    agentModelsApplyComboAll: "Aplicar combo padrão a agentes sem modelo",
 
     // Model picker
     modelPickerHint: "Clique duas vezes em um provider para ver seus modelos.",
@@ -3558,6 +3560,7 @@ export const translations: Record<Language, TranslationKeys> = {
     agentModelsPersonaPlaceholder: "Custom persona for",
     agentModelsSaved: "Saved ✓",
     agentModelsSave: "Save",
+    agentModelsApplyComboAll: "Apply default combo to agents without a model",
 
     // Model picker
     modelPickerHint: "Double-click a provider to see its models.",
@@ -5104,6 +5107,7 @@ export const translations: Record<Language, TranslationKeys> = {
     agentModelsPersonaPlaceholder: "Persona personalizada para",
     agentModelsSaved: "Guardado ✓",
     agentModelsSave: "Guardar",
+    agentModelsApplyComboAll: "Aplicar combo por defecto a agentes sin modelo",
 
     // Model picker
     modelPickerHint: "Haga doble clic en un proveedor para ver sus modelos.",
@@ -6650,6 +6654,7 @@ export const translations: Record<Language, TranslationKeys> = {
     agentModelsPersonaPlaceholder: "Persona personnalisée pour",
     agentModelsSaved: "Enregistré ✓",
     agentModelsSave: "Enregistrer",
+    agentModelsApplyComboAll: "Appliquer la combo par défaut aux agents sans modèle",
 
     // Model picker
     modelPickerHint: "Double-cliquez sur un fournisseur pour voir ses modèles.",

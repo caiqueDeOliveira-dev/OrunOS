@@ -3,7 +3,7 @@ import { motion } from "motion/react";
 import { X, ArrowLeft, Pencil, Clock, ChevronDown, Sparkles } from "lucide-react";
 import { getAgents, isElectron } from "../constants";
 import { useTranslation } from "../../i18n/I18nProvider";
-import type { OrunProvider } from "../../types/orun";
+import type { OrunProvider, OrunRouterCombo } from "../../types/orun";
 
 const PROVIDER_LABELS: Record<OrunProvider, string> = {
   ollama: "Ollama (Local)", anthropic: "Claude", openai: "OpenAI",
@@ -12,7 +12,8 @@ const PROVIDER_LABELS: Record<OrunProvider, string> = {
   ollama_cloud: "Ollama Cloud",
 };
 
-type Override = { provider: OrunProvider; model: string; systemPrompt?: string } | null;
+type Override = { provider: OrunProvider; model: string; systemPrompt?: string } | null
+  | { kind: "combo"; comboId: string; source: "internal" | "external"; systemPrompt?: string };
 type Schedule = { enabled: boolean; time: string };
 type RecommendedModel = { provider: string; model: string };
 
@@ -26,6 +27,7 @@ export function AgentModelsPanel({ onClose, onBack }: { onClose: () => void; onB
   const [modelCatalog, setModelCatalog] = useState<Record<string, { id: string; free: boolean }[]>>({});
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [recommendedModels, setRecommendedModels] = useState<Record<string, RecommendedModel>>({});
+  const [combos, setCombos] = useState<OrunRouterCombo[]>([]);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -39,12 +41,21 @@ export function AgentModelsPanel({ onClose, onBack }: { onClose: () => void; onB
     window.orun.schedules.get().then((s) => setSchedules(s || {}));
     window.orun.ai.modelCatalog().then(setModelCatalog);
     window.orun.settings.agentRecommendedModels().then(setRecommendedModels);
+    window.orun.aiRouter?.listCombosMerged?.().then(setCombos).catch(() => setCombos([]));
   }, []);
 
-  const setAgentProvider = (agent: string, provider: OrunProvider | "default") => {
+  const setAgentProvider = (agent: string, value: string) => {
     setOverrides((prev) => {
-      if (provider === "default") return { ...prev, [agent]: null };
+      if (value === "default") return { ...prev, [agent]: null };
+      if (value.startsWith("combo:")) {
+        const [, source, ...rest] = value.split(":");
+        const comboId = rest.join(":");
+        const existing = prev[agent];
+        return { ...prev, [agent]: { kind: "combo", comboId, source: source as "internal" | "external", systemPrompt: existing?.systemPrompt } };
+      }
+      const provider = value as OrunProvider;
       const existing = prev[agent];
+      if (existing && "kind" in existing) return { ...prev, [agent]: { provider, model: "", systemPrompt: existing.systemPrompt } };
       // Auto-select recommended model when first picking a provider
       if (!existing?.model && recommendedModels[agent]?.provider === provider) {
         return { ...prev, [agent]: { provider, model: recommendedModels[agent].model, systemPrompt: existing?.systemPrompt } };
@@ -54,11 +65,28 @@ export function AgentModelsPanel({ onClose, onBack }: { onClose: () => void; onB
   };
 
   const setAgentModel = (agent: string, model: string) => {
-    setOverrides((prev) => (prev[agent] ? { ...prev, [agent]: { ...prev[agent]!, model } } : prev));
+    setOverrides((prev) => {
+      const cur = prev[agent];
+      if (!cur) return prev;
+      if ("kind" in cur) return prev; // combo: no model picker
+      return { ...prev, [agent]: { ...cur, model } };
+    });
   };
 
   const setAgentPrompt = (agent: string, systemPrompt: string) => {
     setOverrides((prev) => ({ ...prev, [agent]: { ...(prev[agent] || { provider: "ollama", model: "" }), systemPrompt } }));
+  };
+
+  const applyComboToAll = () => {
+    const combo = combos.find((c) => c.source === "internal") || combos[0];
+    if (!combo) return;
+    setOverrides((prev) => {
+      const next: Record<string, Override> = { ...prev };
+      for (const agent of AGENTS) {
+        if (!next[agent.name]) next[agent.name] = { kind: "combo", comboId: combo.id, source: combo.source ?? "internal" };
+      }
+      return next;
+    });
   };
 
   const save = async () => {
@@ -110,31 +138,40 @@ export function AgentModelsPanel({ onClose, onBack }: { onClose: () => void; onB
                   <Icon size={13} style={{ color: agent.special ? "#C00018" : "var(--muted-foreground)", flexShrink: 0 }} />
                   <span className="text-xs w-24 flex-shrink-0 truncate" title={agent.name} style={{ fontFamily: "'Sora', sans-serif", color: "var(--foreground)" }}>{agent.persona}</span>
                   <select
-                    value={override?.provider || "default"}
-                    onChange={(e) => setAgentProvider(agent.name, e.target.value as OrunProvider | "default")}
+                    value={override && "kind" in override ? `combo:${override.source}:${override.comboId}` : (override?.provider || "default")}
+                    onChange={(e) => setAgentProvider(agent.name, e.target.value)}
                     className="px-2 py-1.5 rounded-md text-[10px] outline-none"
-                    style={{ background: "var(--secondary)", border: "1px solid var(--border)", color: "var(--muted-foreground)", width: 108 }}
+                    style={{ background: "var(--secondary)", border: "1px solid var(--border)", color: "var(--muted-foreground)", width: 128 }}
                   >
                     <option value="default">{t("agentModelsDefault")}</option>
+                    <optgroup label="Combos Orun Router">
+                      {(combos || []).map((c) => (
+                        <option key={`combo:${c.source}:${c.id}`} value={`combo:${c.source}:${c.id}`} style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                          {c.name || c.id} · {c.source === "internal" ? "Interno" : "Externo"}
+                        </option>
+                      ))}
+                    </optgroup>
                     {(Object.keys(PROVIDER_LABELS) as OrunProvider[]).map((p) => <option key={p} value={p}>{PROVIDER_LABELS[p]}</option>)}
                   </select>
                   <div className="relative flex-1 min-w-0">
                     <button
                       onClick={() => setOpenDropdown(openDropdown === agent.name ? null : agent.name)}
-                      disabled={!override}
-                      className="w-full flex items-center justify-between gap-1 px-2 py-1.5 rounded-md text-[10px] text-left outline-none disabled:opacity-30"
-                      style={{ background: "var(--secondary)", border: `1px solid ${openDropdown === agent.name ? "#C00018" : "var(--border)"}`, color: override?.model ? "#E0E0E0" : "var(--muted-foreground)", fontFamily: "'JetBrains Mono', monospace" }}
+                      disabled={!override || (override && "kind" in override)}
+                      className="w-full flex items-center justify-between gap-1 px-2 py-1.5 rounded-md text-[10px] text-left outline-none disabled:opacity-40"
+                      style={{ background: "var(--secondary)", border: `1px solid ${openDropdown === agent.name ? "#C00018" : "var(--border)"}`, color: (override && "model" in override && override.model) || (override && "kind" in override) ? "#E0E0E0" : "var(--muted-foreground)", fontFamily: "'JetBrains Mono', monospace" }}
                     >
                       <span className="truncate">
-                        {override?.model || (
-                          recommendedModels[agent.name]
-                            ? <>{t("agentModelsDefault")} <span style={{ color: "#2ecc71", fontSize: "8px" }}>(Recomendado: {recommendedModels[agent.name].model})</span></>
-                            : t("agentModelsModelName")
-                        )}
+                        {override && "kind" in override
+                          ? (combos.find((c) => c.id === override.comboId && c.source === override.source)?.name || override.comboId)
+                          : (override?.model || (
+                              recommendedModels[agent.name]
+                                ? <>{t("agentModelsDefault")} <span style={{ color: "#2ecc71", fontSize: "8px" }}>(Recomendado: {recommendedModels[agent.name].model})</span></>
+                                : t("agentModelsModelName")
+                            ))}
                       </span>
                       <ChevronDown size={10} style={{ color: "var(--muted-foreground)", flexShrink: 0 }} />
                     </button>
-                    {openDropdown === agent.name && override && (
+                    {openDropdown === agent.name && override && !("kind" in override) && (
                       <div className="absolute z-50 mt-1 w-full max-h-40 overflow-y-auto rounded-lg border scrollbar-hide" style={{ background: "var(--card)", borderColor: "#C00018" }}>
                         {(modelCatalog[override.provider] || []).map((m) => {
                           const isRecommended = recommendedModels[agent.name]?.provider === override.provider && recommendedModels[agent.name]?.model === m.id;
@@ -190,7 +227,10 @@ export function AgentModelsPanel({ onClose, onBack }: { onClose: () => void; onB
           })}
         </div>
 
-        <div className="px-6 py-4 border-t" style={{ borderColor: "var(--border)" }}>
+        <div className="px-6 py-4 border-t space-y-2" style={{ borderColor: "var(--border)" }}>
+          <button onClick={applyComboToAll} disabled={!combos.length} className="w-full py-2 rounded-lg text-xs" style={{ background: "transparent", border: "1px solid var(--border)", color: combos.length ? "#FF1A2D" : "var(--muted-foreground)" }}>
+            {t("agentModelsApplyComboAll")}
+          </button>
           <button onClick={save} className="w-full py-2 rounded-lg text-xs" style={{ background: saved ? "#1a3a1a" : "#C00018", color: "#fff" }}>
             {saved ? t("agentModelsSaved") : t("agentModelsSave")}
           </button>

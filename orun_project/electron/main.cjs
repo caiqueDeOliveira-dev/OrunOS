@@ -594,6 +594,9 @@ function resolveAISettings(agentId) {
   const global = getGlobalAISettings();
   if (!agentId) return global;
   const override = db.getSetting("agentModels", {})[agentId];
+  if (override && override.kind === "combo") {
+    return { ...global, kind: "combo", comboId: override.comboId, source: override.source || "internal" };
+  }
   if (!override || !override.provider) {
     // No override — use recommended model for this agent
     const rec = AGENT_RECOMMENDED_MODELS[agentId];
@@ -876,8 +879,10 @@ async function hubEscalate(request, context, error) {
 /** Delegate to extracted module, passing context dependencies. */
 function autonomousLoop(opts) {
   const { isSilentReply } = require("./silent-mode.cjs");
+  let router = null;
+  try { router = require("./ai-router-service.cjs").getAiRouterService(app, secretStore).router; } catch (e) {}
   return autonomousLoopImpl(opts, {
-    aiRouter, toolsModule, mcpClient, pluginSystem, responseCache, agentProcessor,
+    aiRouter, router, toolsModule, mcpClient, pluginSystem, responseCache, agentProcessor,
     logger, secretStore, resolveAISettings, buildSystemPrompt, getToolsForAgent, log,
     isSilentReply,
   });
