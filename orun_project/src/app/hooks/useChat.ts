@@ -159,10 +159,16 @@ export function useChat({ t, onHamptonStateChange, speak, speakIncremental, spea
         //  - Pedidos de TEXTO puro usam o combo escolhido como resposta principal
         //    (internal → ModelRouter do desktop, que tem as keys; external → router 4321).
         //  - Se o combo falhar, cai no fallback de providers (autonomous-loop).
-        const comboMode = await window.orun.settings.get<{ enabled?: boolean; comboId?: string; source?: "internal" | "external" }>("desktop.aiComboMode").catch(() => undefined);
+        //
+        // Leitura do schema store (@orun/settings → orun-settings.json), o MESMO
+        // lugar onde SettingsPanel grava `desktop.aiComboMode`. Usar o legacy
+        // settings:get (SQLite) aqui fazia o chat nunca ver o toggle da UI.
+        // Default: combo Orun Router Provider (external) como PRINCIPAL; quando ele
+        // falha o fluxo cai no autonomous-loop (providers) que é o SECUNDÁRIO.
+        const comboMode = await window.orun.settings.schemaGet<{ enabled?: boolean; comboId?: string; source?: "internal" | "external" }>("desktop.aiComboMode").catch(() => undefined);
         const comboEnabled = comboMode?.enabled !== false;
-        const comboId = comboMode?.comboId || "Orun OS";
-        const comboSrc: "internal" | "external" = comboMode?.source || "internal";
+        const comboId = comboMode?.comboId || "Orun Router Provider";
+        const comboSrc: "internal" | "external" = comboMode?.source || "external";
         const userText = String(content || "").toLowerCase();
         const actionIntent =
           /\b(zap|zapear|mensagem|mandar|enviar|whatsapp|telegram|discord|spotify|tocar|m[úu]sica|play|pausar|volume)\b/i.test(userText) ||

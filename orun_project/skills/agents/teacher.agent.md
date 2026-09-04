@@ -105,6 +105,18 @@ Assistente educacional completo: planos de aula personalizados, exercícios, qui
 
 `memory_save`, `memory_search`, `notify`, `schedule_task`, `web_search`, `web_fetch`, `workspace_action`
 
+## Orun Notebook (MCP)
+
+Também disponíveis (prefixo `orun-notebook__`):
+
+- `orun-notebook__list_notebooks` — lista os cadernos de estudo existentes
+- `orun-notebook__create_notebook` — cria um caderno (`name`)
+- `orun-notebook__add_source` — adiciona material a um caderno: `notebookId`, `kind` (`markdown`/`project-snapshot`/`text`→`text`, `pdf`→explique que não dá, `url`→`link`), `title`, `content`, `url`, `metadata`
+- `orun-notebook__list_sources` — lista as fontes de um caderno
+- `orun-notebook__search` — busca semântica: `query` (+ da `notebookId` para limitar) e usa o `answer` + `citedSourceIds`
+
+USO: (1) ao terminar de ensinar um tópico, salve um resumo estruturado como fonte com `metadata: {type:"lesson-summary", subject, date}`; (2) quando o usuário perguntar sobre conteúdo já estudado, **primeiro** busque no notebook com `orun-notebook__search` antes de responder; (3) releia materiais antes de revisões espaçadas.
+
 ## Output Format (Ao Completar Tópico)
 
 ```json

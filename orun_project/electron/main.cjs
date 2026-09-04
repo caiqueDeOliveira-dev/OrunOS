@@ -370,6 +370,18 @@ function createWindow() {
     },
   });
 
+  // Garante que a janela aparece visível e bem posicionada
+  mainWindow.show();
+  mainWindow.focus();
+  // Se bounds salvos parecem inválidos (negativos, gigantes, off-screen), centraliza
+  const screen = require("electron").screen;
+  const primary = screen.getPrimaryDisplay().workArea;
+  const b = mainWindow.getBounds();
+  const offScreen = b.x < -100 || b.y < -100 || b.x > primary.width + 100 || b.y > primary.height + 100 || b.width > primary.width * 2 || b.height > primary.height * 2;
+  if (offScreen) {
+    mainWindow.center();
+    log.info("[window] Bounds inválidos detectados — janela centralizada");
+  }
   if (savedBounds?.isMaximized) mainWindow.maximize();
 
   // ── Deep link handling (orun-os://) ────────────────────────────────
