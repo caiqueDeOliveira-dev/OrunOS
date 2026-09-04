@@ -39,6 +39,7 @@ const DEFAULTS = {
     shortcuts: {},
     ai: { provider: "ollama", model: "llama3.1", baseUrl: "http://localhost:11434", systemPrompt: "" },
     aiFallback: null,
+    aiComboMode: { enabled: true, comboId: "Orun Router Provider", source: "external" },
     runInBackground: false,
   },
   mobile: {
@@ -102,6 +103,7 @@ const SETTINGS_SCOPE_MAP = {
   "desktop.shortcuts": "account",
   "desktop.ai": "device",
   "desktop.aiFallback": "device",
+  "desktop.aiComboMode": "device",
   "desktop.runInBackground": "device",
   "mobile.biometricUnlockEnabled": "device",
   "mobile.offlineSyncOnCellular": "device",
