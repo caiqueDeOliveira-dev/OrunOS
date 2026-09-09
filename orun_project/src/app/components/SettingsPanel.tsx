@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, Cpu, Cloud, CheckCircle2, XCircle, Loader2, RefreshCw, Users, Activity, MessageCircle, Globe, Sparkles, Volume2, Shield, Palette, Bot, Plug, ChevronRight, Zap, Mic, Music, Send, Database, Download, Upload, LifeBuoy, TreePine, Waves, CupSoda, Flame, Ear, Award, Mail, Calendar, Keyboard, Server, Plus, Trash2, ArrowUpDown } from "lucide-react";
+import { X, Cpu, Cloud, CheckCircle2, XCircle, Loader2, RefreshCw, Users, Activity, MessageCircle, Globe, Sparkles, Volume2, Shield, Palette, Bot, Plug, ChevronRight, Zap, Mic, Music, Send, Database, Download, Upload, LifeBuoy, TreePine, Waves, CupSoda, Flame, Ear, Award, Mail, Calendar, Keyboard, Server, Plus, Trash2, ArrowUpDown, Lock, Wifi, WifiOff } from "lucide-react";
 import { useTranslation } from "../../i18n/I18nProvider";
 import { LANGUAGE_OPTIONS, type Language } from "../../i18n/translations";
 import { isElectron } from "../constants";
@@ -740,6 +740,336 @@ function McpSettings({ t }: { t: (key: string) => string }) {
         >
           {adding ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
           {t("mcpAdd")}
+        </button>
+      </div>
+    </Section>
+  );
+}
+
+// ── Orun VPN ────────────────────────────────────────────────────────
+
+function VpnSettings({ t }: { t: (key: string) => string }) {
+  const [servers, setServers] = useState<Array<{ id: string; label: string; host: string; connected: boolean }>>([]);
+  const [loading, setLoading] = useState(false);
+  const [peers, setPeers] = useState<Record<string, Array<{ id: string; name: string; address: string; connected: boolean }>>>({});
+  const [selectedServer, setSelectedServer] = useState<string | null>(null);
+  const [serverForm, setServerForm] = useState({ label: "", host: "", apiPort: 51821, wgPort: 51820, wgPublicKey: "", useTls: false, dnsServer: "10.8.0.53" });
+  const [peerName, setPeerName] = useState("");
+  const [error, setError] = useState("");
+  const [addingServer, setAddingServer] = useState(false);
+  const [provisioning, setProvisioning] = useState(false);
+  const [connecting, setConnecting] = useState<string | null>(null);
+
+  const refreshServers = async () => {
+    setLoading(true);
+    try {
+      const list = await window.orun.vpn.getServers();
+      setServers(list || []);
+      // Load peers for each server
+      for (const s of list || []) {
+        try {
+          const p = await window.orun.vpn.getPeers(s.id);
+          setPeers(prev => ({ ...prev, [s.id]: p || [] }));
+        } catch {
+          setPeers(prev => ({ ...prev, [s.id]: [] }));
+        }
+      }
+    } catch {
+      setServers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    refreshServers();
+  }, []);
+
+  const handleAddServer = async () => {
+    setError("");
+    if (!serverForm.label.trim() || !serverForm.host.trim() || !serverForm.wgPublicKey.trim()) {
+      setError("Informe label, host e chave pública do servidor");
+      return;
+    }
+    setAddingServer(true);
+    try {
+      const result = await window.orun.vpn.addServer(serverForm);
+      if (!result.ok) {
+        setError(result.error || "Falha ao adicionar servidor");
+        return;
+      }
+      setServerForm({ label: "", host: "", apiPort: 51821, wgPort: 51820, wgPublicKey: "", useTls: false, dnsServer: "10.8.0.53" });
+      await refreshServers();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao adicionar servidor");
+    } finally {
+      setAddingServer(false);
+    }
+  };
+
+  const handleRemoveServer = async (id: string) => {
+    try {
+      await window.orun.vpn.removeServer(id);
+      setPeers(prev => { const n = { ...prev }; delete n[id]; return n; });
+      if (selectedServer === id) setSelectedServer(null);
+      await refreshServers();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao remover servidor");
+    }
+  };
+
+  const handleProvisionPeer = async (serverId: string) => {
+    if (!peerName.trim()) return;
+    setProvisioning(true);
+    setError("");
+    try {
+      const result = await window.orun.vpn.provisionPeer(serverId, peerName.trim());
+      if (!result.ok) {
+        setError(result.error || "Falha ao provisionar peer");
+        return;
+      }
+      setPeerName("");
+      await refreshServers();
+      // Show config/QR to user
+      if (result.peer) {
+        alert(`Peer criado!\n\nConfig:\n${result.peer.config}\n\nQR Code salvo como SVG.`);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao provisionar peer");
+    } finally {
+      setProvisioning(false);
+    }
+  };
+
+  const handleConnect = async (serverId: string, peerId: string) => {
+    setConnecting(peerId);
+    try {
+      const result = await window.orun.vpn.connect(serverId, peerId);
+      if (!result.ok) {
+        setError(result.error || "Falha ao conectar");
+      }
+      await refreshServers();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao conectar");
+    } finally {
+      setConnecting(null);
+    }
+  };
+
+  const handleDisconnect = async (serverId: string) => {
+    try {
+      await window.orun.vpn.disconnect(serverId);
+      await refreshServers();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao desconectar");
+    }
+  };
+
+  const handleToggleKillSwitch = async (serverId: string, enabled: boolean) => {
+    try {
+      await window.orun.vpn.setKillSwitch(serverId, enabled);
+      await refreshServers();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao alterar kill switch");
+    }
+  };
+
+  return (
+    <Section title="Orun VPN" icon={Wifi} accent="#C00018">
+      {/* Servers list */}
+      <div className="space-y-2 mb-3">
+        {servers.length === 0 ? (
+          <div className="px-3 py-2 rounded-lg text-[9px]" style={{ background: "var(--secondary)", border: "1px dashed var(--border)", color: "var(--muted-foreground)", fontFamily: "'Sora', sans-serif" }}>
+            Nenhum servidor VPN configurado. Adicione um servidor wg-easy abaixo.
+          </div>
+        ) : (
+          servers.map((s) => {
+            const serverPeers = peers[s.id] || [];
+            const isSelected = selectedServer === s.id;
+            const serverState = s.connected ? "Conectado" : "Desconectado";
+            return (
+              <div key={s.id} className="border rounded-lg" style={{ borderColor: isSelected ? "#C00018" : "var(--border)", background: isSelected ? "rgba(192,0,24,0.04)" : "var(--secondary)" }}>
+                <button
+                  onClick={() => setSelectedServer(isSelected ? null : s.id)}
+                  className="w-full flex items-center justify-between px-3 py-2.5 text-left"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full" style={{ background: s.connected ? "#00D26A" : "#666" }} />
+                    <span className="text-[10px] font-medium" style={{ color: "var(--foreground)", fontFamily: "'Sora', sans-serif" }}>{s.label}</span>
+                    <span className="text-[8px] px-1.5 py-0.5 rounded" style={{ background: s.connected ? "rgba(0,210,106,0.15)" : "rgba(102,102,102,0.15)", color: s.connected ? "#00D26A" : "#666", fontFamily: "'JetBrains Mono', monospace" }}>
+                      {serverState}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button onClick={() => handleRemoveServer(s.id)} className="p-1 rounded" style={{ color: "#EF4444" }} title="Remover"><Trash2 size={10} /></button>
+                    <ChevronRight size={12} style={{ color: "var(--muted-foreground)", transform: isSelected ? "rotate(90deg)" : "rotate(0deg)" }} />
+                  </div>
+                </button>
+                {isSelected && (
+                  <div className="px-3 pb-3 space-y-2 border-t" style={{ borderColor: "var(--border)" }}>
+                    {/* Connection controls */}
+                    <div className="flex flex-wrap gap-2">
+                      {serverPeers.length > 0 && (
+                        <select
+                          value={serverPeers[0]?.id || ""}
+                          onChange={(e) => {}}
+                          className="flex-1 min-w-[150px] px-2.5 py-1.5 rounded-md text-[10px] outline-none"
+                          style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+                        >
+                          {serverPeers.map((p) => (
+                            <option key={p.id} value={p.id}>{p.name} ({p.address})</option>
+                          ))}
+                        </select>
+                      )}
+                      {serverPeers.length > 0 && (
+                        <>
+                          <button
+                            onClick={() => handleConnect(s.id, serverPeers[0].id)}
+                            disabled={connecting === serverPeers[0].id || s.connected}
+                            className="px-3 py-1.5 rounded-md text-[9px] transition-colors"
+                            style={{ background: s.connected ? "rgba(0,210,106,0.1)" : "#C00018", color: s.connected ? "#00D26A" : "#fff", opacity: connecting ? 0.5 : 1 }}
+                          >
+                            {connecting ? <Loader2 size={10} className="animate-spin" /> : s.connected ? <Wifi size={10} /> : <WifiOff size={10} />}
+                            {s.connected ? "Conectado" : connecting ? "Conectando..." : "Conectar"}
+                          </button>
+                          {s.connected && (
+                            <button
+                              onClick={() => handleDisconnect(s.id)}
+                              className="px-3 py-1.5 rounded-md text-[9px]"
+                              style={{ background: "rgba(239,68,68,0.1)", color: "#EF4444", border: "1px solid rgba(239,68,68,0.3)" }}
+                            >
+                              <WifiOff size={10} /> Desconectar
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+
+                    {/* Provision new peer */}
+                    <div className="flex gap-1.5 pt-1">
+                      <input
+                        value={peerName}
+                        onChange={(e) => setPeerName(e.target.value)}
+                        placeholder="Nome do dispositivo (ex: iPhone, Laptop)"
+                        className="flex-1 px-2.5 py-1.5 rounded-md text-[10px] outline-none"
+                        style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+                      />
+                      <button
+                        onClick={() => handleProvisionPeer(s.id)}
+                        disabled={provisioning || !peerName.trim()}
+                        className="px-3 py-1.5 rounded-md text-[9px]"
+                        style={{ background: "#C00018", color: "#fff", opacity: provisioning || !peerName.trim() ? 0.5 : 1 }}
+                      >
+                        {provisioning ? <Loader2 size={10} className="animate-spin" /> : <Plus size={10} />}
+                        Provisionar
+                      </button>
+                    </div>
+
+                    {/* Kill Switch */}
+                    <div className="flex items-center justify-between px-1 py-1 rounded-lg" style={{ background: "var(--secondary)", border: "1px solid var(--border)" }}>
+                      <div>
+                        <span className="text-[10px] font-medium" style={{ color: "var(--foreground)", fontFamily: "'Sora', sans-serif" }}>Kill Switch</span>
+                        <div className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>Bloqueia todo tráfego se o túnel cair</div>
+                      </div>
+                      <button
+                        onClick={() => handleToggleKillSwitch(s.id, !s.connected)}
+                        className="relative w-10 h-5 rounded-full transition-all"
+                        style={{ background: s.connected ? "#C00018" : "var(--switch-background)" }}
+                      >
+                        <div className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all" style={{ left: s.connected ? "22px" : "2px" }} />
+                      </button>
+                    </div>
+
+                    {/* Peer list */}
+                    {serverPeers.length > 0 && (
+                      <div className="space-y-1 pt-1">
+                        <span className="text-[9px] font-medium" style={{ color: "var(--muted-foreground)", fontFamily: "'Sora', sans-serif" }}>Peers configurados</span>
+                        {serverPeers.map((p) => (
+                          <div key={p.id} className="flex items-center justify-between px-2 py-1.5 rounded-md text-[9px]" style={{ background: "var(--secondary)", border: "1px solid var(--border)" }}>
+                            <span style={{ color: "var(--foreground)", fontFamily: "'JetBrains Mono', monospace" }}>{p.name} · {p.address}</span>
+                            <span className="text-[8px]" style={{ color: p.connected ? "#00D26A" : "var(--muted-foreground)" }}>
+                              {p.connected ? "● Conectado" : "○ Desconectado"}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Add server form */}
+      <div className="flex flex-col gap-1.5">
+        <div className="grid grid-cols-2 gap-1.5">
+          <input
+            value={serverForm.label}
+            onChange={(e) => setServerForm(prev => ({ ...prev, label: e.target.value }))}
+            placeholder="Label (ex: Casa, VPS)"
+            className="px-2.5 py-1.5 rounded-md text-[10px] outline-none"
+            style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+          />
+          <input
+            value={serverForm.host}
+            onChange={(e) => setServerForm(prev => ({ ...prev, host: e.target.value }))}
+            placeholder="Host (ex: vpn.orun.dev ou 192.168.1.50)"
+            className="px-2.5 py-1.5 rounded-md text-[10px] outline-none"
+            style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+          />
+        </div>
+        <div className="grid grid-cols-4 gap-1.5">
+          <input
+            type="number"
+            value={serverForm.apiPort}
+            onChange={(e) => setServerForm(prev => ({ ...prev, apiPort: Number(e.target.value) }))}
+            placeholder="API Port (51821)"
+            className="px-2.5 py-1.5 rounded-md text-[10px] outline-none"
+            style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)", fontFamily: "'JetBrains Mono', monospace" }}
+          />
+          <input
+            type="number"
+            value={serverForm.wgPort}
+            onChange={(e) => setServerForm(prev => ({ ...prev, wgPort: Number(e.target.value) }))}
+            placeholder="WG Port (51820)"
+            className="px-2.5 py-1.5 rounded-md text-[10px] outline-none"
+            style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)", fontFamily: "'JetBrains Mono', monospace" }}
+          />
+          <input
+            type="checkbox"
+            checked={serverForm.useTls}
+            onChange={(e) => setServerForm(prev => ({ ...prev, useTls: e.target.checked }))}
+            className="mt-4 accent-[#C00018]"
+          />
+          <label className="mt-4 text-[10px]" style={{ color: "var(--muted-foreground)" }}>TLS</label>
+        </div>
+        <div className="grid grid-cols-2 gap-1.5">
+          <input
+            value={serverForm.wgPublicKey}
+            onChange={(e) => setServerForm(prev => ({ ...prev, wgPublicKey: e.target.value }))}
+            placeholder="Chave pública do servidor WireGuard"
+            className="px-2.5 py-1.5 rounded-md text-[10px] outline-none"
+            style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)", fontFamily: "'JetBrains Mono', monospace" }}
+          />
+          <input
+            value={serverForm.dnsServer}
+            onChange={(e) => setServerForm(prev => ({ ...prev, dnsServer: e.target.value }))}
+            placeholder="DNS (padrão: 10.8.0.53)"
+            className="px-2.5 py-1.5 rounded-md text-[10px] outline-none"
+            style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)", fontFamily: "'JetBrains Mono', monospace" }}
+          />
+        </div>
+        {error && <div className="text-[9px]" style={{ color: "#EF4444" }}>{error}</div>}
+        <button
+          onClick={handleAddServer}
+          disabled={addingServer || !serverForm.label.trim() || !serverForm.host.trim() || !serverForm.wgPublicKey.trim()}
+          className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-[10px] transition-colors"
+          style={{ background: "#C00018", color: "#fff", fontFamily: "'Sora', sans-serif", opacity: addingServer || !serverForm.label.trim() || !serverForm.host.trim() || !serverForm.wgPublicKey.trim() ? 0.5 : 1 }}
+        >
+          {addingServer ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
+          Adicionar Servidor
         </button>
       </div>
     </Section>
@@ -1632,6 +1962,11 @@ export function SettingsPanel({ onClose, onOpenAgentModels, onOpenUsage, onOpenW
 
                 {/* MCP Servers */}
                 <McpSettings t={t} />
+
+                {/* Orun VPN */}
+                <Section title="Orun VPN" icon={Wifi} accent="#C00018">
+                  <VpnSettings t={t} />
+                </Section>
               </motion.div>
             )}
 

@@ -1,0 +1,13 @@
+{
+  "name": "@orun/telemetry-core",
+  "version": "0.1.0",
+  "description": "Core compartilhado de telemetria do ecossistema Orun (schema + client). Build CJS vendored para o desktop.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.cjs.json",
+    "typecheck": "tsc --noEmit -p tsconfig.cjs.json"
+  }
+}

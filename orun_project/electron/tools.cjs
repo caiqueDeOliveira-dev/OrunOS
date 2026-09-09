@@ -368,6 +368,139 @@ const TOOL_DEFINITIONS = [
   {
     type: "function",
     function: {
+      name: "webv_open",
+      description: "Open a URL in the agent's hidden browser (real Chromium). Returns the page as a list of indexed interactive elements (clickable/typeable). Set withScreenshot=true to also attach a screenshot image of the page for vision-capable LLMs. Use webv_click/webv_type with the element index to interact.",
+      parameters: {
+        type: "object",
+        properties: {
+          url: { type: "string", description: "URL to open (http/https only)" },
+          withScreenshot: { type: "boolean", description: "Attach a JPEG screenshot of the page (default false)" },
+        },
+        required: ["url"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "webv_snapshot",
+      description: "Re-read the current page and return the indexed interactive elements (update after navigation or dynamic changes). Set withScreenshot=true to attach a fresh screenshot image for vision-capable LLMs.",
+      parameters: {
+        type: "object",
+        properties: {
+          withScreenshot: { type: "boolean", description: "Attach a JPEG screenshot of the page (default false)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "webv_click",
+      description: "Click the interactive element with the given index (from a previous webv_open/webv_snapshot).",
+      parameters: {
+        type: "object",
+        properties: {
+          index: { type: "number", description: "Element index from the snapshot (i field)" },
+        },
+        required: ["index"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "webv_type",
+      description: "Type text into an input/textarea (by element index). Fires real input/change events so React/Vue forms work.",
+      parameters: {
+        type: "object",
+        properties: {
+          index: { type: "number", description: "Element index from the snapshot (i field)" },
+          text: { type: "string", description: "Text to type (max 500 chars)" },
+        },
+        required: ["index", "text"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "webv_press",
+      description: "Press a keyboard key in the focused element. Useful keys: Enter, Tab, Escape, Backspace, ArrowDown, ArrowUp.",
+      parameters: {
+        type: "object",
+        properties: {
+          key: { type: "string", description: "Key name, e.g. Enter" },
+        },
+        required: ["key"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "webv_scroll",
+      description: "Scroll the page. Directions: down/up/left/right (relative) or top/bottom (absolute).",
+      parameters: {
+        type: "object",
+        properties: {
+          direction: { type: "string", enum: ["down", "up", "left", "right", "top", "bottom"], description: "Scroll direction" },
+          amount: { type: "number", description: "Pixels for relative scroll (default 500)" },
+        },
+        required: ["direction"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "webv_go",
+      description: "Navigate the agent browser history: back or forward.",
+      parameters: {
+        type: "object",
+        properties: {
+          direction: { type: "string", enum: ["back", "forward"], description: "History direction" },
+        },
+        required: ["direction"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "webv_screenshot",
+      description: "Capture a screenshot of the current page (attached as image for vision-capable LLMs). Returns image + page URL/title.",
+      parameters: {
+        type: "object",
+        properties: {},
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "webv_evaluate",
+      description: "Run a small JavaScript expression in the page (read-only friendly). Use for extracting data or reading page state. Result is capped at 4000 chars.",
+      parameters: {
+        type: "object",
+        properties: {
+          expression: { type: "string", description: "JavaScript expression, e.g. Array.from(document.querySelectorAll('h3')).map(h=>h.innerText)" },
+        },
+        required: ["expression"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "webv_close",
+      description: "Close the agent's browser session and free resources (the next webv_open starts fresh).",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "memory_save",
       description: "Save information to long-term memory for later recall across sessions.",
       parameters: {
@@ -1265,19 +1398,22 @@ const TOOL_DEFINITIONS = [
   { type: "function", function: { name: "finance_list_accounts", description: "List all financial accounts (checking, savings, credit, etc.).", parameters: { type: "object", properties: {} } } },
   { type: "function", function: { name: "finance_create_transaction", description: "Create a financial transaction (expense or income).", parameters: { type: "object", properties: { accountId: { type: "string" }, date: { type: "string", description: "YYYY-MM-DD" }, amountCents: { type: "number", description: "Amount in cents (integer)" }, payee: { type: "string" }, notes: { type: "string" }, categoryId: { type: "string" }, cleared: { type: "boolean" } }, required: ["accountId", "date", "amountCents"] } } },
   { type: "function", function: { name: "finance_budget_month", description: "Get budget summary for a specific month.", parameters: { type: "object", properties: { month: { type: "string", description: "YYYY-MM" } }, required: ["month"] } } },
-  { type: "function", function: { name: "social_schedule_post", description: "Schedule a post on social media (Instagram, Twitter, TikTok).", parameters: { type: "object", properties: { accountIds: { type: "array", items: { type: "string" } }, content: { type: "string" }, mediaUrls: { type: "array", items: { type: "string" } }, scheduledFor: { type: "string", description: "ISO datetime" } }, required: ["accountIds", "content", "scheduledFor"] } } },
-  { type: "function", function: { name: "social_list_posts", description: "List scheduled social media posts.", parameters: { type: "object", properties: { status: { type: "string", enum: ["pending", "published", "cancelled"] } } } } },
+  { type: "function", function: { name: "translate_text", description: "Translate text to another language using the self-hosted LibreTranslate (offline, private, no cloud LLM involved).", parameters: { type: "object", properties: { text: { type: "string", description: "Text to translate (max ~1000 chars)" }, source: { type: "string", description: "Source language code or 'auto' (default: auto-detect)" }, target: { type: "string", description: "Target language code: en, pt, es, fr, de, it, ja, ko, zh-Hans" }, format: { type: "string", enum: ["text", "html"], description: "Text or html" } }, required: ["text", "target"] } } },
+  { type: "function", function: { name: "translate_languages", description: "List languages supported by the local LibreTranslate translator.", parameters: { type: "object", properties: {} } } },
   { type: "function", function: { name: "design_list_projects", description: "List design projects from Penpot.", parameters: { type: "object", properties: {} } } },
   { type: "function", function: { name: "design_export_file", description: "Export a design file from Penpot as SVG/PNG/PDF.", parameters: { type: "object", properties: { fileId: { type: "string" }, format: { type: "string", enum: ["svg", "png", "pdf"] }, pageId: { type: "string" } }, required: ["fileId", "format"] } } },
   { type: "function", function: { name: "vault_save", description: "Save a bookmark/link to the memory vault (Karakeep).", parameters: { type: "object", properties: { type: { type: "string", enum: ["link", "text", "note"] }, content: { type: "string" }, tags: { type: "array", items: { type: "string" } }, title: { type: "string" } }, required: ["type", "content"] } } },
   { type: "function", function: { name: "vault_search", description: "Search the memory vault in natural language.", parameters: { type: "object", properties: { query: { type: "string" }, limit: { type: "number" } }, required: ["query"] } } },
   { type: "function", function: { name: "photo_search", description: "Search photos in the Immich library.", parameters: { type: "object", properties: { text: { type: "string" }, personName: { type: "string" }, albumId: { type: "string" }, favorite: { type: "boolean" } } } } },
-  // ── Postiz tools ──
-  { type: "function", function: { name: "postiz_list_channels", description: "List connected social media channels in Postiz (X, Instagram, etc).", parameters: { type: "object", properties: {} } } },
-  { type: "function", function: { name: "postiz_list_posts", description: "List posts in Postiz for a date range.", parameters: { type: "object", properties: { startDate: { type: "string", description: "ISO date (default: first of current month)" }, endDate: { type: "string", description: "ISO date (default: last of current month)" } } } } },
-  { type: "function", function: { name: "postiz_create_post", description: "Create a post in Postiz. For X/Twitter: content max 280 chars. Use integrationId from postiz_list_channels.", parameters: { type: "object", properties: { integrationId: { type: "string", description: "Channel integration ID from postiz_list_channels" }, content: { type: "string", description: "Post text content" }, date: { type: "string", description: "Scheduled date/time ISO (optional, for schedule type)" }, type: { type: "string", enum: ["schedule", "draft", "now"], description: "schedule=scheduled, draft=draft, now=publish immediately" }, whoCanReply: { type: "string", enum: ["everyone", "following", "mentionedUsers", "subscribers", "verified"], description: "X/Twitter reply setting (default: everyone)" } }, required: ["integrationId", "content"] } } },
-  { type: "function", function: { name: "postiz_find_slot", description: "Find next available posting slot in Postiz.", parameters: { type: "object", properties: { integrationId: { type: "string", description: "Optional: specific channel ID" } } } } },
-  { type: "function", function: { name: "postiz_health", description: "Check Postiz connection status.", parameters: { type: "object", properties: {} } } },
+  // ── Postiz tools (removidas 2026-09-08: stack Postiz desmontada; publicação = API direta) ──
+  // ── Cal.com tool definitions ──
+  { type: "function", function: { name: "calcom_health", description: "Check Cal.com self-hosted connection status and logged-in user.", parameters: { type: "object", properties: {} } } },
+  { type: "function", function: { name: "calcom_list_event_types", description: "List Cal.com event types (meeting types) available for booking. Returns id, slug, title, length, hidden.", parameters: { type: "object", properties: {} } } },
+  { type: "function", function: { name: "calcom_get_availability", description: "Get available time slots for a Cal.com event type in a date range. Returns slots grouped by day (ISO times, UTC).", parameters: { type: "object", properties: { eventTypeId: { type: "number", description: "Event type id (from calcom_list_event_types)" }, startTime: { type: "string", description: "ISO start datetime (UTC)" }, endTime: { type: "string", description: "ISO end datetime (UTC)" }, timeZone: { type: "string", description: "IANA timezone (default America/Sao_Paulo)" } }, required: ["eventTypeId"] } } },
+  { type: "function", function: { name: "calcom_find_slots", description: "Find the next available Cal.com booking slots starting from now.", parameters: { type: "object", properties: { eventTypeId: { type: "number", description: "Event type id (from calcom_list_event_types)" }, eventTypeSlug: { type: "string", description: "Event type slug (e.g. '30min'; alternative to eventTypeId)" }, days: { type: "number", description: "How many days ahead to search (default 7)" }, timeZone: { type: "string", description: "IANA timezone (default America/Sao_Paulo)" }, maxSlots: { type: "number", description: "Limit results (default 10)" } } } } },
+  { type: "function", function: { name: "calcom_create_booking", description: "Create a real booking on Cal.com. Use a slot from calcom_find_slots/calcom_get_availability.", parameters: { type: "object", properties: { name: { type: "string", description: "Attendee name" }, email: { type: "string", description: "Attendee email" }, eventTypeId: { type: "number", description: "Event type id (from calcom_list_event_types)" }, startUtcISO: { type: "string", description: "Slot start time in UTC ISO (from the slot object)" }, endUtcISO: { type: "string", description: "Slot end time in UTC ISO" }, timeZone: { type: "string", description: "Attendee timezone (default America/Sao_Paulo)" } }, required: ["name", "email", "eventTypeId", "startUtcISO", "endUtcISO"] } } },
+  { type: "function", function: { name: "calcom_cancel_booking", description: "Cancel an existing Cal.com booking by its UID.", parameters: { type: "object", properties: { uid: { type: "string", description: "Booking UID" }, cancellationReason: { type: "string", description: "Optional reason" }, cancelledBy: { type: "string", description: "Email of who cancels (default system email)" } }, required: ["uid"] } } },
+  { type: "function", function: { name: "calcom_reserve_slot", description: "Reserve a Cal.com slot without creating a booking (dry-run check).", parameters: { type: "object", properties: { slotUtcStartDate: { type: "string", description: "Slot start UTC ISO" }, slotUtcEndDate: { type: "string", description: "Slot end UTC ISO" }, eventTypeId: { type: "number", description: "Event type id" }, dryRun: { type: "boolean", description: "If true, only validate (default true)" } } } } },
 ];
 
 // Ferramentas do CaOS Commander (ponte cérebro ↔ bot Discord — Fase 3)
@@ -1510,6 +1646,120 @@ async function fallbackWebFetch(args) {
   }
 }
 
+// ── Web Vision (webv_*) ──────────────────────────────────────────────────
+// "Nossa versão" do browser-use: navegador real escondido (Chromium embutido
+// do Electron) + DOM indexado + screenshot enviado como imagem ao LLM.
+
+async function webvOpen(args) {
+  try {
+    const wv = require("./web-vision.cjs");
+    if (!wv.browserAvailable()) return { error: "web-vision disponível apenas dentro do app Electron." };
+    const snap = await wv.navigate(args.url, { timeoutMs: args.timeoutMs || 30000 });
+    if (snap.ok === false) return snap;
+    // dá um respiro para SPAs montarem o DOM antes do snapshot
+    await new Promise((r) => setTimeout(r, 700));
+    const collected = await wv.collectSnapshot({ withScreenshot: !!args.withScreenshot });
+    return collected.ok ? collected : { error: collected.error };
+  } catch (err) {
+    return { error: `webv_open: ${err.message || err}` };
+  }
+}
+
+async function webvSnapshot(args) {
+  try {
+    const wv = require("./web-vision.cjs");
+    if (!wv.browserAvailable()) return { error: "web-vision disponível apenas dentro do app Electron." };
+    const collected = await wv.collectSnapshot({ withScreenshot: !!args.withScreenshot });
+    return collected.ok ? collected : { error: collected.error };
+  } catch (err) {
+    return { error: `webv_snapshot: ${err.message || err}` };
+  }
+}
+
+async function webvClick(args) {
+  try {
+    const wv = require("./web-vision.cjs");
+    const res = await wv.click(Number(args.index));
+    return { ok: true, action: res.action || "?", ...(res.error ? { error: res.error } : {}) };
+  } catch (err) {
+    return { error: `webv_click: ${err.message || err}` };
+  }
+}
+
+async function webvType(args) {
+  try {
+    const wv = require("./web-vision.cjs");
+    const res = await wv.typeText(Number(args.index), String(args.text || ""));
+    return { ok: true, action: res.action || "?", ...(res.error ? { error: res.error } : {}) };
+  } catch (err) {
+    return { error: `webv_type: ${err.message || err}` };
+  }
+}
+
+async function webvPress(args) {
+  try {
+    const wv = require("./web-vision.cjs");
+    const res = await wv.pressKey(String(args.key || ""));
+    return { ok: true, action: res.action || "?", ...(res.error ? { error: res.error } : {}) };
+  } catch (err) {
+    return { error: `webv_press: ${err.message || err}` };
+  }
+}
+
+async function webvScroll(args) {
+  try {
+    const wv = require("./web-vision.cjs");
+    const res = await wv.scroll(String(args.direction || "down"), Number(args.amount) || 0);
+    return { ok: true, action: res.action || "?", ...(res.error ? { error: res.error } : {}) };
+  } catch (err) {
+    return { error: `webv_scroll: ${err.message || err}` };
+  }
+}
+
+async function webvGo(args) {
+  try {
+    const wv = require("./web-vision.cjs");
+    const dir = String(args.direction || "back");
+    const res = await wv.go(dir);
+    return { ok: true, action: res.action || "?", ...(res.error ? { error: res.error } : {}) };
+  } catch (err) {
+    return { error: `webv_go: ${err.message || err}` };
+  }
+}
+
+async function webvScreenshot() {
+  try {
+    const wv = require("./web-vision.cjs");
+    if (!wv.browserAvailable()) return { error: "web-vision disponível apenas dentro do app Electron." };
+    const state = await wv.currentState();
+    const shot = await wv.captureScreenshot();
+    if (!shot.ok) return { error: shot.error };
+    return { ok: true, url: state.url, title: state.title, image: { base64: shot.base64, mime: shot.mime } };
+  } catch (err) {
+    return { error: `webv_screenshot: ${err.message || err}` };
+  }
+}
+
+async function webvEvaluate(args) {
+  try {
+    const wv = require("./web-vision.cjs");
+    const res = await wv.evaluate(String(args.expression || ""));
+    return res;
+  } catch (err) {
+    return { error: `webv_evaluate: ${err.message || err}` };
+  }
+}
+
+async function webvClose() {
+  try {
+    const wv = require("./web-vision.cjs");
+    wv.destroySession();
+    return { ok: true, closed: true };
+  } catch (err) {
+    return { error: `webv_close: ${err.message || err}` };
+  }
+}
+
 async function publishToSocial(args) {
   if (!ctx?.socialMedia || !ctx?.db) {
     return { error: "Social media module not initialized. Restart Orun OS." };
@@ -1653,13 +1903,18 @@ const SENSITIVE_TOOL_ACTIONS = {
   run_command: ["execute_command"],
   web_fetch: ["network_request"],
   web_search: ["network_request"],
+  webv_open: ["network_request"],
+  webv_evaluate: ["network_request"],
+  translate_text: ["network_request"],
   publish_to_social: ["network_request"],
   publish_to_instagram_direct: ["network_request"],
   publish_to_linkedin_direct: ["network_request"],
   generate_image: ["api_key_access", "network_request"],
   generate_video: ["api_key_access", "network_request"],
   git_stash: ["git_write"],
-  postiz_create_post: ["social_post"],
+  calcom_create_booking: ["network_request"],
+  calcom_cancel_booking: ["network_request"],
+  calcom_reserve_slot: ["network_request"],
 };
 
 function buildAuditDetails(name, args) {
@@ -1673,6 +1928,10 @@ function buildAuditDetails(name, args) {
       return { url: (args.url || "").slice(0, 200) };
     case "web_search":
       return { query: (args.query || "").slice(0, 200) };
+    case "webv_open":
+      return { url: (args.url || "").slice(0, 200) };
+    case "webv_evaluate":
+      return { expression: (args.expression || "").slice(0, 200) };
     case "publish_to_social":
       return { platform: args.platform, text: (args.text || "").slice(0, 100) };
     case "publish_to_instagram_direct":
@@ -1685,6 +1944,12 @@ function buildAuditDetails(name, args) {
       return { prompt: (args.prompt || "").slice(0, 100), model: args.model || "default" };
     case "generate_video":
       return { prompt: (args.prompt || "").slice(0, 100), resolution: args.resolution || "768P", duration: args.duration || 5 };
+    case "calcom_create_booking":
+      return { eventTypeId: args.eventTypeId, startUtcISO: args.startUtcISO, name: (args.name || "").slice(0, 60), email: (args.email || "").slice(0, 60) };
+    case "calcom_cancel_booking":
+      return { uid: args.uid };
+    case "calcom_reserve_slot":
+      return { eventTypeId: args.eventTypeId, slotUtcStartDate: args.slotUtcStartDate };
     default:
       return {};
   }
@@ -1738,6 +2003,16 @@ async function executeToolRaw(name, args) {
     case "search_content": return searchContent(args);
     case "run_command": return runCommand(args);
     case "web_fetch": return webFetch(args);
+    case "webv_open": return webvOpen(args);
+    case "webv_snapshot": return webvSnapshot(args);
+    case "webv_click": return webvClick(args);
+    case "webv_type": return webvType(args);
+    case "webv_press": return webvPress(args);
+    case "webv_scroll": return webvScroll(args);
+    case "webv_go": return webvGo(args);
+    case "webv_screenshot": return webvScreenshot(args);
+    case "webv_evaluate": return webvEvaluate(args);
+    case "webv_close": return webvClose(args);
     case "memory_save": {
       const rag = require("./rag.cjs");
       const id = args.key || `mem_${Date.now()}`;
@@ -2056,7 +2331,10 @@ async function executeToolRaw(name, args) {
       // --- Integration tools ---
       case "telemetry_track": {
         if (!ctx.telemetry) return { error: "Telemetry not configured" };
-        await ctx.telemetry.track(args);
+        const { normalizeTelemetryPayload } = require("./telemetry-supabase.cjs");
+        const payload = normalizeTelemetryPayload(args);
+        if (!payload) return { ok: false, error: "payload de telemetria incompativel" };
+        await ctx.telemetry.track(payload);
         return { ok: true };
       }
       case "telemetry_health": {
@@ -2088,13 +2366,13 @@ async function executeToolRaw(name, args) {
         if (!ctx.financeStore) return { error: "Finance store not configured" };
         return ctx.financeStore.getBudgetMonth(args.month);
       }
-      case "social_schedule_post": {
-        if (!ctx.socialScheduler) return { error: "Social scheduler not configured" };
-        return ctx.socialScheduler.schedulePost(args);
+      case "translate_languages": {
+        if (!ctx?.translator) return { error: "Translate (LibreTranslate) não inicializado — rode o docker compose ou configure o host em Configurações > Integrações." };
+        return { languages: await ctx.translator.languages() };
       }
-      case "social_list_posts": {
-        if (!ctx.socialScheduler) return { error: "Social scheduler not configured" };
-        return ctx.socialScheduler.listScheduledPosts(args);
+      case "translate_text": {
+        if (!ctx?.translator) return { error: "Translate (LibreTranslate) não inicializado — rode o docker compose ou configure o host em Configurações > Integrações." };
+        return { ok: true, ...(await ctx.translator.translate(args)) };
       }
       case "design_list_projects": {
         if (!ctx.designStore) return { error: "Design store not configured" };
@@ -2116,30 +2394,34 @@ async function executeToolRaw(name, args) {
         if (!ctx.photoLibrary) return { error: "Photo library not configured" };
         return ctx.photoLibrary.search(args);
       }
-      // ── Postiz tools ──
-      case "postiz_list_channels": {
-        if (!ctx.postiz) return { error: "Postiz not configured" };
-        return ctx.postiz.listIntegrations();
+      // ── Cal.com tools ──
+      case "calcom_health": {
+        if (!ctx.calcom) return { error: "Cal.com not configured" };
+        return ctx.calcom.healthCheck();
       }
-      case "postiz_list_posts": {
-        if (!ctx.postiz) return { error: "Postiz not configured" };
-        return ctx.postiz.listPosts(args.startDate, args.endDate);
+      case "calcom_list_event_types": {
+        if (!ctx.calcom) return { error: "Cal.com not configured" };
+        return ctx.calcom.listEventTypes();
       }
-      case "postiz_create_post": {
-        if (!ctx.postiz) return { error: "Postiz not configured" };
-        return ctx.postiz.createPost({
-          posts: [{ integrationId: args.integrationId, content: args.content, whoCanReply: args.whoCanReply || "everyone" }],
-          type: args.type || "schedule",
-          date: args.date || new Date().toISOString(),
-        });
+      case "calcom_get_availability": {
+        if (!ctx.calcom) return { error: "Cal.com not configured" };
+        return ctx.calcom.getAvailability(args);
       }
-      case "postiz_find_slot": {
-        if (!ctx.postiz) return { error: "Postiz not configured" };
-        return ctx.postiz.findFreeSlot(args.integrationId);
+      case "calcom_find_slots": {
+        if (!ctx.calcom) return { error: "Cal.com not configured" };
+        return ctx.calcom.findNextSlots(args);
       }
-      case "postiz_health": {
-        if (!ctx.postiz) return { error: "Postiz not configured" };
-        return ctx.postiz.healthCheck();
+      case "calcom_create_booking": {
+        if (!ctx.calcom) return { error: "Cal.com not configured" };
+        return ctx.calcom.createBooking(args);
+      }
+      case "calcom_cancel_booking": {
+        if (!ctx.calcom) return { error: "Cal.com not configured" };
+        return ctx.calcom.cancelBooking(args);
+      }
+      case "calcom_reserve_slot": {
+        if (!ctx.calcom) return { error: "Cal.com not configured" };
+        return ctx.calcom.reserveSlot(args);
       }
     default: return { error: `Unknown tool: ${name}` };
   }

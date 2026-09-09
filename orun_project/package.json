@@ -4,7 +4,7 @@
   "description": "Orun OS â€” a personal AI desktop assistant with local and cloud model support.",
   "author": "Grupo Orun SoluÃ§Ãµes TecnolÃ³gicas",
   "private": true,
-  "version": "0.7.6",
+  "version": "0.7.7",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
@@ -23,12 +23,14 @@
     "lint:fix": "eslint src/ --fix"
   },
   "dependencies": {
+    "@excalidraw/excalidraw": "^0.18.1",
     "@fal-ai/client": "^1.10.1",
-    "@orun/skills-core": "file:../orun-monorepo_1/orun-monorepo/packages/skills-core",
     "@orun/ai-router-core": "file:vendor/ai-router-core",
     "@orun/ai-router-node": "file:vendor/ai-router-node",
     "@orun/ai-router-server": "file:vendor/ai-router-server",
+    "@orun/backup-core": "file:vendor/backup-core",
     "@orun/core": "github:caiqueDeOliveira-dev/Orun-Core#v0.1.2",
+    "@orun/diagnostics-core": "file:vendor/diagnostics-core",
     "@orun/finance-core": "file:vendor/orun-finance-core",
     "@orun/finance-node": "file:vendor/orun-finance-node",
     "@orun/identity": "file:vendor/orun-identity",
@@ -37,10 +39,13 @@
     "@orun/music-react": "file:vendor/orun-music-react",
     "@orun/sentinela-agent": "file:vendor/orun-sentinela-agent",
     "@orun/shield-core": "file:vendor/orun-shield-core",
+    "@orun/skills-core": "file:C:/Users/Caiqu/Downloads/orun-monorepo_1/orun-monorepo/packages/skills-core",
     "@orun/store-core": "file:vendor/store-core",
-    "@orun/diagnostics-core": "file:vendor/diagnostics-core",
-    "@orun/backup-core": "file:vendor/backup-core",
     "@orun/system-optimizer": "file:vendor/orun-system-optimizer",
+    "@orun/telemetry-core": "file:vendor/orun-telemetry-core",
+    "@orun/telemetry-node": "file:vendor/orun-telemetry-node",
+    "@orun/vpn-core": "file:../../orun-vpn/orun-vpn/packages/vpn-core",
+    "@orun/vpn-electron": "file:../../orun-vpn/orun-vpn/packages/vpn-electron",
     "@radix-ui/react-accordion": "1.2.3",
     "@radix-ui/react-alert-dialog": "1.1.6",
     "@radix-ui/react-aspect-ratio": "1.1.2",
@@ -98,6 +103,7 @@
     "node-wav": "^0.0.2",
     "onnxruntime-web": "^1.27.0",
     "pg": "^8.22.0",
+    "posthog-node": "^4.18.0",
     "qrcode": "1.5.4",
     "react": "18.3.1",
     "react-day-picker": "8.10.1",
@@ -126,6 +132,7 @@
     "concurrently": "9.1.0",
     "cross-env": "7.0.3",
     "electron": "^31.7.7",
+    "electron-builder": "^23.6.0",
     "eslint": "^9.0.0",
     "eslint-plugin-react-hooks": "^5.0.0",
     "globals": "^16.0.0",
@@ -136,8 +143,7 @@
     "vite": "6.3.5",
     "vite-plugin-pwa": "^0.21.2",
     "vitest": "2.1.8",
-    "wait-on": "8.0.1",
-    "electron-builder": "^23.6.0"
+    "wait-on": "8.0.1"
   },
   "build": {
     "appId": "com.grupoorun.orunos",
@@ -223,4 +229,3 @@
     "electron@31.7.7": true
   }
 }
-

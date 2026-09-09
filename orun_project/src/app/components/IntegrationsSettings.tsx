@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
-import { Plug, Activity, Shield, DollarSign, Share2, Palette, Bookmark, Image, CheckCircle2, XCircle, Twitter, Video } from "lucide-react";
+import { Plug, Activity, Shield, DollarSign, Share2, Palette, Bookmark, Image, CheckCircle2, XCircle, Twitter, Video, CalendarDays, Languages } from "lucide-react";
 import { P } from "../plugins/workspaces/premium";
 
-type IntegrationKey = "telemetry" | "shieldSecrets" | "finance" | "social" | "designSync" | "memoryVault" | "photos" | "instagramDirect" | "linkedinDirect" | "twitterDirect" | "tiktokDirect";
+type IntegrationKey = "telemetry" | "shieldSecrets" | "finance" | "social" | "calcom" | "translate" | "designSync" | "memoryVault" | "photos" | "instagramDirect" | "linkedinDirect" | "twitterDirect" | "tiktokDirect";
 
 interface IntegrationConfig {
   enabled: boolean;
@@ -14,6 +14,8 @@ interface IntegrationsState {
   shieldSecrets: IntegrationConfig;
   finance: IntegrationConfig;
   social: IntegrationConfig;
+  calcom: IntegrationConfig;
+  translate: IntegrationConfig;
   designSync: IntegrationConfig;
   memoryVault: IntegrationConfig;
   photos: IntegrationConfig;
@@ -122,17 +124,30 @@ const INTEGRATIONS: IntegrationDef[] = [
     providers: FINANCE_PROVIDERS,
   },
   {
-    key: "social",
-    icon: Share2,
-    label: "Social (Postiz)",
-    accent: "#E879F9",
+    key: "calcom",
+    icon: CalendarDays,
+    label: "Cal.com (Agenda dos agentes)",
+    accent: "#F97316",
+    hint: "Agendador self-hosted do ecossistema Orun (http://localhost:3000). Sem senha, agentes só leem disponibilidade; com senha criam e cancelam bookings.",
     fields: [
-      { name: "baseUrl", label: "Base URL", type: "url" },
+      { name: "host", label: "Host", type: "url" },
       { name: "email", label: "Email", type: "text" },
       { name: "password", label: "Password", type: "password" },
       { name: "enabled", label: "Ativado", type: "text" },
     ],
-    requiredFields: ["baseUrl"],
+    requiredFields: ["host"],
+  },
+  {
+    key: "translate",
+    icon: Languages,
+    label: "LibreTranslate (Tradução local)",
+    accent: "#10B981",
+    hint: "Tradução offline/privada pros agentes (docker\translate, porta 5000). Nenhum dado sai da máquina.",
+    fields: [
+      { name: "host", label: "Host", type: "url" },
+      { name: "enabled", label: "Ativado", type: "text" },
+    ],
+    requiredFields: ["host"],
   },
   {
     key: "instagramDirect",
@@ -348,6 +363,8 @@ const DEFAULT_STATE: IntegrationsState = {
   shieldSecrets: { enabled: false },
   finance: { enabled: false, provider: "manual", serverUrl: "", serverPassword: "", dataDir: "", clientId: "", clientSecret: "", itemIds: "" },
   social: { enabled: false, baseUrl: "http://localhost:5000", email: "", password: "" },
+  calcom: { enabled: true, host: "http://localhost:3000", email: "orun@orun.local", password: "" },
+  translate: { enabled: true, host: "http://localhost:5000" },
   instagramDirect: { enabled: false, accessToken: "", igUserId: "" },
   linkedinDirect: { enabled: false, accessToken: "", personUrn: "" },
   twitterDirect: { enabled: false, apiKey: "", apiSecret: "", accessToken: "", accessTokenSecret: "" },
@@ -391,7 +408,7 @@ export default function IntegrationsSettings({ t }: { t: (key: string) => string
           <IntegrationSection
             key={def.key}
             def={def}
-            config={settings[def.key] || { enabled: false }}
+            config={settings[def.key] || DEFAULT_STATE[def.key] || { enabled: false }}
             onChange={handleChange}
           />
         ))}

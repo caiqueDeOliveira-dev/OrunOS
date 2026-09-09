@@ -245,11 +245,22 @@ async function autonomousLoop({ messages, agentId, sender, requestId, cancelledR
         ...(result.reasoningContent ? { reasoning_content: result.reasoningContent } : {}),
         tool_calls: [{ id: tc.id, type: "function", function: { name: tc.name, arguments: JSON.stringify(tc.arguments) } }],
       });
+      const toolImage = toolResult && toolResult.image;
+      const toolContent = toolImage ? { ...toolResult, image: undefined } : toolResult;
       context.push({
         role: "tool",
         tool_call_id: tc.id,
-        content: JSON.stringify(toolResult),
+        content: JSON.stringify(toolContent),
       });
+      // Imagem (screenshot de web-vision) segura o contexto do modelo: tool messages
+      // não carregam imagem na maioria dos providers, então anexamos como user message.
+      if (toolImage && toolImage.base64 && toolImage.mime) {
+        context.push({
+          role: "user",
+          content: "Screenshot da página atual (browser do agente). Use webv_snapshot com withScreenshot=false para re-ler os elementos indexados.",
+          image: { base64: toolImage.base64, mime: toolImage.mime },
+        });
+      }
     }
   }
 

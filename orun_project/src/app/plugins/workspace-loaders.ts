@@ -26,6 +26,7 @@ export const WORKSPACE_PLUGIN_LOADERS = [
   () => import("./workspaces/workspace-shield-secrets"),
   () => import("./workspaces/workspace-finance-real"),
   () => import("./workspaces/workspace-orun-music"),
+  () => import("./workspaces/workspace-whiteboard"),
   () => import("./workspaces/workspace-suporte"),
   () => import("./workspaces/workspace-orun-code"),
 ];

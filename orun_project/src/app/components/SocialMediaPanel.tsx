@@ -3,7 +3,6 @@ import { motion } from "motion/react";
 import { X, Share2, Instagram, Video, Twitter, Copy, Check, Loader2, Send, Settings2, Zap } from "lucide-react";
 import { isElectron } from "../constants";
 import { useTranslation } from "../../i18n/I18nProvider";
-import type { OrunPostizChannel } from "../../types/orun";
 
 function getPlatforms(t: (key: string) => string) {
   return [
@@ -77,7 +76,6 @@ export function SocialMediaPanel({ onClose, onSelectAgent }: Props) {
   const [mediaUrl, setMediaUrl] = useState("");
   const [bufferConfig, setBufferConfigState] = useState<{ token?: string; channels?: Record<string, string> }>({});
   const [integrations, setIntegrations] = useState<Record<string, IntegrationCfg>>({});
-  const [postizChannels, setPostizChannels] = useState<OrunPostizChannel[]>([]);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -95,9 +93,6 @@ export function SocialMediaPanel({ onClose, onSelectAgent }: Props) {
     });
     window.orun?.settings?.get<Record<string, IntegrationCfg>>("integrations").then((cfg) => {
       if (cfg && typeof cfg === "object") setIntegrations(cfg);
-    }).catch(() => {});
-    window.orun?.postiz?.listChannels().then((res) => {
-      if (res?.ok && Array.isArray(res.data)) setPostizChannels(res.data.filter((c) => c.type === "social"));
     }).catch(() => {});
   }, []);
 
@@ -138,42 +133,6 @@ export function SocialMediaPanel({ onClose, onSelectAgent }: Props) {
 
     setPublishing(true);
     setPublishResult(null);
-
-    const isVideo = mediaUrl.includes(".mp4") || mediaUrl.toLowerCase().includes("video");
-    const hasMedia = mediaUrl.trim() !== "";
-    const postizChannel = platformInfo.publishKey === "twitter"
-      ? postizChannels.find((c) => c.identifier === "x")
-      : platformInfo.publishKey === "tiktok"
-        ? postizChannels.find((c) => c.identifier === "tiktok")
-        : undefined;
-
-    if (postizChannel) {
-      if (platformInfo.publishKey === "tiktok" && !hasMedia) {
-        setPublishing(false);
-        setPublishResult(t("socialMediaTiktokReqMedia"));
-        setTimeout(() => { if (mountedRef.current) setPublishResult(null); }, 5000);
-        return;
-      }
-      const res = await window.orun.postiz.createPost({
-        type: "now",
-        posts: [
-          {
-            integrationId: postizChannel.id,
-            content: text,
-            providerIdentifier: platformInfo.publishKey === "twitter" ? "x" : "tiktok",
-            ...(hasMedia ? (isVideo ? { videos: [mediaUrl.trim()] } : { images: [mediaUrl.trim()] }) : {}),
-          },
-        ],
-      });
-      setPublishing(false);
-      if (res.ok) {
-        setPublishResult(`${t("socialMediaPublishedSuccess")} ${platformInfo.label} (Postiz)`);
-      } else {
-        setPublishResult(`${t("socialMediaPublishError")}: ${res.error}`);
-      }
-      setTimeout(() => { if (mountedRef.current) setPublishResult(null); }, 5000);
-      return;
-    }
 
     const payload: Record<string, unknown> = {
       platform: platformInfo.publishKey,
@@ -222,15 +181,9 @@ export function SocialMediaPanel({ onClose, onSelectAgent }: Props) {
 
   const configuredPlatforms = Object.keys(webhookConfig).filter((k) => webhookConfig[k]?.webhookUrl);
   const directConfigured = Object.keys(DIRECT_KEY_BY_PLATFORM).filter((pk) => isDirectReady(DIRECT_KEY_BY_PLATFORM[pk], integrations[DIRECT_KEY_BY_PLATFORM[pk]]));
-  const postizReady = (identifier: string) => postizChannels.some((c) => c.identifier === identifier);
   const allConfigured = new Set([...configuredPlatforms, ...directConfigured]);
-  if (postizReady("x")) allConfigured.add("twitter");
-  if (postizReady("tiktok")) allConfigured.add("tiktok");
-  const isPlatformReady = (publishKey: string) => {
-    if (publishKey === "twitter") return !!webhookConfig[publishKey]?.webhookUrl || isDirectReady(DIRECT_KEY_BY_PLATFORM[publishKey], integrations[DIRECT_KEY_BY_PLATFORM[publishKey]]) || postizReady("x");
-    if (publishKey === "tiktok") return !!webhookConfig[publishKey]?.webhookUrl || isDirectReady(DIRECT_KEY_BY_PLATFORM[publishKey], integrations[DIRECT_KEY_BY_PLATFORM[publishKey]]) || postizReady("tiktok");
-    return !!webhookConfig[publishKey]?.webhookUrl || isDirectReady(DIRECT_KEY_BY_PLATFORM[publishKey], integrations[DIRECT_KEY_BY_PLATFORM[publishKey]]);
-  };
+  const isPlatformReady = (publishKey: string) =>
+    !!webhookConfig[publishKey]?.webhookUrl || isDirectReady(DIRECT_KEY_BY_PLATFORM[publishKey], integrations[DIRECT_KEY_BY_PLATFORM[publishKey]]);
 
   return (
     <motion.div

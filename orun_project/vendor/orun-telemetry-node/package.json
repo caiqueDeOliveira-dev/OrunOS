@@ -1,0 +1,17 @@
+{
+  "name": "@orun/telemetry-node",
+  "version": "0.1.0",
+  "description": "Adapter Electron/Node de @orun/telemetry-core usando PostHog self-hosted. Build CJS vendored para o desktop.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.cjs.json",
+    "typecheck": "tsc --noEmit -p tsconfig.cjs.json"
+  },
+  "dependencies": {
+    "@orun/telemetry-core": "file:../orun-telemetry-core",
+    "posthog-node": "^4.2.0"
+  }
+}

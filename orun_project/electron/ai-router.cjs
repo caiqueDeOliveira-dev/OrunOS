@@ -447,7 +447,9 @@ async function chatOpenAICompatible(provider, { model, messages, apiKey, tools, 
   if (!apiKey) throw new Error(`Missing API key for ${provider}.`);
   const body = { model: model || cfg.defaultModel, messages: formatMessagesFor(provider, messages) };
   if (tools && tools.length) {
-    body.tools = tools;
+    // groq rejects more than 128 tool definitions (HTTP 400 "maximum number of items is 128").
+    // Keep the first N — the agent core (incl. workspace/calcom) is registered before MCP/plugin tools.
+    body.tools = provider === "groq" && tools.length > 128 ? tools.slice(0, 128) : tools;
     if (tool_choice) body.tool_choice = tool_choice;
   }
   const result = await postJSON(`${cfg.baseUrl}/chat/completions`, cfg.authHeaders(apiKey), body);

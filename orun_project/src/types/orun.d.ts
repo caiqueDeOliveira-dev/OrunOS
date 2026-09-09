@@ -402,22 +402,27 @@ export interface OrunSocialMediaPlatformTest {
   error?: string;
 }
 
-export interface OrunPostizChannel {
-  id: string;
-  name?: string;
-  identifier?: string;
-  type?: string;
-  internalId?: string;
+export interface OrunCalcomEventType {
+  id: number;
+  slug?: string;
+  title?: string;
+  length?: number;
+  hidden?: boolean;
 }
 
-export interface OrunPostizPost {
-  integrationId: string;
-  content: string;
-  images?: string[];
-  videos?: string[];
-  providerIdentifier?: string;
-  whoCanReply?: string;
-  settings?: Record<string, unknown>;
+export interface OrunCalcomSlot {
+  time: string;
+  date?: string;
+  eventTypeId?: number;
+}
+
+export interface OrunCalcomBooking {
+  uid?: string;
+  status?: string;
+  startTime?: string;
+  endTime?: string;
+  title?: string;
+  error?: string;
 }
 
 export type OrunTTSEngine = "elevenlabs" | "google" | "azure" | "edge" | "xtts" | "piper" | "bark" | "f5tts" | "kokoro";
@@ -773,6 +778,58 @@ export interface OrunGroupFeedState {
   groups: OrunGroupInfo[];
   settings: OrunGroupWatcherSettings;
   groupsCount: number;
+}
+
+// VPN types
+export interface VpnServerConfig {
+  id: string;
+  label: string;
+  host: string;
+  apiPort: number;
+  wgPort: number;
+  wgPublicKey: string;
+  useTls: boolean;
+  dnsServer: string;
+  createdAt: string;
+}
+
+export interface VpnPeer {
+  id: string;
+  serverId: string;
+  name: string;
+  publicKey: string;
+  presharedKey: string | null;
+  address: string;
+  enabled: boolean;
+  createdAt: string;
+  latestHandshakeAt: string | null;
+  transferRx: number;
+  transferTx: number;
+}
+
+export interface VpnProfile {
+  id: string;
+  serverId: string;
+  peerId: string;
+  privateKeySecretRef: string;
+  autoConnect: boolean;
+  killSwitch: boolean;
+}
+
+export interface VpnConnectionState {
+  status: "disconnected" | "connecting" | "connected" | "disconnecting" | "error";
+  endpoint?: string;
+  rxBytes?: number;
+  txBytes?: number;
+  latencyMs?: number;
+  error?: string;
+}
+
+export interface VpnBackend {
+  connect(profile: VpnProfile, peer: VpnPeer, server: VpnServerConfig): Promise<void>;
+  disconnect(): Promise<void>;
+  getState(): Promise<VpnConnectionState>;
+  setKillSwitch(enabled: boolean): Promise<void>;
 }
 
 export interface OrunGroupDeal {
@@ -1154,16 +1211,14 @@ interface OrunAPI {
     publishTwitterDirect: (opts: { text?: string; imageUrl?: string; videoUrl?: string }) => Promise<OrunSocialMediaPublishResult>;
     publishTikTokDirect: (opts: { text?: string; imageUrl?: string; videoUrl?: string }) => Promise<OrunSocialMediaPublishResult>;
   };
-  postiz: {
-    listChannels: () => Promise<{ ok: boolean; data?: OrunPostizChannel[]; error?: string }>;
-    listPosts: (opts?: { startDate?: string; endDate?: string }) => Promise<{ ok: boolean; data?: unknown[]; error?: string }>;
-    createPost: (input: { posts: OrunPostizPost[]; type?: "schedule" | "draft" | "now"; date?: string; tags?: string[]; shortLink?: boolean }) => Promise<{ ok: boolean; data?: unknown; error?: string }>;
-    deletePost: (group: string) => Promise<{ ok: boolean; data?: unknown; error?: string }>;
-    getPost: (postId: string) => Promise<{ ok: boolean; data?: unknown; error?: string }>;
-    getStats: (postId: string) => Promise<{ ok: boolean; data?: unknown; error?: string }>;
-    availableChannels: () => Promise<{ ok: boolean; data?: unknown; error?: string }>;
-    findSlot: (integrationId?: string) => Promise<{ ok: boolean; data?: unknown; error?: string }>;
-    health: () => Promise<{ ok: boolean; data?: { ok: boolean; host?: string; error?: string }; error?: string }>;
+  calcom: {
+    health: () => Promise<{ ok: boolean; data?: { ok: boolean; reachable?: boolean; session?: { name?: string; email?: string } | null; host?: string; error?: string }; error?: string }>;
+    listEventTypes: () => Promise<{ ok: boolean; data?: OrunCalcomEventType[]; error?: string }>;
+    getAvailability: (opts?: { eventTypeId?: number; eventTypeSlug?: string; startTime?: string; endTime?: string; timeZone?: string }) => Promise<{ ok: boolean; data?: Record<string, OrunCalcomSlot[]> | { error?: string }; error?: string }>;
+    findSlots: (opts?: { eventTypeId?: number; eventTypeSlug?: string; days?: number; timeZone?: string; maxSlots?: number }) => Promise<{ ok: boolean; data?: OrunCalcomSlot[] | { error?: string }; error?: string }>;
+    createBooking: (input: { name: string; email: string; eventTypeId?: number; eventTypeSlug?: string; startUtcISO?: string; endUtcISO?: string; timeZone?: string; notes?: string; location?: string }) => Promise<{ ok: boolean; data?: OrunCalcomBooking | { error?: string }; error?: string }>;
+    cancelBooking: (input: { uid: string; cancellationReason?: string; cancelledBy?: string }) => Promise<{ ok: boolean; data?: { message?: string; error?: string }; error?: string }>;
+    reserveSlot: (input: { slotUtcStartDate: string; slotUtcEndDate: string; eventTypeId?: number; dryRun?: boolean }) => Promise<{ ok: boolean; data?: unknown; error?: string }>;
   };
   app: {
     setRunInBackground: (value: boolean) => Promise<boolean>;
@@ -1385,6 +1440,17 @@ clearHistory: () => Promise<{ ok: boolean }>;
     addServer: (config: { name: string; command: string; args?: string[]; env?: Record<string, string> }) => Promise<{ ok: boolean; tools?: number; error?: string }>;
     removeServer: (name: string) => Promise<{ ok: boolean }>;
     listTools: () => Promise<{ name: string; description: string }[]>;
+  };
+  vpn: {
+    getServers: () => Promise<Array<{ id: string; label: string; host: string; connected: boolean }>>;
+    addServer: (config: { label: string; host: string; apiPort: number; wgPort: number; wgPublicKey: string; useTls: boolean; dnsServer: string }) => Promise<{ ok: boolean; id?: string; error?: string }>;
+    removeServer: (id: string) => Promise<{ ok: boolean; error?: string }>;
+    getPeers: (serverId: string) => Promise<Array<{ id: string; name: string; address: string; connected: boolean }>>;
+    connect: (serverId: string, peerId: string) => Promise<{ ok: boolean; error?: string }>;
+    disconnect: (serverId: string) => Promise<{ ok: boolean; error?: string }>;
+    getState: (serverId: string) => Promise<{ status: string; endpoint?: string; rxBytes?: number; txBytes?: number; latencyMs?: number; error?: string }>;
+    setKillSwitch: (serverId: string, enabled: boolean) => Promise<{ ok: boolean; error?: string }>;
+    provisionPeer: (serverId: string, name: string) => Promise<{ ok: boolean; peer?: { id: string; name: string; config: string; qr: string }; error?: string }>;
   };
   plugins: {
     list: () => Promise<{ id: string; name: string; version: string; description?: string; error?: string; installed: boolean }[]>;

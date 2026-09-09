@@ -3,6 +3,7 @@
 // Electron main process for Orun OS.
 
 const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, Notification, globalShortcut, shell, crashReporter, protocol, net } = require("electron");
+const http = require("http");
 const path = require("path");
 const fs = require("fs");
 const { pathToFileURL } = require("url");
@@ -176,6 +177,14 @@ const AGENT_RECOMMENDED_MODELS = {
 // Each agent only gets tools relevant to its function. Reduces token usage
 // and prevents agents from calling irrelevant tools.
 
+// Web Vision (webv_*) — navegação com visão real de navegador (Chromium embutido).
+// webv_evaluate fica só para agentes com perfil técnico/sistema.
+const WEBV_TOOLS = [
+  "webv_open", "webv_snapshot", "webv_click", "webv_type", "webv_press",
+  "webv_scroll", "webv_go", "webv_screenshot", "webv_close",
+];
+const WEBV_TOOLS_FULL = [...WEBV_TOOLS, "webv_evaluate"];
+
 const AGENT_TOOL_PERMISSIONS = {
   Developer: [
     "read_file", "write_file", "edit_file", "list_files", "search_files",
@@ -187,6 +196,7 @@ const AGENT_TOOL_PERMISSIONS = {
     "run_tests", "code_review", "generate_tests",
     "refactor_rename", "refactor_move", "refactor_extract",
     "pdf_inspect",
+    ...WEBV_TOOLS_FULL,
     "memory_save", "memory_search", "rag_search", "trigger_agent", "open_workspace", "workspace_action",
   ],
   Designer: [
@@ -210,15 +220,16 @@ const AGENT_TOOL_PERMISSIONS = {
     "read_file", "write_file", "list_files",
     "memory_save", "memory_search", "rag_search",
     "notify", "schedule_task", "trigger_agent", "web_search", "open_workspace", "workspace_action",
+    "translate_text", "translate_languages",
   ],
   Marketing: [
     "read_file", "write_file", "list_files",
     "generate_image", "generate_video", "publish_to_social",
     "publish_to_instagram_direct", "publish_to_linkedin_direct",
+    "translate_text", "translate_languages",
     "memory_save", "memory_search", "rag_search",
     "notify", "schedule_task", "trigger_agent", "web_search", "get_weather", "open_workspace", "workspace_action",
-    "social_schedule_post", "social_list_posts",
-    "postiz_list_channels", "postiz_list_posts", "postiz_create_post", "postiz_find_slot", "postiz_health",
+    ...WEBV_TOOLS,
   ],
   "Personal Assistant": [
     "read_file", "write_file", "list_files",
@@ -227,21 +238,29 @@ const AGENT_TOOL_PERMISSIONS = {
     "trigger_agent", "open_workspace", "workspace_action",
     "vault_save", "vault_search",
     "photo_search",
+    "translate_text", "translate_languages",
+    "calcom_health", "calcom_list_event_types", "calcom_get_availability",
+    "calcom_find_slots", "calcom_create_booking", "calcom_cancel_booking", "calcom_reserve_slot",
+    ...WEBV_TOOLS,
   ],
   Automation: [
     "read_file", "write_file", "edit_file", "list_files", "search_files",
     "search_content", "run_command", "web_fetch", "web_search",
     "memory_save", "memory_search", "rag_search",
     "notify", "schedule_task", "trigger_agent", "publish_to_social", "open_workspace", "workspace_action",
+    ...WEBV_TOOLS,
   ],
   Automotive: [
     "web_search", "web_fetch", "memory_save", "memory_search", "rag_search",
     "read_file", "list_files", "notify", "get_weather", "open_workspace", "workspace_action",
+    ...WEBV_TOOLS,
   ],
   Juridico: [
     "read_file", "list_files", "pdf_inspect",
     "memory_save", "memory_search", "rag_search",
     "notify", "schedule_task", "trigger_agent", "web_search", "web_fetch", "open_workspace", "workspace_action",
+    "translate_text", "translate_languages",
+    ...WEBV_TOOLS,
   ],
   System: [
     "read_file", "write_file", "edit_file", "list_files", "search_files",
@@ -252,6 +271,9 @@ const AGENT_TOOL_PERMISSIONS = {
     "open_workspace", "workspace_action",
     "spotify_play", "spotify_search", "spotify_get_playlists", "spotify_get_now_playing",
     "telemetry_track", "telemetry_health",
+    "calcom_health", "calcom_list_event_types", "calcom_get_availability",
+    "calcom_find_slots", "calcom_create_booking", "calcom_cancel_booking", "calcom_reserve_slot",
+    ...WEBV_TOOLS_FULL,
   ],
   "Home IA": [
     "read_file", "list_files",
@@ -281,12 +303,16 @@ const AGENT_TOOL_PERMISSIONS = {
     "career_prepare_application", "career_stats",
     "web_fetch", "web_search",
     "memory_save", "memory_search", "rag_search", "notify", "open_workspace", "workspace_action",
+    "translate_text", "translate_languages",
+    ...WEBV_TOOLS,
   ],
   Neural: [
     "neural_save_note", "neural_search_notes", "neural_list_notes",
     "neural_get_note", "neural_backlinks_graph",
     "web_search", "web_fetch",
     "memory_save", "memory_search", "rag_search", "notify",
+    "translate_text", "translate_languages",
+    ...WEBV_TOOLS,
   ],
   Hampton: null, // null = all tools (default agent)
 };
@@ -949,6 +975,7 @@ function registerIpcHandlers() {
 
   require("./ipc/ai-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/settings-handlers.cjs").register(ipcMain, ctx);
+  require("./ipc/vpn-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/settings-sync-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/data-handlers.cjs").register(ipcMain, ctx);
   require("./ipc/skill-handlers.cjs").register(ipcMain, ctx);
@@ -999,11 +1026,10 @@ function registerIpcHandlers() {
   try { require("./ipc/telemetry-handlers.cjs").register(ipcMain, ctx); } catch {}
   try { require("./ipc/shield-secrets-handlers.cjs").register(ipcMain, ctx); } catch {}
   try { require("./ipc/finance-handlers.cjs").register(ipcMain, ctx); } catch {}
-  try { require("./ipc/social-handlers.cjs").register(ipcMain, ctx); } catch {}
   try { require("./ipc/design-sync-handlers.cjs").register(ipcMain, ctx); } catch {}
   try { require("./ipc/memory-vault-handlers.cjs").register(ipcMain, ctx); } catch {}
   try { require("./ipc/photos-handlers.cjs").register(ipcMain, ctx); } catch {}
-  try { require("./ipc/postiz-handlers.cjs").register(ipcMain, ctx); } catch {}
+  try { require("./ipc/calcom-handlers.cjs").register(ipcMain, ctx); } catch {}
 
   // Auto-start HTTP server for dashboard (lazy init).
   try { require("./ai-router-service.cjs").getAiRouterService(app, ctx.secretStore); } catch (e) { console.error("[main] ai-router-service init FAILED:", e); }
@@ -1457,19 +1483,17 @@ app.whenReady().then(() => {
   try {
     const intgSettings = db.getSetting("integrations", {});
     
-    // Telemetry (PostHog)
-    if (intgSettings.telemetry?.host && intgSettings.telemetry?.apiKey) {
+    // Telemetry (Supabase app_events) — local-first + espelho cloud, sem PostHog
+    if (intgSettings.telemetry?.enabled !== false) {
       try {
-        const { PostHogTelemetryStore } = require("@orun/telemetry-node");
+        const { SupabaseTelemetryStore, SupabaseMetricsReader } = require("./telemetry-supabase.cjs");
         const { TelemetryClient } = require("@orun/telemetry-core");
-        const store = new PostHogTelemetryStore({ host: intgSettings.telemetry.host, apiKey: intgSettings.telemetry.apiKey, flushIntervalMs: 30000 });
-        const telemetry = new TelemetryClient({ store, platform: "desktop", appVersion: app.getVersion(), enabled: intgSettings.telemetry.enabled !== false });
+        const store = new SupabaseTelemetryStore({ db: db.getDb(), syncEnqueue });
+        const telemetry = new TelemetryClient({ store, platform: "desktop", appVersion: app.getVersion(), enabled: true });
         if (runtimeCtx) Object.defineProperty(runtimeCtx, "telemetry", { get: () => telemetry, enumerable: true });
-        if (intgSettings.telemetry.personalApiKey && intgSettings.telemetry.projectId) {
-          const { PostHogMetricsReader } = require("@orun/telemetry-node");
-          if (runtimeCtx) Object.defineProperty(runtimeCtx, "telemetryReader", { get: () => new PostHogMetricsReader({ host: intgSettings.telemetry.host, personalApiKey: intgSettings.telemetry.personalApiKey, projectId: intgSettings.telemetry.projectId }), enumerable: true });
-        }
-        log.info("[integrations] telemetry (PostHog) initialized");
+        const reader = new SupabaseMetricsReader({ db: db.getDb() });
+        if (runtimeCtx) Object.defineProperty(runtimeCtx, "telemetryReader", { get: () => reader, enumerable: true });
+        log.info("[integrations] telemetry (Supabase app_events) initialized");
       } catch (e) { log.warn("[integrations] telemetry init failed:", e.message); }
     }
 
@@ -1507,23 +1531,32 @@ app.whenReady().then(() => {
       } catch (e) { log.warn("[integrations] finance init failed:", e.message); }
     }
 
-    // Social (Postiz) — local client
-    try {
-      const postiz = require("./postiz.cjs");
-      const postizCfg = intgSettings.social || {};
-      postiz.init({
-        host: postizCfg.baseUrl || "http://localhost:5000",
-        email: postizCfg.email || "caique@orun.local",
-        password: postizCfg.password || "OrunPostiz2026!Secure",
-        log: logger,
-      });
-      if (runtimeCtx) Object.defineProperty(runtimeCtx, "postiz", { get: () => postiz, enumerable: true });
-      if (runtimeCtx) Object.defineProperty(runtimeCtx, "socialScheduler", { get: () => postiz, enumerable: true });
-      log.info("[integrations] postiz initialized (localhost)");
-    } catch (e) { log.warn("[integrations] postiz init failed:", e.message); }
+    // Cal.com (self-hosted booking calendar)
+    const calcomCfg = intgSettings.calcom || {};
+    if (calcomCfg.enabled !== false) {
+      try {
+        const calcom = require("./calcom-client.cjs");
+        calcom.init({
+          host: calcomCfg.host || "http://localhost:3000",
+          email: calcomCfg.email || "orun@orun.local",
+          password: calcomCfg.password || "",
+          log: logger,
+        });
+        if (runtimeCtx) Object.defineProperty(runtimeCtx, "calcom", { get: () => calcom, enumerable: true });
+        log.info("[integrations] calcom initialized" + (calcomCfg.password ? "" : " (sem senha — apenas consultas públicas)"));
+      } catch (e) { log.warn("[integrations] calcom init failed:", e.message); }
+    }
 
-    // Social (Postiz) — legacy adapter (disabled)
-    // if (intgSettings.social?.baseUrl && intgSettings.social?.apiKey) { ... }
+    // LibreTranslate (tradução local/privada pros agentes)
+    const translateCfg = intgSettings.translate || {};
+    if (translateCfg.enabled !== false) {
+      try {
+        const translate = require("./translate-client.cjs");
+        translate.init({ host: translateCfg.host || "http://localhost:5000", log: logger });
+        if (runtimeCtx) Object.defineProperty(runtimeCtx, "translator", { get: () => translate, enumerable: true });
+        log.info("[integrations] translate (LibreTranslate) initialized");
+      } catch (e) { log.warn("[integrations] translate init failed:", e.message); }
+    }
 
     // Design Sync (Penpot)
     const designCfg = intgSettings.designSync || intgSettings.design || {};
@@ -1808,16 +1841,112 @@ app.whenReady().then(() => {
   });
 
   // ── Webhook Receiver ──────────────────────────────────────────────
+  // Cal.com booking webhooks → agenda + notification (via host.docker.internal:8082)
+  async function handleCalcomWebhook(event) {
+    try {
+      const body = event && event.body;
+      if (!body || typeof body !== "object") return;
+      const trigger = Array.isArray(body.triggerEvent) ? body.triggerEvent[0] : body.triggerEvent;
+      if (typeof trigger !== "string") return;
+      // Cal.com v6 nested booking under "payload" (or legacy: top-level / body.data.booking)
+      const booking = (body.booking) || (body.payload && (body.payload.booking || body.payload)) || (body.data && body.data.booking) || null;
+      if (!booking || (!booking.uid && !booking.bookingUid)) return;
+
+      const calcom = require("./calcom-client.cjs");
+      const bUid = booking.uid || booking.bookingUid;
+      const bTitle = booking.title || "Compromisso";
+      const bStart = booking.startTime;
+
+      if (trigger.startsWith("BOOKING_CREATED") || trigger === "INSTANT_BOOKING_CREATED") {
+        if (db && typeof db.saveDailyAgenda === "function") {
+          const local = bStart ? calcom.toLocalISO(bStart, "America/Sao_Paulo") : new Date().toISOString();
+          const dateKey = local.slice(0, 10);
+          const timeKey = local.slice(11, 16);
+          db.saveDailyAgenda({
+            title: bTitle,
+            description: `Booking Cal.com ${bUid}${booking.attendees && booking.attendees[0] ? ` — ${booking.attendees[0].email}` : ""}`,
+            date: dateKey,
+            time: timeKey,
+            source: "calcom",
+          });
+        }
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send("app:notify", { title: "Compromisso agendado", body: bTitle });
+        }
+        log.info(`[calcom-webhook] ${trigger} ${bUid} "${bTitle}" ${bStart || ""}`);
+      } else if (trigger.startsWith("BOOKING_CANCELLED") || trigger.startsWith("BOOKING_REJECTED")) {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send("app:notify", { title: "Booking cancelado", body: bTitle });
+        }
+        log.info(`[calcom-webhook] ${trigger} ${bUid} "${bTitle}"`);
+      }
+    } catch (e) {
+      log.warn("[calcom-webhook] handler failed:", e.message);
+    }
+  }
+
   const wh = startWebhookReceiver({ log });
   setEventHandler((event) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send("webhook:event", event);
     }
+    handleCalcomWebhook(event);
   });
   ipcMain.handle("webhook:status", () => {
     const whPort = process.env.WEBHOOK_PORT || 8082;
     return { running: true, port: whPort, secret: wh.secret };
   });
+
+  // ── MCP LLM HTTP Endpoint (for MCP servers to call AI) ───────────────
+  const MCP_LLM_PORT = process.env.MCP_LLM_PORT || 8083;
+  const mcpLlmServer = http.createServer(async (req, res) => {
+    if (req.method !== "POST" || req.url !== "/mcp/llm") {
+      res.writeHead(404);
+      res.end('{"error":"not found"}');
+      return;
+    }
+    let body = "";
+    req.on("data", (chunk) => { body += chunk.toString(); });
+    req.on("end", async () => {
+      try {
+        const { prompt, systemPrompt, provider, model, baseUrl, temperature, maxTokens } = body ? JSON.parse(body) : {};
+        if (!prompt || typeof prompt !== "string") {
+          res.writeHead(400);
+          res.end('{"error":"prompt required"}');
+          return;
+        }
+        const settings = resolveAISettings("Teacher");
+        const apiKeys = secretStore.getProviderApiKeys(provider || settings.provider);
+        const sysPrompt = systemPrompt || buildSystemPrompt(settings.systemPrompt, "Teacher");
+        const messages = [
+          { role: "system", content: sysPrompt },
+          { role: "user", content: prompt },
+        ];
+        const result = await aiRouter.routeChat({
+          provider: provider || settings.provider,
+          model: model || settings.model,
+          baseUrl: baseUrl || settings.baseUrl,
+          apiKeys,
+          messages,
+          temperature: temperature ?? 0.3,
+          maxTokens: maxTokens ?? 2000,
+        });
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ text: result.text, usage: result.usage }));
+      } catch (err) {
+        log.error("[mcp-llm] error:", err.message);
+        res.writeHead(500);
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    });
+  });
+  mcpLlmServer.listen(MCP_LLM_PORT, "127.0.0.1", () => {
+    log.info(`[mcp-llm] HTTP endpoint listening on http://127.0.0.1:${MCP_LLM_PORT}/mcp/llm`);
+  });
+  mcpLlmServer.on("error", (err) => log.error("[mcp-llm] server error:", err.message));
+
+  // Pass MCP LLM endpoint to MCP servers via env
+  process.env.ORUN_MCP_LLM_ENDPOINT = `http://127.0.0.1:${MCP_LLM_PORT}/mcp/llm`;
 
   // ── MCP Servers (auto-load persisted servers) ──────────────────────
   const savedMcpServers = db.getSetting("mcpServers", []);
