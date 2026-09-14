@@ -43,6 +43,7 @@ const node_fs_1 = __importDefault(require("node:fs"));
 const node_http_1 = require("node:http");
 const node_url_1 = require("node:url");
 const model_catalog_1 = require("./model-catalog");
+const model_refresh_1 = require("./model-refresh");
 const ai_router_core_1 = require("@orun/ai-router-core");
 const MAX_BODY_BYTES = 1024 * 1024;
 function log(entry) {
@@ -108,6 +109,9 @@ let proxyPoolConfig = { ...ai_router_core_1.DEFAULT_PROXY_POOL };
 let tunnelConfig = { enabled: false, provider: "none", port: 4321 };
 let budgetConfig = { ...DEFAULT_BUDGET };
 let settingsStore = null;
+// Cache da lista VIVA de modelos (auto-catálogo via GET /models por provider).
+let liveModelCache = {};
+let refreshModelTs = null;
 // ─────────────────────────────────────────────────────────────
 // SSE log streaming
 // ─────────────────────────────────────────────────────────────
@@ -234,6 +238,17 @@ function createAiRouterServer(options) {
     }
     // Load persisted settings on startup
     void loadPersistedSettings();
+    // Auto-catálogo: refresh ao boot (fire-and-forget — nunca bloqueia o listen).
+    if (options.providerConfigStore) {
+        void (0, model_refresh_1.refreshConfiguredProviders)(options).then((res) => {
+            if (res.results.length > 0) {
+                liveModelCache = res.liveMap;
+                refreshModelTs = res.at;
+            }
+        }).catch((err) => {
+            console.error("[server] auto-refresh de modelos falhou:", err instanceof Error ? err.message : err);
+        });
+    }
     const server = (0, node_http_1.createServer)((req, res) => {
         const requestId = node_crypto_1.default.randomUUID();
         res.setHeader("X-Request-ID", requestId);
@@ -465,6 +480,7 @@ const DASHBOARD_MIME = {
 };
 async function handleDashboardApi(req, res, path, options, requestId) {
     const method = req.method ?? "GET";
+    const url = new node_url_1.URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
     // CORS: set headers for all API responses
     const corsOrigin = getCorsOrigin(req);
     res.setHeader("Access-Control-Allow-Origin", corsOrigin);
@@ -496,6 +512,9 @@ async function handleDashboardApi(req, res, path, options, requestId) {
         const circuits = "getAllCircuitStates" in options.router
             ? options.router.getAllCircuitStates()
             : [];
+        const bannedModels = "getBannedModels" in options.router
+            ? options.router.getBannedModels()
+            : [];
         const providerDetails = providers.map(p => {
             const circuit = circuits.find((c) => c.providerId?.startsWith(p.providerId));
             return {
@@ -518,6 +537,7 @@ async function handleDashboardApi(req, res, path, options, requestId) {
             uptime,
             providers: providerDetails,
             circuits: circuits,
+            bannedModels: bannedModels,
             budget: budgetConfig,
         });
         return;
@@ -580,12 +600,34 @@ async function handleDashboardApi(req, res, path, options, requestId) {
     }
     // ── /api/models ──
 // Catalogo de modelos por provider p/ o seletor de combo (tag free/paid).
+// Com auto-catálogo ativo, os itens do catálogo ganham status alive/dead
+// conforme a última lista viva (`GET /models` por provider).
     if (path === "/api/models" && method === "GET") {
         const catalog = {};
         for (const [pid, models] of Object.entries(model_catalog_1.MODEL_CATALOG)) {
-            catalog[pid] = models.map((m) => ({ id: m.id, tier: m.tier }));
+            const liveIds = liveModelCache[pid];
+            catalog[pid] = liveIds
+                ? models.map((m) => ({ id: m.id, tier: m.tier, status: liveIds.includes(m.id) ? "alive" : "dead" }))
+                : models.map((m) => ({ id: m.id, tier: m.tier }));
         }
-        json(res, 200, { catalog, providers: Object.keys(catalog) });
+        json(res, 200, { catalog, providers: Object.keys(catalog), live: liveModelCache, refreshedAt: refreshModelTs });
+        return;
+    }
+    // ── /api/models/refresh ── (POST; ?provider=opcional p/ refrescar só um)
+    // Consulta GET /models de cada provider configurado e atualiza o cache.
+    if (path === "/api/models/refresh" && method === "POST") {
+        const want = url.searchParams.get("provider") || undefined;
+        const result = await (0, model_refresh_1.refreshConfiguredProviders)(options, want);
+        liveModelCache = result.liveMap;
+        refreshModelTs = result.at;
+        json(res, 200, {
+            ok: true,
+            at: result.at,
+            refreshed: result.results.filter((r) => r.ok).map((r) => r.providerId),
+            failed: result.results.filter((r) => !r.ok).map((r) => ({ providerId: r.providerId, status: r.status, error: r.error })),
+            unsupported: result.results.filter((r) => r.status === "unsupported").map((r) => r.providerId),
+            results: result.results,
+        });
         return;
     }
 // ── /api/providers/:id/credentials ──

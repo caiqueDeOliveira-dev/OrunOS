@@ -35,6 +35,7 @@ __exportStar(require("./skills/hampton-circle-seed"), exports);
 __exportStar(require("./quota/quota-window-defs"), exports);
 __exportStar(require("./quota/quota-tracker"), exports);
 __exportStar(require("./circuit-breaker/circuit-breaker"), exports);
+__exportStar(require("./circuit-breaker/model-ban"), exports);
 __exportStar(require("./accounts/account-rotator"), exports);
 __exportStar(require("./rtk/compressor"), exports);
 __exportStar(require("./rtk/apply-rtk"), exports);

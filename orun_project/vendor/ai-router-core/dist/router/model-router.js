@@ -6,6 +6,7 @@ const registry_2 = require("../adapters/registry");
 const types_1 = require("../adapters/types");
 const model_pricing_1 = require("../pricing/model-pricing");
 const circuit_breaker_1 = require("../circuit-breaker/circuit-breaker");
+const model_ban_1 = require("../circuit-breaker/model-ban");
 const quota_tracker_1 = require("../quota/quota-tracker");
 const account_rotator_1 = require("../accounts/account-rotator");
 const apply_rtk_1 = require("../rtk/apply-rtk");
@@ -30,6 +31,7 @@ class ModelRouter {
     skillStore;
     usageLogStore;
     circuitBreaker;
+    modelBan;
     quotaTracker;
     accountRotator;
     semanticCache;
@@ -41,6 +43,7 @@ class ModelRouter {
         this.skillStore = skillStore;
         this.usageLogStore = usageLogStore;
         this.circuitBreaker = opts?.circuitBreaker ?? new circuit_breaker_1.CircuitBreaker();
+        this.modelBan = opts?.modelBan ?? new model_ban_1.ModelBan();
         this.quotaTracker = opts?.quotaTracker ?? new quota_tracker_1.QuotaTracker(usageLogStore);
         this.accountRotator = opts?.accountRotator ?? new account_rotator_1.AccountRotator();
         this.semanticCache = opts?.semanticCache ?? null;
@@ -163,6 +166,13 @@ class ModelRouter {
     getAllCircuitStates() {
         return this.circuitBreaker.getStates();
     }
+    /** Modelos mortos em cooldown (ban por modelo) — pra dashboard/health. */
+    getBannedModels() {
+        return this.modelBan ? this.modelBan.getBanned() : [];
+    }
+    getModelBanStatus(providerId, accountLabel, model) {
+        return this.modelBan ? this.modelBan.getStatus(providerId, accountLabel, model) : null;
+    }
     async applySkill(combo, messages) {
         if (!combo.skillId)
             return messages;
@@ -267,6 +277,12 @@ class ModelRouter {
                     break;
                 }
                 const perModelStep = { ...step, model, models: undefined };
+                // modelo morto (404 anterior): pula sem bater na API nem tocar
+                // no circuit breaker do provider — os outros modelos seguem.
+                if (this.modelBan && this.modelBan.isBanned(step.providerId, accountLabel, model)) {
+                    attempts.push({ providerId: step.providerId, model, error: "modelo em cooldown (not found anterior — morto)" });
+                    continue;
+                }
                 const result = await this.callAdapterWithRetry(combo, perModelStep, stepIndex, messages, request, attempts, baseUrl, credential, accountLabel, providerDef, onChunk);
                 if (result) {
                     return result;
@@ -300,6 +316,8 @@ class ModelRouter {
                 if (raw.responseHeaders)
                     this.quotaTracker.ingestHeaders(step.providerId, accountLabel, raw.responseHeaders);
                 this.circuitBreaker.recordSuccess(step.providerId, accountLabel);
+                if (this.modelBan)
+                    this.modelBan.recordSuccess(step.providerId, accountLabel, step.model);
                 const usage = {
                     timestamp: startedAt,
                     comboId: combo.id,
@@ -327,6 +345,14 @@ class ModelRouter {
                 lastError = err;
                 const isRateLimit = err instanceof types_1.ProviderCallError && err.isRateLimit;
                 const isServerError = err instanceof types_1.ProviderCallError && err.isServerError;
+                // modelo morto (404/400 not found): ban SÓ o modelo por um cooldown
+                // e NÃO registra falha no circuit breaker do provider (os outros
+                // modelos e contas dele continuam intactos). Retry é inútil aqui.
+                if (isModelNotFoundError(err)) {
+                    if (this.modelBan)
+                        this.modelBan.recordBan(step.providerId, accountLabel, step.model);
+                    break;
+                }
                 if (isRateLimit && typeof this.accountRotator.markExhausted === "function") {
                     // quota exaurida: pausa SÓ esta conta por um cooldown (default 60s),
                     // deixa as demais contas/providers do combo seguirem normalmente.
@@ -338,7 +364,10 @@ class ModelRouter {
                 await sleep(backoffMs);
             }
         }
-        this.circuitBreaker.recordFailure(step.providerId, accountLabel);
+        if (!(lastError instanceof types_1.ProviderCallError && isModelNotFoundError(lastError))) {
+            // modelo morto (not found): NÃO conta falha pro provider — outros modelos seguem
+            this.circuitBreaker.recordFailure(step.providerId, accountLabel);
+        }
         const errorMessage = lastError instanceof Error ? lastError.message : String(lastError);
         attempts.push({ providerId: step.providerId, model: step.model, error: errorMessage });
         await this.usageLogStore.record({
@@ -359,6 +388,21 @@ class ModelRouter {
     }
 }
 exports.ModelRouter = ModelRouter;
+/**
+ * Heurística de "modelo morto": 400/404/410 com mensagem típica de modelo
+ * inexistente (catálogo stale — modelo foi removido do provider). Um 404 de
+ * modelo NÃO é falha transitória do provider: retry não resolve, e bane o
+ * provider inteiro derrubaria os outros modelos vivos dele junto.
+ */
+function isModelNotFoundError(err) {
+    if (!(err instanceof types_1.ProviderCallError))
+        return false;
+    const code = String(err.statusCode ?? "");
+    if (!(code === "400" || code === "404" || code === "410"))
+        return false;
+    const msg = String(err.message || "");
+    return /\bnot found\b|\bnot_found\b|unknown model|does not exist|do not exist|no such model|invalid model \b/i.test(msg);
+}
 function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }

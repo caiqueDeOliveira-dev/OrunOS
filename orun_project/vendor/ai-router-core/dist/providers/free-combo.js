@@ -22,39 +22,36 @@ const schema_1 = require("../schema");
  */
 exports.FREE_FOREVER_COMBO = schema_1.ComboSchema.parse({
     id: "free-forever",
-    name: "Free Forever (Kiro → OpenCode Free → Vertex AI)",
+    name: "Free Forever (Groq → Gemini → OpenRouter → Ollama)",
     kind: "text",
     isSystemDefault: true,
     rtkEnabled: true,
     steps: [
-        { providerId: "kiro", model: "claude-sonnet-4.5", maxRetries: 1 },
-        { providerId: "opencode-free", model: "auto", maxRetries: 1 },
-        { providerId: "vertex-ai", model: "gemini-3.1-pro-preview", maxRetries: 1 },
-        { providerId: "ollama", model: "qwen2.5:14b", maxRetries: 0 }, // fallback final, sempre disponível
+        { providerId: "groq", models: ["openai/gpt-oss-120b", "openai/gpt-oss-20b"], maxRetries: 1 },
+        { providerId: "gemini", models: ["gemini-3.6-flash"], maxRetries: 1 },
+        { providerId: "openrouter", models: ["nvidia/nemotron-3-super-120b-a12b:free", "nex-agi/nex-n2.5-pro:free"], maxRetries: 1 },
+        { providerId: "ollama", model: "qwen2.5vl:7b", maxRetries: 0 }, // fallback final, sempre disponível
     ],
 });
 exports.FREE_DEFAULT_COMBO = schema_1.ComboSchema.parse({
     id: "free-default",
-    name: "Free Default (sem custo)",
+    name: "Free Default (Groq → Gemini → Ollama)",
     kind: "text",
     isSystemDefault: false,
     steps: [
-        { providerId: "groq", model: "llama-3.3-70b-versatile", maxRetries: 1 },
-        { providerId: "gemini", model: "gemini-2.0-flash", maxRetries: 1 },
-        { providerId: "github-models", model: "gpt-4o-mini", maxRetries: 1 },
-        { providerId: "cerebras", model: "llama3.1-70b", maxRetries: 1 },
-        { providerId: "ollama", model: "qwen2.5:14b", maxRetries: 0 }, // fallback final, sempre disponível
+        { providerId: "groq", models: ["openai/gpt-oss-120b", "openai/gpt-oss-20b"], maxRetries: 1 },
+        { providerId: "gemini", models: ["gemini-3.6-flash", "gemini-2.5-flash"], maxRetries: 1 },
+        { providerId: "ollama", model: "qwen2.5vl:7b", maxRetries: 0 }, // fallback final, sempre disponível
     ],
 });
-/** Variante só com providers que não pedem NENHUM cadastro (Ollama + OpenCode Free). */
+/** Variante só com providers que não pedem NENHUM cadastro (Ollama local). */
 exports.FREE_NO_SIGNUP_COMBO = schema_1.ComboSchema.parse({
     id: "free-no-signup",
-    name: "Free sem cadastro",
+    name: "Free sem cadastro (Ollama local)",
     kind: "text",
     isSystemDefault: false,
     steps: [
-        { providerId: "opencode-free", model: "auto", maxRetries: 1 },
-        { providerId: "ollama", model: "qwen2.5:14b", maxRetries: 0 },
+        { providerId: "ollama", model: "qwen2.5vl:7b", maxRetries: 0 },
     ],
 });
 /**
@@ -71,10 +68,8 @@ exports.FREE_OPENROUTER_MODELS_COMBO = schema_1.ComboSchema.parse({
     kind: "text",
     isSystemDefault: false,
     steps: [
-        { providerId: "openrouter", model: "deepseek/deepseek-chat-v3.1:free", maxRetries: 1 },
-        { providerId: "openrouter", model: "meta-llama/llama-3.3-70b-instruct:free", maxRetries: 1 },
-        { providerId: "openrouter", model: "google/gemini-2.0-flash-exp:free", maxRetries: 1 },
-        { providerId: "ollama", model: "qwen2.5:14b", maxRetries: 0 },
+        { providerId: "openrouter", models: ["nvidia/nemotron-3-super-120b-a12b:free", "nex-agi/nex-n2.5-pro:free", "google/gemma-4-31b-it:free", "thinkingmachines/inkling:free"], maxRetries: 1 },
+        { providerId: "ollama", model: "qwen2.5vl:7b", maxRetries: 0 },
     ],
 });
 /** Combo com TODOS os providers 100% gratuitos do registry, pra maximizar chance de sucesso sem gastar nada. */
@@ -84,14 +79,10 @@ exports.FREE_MAX_COVERAGE_COMBO = schema_1.ComboSchema.parse({
     kind: "text",
     isSystemDefault: false,
     steps: [
-        { providerId: "groq", model: "llama-3.3-70b-versatile", maxRetries: 1 },
-        { providerId: "gemini", model: "gemini-2.0-flash", maxRetries: 1 },
-        { providerId: "cerebras", model: "llama3.1-70b", maxRetries: 1 },
-        { providerId: "github-models", model: "gpt-4o-mini", maxRetries: 1 },
-        { providerId: "mistral", model: "mistral-small-latest", maxRetries: 1 },
-        { providerId: "huggingface-inference", model: "meta-llama/Llama-3.3-70B-Instruct", maxRetries: 1 },
-        { providerId: "chutes", model: "deepseek-ai/DeepSeek-V3", maxRetries: 1 },
-        { providerId: "ollama", model: "qwen2.5:14b", maxRetries: 0 },
+        { providerId: "groq", models: ["openai/gpt-oss-120b", "openai/gpt-oss-20b"], maxRetries: 1 },
+        { providerId: "gemini", models: ["gemini-3.6-flash", "gemini-2.5-flash"], maxRetries: 1 },
+        { providerId: "openrouter", models: ["nvidia/nemotron-3-super-120b-a12b:free", "nex-agi/nex-n2.5-pro:free", "google/gemma-4-31b-it:free"], maxRetries: 1 },
+        { providerId: "ollama", model: "qwen2.5vl:7b", maxRetries: 0 },
     ],
 });
 exports.BUILTIN_FREE_COMBOS = [
