@@ -1,4 +1,4 @@
-# AGENTS.md — Orun OS workspace
+﻿# AGENTS.md — Orun OS workspace
 
 Contexto persistente carregado em toda sessão. Não apague este arquivo.
 
@@ -14,10 +14,10 @@ O objetivo do usuário é transformar o ecossistema Orun em um **sistema operaci
 
 | Projeto | Caminho | Stack | O que é |
 | --- | --- | --- | --- |
-| Orun OS (desktop) | `C:\Users\Caiqu\OneDrive\Desktop\orun-os\orun_project` | Electron 31, React 18.3, Vite 6, Tailwind 4, TypeScript | App desktop multi-agente, workspace plugin-based, WhatsApp/Telegram/Discord, voz (TTS/STT/wake word), Spotify, n8n, sync Supabase. **v0.6.8** (referência/base do SO) |
+| Orun OS (desktop) | `C:\Users\Caiqu\OneDrive\Desktop\Orun Ecosistema\orun-os\orun_project` | Electron 31, React 18.3, Vite 6, Tailwind 4, TypeScript | App desktop multi-agente, workspace plugin-based, WhatsApp/Telegram/Discord, voz (TTS/STT/wake word), Spotify, n8n, sync Supabase. **v0.6.8** (referência/base do SO) |
 | Orun Mobile (monorepo) | `C:\Users\Caiqu\Downloads\orun-monorepo_1\orun-monorepo` | Expo/React Native, Supabase, Deno Edge Functions | App mobile (expo-router), design system, `supabase-sync` (sync engine + ai-relay/telegram/whatsapp webhooks), `whatsapp-baileys`, **home-app** (tablet smarthome). Branch `master` |
-| Orun-Core | `C:\Users\Caiqu\OneDrive\Desktop\Orun-Core` | TypeScript | Core compartilhado: `getSupabaseClient` (aceita `transport` WebSocket p/ Electron), hub `devices`/`commands`, satélites (`home`/`tv`/`shield`). v0.1.2 — 60 testes |
-| OrunVS | `C:\Users\Caiqu\OneDrive\Desktop\OrunVS` | VS Code extension, TS | Chat IA multi-provider, fallback chain, memória local, skills, **client MCP stdio + catálogo on-demand**. **v0.3.4** — 87 testes, VSIX instalado |
+| Orun-Core | `C:\Users\Caiqu\OneDrive\Desktop\Orun Ecosistema\Orun-Core` | TypeScript | Core compartilhado: `getSupabaseClient` (aceita `transport` WebSocket p/ Electron), hub `devices`/`commands`, satélites (`home`/`tv`/`shield`). v0.1.2 — 60 testes |
+| OrunVS | `C:\Users\Caiqu\OneDrive\Desktop\Orun Ecosistema\OrunVS` | VS Code extension, TS | Chat IA multi-provider, fallback chain, memória local, skills, **client MCP stdio + catálogo on-demand**. **v0.3.4** — 87 testes, VSIX instalado |
 | OrunTV | `C:\Users\Caiqu\Downloads\oruntv_2\oruntv` | Jellyfin + Sonarr/Radarr/Prowlarr/Bazarr/qBittorrent; apps dashboard/desktop/mobile/tizen | Media stack completo. v0.1.0 — em refinamento |
 | Orun Shield | `C:\Users\Caiqu\Downloads\Orun Shield\orun-security-suite` | 6 pacotes TS (shield-core, sentinela-agent, shield-mobile, system-optimizer) + 2 integrações Electron | Suíte de segurança (~115+ testes). v0.1.0 — em refinamento |
 | Orun Auth | zip `Downloads\Orun Auth.zip` / `Orun Auth_1.zip` | TS (pacote puro `@orun/identity`), vitest, Deno Edge Functions | Identidade/auth centralizado (OAuth, billing Stripe, MFA, LGPD). **bruto v0.1.0** — 71/71 testes, pronto p/ refinar/integrar |
