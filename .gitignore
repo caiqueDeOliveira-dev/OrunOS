@@ -14,6 +14,7 @@ build/*
 Thumbs.db
 f5tts-server/
 PLAN.md
+ORUN_OS_PROMPT.md
 agent_config.json
 db.cjs
 social-media-pages/
